@@ -1,11 +1,11 @@
 "use client";
 import { useState } from "react";
 
-// Login por código enviado ao e-mail: digite o Gmail, receba 6 números, entre.
+// Login sem senha: digite o Gmail e abra o link enviado (no mesmo aparelho).
+// O código de 6 dígitos (/api/auth/verify) fica pronto para quando houver SMTP próprio.
 export function EmailLogin() {
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -23,33 +23,25 @@ export function EmailLogin() {
     setBusy(false);
     if (!r.ok) return setMsg(r.error ?? "Não consegui enviar. Tente de novo.");
     setStep("code");
-    setMsg("Se este e-mail tiver acesso, o código chega em instantes. Confira também o spam.");
   }
 
-  async function verify(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setMsg("");
-    const r = await post("/api/auth/verify", { email, token: code });
-    setBusy(false);
-    if (!r.ok) return setMsg(r.error ?? "Código inválido.");
-    window.location.href = "/app";
+  if (step === "code") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "min(100%, 340px)" }}>
+        <div className="notice" role="status">
+          Se este e-mail tiver acesso, um link de entrada chega em instantes. Abra o link <b>neste mesmo aparelho e navegador</b>. Confira também o spam.
+        </div>
+        <button className="btn" type="button" onClick={() => { setStep("email"); setMsg(""); }}>Trocar e-mail ou pedir outro link</button>
+        {msg && <div className="notice" role="alert">{msg}</div>}
+      </div>
+    );
   }
-
-  return step === "email" ? (
+  return (
     <form onSubmit={sendCode} style={{ display: "flex", flexDirection: "column", gap: 10, width: "min(100%, 340px)" }}>
       <label className="sr" htmlFor="email">Seu e-mail</label>
       <input id="email" className="field" type="email" inputMode="email" autoComplete="email" required placeholder="seu@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <button className="btn btn-pri" type="submit" disabled={busy || !email}>{busy ? "Enviando…" : "Receber código no e-mail"}</button>
+      <button className="btn btn-pri" type="submit" disabled={busy || !email}>{busy ? "Enviando…" : "Receber link de entrada"}</button>
       {msg && <div className="notice" role="alert">{msg}</div>}
-    </form>
-  ) : (
-    <form onSubmit={verify} style={{ display: "flex", flexDirection: "column", gap: 10, width: "min(100%, 340px)" }}>
-      <label className="sr" htmlFor="code">Código de 6 dígitos</label>
-      <input id="code" className="field" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6,10}" maxLength={10} required placeholder="Código de 6 dígitos" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} style={{ textAlign: "center", letterSpacing: "0.3em", fontSize: 22 }} />
-      <button className="btn btn-pri" type="submit" disabled={busy || code.length < 6}>{busy ? "Entrando…" : "Entrar"}</button>
-      <button className="btn" type="button" onClick={() => { setStep("email"); setCode(""); setMsg(""); }}>Trocar e-mail ou pedir outro código</button>
-      {msg && <div className="notice" role="status">{msg}</div>}
     </form>
   );
 }

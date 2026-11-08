@@ -1,6 +1,6 @@
 # Gadu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 08/11/2026 (v0.1.0). `[x]` feito · `[ ]` falta · `[~]` em andamento.
+Atualizado a cada entrega. Última atualização: 08/11/2026 (v0.1.1). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 ## Fase 0 · MVP publicado (v0.1)
@@ -8,25 +8,33 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 ### Fundação
 - [x] Repositório próprio, separado de qualquer projeto corporativo
 - [x] Next.js 16 (App Router) + TypeScript estrito
-- [ ] **Importar o repositório na Vercel e cadastrar as variáveis** (passo manual: o conector não tem permissão para criar projetos)
+- [x] Projeto `gadu-agent` na Vercel (Pro), ligado ao GitHub: cada envio ao `main` publica sozinho
+- [x] Variáveis cadastradas pela API da Vercel (nenhuma secreta)
+- [x] Ambiente de trabalho "Gadu" no Claude com tokens da Vercel e do Supabase isolados
 - [x] Banco Supabase próprio (São Paulo) com RLS em todas as tabelas
 - [x] Esquema multiusuário: perfis, conversas, mensagens, memórias, cota diária
 - [x] Migração versionada em `supabase/migrations`
 - [x] ROADMAP, README, ARQUITETURA e SEGURANÇA documentados
 
 ### Acesso
-- [x] Login com Google (OAuth com PKCE via Supabase Auth)
+- [x] Login sem senha por link enviado ao e-mail (Supabase Auth, PKCE)
+- [x] Supabase configurado pela API: endereço do site, endereços de retorno, link válido por 10 minutos
+- [x] Login com Google pronto no código (liga com `GOOGLE_LOGIN_ENABLED=1` + cliente OAuth)
 - [x] Lista de convidados (`ALLOWED_EMAILS`); quem não está na lista é desconectado
 - [x] Rotas protegidas no servidor (proxy) e no banco (RLS)
-- [ ] **Configurar o cliente OAuth do Google e ativar o provedor no Supabase** (passo manual, ver README)
+- [ ] Código de 6 dígitos no e-mail (exige SMTP próprio, ex.: Resend; o plano grátis do Supabase não deixa mudar o e-mail)
+- [ ] Desligar novos cadastros no Supabase depois do primeiro login (mais segurança)
+- [ ] (Opcional) Ativar o botão do Google
 
 ### Conversa
 - [x] Conversa em streaming, mostrando qual modelo respondeu
 - [x] Roteador de modelos com contingência: Claude → Gemini se o principal falhar antes de responder
+- [x] Motor via Vercel AI Gateway com token automático da Vercel (sem chave guardada)
 - [x] Memória aprovada entra no contexto; histórico das últimas mensagens
 - [x] Prompt estável em cache (mais rápido e mais barato)
 - [x] Abre na última conversa; botão "Nova conversa"
-- [ ] **Cadastrar `ANTHROPIC_API_KEY` na Vercel** (passo manual)
+- [ ] Primeiro teste real de conversa em produção
+- [ ] Teto de gasto do AI Gateway no painel da Vercel
 
 ### Voz (grátis, do aparelho)
 - [x] Apertar para falar (reconhecimento de voz do navegador, pt-BR)

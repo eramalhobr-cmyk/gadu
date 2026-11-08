@@ -129,7 +129,7 @@ export async function POST(request: Request) {
         send({ t: "done", memories: added });
       } catch (e) {
         if (e instanceof NoProviderError) {
-          send({ t: "notice", kind: "engine", text: "O motor ainda não está configurado: falta cadastrar a chave da IA no servidor (ANTHROPIC_API_KEY na Vercel)." });
+          send({ t: "notice", kind: "engine", text: "O motor ainda não está configurado neste servidor. Publique na Vercel (usa o AI Gateway) ou cadastre ANTHROPIC_API_KEY." });
         } else if (!request.signal.aborted) {
           console.error("chat error", e instanceof Error ? e.message : "unknown");
           send({ t: "notice", kind: "error", text: "Não consegui responder agora. Tente de novo em instantes." });

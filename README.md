@@ -18,13 +18,13 @@ npm test                     # testes
 ## Publicar (primeira vez)
 
 1. **Banco:** crie um projeto no Supabase e rode `supabase/migrations/*.sql` no SQL Editor (em ordem).
-2. **Login com Google:**
+2. **Login:** por padrão, link enviado ao e-mail (nada a configurar além do Site URL e Redirect URLs no Supabase). Para o botão do Google (opcional):
    1. No Google Cloud Console, crie um projeto, configure a tela de consentimento OAuth (tipo *Externo*, modo *Teste*, adicione seu e-mail como usuário de teste).
    2. Crie uma credencial *ID do cliente OAuth* do tipo *Aplicativo da Web*, com o URI de redirecionamento autorizado:
       `https://SEU-PROJETO.supabase.co/auth/v1/callback`
    3. No Supabase: *Authentication → Sign In / Providers → Google*: ative e cole o Client ID e o Client Secret.
    4. No Supabase: *Authentication → URL Configuration*: em *Site URL* coloque a URL da Vercel e em *Redirect URLs* adicione `https://SUA-URL/auth/callback` (e `http://localhost:3000/auth/callback` para desenvolvimento).
-3. **Vercel:** importe o repositório e cadastre as variáveis de `.env.example` (as secretas como *Sensitive*).
+3. **Vercel:** importe o repositório e cadastre as variáveis de `.env.example`. Na Vercel, a IA usa o AI Gateway com token automático: não precisa de chave.
 4. Abra a URL, entre com o Google e pronto.
 
 ## Instalar para outra pessoa

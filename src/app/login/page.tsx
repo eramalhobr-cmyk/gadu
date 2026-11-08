@@ -5,7 +5,7 @@ const GOOGLE = process.env.GOOGLE_LOGIN_ENABLED === "1";
 
 const ERRORS: Record<string, string> = {
   acesso: "Esta conta não tem acesso ao Gadu. Por enquanto ele é só para convidados.",
-  google: "O login com o Google não foi concluído. Tente de novo.",
+  google: "O login não foi concluído. Peça um novo link e abra no mesmo aparelho e navegador.",
 };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {

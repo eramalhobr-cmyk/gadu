@@ -9,7 +9,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     version: APP_VERSION,
-    engine: { primary: Boolean(cfg.anthropicKey), fallback: Boolean(cfg.geminiKey) },
+    engine: { anthropic: Boolean(cfg.anthropicKey), gateway: Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL), gemini: Boolean(cfg.geminiKey) },
     database: Boolean(SUPABASE_URL),
     time: new Date().toISOString(),
   });

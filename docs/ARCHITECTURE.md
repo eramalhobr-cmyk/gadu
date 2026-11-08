@@ -11,7 +11,8 @@ Vercel (rede global, funções sem estado)
   └─ /api/health ..... saúde
   │
   ├──► Supabase (São Paulo): Postgres + Auth, RLS em tudo
-  └──► Provedores de IA (adaptadores): Claude → Gemini (contingência)
+  └──► Vercel AI Gateway (token OIDC automático): Claude → Gemini (contingência)
+       └─ opcional: chave direta da Anthropic / Gemini
 ```
 
 ## Decisões
@@ -28,7 +29,7 @@ Vercel (rede global, funções sem estado)
 
 | Falha | O que acontece |
 |---|---|
-| Motor principal fora | Roteador tenta o Gemini (se configurado) |
+| Motor principal fora | Roteador tenta o próximo da lista: Gateway Claude → Gemini |
 | Nenhum motor configurado | Aviso claro na conversa, app continua |
 | Rede cai antes da resposta | App tenta de novo uma vez; se falhar, a mensagem volta para o rascunho |
 | Sem internet | PWA abre a tela offline; rascunho fica salvo no aparelho |

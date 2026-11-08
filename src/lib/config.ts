@@ -21,6 +21,9 @@ export function serverConfig() {
     anthropicKey: process.env.ANTHROPIC_API_KEY ?? "",
     geminiKey: process.env.GEMINI_API_KEY ?? "",
     geminiModel: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+    // Modelos via Vercel AI Gateway (ids exatos de https://ai-gateway.vercel.sh/v1/models).
+    gatewayModel: process.env.GATEWAY_MODEL || "anthropic/claude-opus-5.5",
+    gatewayFallbackModel: process.env.GATEWAY_FALLBACK_MODEL || "google/gemini-3.5-flash",
   };
 }
 

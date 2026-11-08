@@ -1,8 +1,10 @@
 import { anthropicProvider } from "./anthropic";
+import { gatewayClaude, gatewayFallback } from "./gateway";
 import { geminiProvider } from "./gemini";
 import type { ChatRequest, Provider } from "./types";
 
-const CHAIN: Provider[] = [anthropicProvider, geminiProvider];
+// Ordem: chave direta da Anthropic (se houver) → AI Gateway (Claude) → Gemini direto → Gemini via Gateway.
+const CHAIN: Provider[] = [anthropicProvider, gatewayClaude, geminiProvider, gatewayFallback];
 
 export type RouterEvent = { type: "provider"; name: string } | { type: "text"; text: string };
 
