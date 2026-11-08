@@ -1,13 +1,14 @@
 # Gadu · Roadmap
 
-Atualizado a cada entrega. `[x]` feito · `[ ]` falta · `[~]` em andamento.
+Atualizado a cada entrega. Última atualização: 08/11/2026 (v0.1.0). `[x]` feito · `[ ]` falta · `[~]` em andamento.
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 ## Fase 0 · MVP publicado (v0.1)
 
 ### Fundação
 - [x] Repositório próprio, separado de qualquer projeto corporativo
-- [x] Next.js 16 (App Router) + TypeScript estrito, publicado na Vercel
+- [x] Next.js 16 (App Router) + TypeScript estrito
+- [ ] **Importar o repositório na Vercel e cadastrar as variáveis** (passo manual: o conector não tem permissão para criar projetos)
 - [x] Banco Supabase próprio (São Paulo) com RLS em todas as tabelas
 - [x] Esquema multiusuário: perfis, conversas, mensagens, memórias, cota diária
 - [x] Migração versionada em `supabase/migrations`
