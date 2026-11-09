@@ -351,7 +351,10 @@ export function GaduApp(props: {
           </button>
           <span className="brand">GaDu</span>
         </div>
-        <span className={`mono state ${mode === "thinking" ? "hot" : ""}`}><i />{stateLabel}</span>
+        <div className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
+          <span className={`mono state ${mode === "thinking" ? "hot" : ""}`}><i />{stateLabel}</span>
+          <a className="icon-btn help-btn" href="/app/sobre" aria-label="Como o GaDu funciona" title="Como o GaDu funciona">?</a>
+        </div>
       </header>
       {!online && <div className="banner" role="status">Sem internet. O app continua aberto e as mensagens ficam no rascunho.</div>}
 

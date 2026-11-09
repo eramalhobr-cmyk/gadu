@@ -172,6 +172,7 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] Regra revisada: nada do empregador entra; o negócio próprio da pessoa pode entrar
 - [ ] Convidar o primeiro usuário (Luiz Cláudio)
 - [x] Página "Como o GaDu funciona" (arquitetura, fluxo, navegação, dados, segurança, custos)
+- [x] Acesso fácil à página: botão "?" no topo de todas as telas, menu ☰ e Perfil › Ajustes
 
 ## Por último (combinado em 10/11)
 - [ ] Testes automáticos de ponta a ponta antes de publicar, alerta de erro e tela de erro própria

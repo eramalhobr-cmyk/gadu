@@ -305,3 +305,4 @@ a.mail { display: flex; flex-direction: column; gap: 4px; color: var(--ink); tex
 .ticks li::before { content: "✓"; position: absolute; left: 4px; color: var(--sig); }
 /* Espaço para o botão de voz flutuante no fim das páginas */
 .page { padding-bottom: 96px; }
+.help-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line-2); font: 700 16px var(--body); text-decoration: none; color: var(--sig); }
