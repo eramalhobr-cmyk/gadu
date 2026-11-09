@@ -47,3 +47,11 @@ test("lembretes do bloco de controle: futuros e válidos", () => {
   assert.equal(r.reminders[0].dueAt, "2026-11-11T12:00:00.000Z");
   assert.equal(r.reminders[1].dueAt, "2026-11-11T13:30:00.000Z");
 });
+
+test("tarefas do bloco de controle", () => {
+  const now = Date.parse("2026-11-10T12:00:00Z");
+  const r = splitMeta('Anotado.\n<<<META>>>\n{"memorias":[],"lembretes":[],"tarefas":[{"texto":"Renovar o seguro do carro","prazo":"2026-11-14","prioridade":1,"projeto":"Casa"},{"texto":"Ler o capítulo 3","prazo":"amanhã"},{"texto":""}]}', now);
+  assert.equal(r.tasks.length, 2);
+  assert.deepEqual(r.tasks[0], { title: "Renovar o seguro do carro", due: "2026-11-14", priority: 1, project: "Casa" });
+  assert.deepEqual(r.tasks[1], { title: "Ler o capítulo 3", due: null, priority: 2, project: null });
+});

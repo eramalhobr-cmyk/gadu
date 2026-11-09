@@ -9,7 +9,7 @@ import { splitMeta, visiblePart } from "@/lib/meta";
 import { costUsd } from "@/lib/pricing";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
 import { accessToken, events, formatEvents, formatMails, GoogleError, googleIntent, inbox } from "@/lib/google";
-import { contextBlock, systemPrompt } from "@/lib/prompt";
+import { contextBlock, extrasBlock, systemPrompt } from "@/lib/prompt";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -19,6 +19,9 @@ export const maxDuration = 60;
 const Body = z.object({
   message: z.string().trim().min(1).max(4000),
   conversationId: z.number().int().positive().nullable().optional(),
+  // Só valem ao criar uma conversa nova: conversa sobre um projeto ou com um agente.
+  projectId: z.number().int().positive().nullable().optional(),
+  agentId: z.number().int().positive().nullable().optional(),
 });
 
 // Eventos enviados ao app, um JSON por linha (NDJSON).
@@ -28,6 +31,7 @@ type Out =
   | { t: "delta"; text: string }
   | { t: "done"; memories: number }
   | { t: "reminders"; items: { id: number; text: string; dueAt: string }[] }
+  | { t: "tasks"; items: { id: number; title: string; due: string | null }[] }
   | { t: "notice"; text: string; kind: "privacy" | "quota" | "engine" | "error" };
 
 export async function POST(request: Request) {
@@ -67,20 +71,34 @@ export async function POST(request: Request) {
         let conversationId = parsed.data.conversationId ?? null;
         let msgCount = 0;
         let hasSummary = false;
+        let projectId: number | null = null;
+        let agentId: number | null = null;
         if (conversationId) {
-          const { data } = await supabase.from("conversations").select("id, message_count, summary").eq("id", conversationId).maybeSingle();
+          const { data } = await supabase.from("conversations").select("id, message_count, summary, project_id, agent_id").eq("id", conversationId).maybeSingle();
           if (!data) conversationId = null;
-          else { msgCount = Number(data.message_count ?? 0); hasSummary = Boolean(data.summary); }
+          else {
+            msgCount = Number(data.message_count ?? 0);
+            hasSummary = Boolean(data.summary);
+            projectId = (data.project_id as number | null) ?? null;
+            agentId = (data.agent_id as number | null) ?? null;
+          }
         }
         if (!conversationId) {
-          const { data, error } = await supabase.from("conversations").insert({ title: message.slice(0, 80) }).select("id").single();
+          // RLS só mostra projetos e agentes da própria pessoa: id de outra pessoa vira null.
+          const [pj, ag] = await Promise.all([
+            parsed.data.projectId ? supabase.from("projects").select("id").eq("id", parsed.data.projectId).maybeSingle() : Promise.resolve({ data: null }),
+            parsed.data.agentId ? supabase.from("agents").select("id").eq("id", parsed.data.agentId).maybeSingle() : Promise.resolve({ data: null }),
+          ]);
+          projectId = (pj.data?.id as number | undefined) ?? null;
+          agentId = (ag.data?.id as number | undefined) ?? null;
+          const { data, error } = await supabase.from("conversations").insert({ title: message.slice(0, 80), project_id: projectId, agent_id: agentId }).select("id").single();
           if (error || !data) throw new Error("não consegui criar a conversa");
           conversationId = data.id as number;
         }
         send({ t: "start", conversationId });
 
         // 4. Contexto: perfil, memória aprovada, histórico recente, conversas antigas relacionadas e gasto por provedor.
-        const [profile, memories, history, related, spendRows] = await Promise.all([
+        const [profile, memories, history, related, spendRows, openTasks, activeProjects, agentRow, projectRow] = await Promise.all([
           supabase.from("profiles").select("display_name, settings").eq("id", user.id).maybeSingle(),
           supabase.from("memories").select("content, area").eq("status", "approved").order("created_at", { ascending: true }).limit(80),
           supabase.from("messages").select("role, content").eq("conversation_id", conversationId).order("created_at", { ascending: false }).limit(16),
@@ -88,7 +106,18 @@ export async function POST(request: Request) {
             ? supabase.from("conversations").select("title, summary, updated_at").textSearch("search", relatedQuery(message), { type: "websearch", config: "portuguese" }).not("summary", "is", null).neq("id", conversationId).order("updated_at", { ascending: false }).limit(3)
             : Promise.resolve({ data: [] as { title: string; summary: string; updated_at: string }[] }),
           supabase.rpc("month_spend_by_provider"),
+          supabase.from("tasks").select("title, priority, due_date, projects(name)").eq("status", "open").order("due_date", { ascending: true, nullsFirst: false }).order("priority").limit(15),
+          supabase.from("projects").select("id, name, goal").eq("status", "active").order("updated_at", { ascending: false }).limit(20),
+          agentId ? supabase.from("agents").select("name, area, instructions").eq("id", agentId).maybeSingle() : Promise.resolve({ data: null }),
+          projectId ? supabase.from("projects").select("name, goal, next_steps").eq("id", projectId).maybeSingle() : Promise.resolve({ data: null }),
         ]);
+        const extras = extrasBlock({
+          tasks: ((openTasks.data ?? []) as unknown as { title: string; priority: number; due_date: string | null; projects: { name: string } | null }[])
+            .map((t) => ({ title: t.title, priority: t.priority, due_date: t.due_date, project: t.projects?.name ?? null })),
+          projects: (activeProjects.data ?? []) as { name: string; goal: string | null }[],
+          agent: (agentRow.data as { name: string; area: string; instructions: string } | null) ?? null,
+          project: (projectRow.data as { name: string; goal: string | null; next_steps: string | null } | null) ?? null,
+        });
         // Limite por provedor: quem passou do limite do mês fica de fora desta resposta.
         const budgets = readBudgets(profile.data?.settings);
         const spentBy: Record<string, number> = {};
@@ -119,7 +148,7 @@ export async function POST(request: Request) {
         let sent = 0;
         for await (const ev of routeChat({
           system: systemPrompt(),
-          context: contextBlock(name, memories.data ?? [], (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + google,
+          context: contextBlock(name, memories.data ?? [], (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + google,
           turns,
           signal: request.signal,
           onUsage: (u) => {
@@ -146,7 +175,7 @@ export async function POST(request: Request) {
         }
 
         // 6. Grava a conversa e as memórias propostas (sempre pendentes).
-        const { body: answer, memories: proposals, reminders } = splitMeta(full);
+        const { body: answer, memories: proposals, reminders, tasks: taskProposals } = splitMeta(full);
         await supabase.from("messages").insert([
           { conversation_id: conversationId, role: "user", content: message },
           {
@@ -187,6 +216,19 @@ export async function POST(request: Request) {
             .insert(okReminders.map((r) => ({ text: r.text, due_at: r.dueAt, origin: "Conversa", conversation_id: conversationId })))
             .select("id, text, due_at");
           if (created?.length) send({ t: "reminders", items: created.map((r) => ({ id: r.id as number, text: r.text as string, dueAt: r.due_at as string })) });
+        }
+        // Tarefas pedidas nesta mensagem. Projeto pelo nome (só os da pessoa) ou o projeto desta conversa.
+        const okTasks = taskProposals.filter((t) => !isSensitive(t.title) && !blockedTerm(t.title, blocked));
+        if (okTasks.length) {
+          const byName = new Map(((activeProjects.data ?? []) as { id: number; name: string }[]).map((p) => [p.name.toLowerCase(), p.id]));
+          const { data: createdTasks } = await supabase
+            .from("tasks")
+            .insert(okTasks.map((t) => ({
+              title: t.title, due_date: t.due, priority: t.priority, origin: "Conversa", conversation_id: conversationId,
+              project_id: (t.project ? byName.get(t.project.toLowerCase()) : undefined) ?? projectId,
+            })))
+            .select("id, title, due_date");
+          if (createdTasks?.length) send({ t: "tasks", items: createdTasks.map((t) => ({ id: t.id as number, title: t.title as string, due: (t.due_date as string | null) ?? null })) });
         }
         send({ t: "done", memories: added });
       } catch (e) {

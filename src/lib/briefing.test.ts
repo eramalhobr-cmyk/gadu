@@ -3,11 +3,12 @@ import assert from "node:assert/strict";
 import { briefingText, parseTime, spNow } from "./briefing.ts";
 
 test("texto da manhã com agenda, e-mails e lembretes", () => {
-  const r = briefingText({ name: "Ana", events: [{ title: "Corrida", start: "2026-11-10T09:00:00-03:00", allDay: false }, { title: "Feriado", start: "2026-11-10", allDay: true }], mails: 5, important: 2, reminders: 1 });
+  const r = briefingText({ name: "Ana", tasks: 3, events: [{ title: "Corrida", start: "2026-11-10T09:00:00-03:00", allDay: false }, { title: "Feriado", start: "2026-11-10", allDay: true }], mails: 5, important: 2, reminders: 1 });
   assert.equal(r.title, "Bom dia, Ana!");
   assert.match(r.body, /2 compromissos hoje, o primeiro às 09:00 \(Corrida\)/);
   assert.match(r.body, /2 e-mails importantes/);
   assert.match(r.body, /1 lembrete para hoje/);
+  assert.match(r.body, /3 tarefas vencem até hoje/);
 });
 
 test("sem Google: só lembretes e convite", () => {

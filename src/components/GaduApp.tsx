@@ -8,6 +8,9 @@ import { ConversationsDrawer } from "./ConversationsDrawer";
 import { MemoryPage } from "./MemoryPage";
 import { SettingsPage, type Prefs } from "./SettingsPage";
 import { dueLabel, TodayPage } from "./TodayPage";
+import { AgentsPage } from "./AgentsPage";
+import { ProjectsPage } from "./ProjectsPage";
+import { Icon } from "./ui";
 
 export type Msg = { id: string; role: "user" | "assistant" | "notice"; content: string; via?: string; link?: { href: string; label: string } };
 
@@ -20,8 +23,11 @@ const FLASH: Record<string, string> = {
   config: "O Google ainda não está configurado no servidor. Siga o passo a passo para criar as credenciais.",
   erro: "Não consegui concluir a conexão com o Google. Tente de novo em Ajustes, Conexões.",
 };
-export type Tab = "hoje" | "conversa" | "memoria" | "ajustes";
-const TAB_LABEL: Record<Tab, string> = { hoje: "Hoje", conversa: "Conversa", memoria: "Memória", ajustes: "Ajustes" };
+export type Tab = "hoje" | "conversa" | "projetos" | "agentes" | "perfil";
+export const TABS: Tab[] = ["hoje", "conversa", "projetos", "agentes", "perfil"];
+const TAB_LABEL: Record<Tab, string> = { hoje: "Hoje", conversa: "Conversa", projetos: "Projetos", agentes: "Agentes", perfil: "Perfil" };
+const TAB_ICON: Record<Tab, string> = { hoje: "sun", conversa: "chat", projetos: "grid", agentes: "agents", perfil: "user" };
+type Target = { kind: "project" | "agent"; id: number; name: string } | null;
 
 const LS_DRAFT = "gadu.draft";
 const LS_PREFS = "gadu.prefs";
@@ -52,9 +58,13 @@ export function GaduApp(props: {
   morningLink: string;
   flash: string | null;
   initialTab: Tab;
+  initialProfile: "memoria" | "ajustes";
   autoStart: boolean;
 }) {
   const [tab, setTab] = useState<Tab>(props.initialTab);
+  const [profileView, setProfileView] = useState<"memoria" | "ajustes">(props.initialProfile);
+  const [target, setTarget] = useState<Target>(null);
+  const [projView, setProjView] = useState<"tarefas" | "projetos">("tarefas");
   const [messages, setMessages] = useState<Msg[]>(props.initialMessages);
   const [conversationId, setConversationId] = useState<number | null>(props.initialConversationId);
   const [draft, setDraft] = useState("");
@@ -168,7 +178,7 @@ export function GaduApp(props: {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message, conversationId }),
+        body: JSON.stringify({ message, conversationId, projectId: !conversationId && target?.kind === "project" ? target.id : null, agentId: !conversationId && target?.kind === "agent" ? target.id : null }),
         signal: ctrl.signal,
       });
       if (res.status === 401) { window.location.href = "/login"; return; }
@@ -194,6 +204,9 @@ export function GaduApp(props: {
             if (!answerStarted) { answerStarted = true; if (!(prefs.voice && canSpeak())) setMode("speaking"); }
             setMessages((ms) => ms.map((m) => (m.id === botId ? { ...m, content: answer } : m)));
             if (prefs.voice && speaker) { speaker.push(ev.text); spoke = true; }
+          } else if (ev.t === "tasks") {
+            const items = ev.items as { title: string; due: string | null }[];
+            setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: `${items.length === 1 ? "Tarefa anotada" : "Tarefas anotadas"}: ${items.map((t) => t.title).join("; ")}. Veja em Projetos › Tarefas.` }]);
           } else if (ev.t === "reminders") {
             const items = ev.items as { text: string; dueAt: string }[];
             const push = typeof Notification !== "undefined" && Notification.permission === "granted";
@@ -234,7 +247,7 @@ export function GaduApp(props: {
       if (spoke && speaker) speaker.flush();
       else setMode("idle");
     }
-  }, [busy, conversationId, prefs.voice, refreshPending, speaker, props.morningLink]);
+  }, [busy, conversationId, prefs.voice, refreshPending, speaker, props.morningLink, target]);
 
   const sendRef = useRef(send);
   const listenRef = useRef(listen);
@@ -272,19 +285,31 @@ export function GaduApp(props: {
     listen();
   }
 
-  function newConversation() {
+  function newConversation(next: Target = null) {
     abortRef.current?.abort();
     speaker?.cancel();
     setConversationId(null);
     setMessages([]);
     setMode("idle");
+    setTarget(next);
+  }
+
+  /** Nova conversa sobre um projeto ou com um agente. */
+  function talkAbout(next: NonNullable<Target>) {
+    newConversation(next);
+    setTab("conversa");
   }
 
   async function openConversation(id: number) {
     abortRef.current?.abort();
     speaker?.cancel();
     setMode("idle");
-    const { data, error } = await supabaseBrowser()
+    const db = supabaseBrowser();
+    void db.from("conversations").select("project_id, agent_id, projects(name), agents(name)").eq("id", id).maybeSingle().then(({ data: c }: { data: unknown }) => {
+      const row = c as unknown as { project_id: number | null; agent_id: number | null; projects: { name: string } | null; agents: { name: string } | null } | null;
+      setTarget(row?.agent_id && row.agents ? { kind: "agent", id: row.agent_id, name: row.agents.name } : row?.project_id && row.projects ? { kind: "project", id: row.project_id, name: row.projects.name } : null);
+    });
+    const { data, error } = await db
       .from("messages")
       .select("id, role, content, provider")
       .eq("conversation_id", id)
@@ -321,6 +346,13 @@ export function GaduApp(props: {
             <Visual kind="brain" mode={mode} label="Cérebro do GaDu" />
             <div className={`mini ${mode !== "idle" ? "on" : ""}`} aria-hidden="true"><Visual kind="bot" mode={mode} compact label="Robô do GaDu" /></div>
           </section>
+          {target && (
+            <div className="target-pill">
+              <span className="mono">{target.kind === "agent" ? "Agente" : "Projeto"}</span>
+              <b>{target.name}</b>
+              {!conversationId && <button className="link-btn" onClick={() => setTarget(null)} aria-label="Conversar sem agente ou projeto">×</button>}
+            </div>
+          )}
           <div className="log" ref={logRef} aria-live="polite">
             {!messages.some((m) => m.role !== "notice") && (
               <div className="msg-b">
@@ -381,10 +413,21 @@ export function GaduApp(props: {
       )}
 
       {tab === "hoje" && (
-        <TodayPage name={props.name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk} onOpenMemory={() => setTab("memoria")} />
+        <TodayPage name={props.name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk} onOpenMemory={() => { setProfileView("memoria"); setTab("perfil"); }} onOpenTasks={() => { setProjView("tarefas"); setTab("projetos"); }} onAsk={(q) => { speaker?.unlock(); setTab("conversa"); void send(q); }} />
       )}
-      {tab === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
-      {tab === "ajustes" && (
+      {tab === "projetos" && <ProjectsPage key={projView} initialView={projView} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
+      {tab === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
+      {tab === "perfil" && (
+        <div className="seg seg-top" role="tablist" aria-label="Perfil">
+          {(["memoria", "ajustes"] as const).map((v) => (
+            <button key={v} role="tab" aria-selected={profileView === v} onClick={() => setProfileView(v)}>
+              {v === "memoria" ? "Memória" : "Ajustes"}{v === "memoria" && pending > 0 ? ` · ${pending}` : ""}
+            </button>
+          ))}
+        </div>
+      )}
+      {tab === "perfil" && profileView === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
+      {tab === "perfil" && profileView === "ajustes" && (
         <SettingsPage
           email={props.email}
           version={props.version}
@@ -409,10 +452,11 @@ export function GaduApp(props: {
       )}
 
       <nav className="tabs" aria-label="Navegação">
-        {(["hoje", "conversa", "memoria", "ajustes"] as Tab[]).map((t) => (
+        {TABS.map((t) => (
           <button key={t} className="tab" aria-current={tab === t ? "page" : undefined} onClick={() => setTab(t)}>
+            <Icon name={TAB_ICON[t]} size={20} />
             {TAB_LABEL[t]}
-            {t === "memoria" && pending > 0 && <b className="badge">{pending}</b>}
+            {t === "perfil" && pending > 0 && <b className="badge">{pending}</b>}
           </button>
         ))}
       </nav>

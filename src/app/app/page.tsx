@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { GaduApp, type Msg, type Tab } from "@/components/GaduApp";
+import { GaduApp, TABS, type Msg, type Tab } from "@/components/GaduApp";
 import { APP_VERSION, isAllowed } from "@/lib/config";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -40,7 +40,8 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
       initialBlocked={Array.isArray(settings.blocked) ? settings.blocked.map(String) : []}
       version={APP_VERSION}
       morningLink={morning}
-      initialTab={(["hoje", "conversa", "memoria", "ajustes"] as Tab[]).includes(tab as Tab) ? (tab as Tab) : google ? "conversa" : "hoje"}
+      initialTab={TABS.includes(tab as Tab) ? (tab as Tab) : tab === "memoria" || tab === "ajustes" ? "perfil" : google ? "conversa" : "hoje"}
+      initialProfile={tab === "ajustes" ? "ajustes" : "memoria"}
       autoStart={start === "briefing"}
       flash={typeof google === "string" ? google.slice(0, 20) : null}
     />

@@ -26,16 +26,33 @@ export function validReminder(text: unknown, when: unknown, now = Date.now()): R
   return { text: t, dueAt: d.toISOString() };
 }
 
-export function splitMeta(text: string, now = Date.now()): { body: string; memories: MemoryProposal[]; reminders: ReminderProposal[] } {
+export type TaskProposal = { title: string; due: string | null; priority: 1 | 2 | 3; project: string | null };
+
+/** Tarefa válida: título curto; prazo AAAA-MM-DD opcional (de hoje até 2 anos); prioridade 1 (alta) a 3 (baixa). */
+export function validTask(o: { texto?: unknown; prazo?: unknown; prioridade?: unknown; projeto?: unknown }, now = Date.now()): TaskProposal | null {
+  const title = typeof o.texto === "string" ? o.texto.trim().slice(0, 200) : "";
+  if (!title) return null;
+  let due: string | null = null;
+  if (typeof o.prazo === "string" && /^\d{4}-\d{2}-\d{2}$/.test(o.prazo)) {
+    const t = Date.parse(`${o.prazo}T12:00:00-03:00`);
+    if (!Number.isNaN(t) && t > now - 2 * 86_400_000 && t < now + 730 * 86_400_000) due = o.prazo;
+  }
+  const p = Number(o.prioridade);
+  const priority = (p === 1 || p === 3 ? p : 2) as 1 | 2 | 3;
+  const project = typeof o.projeto === "string" && o.projeto.trim() ? o.projeto.trim().slice(0, 80) : null;
+  return { title, due, priority, project };
+}
+
+export function splitMeta(text: string, now = Date.now()): { body: string; memories: MemoryProposal[]; reminders: ReminderProposal[]; tasks: TaskProposal[] } {
   const i = text.indexOf(META);
-  if (i < 0) return { body: visiblePart(text), memories: [], reminders: [] };
+  if (i < 0) return { body: visiblePart(text), memories: [], reminders: [], tasks: [] };
   const body = text.slice(0, i).trim();
   const raw = text.slice(i + META.length);
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
-  if (start < 0 || end <= start) return { body, memories: [], reminders: [] };
+  if (start < 0 || end <= start) return { body, memories: [], reminders: [], tasks: [] };
   try {
-    const parsed = JSON.parse(raw.slice(start, end + 1)) as { memorias?: unknown; lembretes?: unknown };
+    const parsed = JSON.parse(raw.slice(start, end + 1)) as { memorias?: unknown; lembretes?: unknown; tarefas?: unknown };
     const list = Array.isArray(parsed.memorias) ? parsed.memorias : [];
     const memories = list
       .map((m) => {
@@ -50,8 +67,12 @@ export function splitMeta(text: string, now = Date.now()): { body: string; memor
       .map((r) => { const o = (r ?? {}) as { texto?: unknown; quando?: unknown }; return validReminder(o.texto, o.quando, now); })
       .filter((r): r is ReminderProposal => Boolean(r))
       .slice(0, 3);
-    return { body, memories, reminders };
+    const tasks = (Array.isArray(parsed.tarefas) ? parsed.tarefas : [])
+      .map((t) => validTask((t ?? {}) as Record<string, unknown>, now))
+      .filter((t): t is TaskProposal => Boolean(t))
+      .slice(0, 8);
+    return { body, memories, reminders, tasks };
   } catch {
-    return { body, memories: [], reminders: [] };
+    return { body, memories: [], reminders: [], tasks: [] };
   }
 }

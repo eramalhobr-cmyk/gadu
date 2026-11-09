@@ -74,8 +74,9 @@ async function briefings(db: Db) {
     } catch { /* sem Google: o briefing sai só com lembretes */ }
     const endOfDay = new Date(now.start.getTime() + 86_400_000).toISOString();
     const { count } = await db.from("reminders").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "pending").lt("due_at", endOfDay);
+    const { count: due } = await db.from("tasks").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "open").lte("due_date", now.day);
     const name = String(p.display_name ?? "").split(" ")[0];
-    const t = briefingText({ name, events: evs, mails, important, reminders: count ?? 0 });
+    const t = briefingText({ name, events: evs, mails, important, reminders: count ?? 0, tasks: due ?? 0 });
     sent += await push(db, userId, { ...t, url: "/app?start=briefing", tag: `briefing-${now.day}` });
   }
   return sent;

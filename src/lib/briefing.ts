@@ -1,7 +1,7 @@
 // Texto curto da notificação da manhã (sem IA, grátis). O briefing completo sai ao tocar.
 export type BriefEvent = { title: string; start: string; allDay: boolean };
 
-export function briefingText(input: { name: string; events: BriefEvent[] | null; mails: number | null; important: number | null; reminders: number }) {
+export function briefingText(input: { name: string; events: BriefEvent[] | null; mails: number | null; important: number | null; reminders: number; tasks?: number }) {
   const parts: string[] = [];
   if (input.events) {
     const timed = input.events.filter((e) => !e.allDay);
@@ -18,6 +18,7 @@ export function briefingText(input: { name: string; events: BriefEvent[] | null;
     else if (input.mails) parts.push(`${input.mails} ${input.mails === 1 ? "e-mail novo" : "e-mails novos"}.`);
     else parts.push("Caixa de entrada em dia.");
   }
+  if (input.tasks) parts.push(`${input.tasks} ${input.tasks === 1 ? "tarefa vence" : "tarefas vencem"} até hoje.`);
   if (input.reminders) parts.push(`${input.reminders} ${input.reminders === 1 ? "lembrete" : "lembretes"} para hoje.`);
   parts.push("Toque para começar o dia.");
   return { title: `Bom dia${input.name ? `, ${input.name}` : ""}!`, body: parts.join(" ") };

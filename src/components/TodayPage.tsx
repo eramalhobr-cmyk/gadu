@@ -2,6 +2,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Visual } from "./RobotFace";
+import { TasksPanel } from "./TasksPanel";
+import { Icon, Ring } from "./ui";
+
+const HELP = [
+  { icon: "spark", text: "Priorizar meu dia" },
+  { icon: "check", text: "Revisar minhas tarefas abertas" },
+  { icon: "grid", text: "Planejar minha semana" },
+  { icon: "chat", text: "Quais e-mails pedem resposta?" },
+];
 
 type Ev = { title: string; start: string; end: string; allDay: boolean; where?: string; meet: boolean };
 type Mail = { thread?: string; from: string; subject: string; snippet: string; important: boolean };
@@ -35,7 +44,10 @@ export function TodayPage(props: {
   onStartDay: () => void;
   onTalk: () => void;
   onOpenMemory: () => void;
+  onOpenTasks: () => void;
+  onAsk: (q: string) => void;
 }) {
+  const [progress, setProgress] = useState({ open: 0, done: 0 });
   const [today, setToday] = useState<Today | null>(null);
   const [rems, setRems] = useState<Reminder[] | null>(null);
   const [text, setText] = useState("");
@@ -84,6 +96,7 @@ export function TodayPage(props: {
 
   return (
     <main className="page today">
+      <div className="col">
       <section className="hero">
         <div className="hero-brain" aria-hidden="true"><Visual kind="brain" mode="idle" compact label="" /></div>
         <div className="hero-text">
@@ -99,13 +112,30 @@ export function TodayPage(props: {
         </button>
       </div>
 
+        <section className="card progress">
+          <Ring value={progress.done} total={progress.done + progress.open} label="Progresso do dia" />
+          <div>
+            <h2>Progresso do dia</h2>
+            <div className="mono" style={{ color: "var(--sig)" }}>{progress.done} concluídas</div>
+            <div className="mono muted">{progress.open} pendentes para hoje</div>
+          </div>
+        </section>
+        <section className="card help">
+          <h2>Como posso ajudar?</h2>
+          {HELP.map((h) => (
+            <button key={h.text} className="help-item" disabled={props.busy} onClick={() => props.onAsk(h.text)}>
+              <Icon name={h.icon} size={18} /><span>{h.text}</span><span aria-hidden="true">›</span>
+            </button>
+          ))}
+        </section>
       {props.pendingMemories > 0 && (
         <button className="card card-link" onClick={props.onOpenMemory}>
           <span><b style={{ color: "var(--hot)" }}>{props.pendingMemories}</b> {props.pendingMemories === 1 ? "memória para revisar" : "memórias para revisar"}</span>
           <span aria-hidden="true">›</span>
         </button>
       )}
-
+      </div>
+      <div className="col">
       <section className="card">
         <div className="row" style={{ justifyContent: "space-between" }}>
           <h2>Agenda de hoje</h2>
@@ -130,7 +160,6 @@ export function TodayPage(props: {
             </ol>
           )}
       </section>
-
       <section className="card">
         <h2>Lembretes</h2>
         {rems === null ? <p className="muted">Carregando…</p> : rems.length === 0 ? (
@@ -158,7 +187,9 @@ export function TodayPage(props: {
           {msg && <span className="muted" role="status">{msg}</span>}
         </form>
       </section>
-
+      </div>
+      <div className="col">
+        <TasksPanel mode="today" title="Tarefas prioritárias" onSeeAll={props.onOpenTasks} onChange={(open, done) => setProgress({ open, done })} />
       <section className="card">
         <div className="row" style={{ justifyContent: "space-between" }}>
           <h2>E-mails não lidos</h2>
@@ -179,6 +210,7 @@ export function TodayPage(props: {
             </a>
           ))}
       </section>
+      </div>
     </main>
   );
 }

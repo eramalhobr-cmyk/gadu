@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 09/11/2026 (v0.5.0). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
+Atualizado a cada entrega. Última atualização: 10/11/2026 (v0.6.0). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 ## Fase 0 · MVP publicado (v0.1)
@@ -122,21 +122,23 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [ ] **Você: instalar o GaDu na tela de início do iPhone e ligar as notificações em Ajustes**
 - [ ] Spotify pela API (tocar o episódio do dia direto)
 
-## Proposta de evolução (a partir das referências visuais de 10/11)
-Nada disso foi feito ainda; é a direção sugerida para as próximas fases.
+## Evolução a partir das referências visuais (10/11)
 
 ### Experiência e visual
-- [ ] "Hoje" como painel no desktop: 3 colunas (cérebro + atalhos · agenda e lembretes · insights), mesmo conteúdo do celular
+- [x] "Hoje" como painel no desktop: 3 colunas (cérebro, progresso e atalhos · agenda e lembretes · tarefas e e-mails)
 - [ ] Hero com cérebro + humanoide estilizado (o cérebro dentro da cabeça), reagindo à voz
 - [ ] Barra "Fale com o GaDu" fixa no topo do Hoje (atalho para a conversa por voz)
-- [ ] Cards de vidro (glassmorphism leve), cor por área (Pessoal, Saúde, Finanças pessoais, Projetos)
-- [ ] Navegação: Hoje · Conversas · Agentes · Projetos · Perfil (quando Agentes e Projetos existirem)
-- [ ] Anel de progresso do dia (tarefas e lembretes concluídos)
+- [x] Cards de vidro e cor por projeto e por agente
+- [x] Navegação com ícones: Hoje · Conversa · Projetos · Agentes · Perfil (Memória e Ajustes dentro de Perfil)
+- [x] Anel de progresso do dia (tarefas concluídas hoje x pendentes)
+- [x] "Como posso ajudar?" no Hoje: priorizar o dia, revisar tarefas, planejar a semana, e-mails que pedem resposta
 
 ### Organização e arquitetura de dados
-- [ ] `tasks` (tarefas): título, status, prazo, prioridade, projeto, origem (conversa, e-mail, manual); lembrete vira tarefa quando tem ação
-- [ ] `projects` (projetos pessoais): nome, objetivo, status, próximos passos; conversas, memórias e tarefas ligadas ao projeto
-- [ ] `agents` (agentes): nome, área, instruções, ferramentas permitidas, modelo, teto de gasto; cada agente usa a memória da sua área
+- [x] `tasks` (tarefas): prazo, prioridade, projeto e origem; criadas pela voz ("anota aí…") ou à mão; tarefas abertas entram no contexto do GaDu e no briefing
+- [ ] Transformar e-mail em tarefa com um toque
+- [x] `projects` (projetos pessoais): objetivo, próximos passos, status, cor, tarefas e progresso; "Conversar sobre o projeto"
+- [x] `agents` (agentes): nome, área, instruções, ícone, cor, ativo; 5 sugestões pessoais; "Conversar com o agente"
+- [ ] Agentes com ferramentas permitidas, modelo e teto de gasto próprios
 - [ ] `insights`: sugestões geradas no briefing (atrasos, conflitos de agenda, e-mails sem resposta), com "aceitar/ignorar"
 - [ ] `metrics` pessoais (opcional): sono, treino, leitura, finanças da casa; só números que você decidir registrar
 - [ ] Busca por significado (pgvector) unindo conversas, memórias, tarefas e projetos
