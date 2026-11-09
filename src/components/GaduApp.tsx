@@ -45,11 +45,13 @@ export function GaduApp(props: {
   const speaker = useMemo(() => (typeof window === "undefined" ? null : new Speaker()), []);
   const recRef = useRef<ReturnType<typeof createRecognizer>>(null);
   const handsFreeRef = useRef(false);
-  const voiceOk = typeof window !== "undefined" && canListen();
+  // Detectado só no aparelho (no servidor não existe reconhecimento de voz).
+  const [voiceOk, setVoiceOk] = useState(false);
 
   // Preferências e rascunho ficam no aparelho.
   useEffect(() => {
     setPrefs(readPrefs());
+    setVoiceOk(canListen());
     try { setDraft(localStorage.getItem(LS_DRAFT) || ""); } catch {}
     setOnline(navigator.onLine);
     const on = () => setOnline(true);
@@ -84,9 +86,13 @@ export function GaduApp(props: {
       onError: (code) => {
         setListening(false);
         setMode("idle");
-        if (code === "not-allowed" || code === "service-not-allowed") {
-          setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "O microfone está bloqueado. Libere o microfone para este site nas configurações do navegador." }]);
-        }
+        const text: Record<string, string> = {
+          "not-allowed": "O microfone está bloqueado. Libere o microfone para este site nas configurações do navegador.",
+          "service-not-allowed": "O microfone está bloqueado. Libere o microfone para este site nas configurações do navegador.",
+          "audio-capture": "Não encontrei um microfone neste aparelho.",
+          network: "O reconhecimento de voz precisa de internet. Confira a conexão e tente de novo.",
+        };
+        if (text[code]) setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: text[code] }]);
       },
     });
     if (!rec) return;
@@ -192,6 +198,10 @@ export function GaduApp(props: {
 
   function micClick() {
     speaker?.unlock();
+    if (!voiceOk && !busy) {
+      setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "Este navegador não reconhece voz. Use o Chrome (Android ou computador) ou o Safari (iPhone), ou o microfone do teclado." }]);
+      return;
+    }
     if (listening) { recRef.current?.stop(); return; }
     if (busy) { abortRef.current?.abort(); speaker?.cancel(); setMode("idle"); return; }
     speaker?.cancel();
@@ -246,7 +256,7 @@ export function GaduApp(props: {
             className="composer"
             onSubmit={(e) => { e.preventDefault(); void send(draft); }}
           >
-            <button type="button" className={`mic ${listening ? "on" : ""}`} onClick={micClick} aria-label={listening ? "Parar de ouvir" : busy ? "Parar resposta" : "Falar"} disabled={!voiceOk && !busy} title={voiceOk ? "" : "Este navegador não tem reconhecimento de voz. Use o ditado do teclado."}>
+            <button type="button" className={`mic ${listening ? "on" : ""}`} onClick={micClick} aria-label={listening ? "Parar de ouvir" : busy ? "Parar resposta" : "Falar"} >
               {busy && !listening ? (
                 <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" fill="currentColor" /></svg>
               ) : (

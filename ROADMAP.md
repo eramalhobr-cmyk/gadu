@@ -1,6 +1,6 @@
 # Gadu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 08/11/2026 (v0.1.2). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
+Atualizado a cada entrega. Última atualização: 08/11/2026 (v0.1.3). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 ## Fase 0 · MVP publicado (v0.1)
@@ -45,6 +45,8 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] Interromper tocando no botão
 - [x] Modo conversa: volta a ouvir depois de responder
 - [x] Sem suporte a voz: o app segue por texto e avisa
+- [x] Correção: botão do microfone ficava desativado depois de carregar (detecção agora acontece no aparelho)
+- [x] Avisos claros para microfone bloqueado, sem microfone ou sem internet
 
 ### Memória
 - [x] Memórias propostas pelo Gadu entram como pendentes
