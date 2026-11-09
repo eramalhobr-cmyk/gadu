@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   applicationName: "GaDu",
   appleWebApp: { capable: true, title: "GaDu", statusBarStyle: "black-translucent" },
-  icons: { icon: "/icons/icon-192.png?v=2", apple: "/icons/apple-touch-icon.png?v=2" },
+  icons: { icon: "/icons/icon-192.png?v=3", apple: "/icons/apple-touch-icon.png?v=3" },
   robots: { index: false, follow: false },
 };
 

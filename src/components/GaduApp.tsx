@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mind } from "./RobotFace";
+import { Avatar } from "./RobotFace";
 import { EventCard, type EventDraft } from "./EventCard";
 import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
@@ -398,7 +398,7 @@ export function GaduApp(props: {
       {view === "conversa" && (
         <main className="main chat">
           <section className="face" aria-label="GaDu">
-            <Mind mode={mode} label={`GaDu: ${stateLabel}`} />
+            <Avatar mode={mode} label={`GaDu: ${stateLabel}`} />
           </section>
           {target && (
             <div className="target-pill">

@@ -1,6 +1,6 @@
 // Service worker do GaDu: deixa o app abrir rápido e mostra uma tela amigável sem internet.
 // Nunca guarda respostas de API, login ou dados da pessoa.
-const VERSION = "gadu-v3";
+const VERSION = "gadu-v4";
 const SHELL = ["/offline", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -44,8 +44,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(d.title || "GaDu", {
       body: d.body || "",
-      icon: "/icons/icon-192.png?v=2",
-      badge: "/icons/icon-192.png?v=2",
+      icon: "/icons/icon-192.png?v=3",
+      badge: "/icons/icon-192.png?v=3",
       tag: d.tag || undefined,
       renotify: Boolean(d.tag),
       data: { url },

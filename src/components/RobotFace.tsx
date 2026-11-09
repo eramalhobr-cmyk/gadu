@@ -3,9 +3,10 @@ import { useEffect, useRef } from "react";
 import { Brain } from "./brain-engine";
 import { Bot } from "./bot-engine";
 import { Head } from "./head-engine";
+import { AvatarFx } from "./avatar-engine";
 import { Robot, pointer, type FaceMode } from "./robot-engine";
 
-type Kind = "brain" | "robot" | "bot" | "head";
+type Kind = "brain" | "robot" | "bot" | "head" | "avatar";
 
 /** Canvas animado (cérebro ou rosto). Pausa quando a aba some e respeita "reduzir movimento". */
 export function Visual({ kind, mode, compact = false, icon = false, hud, label }: { kind: Kind; mode: FaceMode; compact?: boolean; icon?: boolean; hud?: boolean; label: string }) {
@@ -14,7 +15,7 @@ export function Visual({ kind, mode, compact = false, icon = false, hud, label }
 
   useEffect(() => {
     if (!canvas.current) return;
-    const e = kind === "brain" ? new Brain(canvas.current, { compact, icon, hud: hud ?? (!compact && !icon) }) : kind === "bot" ? new Bot(canvas.current, { compact }) : kind === "head" ? new Head(canvas.current, { compact }) : new Robot(canvas.current, { compact });
+    const e = kind === "brain" ? new Brain(canvas.current, { compact, icon, hud: hud ?? (!compact && !icon) }) : kind === "bot" ? new Bot(canvas.current, { compact }) : kind === "head" ? new Head(canvas.current, { compact }) : kind === "avatar" ? new AvatarFx(canvas.current, { compact }) : new Robot(canvas.current, { compact });
     e.mode = mode;
     engine.current = e;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -67,6 +68,17 @@ export function Mind({ mode, compact = false, label = "GaDu" }: { mode: FaceMode
     <div className={`mind ${compact ? "compact" : ""}`} role="img" aria-label={label}>
       <Visual kind="head" mode={mode} compact={compact} label="" />
       <div className="mind-brain" aria-hidden="true"><Visual kind="brain" mode={mode} compact={compact} hud={false} label="" /></div>
+    </div>
+  );
+}
+
+/** Avatar oficial do GaDu: a ilustração + uma camada animada que reage à voz (escutar, pensar, falar). */
+export function Avatar({ mode, compact = false, label = "GaDu" }: { mode: FaceMode; compact?: boolean; label?: string }) {
+  return (
+    <div className={`avatar m-${mode}`} role="img" aria-label={label}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={compact ? "/avatar/gadu-480.webp" : "/avatar/gadu.webp"} alt="" decoding="async" draggable={false} />
+      <Visual kind="avatar" mode={mode} compact={compact} label="" />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 10/11/2026 (v0.7.2). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
+Atualizado a cada entrega. Última atualização: 10/11/2026 (v0.8.0). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 ## Fase 0 · MVP publicado (v0.1)
@@ -127,6 +127,8 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 ### Experiência e visual
 - [x] "Hoje" como painel no desktop: 3 colunas (cérebro, progresso e atalhos · agenda e lembretes · tarefas e e-mails)
 - [x] Humanoide com o cérebro dentro da cabeça (Conversa e Hoje), reagindo à voz; substitui o robô do canto
+- [x] Avatar oficial (ilustração) animado: sinapses no cérebro, fones ao escutar, ondas ao falar, âmbar ao pensar, HUD e pedestal girando; usado no login, Hoje e Conversa
+- [x] Ícone do app com o avatar e o nome GaDu (versão adaptada para Android)
 - [x] Barra "Fale com o GaDu" no topo do Hoje
 - [x] Botão de voz flutuante em todas as telas, com painel de resposta (sem sair da tela)
 - [x] Menu de baixo sempre fixo
@@ -176,6 +178,14 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] Guia passo a passo (`/app/guia`): 6 primeiros passos com ✓ automático, "como pedir cada coisa" com exemplos, voz e "se algo der errado"; o "?" abre o guia
 - [x] Dicas na primeira visita de cada aba e do botão de voz (Entendi / Ver guia), salvas no perfil; "Rever as dicas" em Ajustes
 - [x] Guia e Como funciona dentro da mesma estrutura do app (cabeçalho, menu ☰, menu de baixo e voz flutuante), com alternância Guia | Como funciona
+
+## Fase 6 · Agentes Pessoal e Trabalho (proposta em discussão, ver docs/PLANO-AGENTES.md)
+- [ ] 6.1 Fundamentos: espaços Pessoal e Trabalho; agentes com categoria, papel, hierarquia, autonomia e teto; organograma
+- [ ] 6.2 CRM leve: clientes, contatos, funil, atividades; agente Comercial; "antes da reunião"
+- [ ] 6.3 Orquestração: CEO delega às áreas; caixa de aprovações; registro de execuções; relatório semanal
+- [ ] 6.4 Execução: rotinas por agente; rascunhos de e-mail com aprovação; notas de reunião viram tarefas; documentos
+- [ ] 6.5 Métricas: painel por área e metas do trimestre
+- [ ] Convidar o Luiz Cláudio depois da 6.2
 
 ## Por último (combinado em 10/11)
 - [ ] Testes automáticos de ponta a ponta antes de publicar, alerta de erro e tela de erro própria

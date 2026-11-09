@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { AgendaView } from "./AgendaView";
-import { Mind } from "./RobotFace";
+import { Avatar } from "./RobotFace";
 import { TasksPanel } from "./TasksPanel";
 import { Icon, Ring, todayKey } from "./ui";
 
@@ -119,7 +119,7 @@ export function TodayPage(props: {
     <main className="page today">
       <div className="col">
         <section className="hero">
-          <div className="hero-mind" aria-hidden="true"><Mind mode={props.busy ? "thinking" : "idle"} compact /></div>
+          <div className="hero-mind" aria-hidden="true"><Avatar mode={props.busy ? "thinking" : "idle"} compact /></div>
           <div className="hero-text">
             <div className="mono muted">{date}</div>
             <h1>{greeting()}{props.name ? `, ${props.name}` : ""}.</h1>
