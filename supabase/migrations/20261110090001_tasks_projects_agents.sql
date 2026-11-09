@@ -70,14 +70,20 @@ create policy tasks_all on public.tasks for all to authenticated
   );
 
 -- Conversa só pode apontar para projeto e agente da própria pessoa.
-drop policy conversations_all on public.conversations;
-create policy conversations_all on public.conversations for all to authenticated
-  using ((select auth.uid()) = user_id)
-  with check (
-    (select auth.uid()) = user_id
-    and (project_id is null or exists (select 1 from public.projects p where p.id = project_id and p.user_id = (select auth.uid())))
-    and (agent_id is null or exists (select 1 from public.agents a where a.id = agent_id and a.user_id = (select auth.uid())))
-  );
+-- Verificado por gatilho (security invoker: a RLS de projects e agents só mostra os da própria pessoa).
+create function private.check_conversation_links() returns trigger
+language plpgsql security invoker set search_path = '' as $$
+begin
+  if new.project_id is not null and not exists (select 1 from public.projects p where p.id = new.project_id) then
+    raise exception 'projeto inválido';
+  end if;
+  if new.agent_id is not null and not exists (select 1 from public.agents a where a.id = new.agent_id) then
+    raise exception 'agente inválido';
+  end if;
+  return new;
+end $$;
+create trigger conversations_links before insert or update of project_id, agent_id on public.conversations
+  for each row execute function private.check_conversation_links();
 
 create trigger projects_touch before update on public.projects for each row execute function private.touch_updated_at();
 create trigger agents_touch before update on public.agents for each row execute function private.touch_updated_at();
