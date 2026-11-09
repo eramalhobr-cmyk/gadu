@@ -1,6 +1,6 @@
 # Gadu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 08/11/2026 (v0.2.0). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
+Atualizado a cada entrega. Última atualização: 09/11/2026 (v0.3.0). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 ## Fase 0 · MVP publicado (v0.1)
@@ -37,10 +37,12 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] Abre na última conversa; botão "Nova conversa"
 - [x] Primeiro login em produção (link por e-mail)
 - [x] Registro de falha por motor e aviso claro na conversa (chave, crédito, ocupado)
-- [ ] **Primeira resposta real em produção** (nome do modelo corrigido; se ainda falhar, o aviso diz se é chave ou crédito)
+- [x] Primeira resposta real em produção
 - [x] Gasto de cada resposta registrado (tokens e US$) e mostrado em Ajustes
 - [x] Teto de gasto mensal por pessoa (`MONTHLY_BUDGET_USD`, hoje US$ 20)
-- [ ] **Colocar crédito na Anthropic** (a conta está sem saldo; o Gateway da Vercel também exige crédito pago)
+- [x] Crédito colocado: US$ 5 na Anthropic e US$ 20 no AI Gateway da Vercel
+- [x] Limite mensal por motor em Ajustes (padrão US$ 5 cada); ao chegar no limite, passa para o outro motor
+- [x] Gasto por motor em Ajustes e saldo real do AI Gateway (a Anthropic não tem API de saldo: gasto estimado)
 - [ ] Limite mensal também no painel do provedor (segunda trava)
 
 ### Voz (grátis, do aparelho)
@@ -70,24 +72,30 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 
 ### Visual
 - [x] Cérebro neural no centro (login e conversa)
-- [x] Rosto humanoide pequeno no canto direito, que se acende ao conversar
+- [x] Robô pequeno no canto direito, que se acende ao conversar
+- [x] Robô redesenhado (v0.3): cabeça "squircle", visor de vidro, olhos de LED e boca equalizadora
 - [x] Rosto humanoide animado (repouso, escutando, pensando, falando)
 - [x] Respeita "reduzir movimento" e pausa quando a aba está escondida
 
 ## Voz: resposta falada
 - [x] v0: voz do próprio aparelho, frase a frase enquanto a resposta chega (grátis)
-- [ ] v1: escolher a voz em Ajustes e ajustar a velocidade
+- [x] v1: escolher a voz em Ajustes, ajustar a velocidade e ouvir exemplo
+- [x] Fala menos robótica: prioriza vozes naturais do aparelho, junta frases curtas, troca símbolos por palavras
 - [ ] v2: voz natural (ElevenLabs ou OpenAI) com teto de gasto próprio
 - [ ] v3: conversa contínua com interrupção natural
 
 ## Fase 1 · Memória e método
-- [ ] Memória v2: resumo de cada conversa e busca em camadas (ideias do claude-mem e do mem0)
-- [ ] Importar memórias exportadas do Claude, GPT e Gemini
-- [ ] Lista de conversas anteriores
+- [x] Memória v2: resumo automático de cada conversa (modelo barato, em segundo plano)
+- [x] Conversas antigas parecidas entram no contexto (busca por assunto)
+- [x] Busca em camadas na aba Memória: memórias, conversas e mensagens
+- [x] Importar memórias do Claude, ChatGPT e Gemini (pedido pronto para copiar, colar ou enviar arquivo; tudo entra para revisão)
+- [x] "Aprovar todas" nas memórias pendentes
+- [x] Lista de conversas anteriores (abrir, buscar, apagar, nova)
+- [ ] Busca por significado (embeddings) quando o volume de conversas crescer
 - [ ] Receitas (skills) no formato de arquivo simples
 - [ ] Escritório com o roteiro do spec-kit (pedido → especificação → plano → tarefas)
 
-## Fase 2 · Conexões pessoais
+## Fase 2 · Conexões pessoais (próxima)
 - [ ] Gmail (ler e criar rascunhos) com escopos mínimos
 - [ ] Google Agenda (ler e reservar foco)
 - [ ] Spotify (Update Diário)

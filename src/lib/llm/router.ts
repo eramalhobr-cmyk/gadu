@@ -1,20 +1,22 @@
 import { anthropicProvider } from "./anthropic";
 import { gatewayClaude, gatewayFallback } from "./gateway";
 import { geminiProvider } from "./gemini";
-import type { ChatRequest, Provider } from "./types";
+import type { ChatRequest, Provider, ProviderId } from "./types";
 
 // Ordem: chave direta da Anthropic (se houver) → AI Gateway (Claude) → Gemini direto → Gemini via Gateway.
 const CHAIN: Provider[] = [anthropicProvider, gatewayClaude, geminiProvider, gatewayFallback];
 
-export type RouterEvent = { type: "provider"; name: string } | { type: "text"; text: string };
+export type RouterEvent = { type: "provider"; name: string; id: ProviderId } | { type: "text"; text: string };
 
 /**
  * Tenta os provedores em ordem. Se um falhar ANTES de mandar texto, passa para o próximo.
  * Se falhar no meio da resposta, para ali (não mistura respostas de dois modelos).
  */
-export async function* routeChat(req: ChatRequest): AsyncGenerator<RouterEvent> {
-  const providers = CHAIN.filter((p) => p.available());
-  if (!providers.length) throw new NoProviderError();
+export async function* routeChat(req: ChatRequest, skip: Set<ProviderId> = new Set()): AsyncGenerator<RouterEvent> {
+  const configured = CHAIN.filter((p) => p.available());
+  if (!configured.length) throw new NoProviderError();
+  const providers = configured.filter((p) => !skip.has(p.id));
+  if (!providers.length) throw new BudgetReached();
   let lastError: unknown = null;
   for (const p of providers) {
     let started = false;
@@ -22,7 +24,7 @@ export async function* routeChat(req: ChatRequest): AsyncGenerator<RouterEvent> 
       for await (const text of p.stream(req)) {
         if (!started) {
           started = true;
-          yield { type: "provider", name: p.name };
+          yield { type: "provider", name: p.name, id: p.id };
         }
         yield { type: "text", text };
       }
@@ -49,6 +51,13 @@ export class AllProvidersFailed extends Error {
     else if (err.status === 402 || /credit|billing|free tier|balance/i.test(msg)) this.kind = "credits";
     else if (err.status === 429 || err.status === 529 || (err.status ?? 0) >= 500) this.kind = "busy";
     else this.kind = "other";
+  }
+}
+
+/** Todos os motores disponíveis atingiram o limite de gasto definido pela pessoa. */
+export class BudgetReached extends Error {
+  constructor() {
+    super("Limites de gasto atingidos");
   }
 }
 

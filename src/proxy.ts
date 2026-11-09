@@ -33,7 +33,7 @@ export async function proxy(request: NextRequest) {
   response.headers.set("Content-Security-Policy", csp);
 
   const path = request.nextUrl.pathname;
-  const isProtected = path.startsWith("/app") || path.startsWith("/api/chat");
+  const isProtected = path.startsWith("/app") || (path.startsWith("/api/") && !path.startsWith("/api/auth") && !path.startsWith("/api/health"));
   if (!SUPABASE_URL || !SUPABASE_KEY) return response;
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {

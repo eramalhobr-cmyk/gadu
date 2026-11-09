@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { Brain } from "./brain-engine";
+import { Bot } from "./bot-engine";
 import { Robot, pointer, type FaceMode } from "./robot-engine";
 
-type Kind = "brain" | "robot";
+type Kind = "brain" | "robot" | "bot";
 
 /** Canvas animado (cérebro ou rosto). Pausa quando a aba some e respeita "reduzir movimento". */
 export function Visual({ kind, mode, compact = false, label }: { kind: Kind; mode: FaceMode; compact?: boolean; label: string }) {
@@ -12,7 +13,7 @@ export function Visual({ kind, mode, compact = false, label }: { kind: Kind; mod
 
   useEffect(() => {
     if (!canvas.current) return;
-    const e = kind === "brain" ? new Brain(canvas.current, { compact, hud: !compact }) : new Robot(canvas.current, { compact });
+    const e = kind === "brain" ? new Brain(canvas.current, { compact, hud: !compact }) : kind === "bot" ? new Bot(canvas.current, { compact }) : new Robot(canvas.current, { compact });
     e.mode = mode;
     engine.current = e;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

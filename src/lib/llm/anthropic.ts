@@ -12,6 +12,7 @@ function getClient(key: string) {
 const SERVER_FALLBACK = new Set(["claude-opus-5-5", "claude-fable-5-1", "claude-sonnet-5-5"]);
 
 export const anthropicProvider: Provider = {
+  id: "anthropic",
   name: "Claude",
   available: () => Boolean(serverConfig().anthropicKey),
   async *stream(req: ChatRequest) {
@@ -36,7 +37,7 @@ export const anthropicProvider: Provider = {
       if (ev.type === "content_block_delta" && ev.delta.type === "text_delta") yield ev.delta.text;
     }
     const final = await stream.finalMessage();
-    req.onUsage?.({ model: cfg.model, ...final.usage });
+    req.onUsage?.({ provider: "anthropic", model: cfg.model, ...final.usage });
     if (final.stop_reason === "refusal") {
       yield "\n\nNão posso ajudar com esse pedido. Tente reformular.";
     } else if (final.stop_reason === "max_tokens") {

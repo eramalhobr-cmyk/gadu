@@ -3,6 +3,7 @@ import type { ChatRequest, Provider } from "./types";
 
 // Contingência: usado só se o motor principal falhar antes de responder.
 export const geminiProvider: Provider = {
+  id: "gemini",
   name: "Gemini",
   available: () => Boolean(serverConfig().geminiKey),
   async *stream(req: ChatRequest) {

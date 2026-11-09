@@ -15,6 +15,7 @@ async function credential(): Promise<string> {
 
 function gatewayProvider(name: string, modelOf: () => string, withEffort: boolean): Provider {
   return {
+    id: "gateway",
     name,
     available: () => Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL),
     async *stream(req: ChatRequest) {
@@ -37,7 +38,7 @@ function gatewayProvider(name: string, modelOf: () => string, withEffort: boolea
         if (ev.type === "content_block_delta" && ev.delta.type === "text_delta") yield ev.delta.text;
       }
       const final = await stream.finalMessage();
-      req.onUsage?.({ model: modelOf(), ...final.usage });
+      req.onUsage?.({ provider: "gateway", model: modelOf(), ...final.usage });
       if (final.stop_reason === "refusal") yield "\n\nNão posso ajudar com esse pedido. Tente reformular.";
       else if (final.stop_reason === "max_tokens") yield "\n\n(Resposta cortada por tamanho. Peça para eu continuar.)";
     },

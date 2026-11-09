@@ -13,7 +13,11 @@ Formato: escreva a resposta normalmente. Depois, numa linha sozinha, escreva ${M
 - Se a pessoa pedir para lembrar algo, diga que guardou para a revisão dela na Memória.`;
 }
 
-export function contextBlock(name: string, memories: { content: string; area: string }[]): string {
+export function contextBlock(
+  name: string,
+  memories: { content: string; area: string }[],
+  related: { title: string; summary: string; updated_at: string }[] = [],
+): string {
   const now = new Date();
   const date = now.toLocaleString("pt-BR", {
     timeZone: "America/Sao_Paulo",
@@ -22,5 +26,9 @@ export function contextBlock(name: string, memories: { content: string; area: st
   const mem = memories.length
     ? "O que você sabe sobre a pessoa (memória aprovada por ela):\n" + memories.map((m) => `- [${m.area}] ${m.content}`).join("\n")
     : "Ainda não há memória aprovada sobre a pessoa.";
-  return `A pessoa se chama ${name || "você"}. Agora é ${date} (horário de Brasília).\n${mem}`;
+  const past = related.length
+    ? "\n\nConversas anteriores que podem ter relação (resumos; use só se ajudar):\n" +
+      related.map((r) => `- ${new Date(r.updated_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })} · ${r.title}: ${r.summary}`).join("\n")
+    : "";
+  return `A pessoa se chama ${name || "você"}. Agora é ${date} (horário de Brasília).\n${mem}${past}`;
 }

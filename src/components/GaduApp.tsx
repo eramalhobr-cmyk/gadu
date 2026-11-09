@@ -4,22 +4,29 @@ import { Visual } from "./RobotFace";
 import type { FaceMode } from "./robot-engine";
 import { canListen, canSpeak, createRecognizer, Speaker } from "@/lib/speech";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { ConversationsDrawer } from "./ConversationsDrawer";
+import { MemoryPage } from "./MemoryPage";
+import { SettingsPage, type Prefs } from "./SettingsPage";
 
 export type Msg = { id: string; role: "user" | "assistant" | "notice"; content: string; via?: string };
-type Memory = { id: number; content: string; area: string; origin: string; status: "pending" | "approved" };
 type Tab = "conversa" | "memoria" | "ajustes";
 
-const brl = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const AREAS = ["Preferências", "Projetos", "Agent Office", "Pessoal", "Profissional"];
 const LS_DRAFT = "gadu.draft";
 const LS_PREFS = "gadu.prefs";
+const DEFAULT_PREFS: Prefs = { voice: true, handsFree: false, voiceURI: "", rate: 1 };
 
-function readPrefs(): { voice: boolean; handsFree: boolean } {
+function readPrefs(): Prefs {
   try {
     const p = JSON.parse(localStorage.getItem(LS_PREFS) || "{}");
-    return { voice: p.voice !== false, handsFree: Boolean(p.handsFree) };
+    const rate = Number(p.rate);
+    return {
+      voice: p.voice !== false,
+      handsFree: Boolean(p.handsFree),
+      voiceURI: typeof p.voiceURI === "string" ? p.voiceURI : "",
+      rate: Number.isFinite(rate) && rate >= 0.7 && rate <= 1.6 ? rate : 1,
+    };
   } catch {
-    return { voice: true, handsFree: false };
+    return DEFAULT_PREFS;
   }
 }
 
@@ -30,7 +37,6 @@ export function GaduApp(props: {
   initialMessages: Msg[];
   initialBlocked: string[];
   version: string;
-  monthlyBudget: number;
 }) {
   const [tab, setTab] = useState<Tab>("conversa");
   const [messages, setMessages] = useState<Msg[]>(props.initialMessages);
@@ -40,7 +46,8 @@ export function GaduApp(props: {
   const [mode, setMode] = useState<FaceMode>("idle");
   const [listening, setListening] = useState(false);
   const [online, setOnline] = useState(true);
-  const [prefs, setPrefs] = useState({ voice: true, handsFree: false });
+  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
+  const [drawer, setDrawer] = useState(false);
   const [pending, setPending] = useState(0);
   const logRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -67,7 +74,8 @@ export function GaduApp(props: {
   useEffect(() => {
     try { localStorage.setItem(LS_PREFS, JSON.stringify(prefs)); } catch {}
     handsFreeRef.current = prefs.handsFree;
-  }, [prefs]);
+    if (speaker) speaker.prefs = { voiceURI: prefs.voiceURI, rate: prefs.rate };
+  }, [prefs, speaker]);
   useEffect(() => { logRef.current?.scrollTo({ top: logRef.current.scrollHeight }); }, [messages, tab]);
 
   const refreshPending = useCallback(async () => {
@@ -218,12 +226,37 @@ export function GaduApp(props: {
     setMode("idle");
   }
 
+  async function openConversation(id: number) {
+    abortRef.current?.abort();
+    speaker?.cancel();
+    setMode("idle");
+    const { data, error } = await supabaseBrowser()
+      .from("messages")
+      .select("id, role, content, provider")
+      .eq("conversation_id", id)
+      .order("created_at", { ascending: false })
+      .limit(60);
+    if (error) {
+      setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "Não consegui abrir essa conversa. Tente de novo." }]);
+      return;
+    }
+    setConversationId(id);
+    setMessages(((data ?? []) as { id: number; role: string; content: string; provider: string | null }[]).reverse().map((m) => ({ id: String(m.id), role: m.role as "user" | "assistant", content: m.content as string, via: (m.provider as string) || undefined })));
+    setTab("conversa");
+    setDrawer(false);
+  }
+
   const stateLabel = { idle: "Em repouso", listening: "Escutando", thinking: "Pensando", speaking: "Respondendo" }[mode];
 
   return (
     <div className="shell dots">
       <header className="top">
-        <span className="brand">Gadu</span>
+        <div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
+          <button className="icon-btn" onClick={() => setDrawer(true)} aria-label="Conversas anteriores" aria-expanded={drawer}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" /></svg>
+          </button>
+          <span className="brand">Gadu</span>
+        </div>
         <span className={`mono state ${mode === "thinking" ? "hot" : ""}`}><i />{stateLabel}</span>
       </header>
       {!online && <div className="banner" role="status">Sem internet. O app continua aberto e as mensagens ficam no rascunho.</div>}
@@ -232,7 +265,7 @@ export function GaduApp(props: {
         <main className="main chat">
           <section className="face" aria-label="Cérebro do Gadu">
             <Visual kind="brain" mode={mode} label="Cérebro do Gadu" />
-            <div className={`mini ${mode !== "idle" ? "on" : ""}`} aria-hidden="true"><Visual kind="robot" mode={mode} compact label="Rosto do Gadu" /></div>
+            <div className={`mini ${mode !== "idle" ? "on" : ""}`} aria-hidden="true"><Visual kind="bot" mode={mode} compact label="Robô do Gadu" /></div>
           </section>
           <div className="log" ref={logRef} aria-live="polite">
             {messages.length === 0 && (
@@ -283,7 +316,7 @@ export function GaduApp(props: {
         </main>
       )}
 
-      {tab === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} />}
+      {tab === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
       {tab === "ajustes" && (
         <SettingsPage
           email={props.email}
@@ -291,9 +324,19 @@ export function GaduApp(props: {
           prefs={prefs}
           setPrefs={setPrefs}
           voiceOk={voiceOk}
+          speaker={speaker}
           onNew={() => { newConversation(); setTab("conversa"); }}
           initialBlocked={props.initialBlocked}
-          monthlyBudget={props.monthlyBudget}
+        />
+      )}
+
+      {drawer && (
+        <ConversationsDrawer
+          currentId={conversationId}
+          onClose={() => setDrawer(false)}
+          onOpen={openConversation}
+          onNew={() => { newConversation(); setTab("conversa"); setDrawer(false); }}
+          onDeleted={(id) => { if (id === conversationId) newConversation(); }}
         />
       )}
 
@@ -309,164 +352,3 @@ export function GaduApp(props: {
   );
 }
 
-function MemoryPage({ blocked, onChange }: { blocked: string[]; onChange: () => void }) {
-  const [items, setItems] = useState<Memory[] | null>(null);
-  const [text, setText] = useState("");
-  const [area, setArea] = useState(AREAS[3]);
-  const [error, setError] = useState("");
-  const db = supabaseBrowser();
-
-  const load = useCallback(async () => {
-    const { data, error } = await db.from("memories").select("id, content, area, origin, status").order("created_at", { ascending: false }).limit(300);
-    if (error) setError("Não consegui carregar a memória. Puxe para atualizar ou tente de novo.");
-    setItems((data as Memory[]) ?? []);
-    onChange();
-  }, [db, onChange]);
-  useEffect(() => { void load(); }, [load]);
-
-  const hit = (t: string) => blocked.find((b) => b && t.toLowerCase().includes(b.toLowerCase()));
-  const pending = (items ?? []).filter((m) => m.status === "pending");
-  const approved = (items ?? []).filter((m) => m.status === "approved");
-
-  async function act(fn: () => PromiseLike<{ error: unknown }>) {
-    const { error } = await fn();
-    if (error) setError("A alteração não foi salva. Tente de novo.");
-    await load();
-  }
-
-  return (
-    <main className="page">
-      <p className="muted" style={{ margin: 0 }}>A memória é do Gadu, não das IAs. Tudo entra como pendente e só vale depois que você aprova.</p>
-      {error && <div className="notice" role="alert">{error}</div>}
-      <section className="card">
-        <h2 style={{ color: "var(--hot)" }}>Para revisar</h2>
-        {items === null ? <p className="muted">Carregando…</p> : pending.length === 0 ? <p className="muted">Nada para revisar.</p> : pending.map((m) => (
-          <div className="item" key={m.id}>
-            <div>{m.content}</div>
-            <div className="mono muted">{m.area} · origem: {m.origin}</div>
-            {hit(m.content) && <div style={{ color: "var(--hot)", fontSize: 14 }}>Contém o termo bloqueado “{hit(m.content)}”. Não pode ser aprovada.</div>}
-            <div className="row">
-              <button className="btn btn-sm btn-pri" disabled={Boolean(hit(m.content))} onClick={() => act(() => db.from("memories").update({ status: "approved" }).eq("id", m.id))}>Aprovar</button>
-              <button className="btn btn-sm" onClick={() => act(() => db.from("memories").delete().eq("id", m.id))}>Descartar</button>
-            </div>
-          </div>
-        ))}
-      </section>
-      <section className="card">
-        <h2>Lembre que…</h2>
-        <label className="sr" htmlFor="mem-new">Nova memória</label>
-        <input id="mem-new" className="field" value={text} maxLength={400} placeholder="Ex.: prefiro reuniões depois das 10h" onChange={(e) => setText(e.target.value)} />
-        <div className="row">
-          {AREAS.map((a) => <button key={a} className="chip" aria-pressed={area === a} onClick={() => setArea(a)}>{a}</button>)}
-        </div>
-        <div><button className="btn" disabled={!text.trim()} onClick={() => act(async () => { const r = await db.from("memories").insert({ content: text.trim(), area, origin: "Você" }); if (!r.error) setText(""); return r; })}>Adicionar para revisão</button></div>
-      </section>
-      <section className="card">
-        <h2>O que eu sei sobre você</h2>
-        {approved.length === 0 ? <p className="muted">Ainda não sei nada aprovado sobre você.</p> : approved.map((m) => (
-          <div className="item" key={m.id} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ minWidth: 0 }}><div>{m.content}</div><div className="mono muted">{m.area} · origem: {m.origin}</div></div>
-            <button className="btn btn-sm" onClick={() => act(() => db.from("memories").delete().eq("id", m.id))}>Esquecer</button>
-          </div>
-        ))}
-      </section>
-    </main>
-  );
-}
-
-function SettingsPage(props: {
-  email: string;
-  version: string;
-  prefs: { voice: boolean; handsFree: boolean };
-  setPrefs: (p: { voice: boolean; handsFree: boolean }) => void;
-  voiceOk: boolean;
-  onNew: () => void;
-  initialBlocked: string[];
-  monthlyBudget: number;
-}) {
-  const [blocked, setBlocked] = useState<string[]>(props.initialBlocked);
-  const [term, setTerm] = useState("");
-  const [saved, setSaved] = useState("");
-  const [spent, setSpent] = useState<number | null>(null);
-  const [pw, setPw] = useState("");
-  const [pw2, setPw2] = useState("");
-  const [pwMsg, setPwMsg] = useState("");
-  const db = supabaseBrowser();
-
-  useEffect(() => {
-    db.rpc("month_spend").then((r: { data: unknown }) => setSpent(Number(r.data ?? 0)));
-  }, [db]);
-
-  async function savePassword(e: React.FormEvent) {
-    e.preventDefault();
-    if (pw.length < 10) return setPwMsg("Use pelo menos 10 caracteres.");
-    if (pw !== pw2) return setPwMsg("As duas senhas não são iguais.");
-    const { error } = await db.auth.updateUser({ password: pw });
-    if (error) return setPwMsg(/weak|pwned|leaked/i.test(error.message) ? "Senha fraca ou já vazada na internet. Escolha outra." : "Não consegui salvar a senha. Tente de novo.");
-    setPw(""); setPw2("");
-    setPwMsg("Senha salva. Da próxima vez, entre com e-mail e senha.");
-  }
-
-  async function saveBlocked(next: string[]) {
-    setBlocked(next);
-    const { data: auth } = await db.auth.getUser();
-    if (!auth.user) return;
-    const { data } = await db.from("profiles").select("settings").eq("id", auth.user.id).maybeSingle();
-    const settings = { ...((data?.settings as object) ?? {}), blocked: next };
-    const { error } = await db.from("profiles").update({ settings }).eq("id", auth.user.id);
-    setSaved(error ? "Não salvou. Tente de novo." : "Salvo.");
-  }
-
-  return (
-    <main className="page">
-      <section className="card">
-        <h2>Gasto com IA neste mês</h2>
-        <div style={{ fontSize: 22, fontVariantNumeric: "tabular-nums" }}>
-          {spent === null ? "…" : `US$ ${brl(spent)}`} <span className="muted" style={{ fontSize: 15 }}>de US$ {brl(props.monthlyBudget)}</span>
-        </div>
-        <div style={{ height: 6, background: "var(--wash)", borderRadius: 3, overflow: "hidden" }} aria-hidden="true">
-          <div style={{ height: "100%", width: `${Math.min(100, ((spent ?? 0) / props.monthlyBudget) * 100)}%`, background: (spent ?? 0) / props.monthlyBudget > 0.8 ? "var(--hot)" : "var(--sig)" }} />
-        </div>
-        <p className="muted" style={{ margin: 0 }}>Estimativa pelos tokens de cada resposta. Ao chegar no teto, o Gadu para de chamar a IA até o próximo mês.</p>
-      </section>
-      <section className="card">
-        <h2>Voz</h2>
-        <label className="switch"><span>Gadu responde falando</span><input type="checkbox" checked={props.prefs.voice} onChange={(e) => props.setPrefs({ ...props.prefs, voice: e.target.checked })} /></label>
-        <label className="switch"><span>Modo conversa (volta a ouvir depois de responder)</span><input type="checkbox" checked={props.prefs.handsFree} disabled={!props.voiceOk} onChange={(e) => props.setPrefs({ ...props.prefs, handsFree: e.target.checked })} /></label>
-        {!props.voiceOk && <p className="muted" style={{ margin: 0 }}>Este navegador não reconhece voz. No celular, use o Chrome (Android) ou o Safari (iPhone), ou o ditado do teclado.</p>}
-      </section>
-      <section className="card">
-        <h2>Termos bloqueados</h2>
-        <p className="muted" style={{ margin: 0 }}>Memórias com estes termos não podem ser aprovadas. Use para o nome da empresa e assuntos corporativos.</p>
-        <div className="row">{blocked.length ? blocked.map((b) => <button key={b} className="chip" onClick={() => saveBlocked(blocked.filter((x) => x !== b))} aria-label={`Remover ${b}`}>{b} ×</button>) : <span className="muted">Nenhum termo ainda.</span>}</div>
-        <div className="row" style={{ flexWrap: "nowrap" }}>
-          <label className="sr" htmlFor="term">Novo termo</label>
-          <input id="term" className="field" value={term} maxLength={60} placeholder="Ex.: nome da empresa" onChange={(e) => setTerm(e.target.value)} />
-          <button className="btn" disabled={!term.trim()} onClick={() => { void saveBlocked([...new Set([...blocked, term.trim()])]); setTerm(""); }}>Bloquear</button>
-        </div>
-        {saved && <span className="muted" role="status">{saved}</span>}
-      </section>
-      <section className="card">
-        <h2>Senha</h2>
-        <form onSubmit={savePassword} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <input type="text" autoComplete="username" value={props.email} readOnly hidden />
-          <label className="sr" htmlFor="pw1">Nova senha</label>
-          <input id="pw1" className="field" type="password" autoComplete="new-password" placeholder="Nova senha (mínimo 10 caracteres)" value={pw} onChange={(e) => setPw(e.target.value)} />
-          <label className="sr" htmlFor="pw2">Repita a senha</label>
-          <input id="pw2" className="field" type="password" autoComplete="new-password" placeholder="Repita a senha" value={pw2} onChange={(e) => setPw2(e.target.value)} />
-          <div><button className="btn" type="submit" disabled={!pw || !pw2}>Salvar senha</button></div>
-          {pwMsg && <span className="muted" role="status">{pwMsg}</span>}
-        </form>
-      </section>
-      <section className="card">
-        <h2>Conta</h2>
-        <div>{props.email}</div>
-        <div className="row">
-          <button className="btn" onClick={props.onNew}>Nova conversa</button>
-          <form action="/auth/signout" method="post"><button className="btn" type="submit">Sair</button></form>
-        </div>
-        <div className="mono muted">Gadu {props.version}</div>
-      </section>
-    </main>
-  );
-}

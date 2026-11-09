@@ -3,7 +3,7 @@
 export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 export const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
 
-export const APP_VERSION = "0.2.0";
+export const APP_VERSION = "0.3.0";
 
 function list(v: string | undefined): string[] {
   return (v ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
@@ -27,6 +27,9 @@ export function serverConfig() {
     // Modelos via Vercel AI Gateway (ids exatos de https://ai-gateway.vercel.sh/v1/models).
     gatewayModel: process.env.GATEWAY_MODEL || "anthropic/claude-opus-5.5",
     gatewayFallbackModel: process.env.GATEWAY_FALLBACK_MODEL || "google/gemini-3.5-flash",
+    // Modelo barato para tarefas de bastidor (resumos, importação).
+    cheapModel: process.env.CHEAP_MODEL || "claude-haiku-5-5",
+    gatewayCheapModel: process.env.GATEWAY_CHEAP_MODEL || "anthropic/claude-haiku-5.5",
   };
 }
 
@@ -34,4 +37,13 @@ export function serverConfig() {
 export function isAllowed(email: string | null | undefined): boolean {
   if (!email) return false;
   return serverConfig().allowedEmails.includes(email.toLowerCase());
+}
+
+/** Limites de gasto por provedor (US$ por mês), definidos pela pessoa em Ajustes. */
+export type Budgets = { anthropic: number; gateway: number };
+export const DEFAULT_BUDGETS: Budgets = { anthropic: 5, gateway: 5 };
+export function readBudgets(settings: unknown): Budgets {
+  const b = ((settings ?? {}) as { budgets?: Partial<Budgets> }).budgets ?? {};
+  const num = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : d);
+  return { anthropic: num(b.anthropic, DEFAULT_BUDGETS.anthropic), gateway: num(b.gateway, DEFAULT_BUDGETS.gateway) };
 }

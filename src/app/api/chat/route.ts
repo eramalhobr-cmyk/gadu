@@ -1,6 +1,9 @@
 import { z } from "zod";
-import { isAllowed, serverConfig } from "@/lib/config";
-import { AllProvidersFailed, routeChat, NoProviderError } from "@/lib/llm/router";
+import { isAllowed, readBudgets, serverConfig } from "@/lib/config";
+import { after } from "next/server";
+import { AllProvidersFailed, BudgetReached, routeChat, NoProviderError } from "@/lib/llm/router";
+import { complete } from "@/lib/llm/complete";
+import type { ProviderId } from "@/lib/llm/types";
 import type { ChatTurn } from "@/lib/llm/types";
 import { splitMeta, visiblePart } from "@/lib/meta";
 import { costUsd } from "@/lib/pricing";
@@ -60,9 +63,12 @@ export async function POST(request: Request) {
         }
         // 3. Conversa: usa a existente (se for da pessoa) ou cria uma nova.
         let conversationId = parsed.data.conversationId ?? null;
+        let msgCount = 0;
+        let hasSummary = false;
         if (conversationId) {
-          const { data } = await supabase.from("conversations").select("id").eq("id", conversationId).maybeSingle();
+          const { data } = await supabase.from("conversations").select("id, message_count, summary").eq("id", conversationId).maybeSingle();
           if (!data) conversationId = null;
+          else { msgCount = Number(data.message_count ?? 0); hasSummary = Boolean(data.summary); }
         }
         if (!conversationId) {
           const { data, error } = await supabase.from("conversations").insert({ title: message.slice(0, 80) }).select("id").single();
@@ -71,12 +77,23 @@ export async function POST(request: Request) {
         }
         send({ t: "start", conversationId });
 
-        // 4. Contexto: perfil, memória aprovada e histórico recente.
-        const [profile, memories, history] = await Promise.all([
+        // 4. Contexto: perfil, memória aprovada, histórico recente, conversas antigas relacionadas e gasto por provedor.
+        const [profile, memories, history, related, spendRows] = await Promise.all([
           supabase.from("profiles").select("display_name, settings").eq("id", user.id).maybeSingle(),
           supabase.from("memories").select("content, area").eq("status", "approved").order("created_at", { ascending: true }).limit(80),
           supabase.from("messages").select("role, content").eq("conversation_id", conversationId).order("created_at", { ascending: false }).limit(16),
+          relatedQuery(message)
+            ? supabase.from("conversations").select("title, summary, updated_at").textSearch("search", relatedQuery(message), { type: "websearch", config: "portuguese" }).not("summary", "is", null).neq("id", conversationId).order("updated_at", { ascending: false }).limit(3)
+            : Promise.resolve({ data: [] as { title: string; summary: string; updated_at: string }[] }),
+          supabase.rpc("month_spend_by_provider"),
         ]);
+        // Limite por provedor: quem passou do limite do mês fica de fora desta resposta.
+        const budgets = readBudgets(profile.data?.settings);
+        const spentBy: Record<string, number> = {};
+        for (const r of (spendRows.data ?? []) as { provider: string; cost_usd: number }[]) spentBy[r.provider] = Number(r.cost_usd);
+        const skip = new Set<ProviderId>();
+        if ((spentBy.anthropic ?? 0) >= budgets.anthropic) skip.add("anthropic");
+        if ((spentBy.gateway ?? 0) >= budgets.gateway) skip.add("gateway");
         const name = String(profile.data?.display_name ?? "").split(" ")[0];
         const blocked: string[] = Array.isArray(profile.data?.settings?.blocked) ? profile.data.settings.blocked : [];
         const turns: ChatTurn[] = [];
@@ -94,11 +111,11 @@ export async function POST(request: Request) {
         // 5. Resposta em streaming, com troca de provedor se o principal cair.
         let full = "";
         let provider = "";
-        let usage: { input: number; output: number; cost: number } | null = null;
+        let usage: { input: number; output: number; cost: number; provider: ProviderId; model: string } | null = null;
         let sent = 0;
         for await (const ev of routeChat({
           system: systemPrompt(),
-          context: contextBlock(name, memories.data ?? []),
+          context: contextBlock(name, memories.data ?? [], (related.data ?? []) as { title: string; summary: string; updated_at: string }[]),
           turns,
           signal: request.signal,
           onUsage: (u) => {
@@ -106,12 +123,14 @@ export async function POST(request: Request) {
               input: (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0),
               output: u.output_tokens ?? 0,
               cost: costUsd(u),
+              provider: u.provider,
+              model: u.model,
             };
           },
-        })) {
+        }, skip)) {
           if (ev.type === "provider") {
-            provider = ev.name;
-            send({ t: "provider", name: ev.name });
+            provider = `${ev.name} · ${ev.id === "gateway" ? "Vercel" : ev.id === "anthropic" ? "Anthropic" : "Google"}`;
+            send({ t: "provider", name: provider });
           } else {
             full += ev.text;
             const vis = visiblePart(full);
@@ -133,7 +152,17 @@ export async function POST(request: Request) {
             cost_usd: (usage as { cost: number } | null)?.cost ?? null,
           },
         ]);
-        await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
+        const u = usage as { input: number; output: number; cost: number; provider: ProviderId; model: string } | null;
+        if (u) {
+          await supabase.from("usage_events").insert({ provider: u.provider, model: u.model.slice(0, 80), kind: "chat", input_tokens: u.input, output_tokens: u.output, cost_usd: u.cost });
+        }
+        const newCount = msgCount + 2;
+        await supabase.from("conversations").update({ updated_at: new Date().toISOString(), message_count: newCount }).eq("id", conversationId);
+        // Memória v2: resume a conversa em segundo plano (depois de responder), a cada 6 mensagens.
+        if (newCount >= 4 && (!hasSummary || newCount % 6 === 0)) {
+          const convId = conversationId;
+          after(() => summarize(supabase, convId, skip));
+        }
         let added = 0;
         if (proposals.length) {
           const { data: existing } = await supabase.from("memories").select("content");
@@ -148,7 +177,9 @@ export async function POST(request: Request) {
         }
         send({ t: "done", memories: added });
       } catch (e) {
-        if (e instanceof NoProviderError) {
+        if (e instanceof BudgetReached) {
+          send({ t: "notice", kind: "quota", text: "Os motores de IA chegaram ao limite de gasto que você definiu para este mês. Ajuste os limites em Ajustes para continuar." });
+        } else if (e instanceof NoProviderError) {
           send({ t: "notice", kind: "engine", text: "O motor ainda não está configurado neste servidor. Publique na Vercel (usa o AI Gateway) ou cadastre ANTHROPIC_API_KEY." });
         } else if (e instanceof AllProvidersFailed && !request.signal.aborted) {
           const text = {
@@ -172,4 +203,38 @@ export async function POST(request: Request) {
   return new Response(body, {
     headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-accel-buffering": "no" },
   });
+}
+
+const STOP = new Set("para como mais muito pela pelo isso esta este essa esse estou você voce sobre qual quais quando onde porque também tambem agora ainda depois antes então entao gadu fala falar pode poderia quero queria tenho temos fazer coisa coisas hoje".split(" "));
+
+/** Monta a busca por conversas antigas: palavras relevantes da mensagem, unidas por "or". */
+function relatedQuery(message: string): string {
+  const words = message
+    .toLowerCase()
+    .normalize("NFC")
+    .match(/[\p{L}\p{N}]{4,}/gu) ?? [];
+  const uniq = [...new Set(words.filter((w) => !STOP.has(w)))].slice(0, 8);
+  return uniq.join(" or ");
+}
+
+type Db = Awaited<ReturnType<typeof supabaseServer>>;
+
+/** Gera ou atualiza o resumo da conversa com o modelo mais barato. Falhas não afetam a conversa. */
+async function summarize(supabase: Db, conversationId: number, skip: Set<ProviderId>) {
+  try {
+    const [{ data: conv }, { data: msgs }] = await Promise.all([
+      supabase.from("conversations").select("summary").eq("id", conversationId).maybeSingle(),
+      supabase.from("messages").select("role, content").eq("conversation_id", conversationId).order("created_at", { ascending: false }).limit(30),
+    ]);
+    const transcript = (msgs ?? []).reverse().map((m) => `${m.role === "user" ? "Pessoa" : "Gadu"}: ${String(m.content).slice(0, 1500)}`).join("\n");
+    if (!transcript) return;
+    const r = await complete(
+      `Resuma a conversa abaixo em português do Brasil, em até 120 palavras, para servir de memória futura do assistente. Inclua decisões, pedidos pendentes, nomes de projetos e datas citadas. Não inclua dados sensíveis (documentos, senhas, dados bancários ou de saúde). Responda só com o resumo, sem título.${conv?.summary ? `\n\nResumo anterior:\n${conv.summary}` : ""}\n\nConversa:\n${transcript}`,
+      { maxTokens: 600, skip },
+    );
+    await supabase.from("conversations").update({ summary: r.text.slice(0, 2000), summary_at: new Date().toISOString() }).eq("id", conversationId);
+    await supabase.from("usage_events").insert({ provider: r.provider, model: r.model.slice(0, 80), kind: "summary", input_tokens: r.input, output_tokens: r.output, cost_usd: r.cost });
+  } catch (e) {
+    console.error("resumo falhou", e instanceof Error ? e.message.slice(0, 200) : "erro");
+  }
 }
