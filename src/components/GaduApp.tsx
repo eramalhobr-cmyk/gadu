@@ -23,8 +23,8 @@ const FLASH: Record<string, string> = {
   config: "O Google ainda não está configurado no servidor. Siga o passo a passo para criar as credenciais.",
   erro: "Não consegui concluir a conexão com o Google. Tente de novo em Ajustes, Conexões.",
 };
-export type Tab = "hoje" | "conversa" | "projetos" | "agentes" | "perfil";
-export const TABS: Tab[] = ["hoje", "conversa", "projetos", "agentes", "perfil"];
+import { TABS, type Tab } from "@/lib/tabs";
+export type { Tab };
 const TAB_LABEL: Record<Tab, string> = { hoje: "Hoje", conversa: "Conversa", projetos: "Projetos", agentes: "Agentes", perfil: "Perfil" };
 const TAB_ICON: Record<Tab, string> = { hoje: "sun", conversa: "chat", projetos: "grid", agentes: "agents", perfil: "user" };
 type Target = { kind: "project" | "agent"; id: number; name: string } | null;

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { GaduApp, TABS, type Msg, type Tab } from "@/components/GaduApp";
+import { GaduApp, type Msg } from "@/components/GaduApp";
+import { TABS, type Tab } from "@/lib/tabs";
 import { APP_VERSION, isAllowed } from "@/lib/config";
 import { supabaseServer } from "@/lib/supabase/server";
 
