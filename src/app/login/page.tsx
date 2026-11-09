@@ -26,6 +26,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       </a>
       )}
       <p className="mono muted" style={{ margin: 0 }}>Acesso por convite · seus dados ficam só com você</p>
+      <p className="muted" style={{ margin: 0, fontSize: 14 }}><a href="/privacidade">Privacidade</a> · <a href="/termos">Termos</a></p>
     </main>
   );
 }

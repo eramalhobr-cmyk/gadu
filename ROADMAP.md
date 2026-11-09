@@ -105,7 +105,10 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] "Começar o dia": briefing falado (agenda, e-mails que pedem ação, foco do dia) e botão para ouvir o Update Diário
 - [x] Atalhos na conversa: Começar o dia, agenda de hoje, e-mails importantes
 - [x] Link do Update Diário configurável em Ajustes
-- [ ] **Você: criar o projeto no Google Cloud e cadastrar GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET na Vercel** (passo a passo no chat)
+- [x] Projeto GaDu no Google Cloud, APIs ligadas, cliente OAuth criado
+- [x] GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET cadastrados na Vercel
+- [x] Páginas públicas de Privacidade e Termos (exigidas pelo Google para publicar)
+- [ ] **Você: preencher o Branding (página inicial, privacidade, termos, domínio) e publicar o app** (evita reconectar toda semana)
 - [ ] Primeira conexão do Google em produção
 - [ ] Tela "Hoje" com agenda e e-mails (a rota `/api/today` já existe)
 - [ ] Rascunho de resposta no Gmail (exige permissão extra, com aprovação)
