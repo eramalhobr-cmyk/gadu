@@ -1,4 +1,4 @@
-# Gadu
+# GaDu
 
 Assistente pessoal por voz e texto. Mobile first, multiusuário (cada pessoa vê só os próprios dados), feito para rodar de graça na Vercel + Supabase.
 

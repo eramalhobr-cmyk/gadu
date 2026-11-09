@@ -1,5 +1,5 @@
 // @ts-nocheck -- código de desenho em canvas, sem lógica de negócio.
-// Rosto humanoide do Gadu: reage aos modos repouso, escutando, pensando e falando.
+// Rosto humanoide do GaDu: reage aos modos repouso, escutando, pensando e falando.
 export type FaceMode = "idle" | "listening" | "thinking" | "speaking";
 const ACC = "#5FF0DC", HOT = "#FFB454";
 export const pointer = { x: 0, y: 0 };

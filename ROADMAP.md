@@ -1,6 +1,6 @@
-# Gadu · Roadmap
+# GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 09/11/2026 (v0.3.0). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
+Atualizado a cada entrega. Última atualização: 09/11/2026 (v0.4.0). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 ## Fase 0 · MVP publicado (v0.1)
@@ -10,7 +10,7 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] Next.js 16 (App Router) + TypeScript estrito
 - [x] Projeto `gadu-agent` na Vercel (Pro), ligado ao GitHub: cada envio ao `main` publica sozinho
 - [x] Variáveis cadastradas pela API da Vercel (nenhuma secreta)
-- [x] Ambiente de trabalho "Gadu" no Claude com tokens da Vercel e do Supabase isolados
+- [x] Ambiente de trabalho "GaDu" no Claude com tokens da Vercel e do Supabase isolados
 - [x] Banco Supabase próprio (São Paulo) com RLS em todas as tabelas
 - [x] Esquema multiusuário: perfis, conversas, mensagens, memórias, cota diária
 - [x] Migração versionada em `supabase/migrations`
@@ -47,7 +47,7 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 
 ### Voz (grátis, do aparelho)
 - [x] Apertar para falar (reconhecimento de voz do navegador, pt-BR)
-- [x] Gadu fala a resposta frase a frase, enquanto ela chega
+- [x] GaDu fala a resposta frase a frase, enquanto ela chega
 - [x] Interromper tocando no botão
 - [x] Modo conversa: volta a ouvir depois de responder
 - [x] Sem suporte a voz: o app segue por texto e avisa
@@ -55,7 +55,7 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] Avisos claros para microfone bloqueado, sem microfone ou sem internet
 
 ### Memória
-- [x] Memórias propostas pelo Gadu entram como pendentes
+- [x] Memórias propostas pelo GaDu entram como pendentes
 - [x] Aprovar, descartar, esquecer, "Lembre que…"
 - [x] Termos bloqueados impedem a aprovação
 
@@ -95,11 +95,23 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [ ] Receitas (skills) no formato de arquivo simples
 - [ ] Escritório com o roteiro do spec-kit (pedido → especificação → plano → tarefas)
 
-## Fase 2 · Conexões pessoais (próxima)
-- [ ] Gmail (ler e criar rascunhos) com escopos mínimos
-- [ ] Google Agenda (ler e reservar foco)
-- [ ] Spotify (Update Diário)
-- [ ] "Começar o dia" e briefing às 7h no celular (notificação)
+## Fase 2 · Conexões pessoais (em andamento)
+- [x] Nome na interface: GaDu
+- [x] Ícone do app (PWA) com o cérebro neural
+- [x] Tabela `google_connections` com RLS; token do Google criptografado (AES-256-GCM, chave só no servidor)
+- [x] Chave de criptografia `GOOGLE_TOKEN_KEY` cadastrada na Vercel (sensível)
+- [x] Conectar e desconectar o Google em Ajustes › Conexões (OAuth com PKCE, só leitura, revoga ao desconectar)
+- [x] Agenda e Gmail entram na conversa só quando o assunto pede (e-mails sensíveis ou com termo bloqueado são omitidos)
+- [x] "Começar o dia": briefing falado (agenda, e-mails que pedem ação, foco do dia) e botão para ouvir o Update Diário
+- [x] Atalhos na conversa: Começar o dia, agenda de hoje, e-mails importantes
+- [x] Link do Update Diário configurável em Ajustes
+- [ ] **Você: criar o projeto no Google Cloud e cadastrar GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET na Vercel** (passo a passo no chat)
+- [ ] Primeira conexão do Google em produção
+- [ ] Tela "Hoje" com agenda e e-mails (a rota `/api/today` já existe)
+- [ ] Rascunho de resposta no Gmail (exige permissão extra, com aprovação)
+- [ ] Reservar foco na agenda (exige permissão de escrita, com aprovação)
+- [ ] Briefing às 7h no celular (notificação push + agendamento)
+- [ ] Spotify pela API (tocar o episódio do dia direto)
 
 ## Fase 3 · Voz premium (quando aprovar o custo)
 - [ ] ElevenLabs para falar e Scribe para ouvir, com chave temporária

@@ -5,7 +5,8 @@ import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function AppPage() {
+export default async function AppPage({ searchParams }: { searchParams: Promise<{ google?: string }> }) {
+  const { google } = await searchParams;
   const supabase = await supabaseServer();
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
@@ -26,7 +27,8 @@ export default async function AppPage() {
       .limit(30);
     messages = (data ?? []).reverse().map((m) => ({ id: String(m.id), role: m.role as "user" | "assistant", content: m.content as string, via: (m.provider as string) || undefined }));
   }
-  const settings = (profile.data?.settings ?? {}) as { blocked?: unknown };
+  const settings = (profile.data?.settings ?? {}) as { blocked?: unknown; morningLink?: unknown };
+  const morning = typeof settings.morningLink === "string" && /^https:\/\//.test(settings.morningLink) ? settings.morningLink : "";
   const name = String(profile.data?.display_name ?? user.user_metadata?.full_name ?? "").split(" ")[0];
 
   return (
@@ -37,6 +39,8 @@ export default async function AppPage() {
       initialMessages={messages}
       initialBlocked={Array.isArray(settings.blocked) ? settings.blocked.map(String) : []}
       version={APP_VERSION}
+      morningLink={morning}
+      flash={typeof google === "string" ? google.slice(0, 20) : null}
     />
   );
 }

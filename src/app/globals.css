@@ -1,4 +1,4 @@
-/* Gadu · visual escuro, mobile first. Tokens únicos para todo o app. */
+/* GaDu · visual escuro, mobile first. Tokens únicos para todo o app. */
 :root {
   --bg: #05080b; --panel: #0a1216; --deep: #020406;
   --ink: #e6f2ef; --ink-2: #c9dad7; --ink-3: #93a8a6;
@@ -106,3 +106,5 @@ input[type="checkbox"] { accent-color: var(--sig); width: 22px; height: 22px; }
   .tabs { grid-template-columns: repeat(3, 140px); justify-content: center; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+.quick { gap: 8px; }
+.quick .chip { min-height: 40px; }

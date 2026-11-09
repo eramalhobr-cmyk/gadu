@@ -32,6 +32,7 @@ export function SettingsPage(props: {
   speaker: Speaker | null;
   onNew: () => void;
   initialBlocked: string[];
+  morningLink: string;
 }) {
   const [blocked, setBlocked] = useState<string[]>(props.initialBlocked);
   const [term, setTerm] = useState("");
@@ -63,6 +64,7 @@ export function SettingsPage(props: {
 
   return (
     <main className="page">
+      <ConnectionsCard morningLink={props.morningLink} />
       <SpendCard />
       <VoiceCard {...props} />
       <section className="card">
@@ -95,7 +97,7 @@ export function SettingsPage(props: {
           <button className="btn" onClick={props.onNew}>Nova conversa</button>
           <form action="/auth/signout" method="post"><button className="btn" type="submit">Sair</button></form>
         </div>
-        <div className="mono muted">Gadu {props.version}</div>
+        <div className="mono muted">GaDu {props.version}</div>
       </section>
     </main>
   );
@@ -160,7 +162,7 @@ function SpendCard() {
                   <span style={{ fontVariantNumeric: "tabular-nums" }}>{usd(spent)} <span className="muted">/ {usd(limit)}</span></span>
                 </div>
                 <Bar value={spent} max={limit} />
-                {spent >= limit && <div style={{ color: "var(--bad)", fontSize: 14 }}>Limite atingido. O Gadu usa o outro motor até você aumentar.</div>}
+                {spent >= limit && <div style={{ color: "var(--bad)", fontSize: 14 }}>Limite atingido. O GaDu usa o outro motor até você aumentar.</div>}
                 <div className="muted" style={{ fontSize: 14 }}>{r.hint}</div>
                 {edit && (
                   <label className="row" style={{ flexWrap: "nowrap" }}>
@@ -182,7 +184,7 @@ function SpendCard() {
             )}
           </div>
           {msg && <span className="muted" role="status">{msg}</span>}
-          <p className="muted" style={{ margin: 0, fontSize: 14 }}>Ao chegar no limite de um motor, o Gadu passa para o outro. Com os dois no limite, ele para até o próximo mês.</p>
+          <p className="muted" style={{ margin: 0, fontSize: 14 }}>Ao chegar no limite de um motor, o GaDu passa para o outro. Com os dois no limite, ele para até o próximo mês.</p>
         </>
       )}
     </section>
@@ -209,12 +211,12 @@ function VoiceCard(props: { prefs: Prefs; setPrefs: (p: Prefs) => void; voiceOk:
   return (
     <section className="card">
       <h2>Voz</h2>
-      <label className="switch"><span>Gadu responde falando</span><input type="checkbox" checked={p.voice} onChange={(e) => set({ voice: e.target.checked })} /></label>
+      <label className="switch"><span>GaDu responde falando</span><input type="checkbox" checked={p.voice} onChange={(e) => set({ voice: e.target.checked })} /></label>
       <label className="switch"><span>Modo conversa (volta a ouvir depois de responder)</span><input type="checkbox" checked={p.handsFree} disabled={!props.voiceOk} onChange={(e) => set({ handsFree: e.target.checked })} /></label>
       {!props.voiceOk && <p className="muted" style={{ margin: 0 }}>Este navegador não reconhece voz. No celular, use o Chrome (Android) ou o Safari (iPhone), ou o ditado do teclado.</p>}
       {canSpeak() && (
         <>
-          <label htmlFor="voice" className="muted" style={{ fontSize: 14 }}>Voz do Gadu</label>
+          <label htmlFor="voice" className="muted" style={{ fontSize: 14 }}>Voz do GaDu</label>
           <select id="voice" className="field" value={p.voiceURI} onChange={(e) => { set({ voiceURI: e.target.value }); test({ voiceURI: e.target.value }); }}>
             <option value="">Automática (a mais natural do aparelho)</option>
             {voices.map((v) => <option key={v.voiceURI} value={v.voiceURI}>{voiceLabel(v)}</option>)}
@@ -229,6 +231,89 @@ function VoiceCard(props: { prefs: Prefs; setPrefs: (p: Prefs) => void; voiceOk:
           </p>
         </>
       )}
+    </section>
+  );
+}
+
+type GStatus = { configured: boolean; connected: boolean; email: string | null };
+
+function ConnectionsCard({ morningLink }: { morningLink: string }) {
+  const [g, setG] = useState<GStatus | null>(null);
+  const [err, setErr] = useState("");
+  const [confirm, setConfirm] = useState(false);
+  const [link, setLink] = useState(morningLink);
+  const [msg, setMsg] = useState("");
+  const db = supabaseBrowser();
+
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch("/api/google/status", { cache: "no-store" });
+      if (!r.ok) throw new Error();
+      setG(await r.json());
+      setErr("");
+    } catch {
+      setErr("Não consegui ver o estado da conexão.");
+    }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  async function disconnect() {
+    const r = await fetch("/api/google/disconnect", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ confirm: true }) });
+    setConfirm(false);
+    if (!r.ok) return setErr("Não consegui desconectar. Tente de novo.");
+    void load();
+  }
+
+  async function saveLink() {
+    const v = link.trim();
+    if (v && !/^https:\/\/[^\s]{4,300}$/.test(v)) return setMsg("Cole um link que comece com https://");
+    const { data: auth } = await db.auth.getUser();
+    if (!auth.user) return;
+    const { data } = await db.from("profiles").select("settings").eq("id", auth.user.id).maybeSingle();
+    const settings = { ...((data?.settings as object) ?? {}), morningLink: v };
+    const { error } = await db.from("profiles").update({ settings }).eq("id", auth.user.id);
+    setMsg(error ? "Não salvou. Tente de novo." : "Salvo. Vale a partir do próximo Começar o dia.");
+  }
+
+  return (
+    <section className="card">
+      <h2>Conexões</h2>
+      {err && <div className="notice" role="alert">{err}</div>}
+      <div className="item">
+        <div className="row" style={{ justifyContent: "space-between" }}>
+          <span>Google · Agenda e Gmail</span>
+          <span className="mono" style={{ color: g?.connected ? "var(--sig)" : "var(--ink-3)" }}>{g === null ? "…" : g.connected ? "Conectado" : "Desconectado"}</span>
+        </div>
+        {g?.connected ? (
+          <>
+            <div className="muted" style={{ fontSize: 14 }}>{g.email ?? "Conta Google"} · só leitura. O GaDu lê agenda e e-mails quando você pergunta ou pede para começar o dia.</div>
+            {confirm ? (
+              <div className="row">
+                <button className="btn btn-sm" style={{ borderColor: "var(--bad)", color: "var(--bad)" }} onClick={disconnect}>Desconectar de vez</button>
+                <button className="btn btn-sm" onClick={() => setConfirm(false)}>Cancelar</button>
+              </div>
+            ) : (
+              <div><button className="btn btn-sm" onClick={() => setConfirm(true)}>Desconectar</button></div>
+            )}
+          </>
+        ) : g && !g.configured ? (
+          <div className="muted" style={{ fontSize: 14 }}>Falta configurar as credenciais do Google no servidor. Siga o passo a passo que o GaDu passou.</div>
+        ) : (
+          <>
+            <div className="muted" style={{ fontSize: 14 }}>Permite que o GaDu leia sua agenda e seus e-mails para responder e montar o briefing do dia. Ele não envia e-mails nem muda a agenda.</div>
+            <div><a className="btn btn-pri" href="/api/google/connect">Conectar Google</a></div>
+          </>
+        )}
+      </div>
+      <div className="item">
+        <label htmlFor="morning">Notícias do Começar o dia</label>
+        <div className="muted" style={{ fontSize: 14 }}>Cole o link do Update Diário no Spotify (Compartilhar › Copiar link). Sem link, abro a busca do Spotify.</div>
+        <div className="row" style={{ flexWrap: "nowrap" }}>
+          <input id="morning" className="field" inputMode="url" placeholder="https://open.spotify.com/show/…" value={link} maxLength={300} onChange={(e) => setLink(e.target.value)} />
+          <button className="btn" onClick={saveLink}>Salvar</button>
+        </div>
+        {msg && <span className="muted" role="status">{msg}</span>}
+      </div>
     </section>
   );
 }

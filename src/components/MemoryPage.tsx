@@ -41,7 +41,7 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
       const out: Hit[] = [
         ...((m.data ?? []) as { id: number; content: string; area: string; status: string }[]).map((x) => ({ kind: "memoria" as const, id: x.id, text: x.content, sub: `${x.area}${x.status === "pending" ? " · pendente" : ""}` })),
         ...((c.data ?? []) as { id: number; title: string | null; summary: string | null; updated_at: string }[]).map((x) => ({ kind: "conversa" as const, id: x.id, text: x.title || "Sem título", sub: `${when(x.updated_at)}${x.summary ? ` · ${x.summary.slice(0, 140)}` : ""}`, conversationId: x.id })),
-        ...((msg.data ?? []) as { id: number; content: string; conversation_id: number; created_at: string; role: string }[]).map((x) => ({ kind: "mensagem" as const, id: x.id, text: x.content.slice(0, 180), sub: `${x.role === "user" ? "Você" : "Gadu"} · ${when(x.created_at)}`, conversationId: x.conversation_id })),
+        ...((msg.data ?? []) as { id: number; content: string; conversation_id: number; created_at: string; role: string }[]).map((x) => ({ kind: "mensagem" as const, id: x.id, text: x.content.slice(0, 180), sub: `${x.role === "user" ? "Você" : "GaDu"} · ${when(x.created_at)}`, conversationId: x.conversation_id })),
       ];
       setHits(out);
     }, 300);
@@ -77,7 +77,7 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
         </section>
       )}
 
-      {!hits && <p className="muted" style={{ margin: 0 }}>A memória é do Gadu, não das IAs. Tudo entra como pendente e só vale depois que você aprova.</p>}
+      {!hits && <p className="muted" style={{ margin: 0 }}>A memória é do GaDu, não das IAs. Tudo entra como pendente e só vale depois que você aprova.</p>}
       {error && <div className="notice" role="alert">{error}</div>}
 
       <section className="card">
@@ -196,7 +196,7 @@ function ImportCard({ onDone }: { onDone: () => void }) {
             <button className="btn btn-sm btn-pri" disabled={busy || !text.trim()} onClick={submit}>{busy ? "Importando…" : "Importar"}</button>
             <button className="btn btn-sm" onClick={() => { setOpen(false); setMsg(""); }}>Fechar</button>
           </div>
-          <p className="muted" style={{ margin: 0, fontSize: 14 }}>Lista: grátis. Texto corrido: o Gadu usa o modelo mais barato para separar os fatos (centavos).</p>
+          <p className="muted" style={{ margin: 0, fontSize: 14 }}>Lista: grátis. Texto corrido: o GaDu usa o modelo mais barato para separar os fatos (centavos).</p>
         </>
       )}
       {msg && <span className="muted" role="status">{msg}</span>}

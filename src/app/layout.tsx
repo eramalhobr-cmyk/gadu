@@ -7,12 +7,12 @@ const body = Instrument_Sans({ subsets: ["latin"], variable: "--font-body", disp
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Gadu",
+  title: "GaDu",
   description: "Assistente pessoal por voz e texto.",
   manifest: "/manifest.webmanifest",
-  applicationName: "Gadu",
-  appleWebApp: { capable: true, title: "Gadu", statusBarStyle: "black-translucent" },
-  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
+  applicationName: "GaDu",
+  appleWebApp: { capable: true, title: "GaDu", statusBarStyle: "black-translucent" },
+  icons: { icon: "/icons/icon-192.png?v=2", apple: "/icons/apple-touch-icon.png?v=2" },
   robots: { index: false, follow: false },
 };
 

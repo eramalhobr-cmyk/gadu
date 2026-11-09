@@ -1,5 +1,5 @@
 // @ts-nocheck -- código de desenho em canvas, sem lógica de negócio.
-// Robô compacto do Gadu: cabeça em "squircle" com visor de vidro, olhos de LED e boca equalizadora.
+// Robô compacto do GaDu: cabeça em "squircle" com visor de vidro, olhos de LED e boca equalizadora.
 // Estados: repouso (respira e pisca), escutando (olhos abertos, ondas), pensando (varredura âmbar), falando (equalizador).
 import { pointer, type FaceMode } from "./robot-engine";
 

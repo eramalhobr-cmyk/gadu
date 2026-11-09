@@ -84,6 +84,7 @@ export function voiceLabel(v: SpeechSynthesisVoice): string {
 /** Prepara o texto para soar como fala: tira marcação, links e emojis; troca símbolos por palavras. */
 export function speakable(text: string): string {
   return text
+    .replace(/\bGaDu\b/g, "Gadu")
     .replace(/https?:\/\/\S+/g, " link ")
     .replace(/[\p{Extended_Pictographic}\u{FE0F}]/gu, " ")
     .replace(/[*#`>|_~]/g, " ")

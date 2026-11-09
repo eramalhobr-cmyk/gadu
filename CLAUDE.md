@@ -1,4 +1,4 @@
-# Gadu · regras do projeto
+# GaDu · regras do projeto
 
 - Leia ROADMAP.md antes de começar e **atualize o checklist em toda entrega**.
 - Mobile first: teste sempre em largura de celular (390px) antes do desktop.

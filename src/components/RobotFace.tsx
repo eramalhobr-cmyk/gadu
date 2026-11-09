@@ -7,13 +7,13 @@ import { Robot, pointer, type FaceMode } from "./robot-engine";
 type Kind = "brain" | "robot" | "bot";
 
 /** Canvas animado (cérebro ou rosto). Pausa quando a aba some e respeita "reduzir movimento". */
-export function Visual({ kind, mode, compact = false, label }: { kind: Kind; mode: FaceMode; compact?: boolean; label: string }) {
+export function Visual({ kind, mode, compact = false, icon = false, label }: { kind: Kind; mode: FaceMode; compact?: boolean; icon?: boolean; label: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const engine = useRef<{ mode: FaceMode; step: (dt: number) => void; draw: () => void } | null>(null);
 
   useEffect(() => {
     if (!canvas.current) return;
-    const e = kind === "brain" ? new Brain(canvas.current, { compact, hud: !compact }) : kind === "bot" ? new Bot(canvas.current, { compact }) : new Robot(canvas.current, { compact });
+    const e = kind === "brain" ? new Brain(canvas.current, { compact, icon, hud: !compact && !icon }) : kind === "bot" ? new Bot(canvas.current, { compact }) : new Robot(canvas.current, { compact });
     e.mode = mode;
     engine.current = e;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -56,6 +56,6 @@ export function Visual({ kind, mode, compact = false, label }: { kind: Kind; mod
 }
 
 /** Compatibilidade: rosto humanoide. */
-export function RobotFace({ mode, compact = false, label = "Rosto do Gadu" }: { mode: FaceMode; compact?: boolean; label?: string }) {
+export function RobotFace({ mode, compact = false, label = "Rosto do GaDu" }: { mode: FaceMode; compact?: boolean; label?: string }) {
   return <Visual kind="robot" mode={mode} compact={compact} label={label} />;
 }

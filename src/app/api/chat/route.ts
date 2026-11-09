@@ -8,6 +8,7 @@ import type { ChatTurn } from "@/lib/llm/types";
 import { splitMeta, visiblePart } from "@/lib/meta";
 import { costUsd } from "@/lib/pricing";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
+import { accessToken, events, formatEvents, formatMails, GoogleError, googleIntent, inbox } from "@/lib/google";
 import { contextBlock, systemPrompt } from "@/lib/prompt";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
         // 2b. Teto de gasto mensal.
         const { data: spent } = await supabase.rpc("month_spend");
         if (Number(spent ?? 0) >= cfg.monthlyBudgetUsd) {
-          send({ t: "notice", kind: "quota", text: `O teto de gasto do mês (US$ ${cfg.monthlyBudgetUsd.toFixed(2)}) foi atingido. O Gadu volta a responder no próximo mês, ou quando o teto for aumentado.` });
+          send({ t: "notice", kind: "quota", text: `O teto de gasto do mês (US$ ${cfg.monthlyBudgetUsd.toFixed(2)}) foi atingido. O GaDu volta a responder no próximo mês, ou quando o teto for aumentado.` });
           return;
         }
         // 3. Conversa: usa a existente (se for da pessoa) ou cria uma nova.
@@ -104,6 +105,8 @@ export async function POST(request: Request) {
           if (last && last.role === role) last.content += "\n\n" + m.content;
           else turns.push({ role, content: m.content });
         }
+        // Fase 2: agenda e e-mails do Google entram no contexto só quando o assunto pede.
+        const google = await googleContext(supabase, user.id, message, blocked);
         const lastTurn = turns[turns.length - 1];
         if (lastTurn && lastTurn.role === "user") lastTurn.content += "\n\n" + message;
         else turns.push({ role: "user", content: message });
@@ -115,7 +118,7 @@ export async function POST(request: Request) {
         let sent = 0;
         for await (const ev of routeChat({
           system: systemPrompt(),
-          context: contextBlock(name, memories.data ?? [], (related.data ?? []) as { title: string; summary: string; updated_at: string }[]),
+          context: contextBlock(name, memories.data ?? [], (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + google,
           turns,
           signal: request.signal,
           onUsage: (u) => {
@@ -226,7 +229,7 @@ async function summarize(supabase: Db, conversationId: number, skip: Set<Provide
       supabase.from("conversations").select("summary").eq("id", conversationId).maybeSingle(),
       supabase.from("messages").select("role, content").eq("conversation_id", conversationId).order("created_at", { ascending: false }).limit(30),
     ]);
-    const transcript = (msgs ?? []).reverse().map((m) => `${m.role === "user" ? "Pessoa" : "Gadu"}: ${String(m.content).slice(0, 1500)}`).join("\n");
+    const transcript = (msgs ?? []).reverse().map((m) => `${m.role === "user" ? "Pessoa" : "GaDu"}: ${String(m.content).slice(0, 1500)}`).join("\n");
     if (!transcript) return;
     const r = await complete(
       `Resuma a conversa abaixo em português do Brasil, em até 120 palavras, para servir de memória futura do assistente. Inclua decisões, pedidos pendentes, nomes de projetos e datas citadas. Não inclua dados sensíveis (documentos, senhas, dados bancários ou de saúde). Responda só com o resumo, sem título.${conv?.summary ? `\n\nResumo anterior:\n${conv.summary}` : ""}\n\nConversa:\n${transcript}`,
@@ -236,5 +239,31 @@ async function summarize(supabase: Db, conversationId: number, skip: Set<Provide
     await supabase.from("usage_events").insert({ provider: r.provider, model: r.model.slice(0, 80), kind: "summary", input_tokens: r.input, output_tokens: r.output, cost_usd: r.cost });
   } catch (e) {
     console.error("resumo falhou", e instanceof Error ? e.message.slice(0, 200) : "erro");
+  }
+}
+
+/** Lê agenda e/ou e-mails quando a mensagem pede. Falhas viram um aviso no contexto, nunca derrubam a conversa. */
+async function googleContext(supabase: Db, userId: string, message: string, blocked: string[]): Promise<string> {
+  const want = googleIntent(message);
+  if (!want.agenda && !want.email) return "";
+  try {
+    const token = await accessToken(supabase, userId);
+    // Começo de hoje no horário de Brasília (UTC-3, sem horário de verão).
+    const sp = new Date(Date.now() - 3 * 3_600_000);
+    const start = new Date(Date.UTC(sp.getUTCFullYear(), sp.getUTCMonth(), sp.getUTCDate(), 3));
+    const end = new Date(start.getTime() + (want.week ? 7 : 2) * 86_400_000);
+    const hide = (t: string) => isSensitive(t) || Boolean(blockedTerm(t, blocked));
+    const [ev, mails] = await Promise.all([
+      want.agenda ? events(token, start, end) : Promise.resolve(null),
+      want.email ? inbox(token) : Promise.resolve(null),
+    ]);
+    const parts = [ev ? formatEvents(ev) : "", mails ? formatMails(mails, hide) : ""].filter(Boolean);
+    return `\n\nDados do Google (lidos agora, só leitura):\n${parts.join("\n\n")}`;
+  } catch (e) {
+    if (e instanceof GoogleError && e.kind === "not_connected") {
+      return "\n\nDados do Google: a conta Google não está conectada. Se a pessoa pedir agenda ou e-mails, diga que ela pode conectar em Ajustes, Conexões.";
+    }
+    console.error("google no chat falhou", e instanceof Error ? e.message : "erro");
+    return "\n\nDados do Google: não consegui ler agora (falha temporária ou acesso revogado). Diga isso com franqueza e sugira tentar de novo ou reconectar em Ajustes.";
   }
 }

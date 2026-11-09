@@ -4,7 +4,7 @@ import { LoginFace } from "./LoginFace";
 const GOOGLE = process.env.GOOGLE_LOGIN_ENABLED === "1";
 
 const ERRORS: Record<string, string> = {
-  acesso: "Esta conta não tem acesso ao Gadu. Por enquanto ele é só para convidados.",
+  acesso: "Esta conta não tem acesso ao GaDu. Por enquanto ele é só para convidados.",
   google: "O login não foi concluído. Peça um novo link e abra no mesmo aparelho e navegador.",
 };
 
@@ -15,7 +15,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <div style={{ position: "relative", width: "min(72vw, 300px)", height: "min(80vw, 330px)" }}>
         <LoginFace />
       </div>
-      <h1 className="brand" style={{ fontSize: 28, margin: 0 }}>Gadu</h1>
+      <h1 className="brand" style={{ fontSize: 28, margin: 0 }}>GaDu</h1>
       <p className="muted" style={{ margin: 0, maxWidth: 340 }}>Seu assistente pessoal, por voz e texto. Entre com o seu e-mail e senha.</p>
       {erro && ERRORS[erro] && <div className="notice" role="alert" style={{ maxWidth: 360 }}>{ERRORS[erro]}</div>}
       <EmailLogin />

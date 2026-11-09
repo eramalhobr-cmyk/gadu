@@ -8,7 +8,17 @@ import { ConversationsDrawer } from "./ConversationsDrawer";
 import { MemoryPage } from "./MemoryPage";
 import { SettingsPage, type Prefs } from "./SettingsPage";
 
-export type Msg = { id: string; role: "user" | "assistant" | "notice"; content: string; via?: string };
+export type Msg = { id: string; role: "user" | "assistant" | "notice"; content: string; via?: string; link?: { href: string; label: string } };
+
+const DEFAULT_MORNING = "https://open.spotify.com/search/Update%20Di%C3%A1rio/podcasts";
+const QUICK = ["Começar o dia", "Como está minha agenda hoje?", "Tenho e-mails importantes?"];
+const FLASH: Record<string, string> = {
+  ok: "Google conectado. Agora posso ler sua agenda e seus e-mails (só leitura). Experimente: Começar o dia.",
+  cancelado: "A conexão com o Google foi cancelada. Nada foi alterado.",
+  permissoes: "Faltou marcar as permissões de Agenda e Gmail na tela do Google. Conecte de novo e marque as duas caixas.",
+  config: "O Google ainda não está configurado no servidor. Siga o passo a passo para criar as credenciais.",
+  erro: "Não consegui concluir a conexão com o Google. Tente de novo em Ajustes, Conexões.",
+};
 type Tab = "conversa" | "memoria" | "ajustes";
 
 const LS_DRAFT = "gadu.draft";
@@ -37,6 +47,8 @@ export function GaduApp(props: {
   initialMessages: Msg[];
   initialBlocked: string[];
   version: string;
+  morningLink: string;
+  flash: string | null;
 }) {
   const [tab, setTab] = useState<Tab>("conversa");
   const [messages, setMessages] = useState<Msg[]>(props.initialMessages);
@@ -83,6 +95,13 @@ export function GaduApp(props: {
     setPending(count ?? 0);
   }, []);
   useEffect(() => { refreshPending(); }, [refreshPending]);
+  // Aviso de volta da conexão com o Google (?google=...). Limpa o endereço depois.
+  useEffect(() => {
+    const text = props.flash ? FLASH[props.flash] : undefined;
+    if (!text) return;
+    setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: text }]);
+    window.history.replaceState(null, "", "/app");
+  }, [props.flash]);
 
   const listen = useCallback(() => {
     if (!voiceOk || busy) return;
@@ -189,6 +208,9 @@ export function GaduApp(props: {
         await new Promise((r) => setTimeout(r, 800));
         await attempt();
       }
+      if (answer && /^come[cç]ar o dia\b/i.test(message)) {
+        setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "Quer ouvir as notícias agora?", link: { href: props.morningLink || DEFAULT_MORNING, label: "Ouvir o Update Diário" } }]);
+      }
     } catch {
       if (!ctrl.signal.aborted) {
         setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "Não consegui falar com o servidor. Sua mensagem ficou no rascunho; tente de novo." }]);
@@ -200,7 +222,7 @@ export function GaduApp(props: {
       if (spoke && speaker) speaker.flush();
       else setMode("idle");
     }
-  }, [busy, conversationId, prefs.voice, refreshPending, speaker]);
+  }, [busy, conversationId, prefs.voice, refreshPending, speaker, props.morningLink]);
 
   const sendRef = useRef(send);
   const listenRef = useRef(listen);
@@ -255,7 +277,7 @@ export function GaduApp(props: {
           <button className="icon-btn" onClick={() => setDrawer(true)} aria-label="Conversas anteriores" aria-expanded={drawer}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" /></svg>
           </button>
-          <span className="brand">Gadu</span>
+          <span className="brand">GaDu</span>
         </div>
         <span className={`mono state ${mode === "thinking" ? "hot" : ""}`}><i />{stateLabel}</span>
       </header>
@@ -263,25 +285,35 @@ export function GaduApp(props: {
 
       {tab === "conversa" && (
         <main className="main chat">
-          <section className="face" aria-label="Cérebro do Gadu">
-            <Visual kind="brain" mode={mode} label="Cérebro do Gadu" />
-            <div className={`mini ${mode !== "idle" ? "on" : ""}`} aria-hidden="true"><Visual kind="bot" mode={mode} compact label="Robô do Gadu" /></div>
+          <section className="face" aria-label="Cérebro do GaDu">
+            <Visual kind="brain" mode={mode} label="Cérebro do GaDu" />
+            <div className={`mini ${mode !== "idle" ? "on" : ""}`} aria-hidden="true"><Visual kind="bot" mode={mode} compact label="Robô do GaDu" /></div>
           </section>
           <div className="log" ref={logRef} aria-live="polite">
-            {messages.length === 0 && (
+            {!messages.some((m) => m.role !== "notice") && (
               <div className="msg-b">
-                <div className="mono via">Gadu</div>
+                <div className="mono via">GaDu</div>
                 Oi{props.name ? `, ${props.name}` : ""}. Toque no microfone e fale, ou escreva. Tudo o que eu aprender sobre você passa pela sua aprovação antes de virar memória.
+              </div>
+            )}
+            {!messages.some((m) => m.role !== "notice") && (
+              <div className="row quick" aria-label="Atalhos">
+                {QUICK.map((q) => (
+                  <button key={q} className="chip" disabled={busy} onClick={() => { speaker?.unlock(); void send(q); }}>{q}</button>
+                ))}
               </div>
             )}
             {messages.map((m) =>
               m.role === "user" ? (
                 <div key={m.id} className="msg-u">{m.content}</div>
               ) : m.role === "notice" ? (
-                <div key={m.id} className="notice" role="status">{m.content}</div>
+                <div key={m.id} className="notice" role="status">
+                  {m.content}
+                  {m.link && <div style={{ marginTop: 8 }}><a className="btn btn-sm" href={m.link.href} target="_blank" rel="noopener noreferrer">{m.link.label}</a></div>}
+                </div>
               ) : (
                 <div key={m.id} className="msg-b">
-                  <div className="mono via">Gadu{m.via ? ` · via ${m.via}` : ""}</div>
+                  <div className="mono via">GaDu{m.via ? ` · via ${m.via}` : ""}</div>
                   {m.content || "…"}
                 </div>
               ),
@@ -327,6 +359,7 @@ export function GaduApp(props: {
           speaker={speaker}
           onNew={() => { newConversation(); setTab("conversa"); }}
           initialBlocked={props.initialBlocked}
+          morningLink={props.morningLink}
         />
       )}
 
