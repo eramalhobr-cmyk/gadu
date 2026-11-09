@@ -3,7 +3,7 @@
 export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 export const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
 
-export const APP_VERSION = "0.7.0";
+export const APP_VERSION = "0.7.1";
 
 function list(v: string | undefined): string[] {
   return (v ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);

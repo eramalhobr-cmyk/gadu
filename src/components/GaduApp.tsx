@@ -13,6 +13,8 @@ import { dueLabel, TodayPage } from "./TodayPage";
 import { AgentsPage } from "./AgentsPage";
 import { ProjectsPage } from "./ProjectsPage";
 import { Icon } from "./ui";
+import { TipCard } from "./TipCard";
+import { TIP_IDS, type TipId } from "@/lib/tips";
 
 export type Msg = { id: string; role: "user" | "assistant" | "notice" | "event"; content: string; via?: string; link?: { href: string; label: string }; event?: EventDraft };
 
@@ -63,10 +65,12 @@ export function GaduApp(props: {
   initialProfile: "memoria" | "ajustes" | "admin";
   autoStart: "briefing" | "review" | null;
   admin: boolean;
+  seenTips: string[];
 }) {
   const [tab, setTab] = useState<Tab>(props.initialTab);
   const [profileView, setProfileView] = useState<"memoria" | "ajustes" | "admin">(props.initialProfile);
   const [dock, setDock] = useState(false);
+  const [seen, setSeen] = useState<Set<string>>(() => new Set(props.seenTips));
   const [review, setReview] = useState(false);
   const [target, setTarget] = useState<Target>(null);
   const [projView, setProjView] = useState<"tarefas" | "projetos">("tarefas");
@@ -272,6 +276,24 @@ export function GaduApp(props: {
     setTimeout(() => void sendRef.current("Começar o dia"), 300);
   }, [props.autoStart]);
 
+  // Dicas da primeira visita: marcadas no perfil para não repetir em outro aparelho.
+  async function saveTips(next: string[]) {
+    const db = supabaseBrowser();
+    const { data: auth } = await db.auth.getUser();
+    if (!auth.user) return;
+    const { data } = await db.from("profiles").select("settings").eq("id", auth.user.id).maybeSingle();
+    await db.from("profiles").update({ settings: { ...((data?.settings as object) ?? {}), tips: next } }).eq("id", auth.user.id);
+  }
+  function markTip(id: TipId) {
+    const next = new Set(seen).add(id);
+    setSeen(next);
+    void saveTips([...next].filter((x) => (TIP_IDS as string[]).includes(x)));
+  }
+  function resetTips() {
+    setSeen(new Set());
+    void saveTips([]);
+  }
+
   // Voz flutuante: fala com o GaDu de qualquer tela, sem sair dela.
   function dockTalk() {
     setDock(true);
@@ -353,10 +375,11 @@ export function GaduApp(props: {
         </div>
         <div className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
           <span className={`mono state ${mode === "thinking" ? "hot" : ""}`}><i />{stateLabel}</span>
-          <a className="icon-btn help-btn" href="/app/sobre" aria-label="Como o GaDu funciona" title="Como o GaDu funciona">?</a>
+          <a className="icon-btn help-btn" href="/app/guia" aria-label="Guia do GaDu" title="Guia do GaDu">?</a>
         </div>
       </header>
       {!online && <div className="banner" role="status">Sem internet. O app continua aberto e as mensagens ficam no rascunho.</div>}
+      {!seen.has(tab) && <TipCard key={tab} id={tab} onDone={() => markTip(tab)} />}
 
       {tab === "conversa" && (
         <main className="main chat">
@@ -458,6 +481,7 @@ export function GaduApp(props: {
           onNew={() => { newConversation(); setTab("conversa"); }}
           initialBlocked={props.initialBlocked}
           morningLink={props.morningLink}
+          onResetTips={resetTips}
         />
       )}
 
@@ -469,6 +493,8 @@ export function GaduApp(props: {
           busy={busy}
           draft={draft}
           last={[...messages].reverse().find((m) => m.role === "assistant" || m.role === "notice")}
+          tip={!seen.has("voz")}
+          onTipDone={() => markTip("voz")}
           onTalk={dockTalk}
           onStop={() => { if (listening) recRef.current?.stop(); else { abortRef.current?.abort(); speaker?.cancel(); setMode("idle"); } }}
           onOpen={() => { setDock(false); setTab("conversa"); }}
@@ -501,13 +527,14 @@ export function GaduApp(props: {
 
 
 /** Botão de voz flutuante e painel compacto: ouvir, ver a resposta e continuar, em qualquer tela. */
-function VoiceDock(props: { open: boolean; mode: FaceMode; listening: boolean; busy: boolean; draft: string; last?: Msg; onTalk: () => void; onStop: () => void; onOpen: () => void; onClose: () => void }) {
+function VoiceDock(props: { tip: boolean; onTipDone: () => void; open: boolean; mode: FaceMode; listening: boolean; busy: boolean; draft: string; last?: Msg; onTalk: () => void; onStop: () => void; onOpen: () => void; onClose: () => void }) {
   const active = props.listening || props.busy || props.mode === "speaking";
   const label = props.listening ? "Escutando…" : props.mode === "thinking" ? "Pensando…" : props.mode === "speaking" ? "Respondendo…" : "Toque para falar";
   return (
     <>
       {props.open && (
         <div className="dock" role="dialog" aria-label="Falar com o GaDu">
+          {props.tip && <TipCard id="voz" floating onDone={props.onTipDone} />}
           <div className="dock-head">
             <span className={`mono state ${props.mode === "thinking" ? "hot" : ""}`}><i />{label}</span>
             <button className="icon-btn" onClick={props.onClose} aria-label="Fechar">

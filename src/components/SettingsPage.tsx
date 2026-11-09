@@ -33,6 +33,7 @@ export function SettingsPage(props: {
   onNew: () => void;
   initialBlocked: string[];
   morningLink: string;
+  onResetTips: () => void;
 }) {
   const [blocked, setBlocked] = useState<string[]>(props.initialBlocked);
   const [term, setTerm] = useState("");
@@ -64,10 +65,12 @@ export function SettingsPage(props: {
 
   return (
     <main className="page">
-      <a className="card card-link" href="/app/sobre" style={{ textDecoration: "none" }}>
-        <span><b>Como o GaDu funciona</b><br /><span className="muted" style={{ fontSize: 14 }}>Arquitetura, funções e navegação, em imagens</span></span>
-        <span aria-hidden="true">›</span>
-      </a>
+      <section className="card">
+        <h2>Ajuda</h2>
+        <a className="help-item primary" href="/app/guia" style={{ textDecoration: "none" }}><span style={{ flex: 1 }}>Guia passo a passo</span><span aria-hidden="true">›</span></a>
+        <a className="help-item" href="/app/sobre" style={{ textDecoration: "none" }}><span style={{ flex: 1 }}>Como o GaDu funciona (arquitetura)</span><span aria-hidden="true">›</span></a>
+        <button className="help-item" onClick={props.onResetTips}><span style={{ flex: 1 }}>Rever as dicas de cada tela</span><span aria-hidden="true">›</span></button>
+      </section>
       <NotificationsCard />
       <ConnectionsCard morningLink={props.morningLink} />
       <SpendCard />

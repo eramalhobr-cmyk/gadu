@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 10/11/2026 (v0.7.0). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
+Atualizado a cada entrega. Última atualização: 10/11/2026 (v0.7.1). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 ## Fase 0 · MVP publicado (v0.1)
@@ -173,6 +173,8 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [ ] Convidar o primeiro usuário (Luiz Cláudio)
 - [x] Página "Como o GaDu funciona" (arquitetura, fluxo, navegação, dados, segurança, custos)
 - [x] Acesso fácil à página: botão "?" no topo de todas as telas, menu ☰ e Perfil › Ajustes
+- [x] Guia passo a passo (`/app/guia`): 6 primeiros passos com ✓ automático, "como pedir cada coisa" com exemplos, voz e "se algo der errado"; o "?" abre o guia
+- [x] Dicas na primeira visita de cada aba e do botão de voz (Entendi / Ver guia), salvas no perfil; "Rever as dicas" em Ajustes
 
 ## Por último (combinado em 10/11)
 - [ ] Testes automáticos de ponta a ponta antes de publicar, alerta de erro e tela de erro própria

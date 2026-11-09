@@ -71,7 +71,10 @@ export function ConversationsDrawer(props: {
           </button>
         </div>
         <button className="btn btn-pri" onClick={props.onNew}>Nova conversa</button>
-        <a className="btn" href="/app/sobre">Como o GaDu funciona</a>
+        <div className="row" style={{ flexWrap: "nowrap" }}>
+          <a className="btn btn-sm" style={{ flex: 1 }} href="/app/guia">Guia</a>
+          <a className="btn btn-sm" style={{ flex: 1 }} href="/app/sobre">Como funciona</a>
+        </div>
         <label className="sr" htmlFor="conv-q">Buscar nas conversas</label>
         <input id="conv-q" className="field" type="search" placeholder="Buscar por assunto" value={q} onChange={(e) => setQ(e.target.value)} />
         {error && <div className="notice" role="alert">{error}</div>}

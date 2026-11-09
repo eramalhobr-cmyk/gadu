@@ -30,7 +30,7 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
       .limit(30);
     messages = (data ?? []).reverse().map((m) => ({ id: String(m.id), role: m.role as "user" | "assistant", content: m.content as string, via: (m.provider as string) || undefined }));
   }
-  const settings = (profile.data?.settings ?? {}) as { blocked?: unknown; morningLink?: unknown };
+  const settings = (profile.data?.settings ?? {}) as { blocked?: unknown; morningLink?: unknown; tips?: unknown };
   const morning = typeof settings.morningLink === "string" && /^https:\/\//.test(settings.morningLink) ? settings.morningLink : "";
   const name = String(profile.data?.display_name ?? user.user_metadata?.full_name ?? "").split(" ")[0];
 
@@ -46,6 +46,7 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
       initialTab={TABS.includes(tab as Tab) ? (tab as Tab) : tab === "memoria" || tab === "ajustes" || tab === "admin" ? "perfil" : google ? "conversa" : "hoje"}
       initialProfile={tab === "ajustes" ? "ajustes" : tab === "admin" && access.admin ? "admin" : "memoria"}
       admin={access.admin}
+      seenTips={Array.isArray(settings.tips) ? settings.tips.map(String).slice(0, 20) : []}
       autoStart={start === "briefing" || start === "review" ? start : null}
       flash={typeof google === "string" ? google.slice(0, 20) : null}
     />
