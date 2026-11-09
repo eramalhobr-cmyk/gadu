@@ -64,6 +64,7 @@ export function SettingsPage(props: {
 
   return (
     <main className="page">
+      <NotificationsCard />
       <ConnectionsCard morningLink={props.morningLink} />
       <SpendCard />
       <VoiceCard {...props} />
@@ -314,6 +315,127 @@ function ConnectionsCard({ morningLink }: { morningLink: string }) {
         </div>
         {msg && <span className="muted" role="status">{msg}</span>}
       </div>
+    </section>
+  );
+}
+
+function b64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
+  const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  const out = new Uint8Array(new ArrayBuffer(raw.length));
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+function NotificationsCard() {
+  const [support, setSupport] = useState<"ok" | "install" | "no" | null>(null);
+  const [perm, setPerm] = useState<NotificationPermission>("default");
+  const [sub, setSub] = useState<PushSubscription | null>(null);
+  const [briefing, setBriefing] = useState({ enabled: true, time: "07:00" });
+  const [msg, setMsg] = useState("");
+  const [working, setWorking] = useState(false);
+  const db = supabaseBrowser();
+
+  useEffect(() => {
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
+    const has = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+    setSupport(has ? "ok" : ios && !standalone ? "install" : "no");
+    if (!has) return;
+    setPerm(Notification.permission);
+    navigator.serviceWorker.ready.then((r) => r.pushManager.getSubscription()).then(setSub).catch(() => setSub(null));
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const { data: auth } = await db.auth.getUser();
+      if (!auth.user) return;
+      const { data } = await db.from("profiles").select("settings").eq("id", auth.user.id).maybeSingle();
+      const b = (data?.settings as { briefing?: { enabled?: unknown; time?: unknown } } | null)?.briefing;
+      if (b) setBriefing({ enabled: b.enabled !== false, time: typeof b.time === "string" && /^\d{2}:\d{2}$/.test(b.time) ? b.time : "07:00" });
+    })();
+  }, [db]);
+
+  async function saveBriefing(next: { enabled: boolean; time: string }) {
+    setBriefing(next);
+    const { data: auth } = await db.auth.getUser();
+    if (!auth.user) return;
+    const { data } = await db.from("profiles").select("settings").eq("id", auth.user.id).maybeSingle();
+    const settings = { ...((data?.settings as object) ?? {}), briefing: next };
+    const { error } = await db.from("profiles").update({ settings }).eq("id", auth.user.id);
+    setMsg(error ? "Não salvou. Tente de novo." : next.enabled ? `Briefing todo dia às ${next.time}.` : "Briefing desligado.");
+  }
+
+  async function enable() {
+    setWorking(true);
+    setMsg("");
+    try {
+      const p = await Notification.requestPermission();
+      setPerm(p);
+      if (p !== "granted") return setMsg("As notificações foram bloqueadas. Libere nas configurações do navegador para este site.");
+      const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!key) return setMsg("Notificações ainda não configuradas no servidor.");
+      const reg = await navigator.serviceWorker.ready;
+      const s = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(key) }));
+      const j = s.toJSON();
+      const device = /iphone|ipad/i.test(navigator.userAgent) ? "iPhone" : /android/i.test(navigator.userAgent) ? "Android" : "Computador";
+      const r = await fetch("/api/push", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ endpoint: j.endpoint, keys: j.keys, device }) });
+      if (!r.ok) return setMsg("Não consegui salvar a inscrição. Tente de novo.");
+      setSub(s);
+      if (!briefing.enabled) await saveBriefing({ ...briefing, enabled: true });
+      else await saveBriefing(briefing);
+      setMsg("Notificações ligadas neste aparelho.");
+    } catch {
+      setMsg("Não consegui ligar as notificações neste aparelho.");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function disable() {
+    if (!sub) return;
+    await fetch("/api/push", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ endpoint: sub.endpoint }) });
+    await sub.unsubscribe().catch(() => {});
+    setSub(null);
+    setMsg("Notificações desligadas neste aparelho.");
+  }
+
+  async function test() {
+    const r = await fetch("/api/push/test", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ confirm: true }) });
+    const j = await r.json().catch(() => ({}));
+    setMsg(j.sent ? "Teste enviado. Deve chegar em segundos." : "Nenhum aparelho recebeu. Ligue as notificações de novo.");
+  }
+
+  return (
+    <section className="card">
+      <h2>Notificações e briefing</h2>
+      {support === "install" && (
+        <p className="muted" style={{ margin: 0 }}>No iPhone, as notificações só funcionam com o GaDu instalado: no Safari, toque em Compartilhar › Adicionar à Tela de Início e abra o GaDu por lá.</p>
+      )}
+      {support === "no" && <p className="muted" style={{ margin: 0 }}>Este navegador não recebe notificações.</p>}
+      {support === "ok" && (
+        sub && perm === "granted" ? (
+          <div className="row">
+            <span className="mono" style={{ color: "var(--sig)" }}>Ligadas neste aparelho</span>
+            <button className="btn btn-sm" onClick={test}>Enviar teste</button>
+            <button className="link-btn" onClick={disable}>Desligar</button>
+          </div>
+        ) : (
+          <>
+            <p className="muted" style={{ margin: 0 }}>Receba os lembretes e o briefing da manhã no celular.</p>
+            <div><button className="btn btn-pri" disabled={working} onClick={enable}>{working ? "Ligando…" : "Ligar notificações"}</button></div>
+          </>
+        )
+      )}
+      <label className="switch"><span>Briefing da manhã</span><input type="checkbox" checked={briefing.enabled} onChange={(e) => saveBriefing({ ...briefing, enabled: e.target.checked })} /></label>
+      {briefing.enabled && (
+        <label className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
+          <span className="muted">Horário</span>
+          <input className="field" type="time" style={{ maxWidth: 140, colorScheme: "dark" }} value={briefing.time} onChange={(e) => /^\d{2}:\d{2}$/.test(e.target.value) && saveBriefing({ ...briefing, time: e.target.value })} />
+        </label>
+      )}
+      <p className="muted" style={{ margin: 0, fontSize: 14 }}>Todo dia, no horário escolhido, chega um resumo da agenda e dos e-mails. Toque nele para o GaDu começar o dia com você.</p>
+      {msg && <span className="muted" role="status">{msg}</span>}
     </section>
   );
 }

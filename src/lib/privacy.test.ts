@@ -39,3 +39,11 @@ test("calcula o custo por modelo", () => {
   assert.ok(Math.abs(c - (0.004 + 0.01 + 0.002)) < 1e-9);
   assert.equal(costUsd({ model: "desconhecido", input_tokens: 1000 }), 0);
 });
+
+test("lembretes do bloco de controle: futuros e válidos", () => {
+  const now = Date.parse("2026-11-10T12:00:00Z");
+  const r = splitMeta('Combinado!\n<<<META>>>\n{"memorias":[],"lembretes":[{"texto":"Ligar para o dentista","quando":"2026-11-11T09:00:00-03:00"},{"texto":"passado","quando":"2026-11-09T09:00:00-03:00"},{"texto":"sem fuso","quando":"2026-11-11T10:30:00"}]}', now);
+  assert.equal(r.reminders.length, 2);
+  assert.equal(r.reminders[0].dueAt, "2026-11-11T12:00:00.000Z");
+  assert.equal(r.reminders[1].dueAt, "2026-11-11T13:30:00.000Z");
+});

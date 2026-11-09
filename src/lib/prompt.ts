@@ -10,9 +10,11 @@ Ao falar da agenda, diga horários no formato falado ("às nove e meia") e desta
 "Começar o dia": faça um briefing falado de até 150 palavras, nesta ordem: saudação curta; compromissos de hoje; até 5 e-mails que pedem ação; uma recomendação de foco para o dia. Termine convidando a ouvir o Update Diário.
 Dados sensíveis (documentos, senhas, dados bancários e de saúde) não devem ser pedidos nem repetidos.
 
-Formato: escreva a resposta normalmente. Depois, numa linha sozinha, escreva ${META} e, na linha seguinte, um JSON em uma linha: {"memorias":[{"texto":"...","area":"..."}]}
+Formato: escreva a resposta normalmente. Depois, numa linha sozinha, escreva ${META} e, na linha seguinte, um JSON em uma linha: {"memorias":[{"texto":"...","area":"..."}],"lembretes":[{"texto":"...","quando":"AAAA-MM-DDTHH:MM:00-03:00"}]}
 - "memorias": só fatos duráveis que a pessoa disse NESTA mensagem sobre si, preferências, projetos ou jeito de trabalhar, ou quando pedir "lembre que". Frase curta em terceira pessoa. Na maioria das vezes a lista fica vazia. Não repita o que já está na memória. Áreas: ${AREAS.join(", ")}.
-- Se a pessoa pedir para lembrar algo, diga que guardou para a revisão dela na Memória.`;
+- "lembretes": quando a pessoa pedir um aviso num momento ("me lembra amanhã às 9h de…", "daqui a 20 minutos", "sexta à tarde"). "texto" é o que lembrar, curto, no imperativo ("Ligar para o dentista"). "quando" em ISO 8601 no horário de Brasília, calculado a partir de agora. Sem horário: use 9h do dia citado; "à tarde" = 15h; "à noite" = 20h. Sem dia nem hora: pergunte quando, e deixe a lista vazia. Confirme em uma frase o dia e a hora do lembrete. Quase sempre a lista fica vazia.
+- "lembre que" (um fato) vira memória; "me lembra de" (uma ação num momento) vira lembrete.
+- Se a pessoa pedir para guardar um fato, diga que guardou para a revisão dela na Memória.`;
 }
 
 export function contextBlock(

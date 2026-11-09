@@ -1,6 +1,6 @@
 // Texto da agenda e dos e-mails para o modelo, e detecção de intenção. Sem dependências (testável).
 export type CalEvent = { title: string; start: string; end: string; allDay: boolean; where?: string; meet: boolean; declined: boolean };
-export type Mail = { from: string; subject: string; snippet: string; date: string; important: boolean };
+export type Mail = { thread?: string; from: string; subject: string; snippet: string; date: string; important: boolean };
 const TZ = "America/Sao_Paulo";
 
 

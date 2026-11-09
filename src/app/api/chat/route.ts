@@ -27,6 +27,7 @@ type Out =
   | { t: "provider"; name: string }
   | { t: "delta"; text: string }
   | { t: "done"; memories: number }
+  | { t: "reminders"; items: { id: number; text: string; dueAt: string }[] }
   | { t: "notice"; text: string; kind: "privacy" | "quota" | "engine" | "error" };
 
 export async function POST(request: Request) {
@@ -145,7 +146,7 @@ export async function POST(request: Request) {
         }
 
         // 6. Grava a conversa e as memórias propostas (sempre pendentes).
-        const { body: answer, memories: proposals } = splitMeta(full);
+        const { body: answer, memories: proposals, reminders } = splitMeta(full);
         await supabase.from("messages").insert([
           { conversation_id: conversationId, role: "user", content: message },
           {
@@ -177,6 +178,15 @@ export async function POST(request: Request) {
             const { error } = await supabase.from("memories").insert(rows);
             if (!error) added = rows.length;
           }
+        }
+        // Lembretes pedidos nesta mensagem (o agendador avisa no celular na hora certa).
+        const okReminders = reminders.filter((r) => !isSensitive(r.text) && !blockedTerm(r.text, blocked));
+        if (okReminders.length) {
+          const { data: created } = await supabase
+            .from("reminders")
+            .insert(okReminders.map((r) => ({ text: r.text, due_at: r.dueAt, origin: "Conversa", conversation_id: conversationId })))
+            .select("id, text, due_at");
+          if (created?.length) send({ t: "reminders", items: created.map((r) => ({ id: r.id as number, text: r.text as string, dueAt: r.due_at as string })) });
         }
         send({ t: "done", memories: added });
       } catch (e) {

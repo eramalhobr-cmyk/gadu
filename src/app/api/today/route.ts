@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { accessToken, events, GoogleError, inbox } from "@/lib/google";
+import { spNow } from "@/lib/briefing";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
 import { signedIn } from "../google/_auth";
 
@@ -18,7 +19,8 @@ export async function GET(request: Request) {
     const token = await accessToken(a.supabase, a.user.id);
     const { data: profile } = await a.supabase.from("profiles").select("settings").eq("id", a.user.id).maybeSingle();
     const blocked = Array.isArray(profile?.settings?.blocked) ? (profile.settings.blocked as unknown[]).map(String) : [];
-    const from = new Date();
+    // Do começo de hoje (Brasília) até o fim do período: compromissos que já passaram aparecem apagados.
+    const from = spNow().start;
     const to = new Date(from.getTime() + q.data.days * 86_400_000);
     const [ev, mails] = await Promise.all([events(token, from, to), inbox(token)]);
     const hide = (t: string) => isSensitive(t) || Boolean(blockedTerm(t, blocked));

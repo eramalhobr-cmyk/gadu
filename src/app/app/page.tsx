@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
-import { GaduApp, type Msg } from "@/components/GaduApp";
+import { GaduApp, type Msg, type Tab } from "@/components/GaduApp";
 import { APP_VERSION, isAllowed } from "@/lib/config";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function AppPage({ searchParams }: { searchParams: Promise<{ google?: string }> }) {
-  const { google } = await searchParams;
+export default async function AppPage({ searchParams }: { searchParams: Promise<{ google?: string; tab?: string; start?: string }> }) {
+  const { google, tab, start } = await searchParams;
   const supabase = await supabaseServer();
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
@@ -40,6 +40,8 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
       initialBlocked={Array.isArray(settings.blocked) ? settings.blocked.map(String) : []}
       version={APP_VERSION}
       morningLink={morning}
+      initialTab={(["hoje", "conversa", "memoria", "ajustes"] as Tab[]).includes(tab as Tab) ? (tab as Tab) : google ? "conversa" : "hoje"}
+      autoStart={start === "briefing"}
       flash={typeof google === "string" ? google.slice(0, 20) : null}
     />
   );

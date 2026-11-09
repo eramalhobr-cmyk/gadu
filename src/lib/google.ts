@@ -146,15 +146,16 @@ export async function events(token: string, from: Date, to: Date): Promise<CalEv
 export async function inbox(token: string, query = "in:inbox is:unread newer_than:2d -category:promotions -category:social -category:forums", max = 12): Promise<Mail[]> {
   const list = await gget<{ messages?: { id: string }[] }>(token, `https://gmail.googleapis.com/gmail/v1/users/me/messages?${new URLSearchParams({ q: query, maxResults: String(max) })}`);
   const ids = (list.messages ?? []).map((m) => m.id);
-  type Msg = { snippet?: string; labelIds?: string[]; payload?: { headers?: { name: string; value: string }[] } };
+  type Msg = { threadId?: string; snippet?: string; labelIds?: string[]; payload?: { headers?: { name: string; value: string }[] } };
   const msgs = await Promise.all(
     ids.map((id) =>
-      gget<Msg>(token, `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(id)}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date&fields=snippet,labelIds,payload/headers`).catch(() => null),
+      gget<Msg>(token, `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(id)}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date&fields=threadId,snippet,labelIds,payload/headers`).catch(() => null),
     ),
   );
   return msgs.filter((m): m is Msg => Boolean(m)).map((m) => {
     const h = (n: string) => m.payload?.headers?.find((x) => x.name.toLowerCase() === n)?.value ?? "";
     return {
+      thread: /^[0-9a-f]{6,32}$/i.test(m.threadId ?? "") ? m.threadId : undefined,
       from: h("from").replace(/<[^>]+>/, "").replace(/"/g, "").trim().slice(0, 80) || h("from").slice(0, 80),
       subject: h("subject").slice(0, 160) || "(sem assunto)",
       snippet: decodeEntities(m.snippet ?? "").slice(0, 220),

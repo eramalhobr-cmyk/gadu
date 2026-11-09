@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 09/11/2026 (v0.4.0). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
+Atualizado a cada entrega. Última atualização: 09/11/2026 (v0.5.0). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 ## Fase 0 · MVP publicado (v0.1)
@@ -108,13 +108,43 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] Projeto GaDu no Google Cloud, APIs ligadas, cliente OAuth criado
 - [x] GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET cadastrados na Vercel
 - [x] Páginas públicas de Privacidade e Termos (exigidas pelo Google para publicar)
-- [ ] **Você: preencher o Branding (página inicial, privacidade, termos, domínio) e publicar o app** (evita reconectar toda semana)
-- [ ] Primeira conexão do Google em produção
-- [ ] Tela "Hoje" com agenda e e-mails (a rota `/api/today` já existe)
-- [ ] Rascunho de resposta no Gmail (exige permissão extra, com aprovação)
-- [ ] Reservar foco na agenda (exige permissão de escrita, com aprovação)
-- [ ] Briefing às 7h no celular (notificação push + agendamento)
+- [x] Branding preenchido e app publicado no Google
+- [x] Primeira conexão do Google em produção (agenda e e-mails funcionando)
+- [x] Aba "Hoje" (tela inicial): saudação, Começar o dia, agenda com "agora" e próximos, lembretes, e-mails não lidos com link para o Gmail, memórias para revisar
+- [x] Lembretes por voz: "me lembra amanhã às 9h de…" vira lembrete (protocolo META) e também dá para criar na aba Hoje
+- [x] Concluir e cancelar lembretes
+- [ ] (Depois) Rascunho de resposta no Gmail, com aprovação
+- [ ] (Depois) Reservar foco na agenda, com aprovação
+- [x] Notificações no celular (Web Push, chaves VAPID só no servidor) com teste em Ajustes
+- [x] Agendador a cada minuto (Vercel Cron, protegido por CRON_SECRET) para lembretes e briefing
+- [x] Briefing da manhã no horário escolhido (padrão 7h): resumo da agenda, e-mails e lembretes; o toque abre o Começar o dia
+- [x] Tabelas `reminders`, `push_subscriptions`, `daily_briefings` com RLS
+- [ ] **Você: instalar o GaDu na tela de início do iPhone e ligar as notificações em Ajustes**
 - [ ] Spotify pela API (tocar o episódio do dia direto)
+
+## Proposta de evolução (a partir das referências visuais de 10/11)
+Nada disso foi feito ainda; é a direção sugerida para as próximas fases.
+
+### Experiência e visual
+- [ ] "Hoje" como painel no desktop: 3 colunas (cérebro + atalhos · agenda e lembretes · insights), mesmo conteúdo do celular
+- [ ] Hero com cérebro + humanoide estilizado (o cérebro dentro da cabeça), reagindo à voz
+- [ ] Barra "Fale com o GaDu" fixa no topo do Hoje (atalho para a conversa por voz)
+- [ ] Cards de vidro (glassmorphism leve), cor por área (Pessoal, Saúde, Finanças pessoais, Projetos)
+- [ ] Navegação: Hoje · Conversas · Agentes · Projetos · Perfil (quando Agentes e Projetos existirem)
+- [ ] Anel de progresso do dia (tarefas e lembretes concluídos)
+
+### Organização e arquitetura de dados
+- [ ] `tasks` (tarefas): título, status, prazo, prioridade, projeto, origem (conversa, e-mail, manual); lembrete vira tarefa quando tem ação
+- [ ] `projects` (projetos pessoais): nome, objetivo, status, próximos passos; conversas, memórias e tarefas ligadas ao projeto
+- [ ] `agents` (agentes): nome, área, instruções, ferramentas permitidas, modelo, teto de gasto; cada agente usa a memória da sua área
+- [ ] `insights`: sugestões geradas no briefing (atrasos, conflitos de agenda, e-mails sem resposta), com "aceitar/ignorar"
+- [ ] `metrics` pessoais (opcional): sono, treino, leitura, finanças da casa; só números que você decidir registrar
+- [ ] Busca por significado (pgvector) unindo conversas, memórias, tarefas e projetos
+- [ ] Toda tabela nova com `user_id` e RLS, como hoje (serve outras pessoas sem mudar código)
+
+### Cuidados
+- [ ] Nada corporativo: os exemplos das imagens com empresas e métricas de trabalho ficam fora; agentes e métricas são da vida pessoal e dos projetos próprios
+- [ ] Métricas só com fonte real (nada inventado na tela)
 
 ## Fase 3 · Voz premium (quando aprovar o custo)
 - [ ] ElevenLabs para falar e Scribe para ouvir, com chave temporária

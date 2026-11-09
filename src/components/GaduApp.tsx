@@ -7,6 +7,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { ConversationsDrawer } from "./ConversationsDrawer";
 import { MemoryPage } from "./MemoryPage";
 import { SettingsPage, type Prefs } from "./SettingsPage";
+import { dueLabel, TodayPage } from "./TodayPage";
 
 export type Msg = { id: string; role: "user" | "assistant" | "notice"; content: string; via?: string; link?: { href: string; label: string } };
 
@@ -19,7 +20,8 @@ const FLASH: Record<string, string> = {
   config: "O Google ainda não está configurado no servidor. Siga o passo a passo para criar as credenciais.",
   erro: "Não consegui concluir a conexão com o Google. Tente de novo em Ajustes, Conexões.",
 };
-type Tab = "conversa" | "memoria" | "ajustes";
+export type Tab = "hoje" | "conversa" | "memoria" | "ajustes";
+const TAB_LABEL: Record<Tab, string> = { hoje: "Hoje", conversa: "Conversa", memoria: "Memória", ajustes: "Ajustes" };
 
 const LS_DRAFT = "gadu.draft";
 const LS_PREFS = "gadu.prefs";
@@ -49,8 +51,10 @@ export function GaduApp(props: {
   version: string;
   morningLink: string;
   flash: string | null;
+  initialTab: Tab;
+  autoStart: boolean;
 }) {
-  const [tab, setTab] = useState<Tab>("conversa");
+  const [tab, setTab] = useState<Tab>(props.initialTab);
   const [messages, setMessages] = useState<Msg[]>(props.initialMessages);
   const [conversationId, setConversationId] = useState<number | null>(props.initialConversationId);
   const [draft, setDraft] = useState("");
@@ -190,6 +194,14 @@ export function GaduApp(props: {
             if (!answerStarted) { answerStarted = true; if (!(prefs.voice && canSpeak())) setMode("speaking"); }
             setMessages((ms) => ms.map((m) => (m.id === botId ? { ...m, content: answer } : m)));
             if (prefs.voice && speaker) { speaker.push(ev.text); spoke = true; }
+          } else if (ev.t === "reminders") {
+            const items = ev.items as { text: string; dueAt: string }[];
+            const push = typeof Notification !== "undefined" && Notification.permission === "granted";
+            const list = items.map((r) => `${r.text} (${dueLabel(r.dueAt)})`).join("; ");
+            setMessages((ms) => [...ms, {
+              id: crypto.randomUUID(), role: "notice",
+              content: `${items.length === 1 ? "Lembrete criado" : "Lembretes criados"}: ${list}.${push ? "" : " Ative as notificações em Ajustes para receber o aviso no celular."}`,
+            }]);
           } else if (ev.t === "notice") {
             setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: ev.text }]);
           } else if (ev.t === "done" && ev.memories > 0) {
@@ -227,6 +239,26 @@ export function GaduApp(props: {
   const sendRef = useRef(send);
   const listenRef = useRef(listen);
   useEffect(() => { sendRef.current = send; listenRef.current = listen; }, [send, listen]);
+
+  // Toque na notificação da manhã (/app?start=briefing): abre a conversa e começa o dia.
+  const started = useRef(false);
+  useEffect(() => {
+    if (!props.autoStart || started.current) return;
+    started.current = true;
+    window.history.replaceState(null, "", "/app");
+    setTab("conversa");
+    setTimeout(() => void sendRef.current("Começar o dia"), 300);
+  }, [props.autoStart]);
+
+  function startDay() {
+    speaker?.unlock();
+    setTab("conversa");
+    void send("Começar o dia");
+  }
+  function talk() {
+    setTab("conversa");
+    micClick();
+  }
 
   function micClick() {
     speaker?.unlock();
@@ -348,6 +380,9 @@ export function GaduApp(props: {
         </main>
       )}
 
+      {tab === "hoje" && (
+        <TodayPage name={props.name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk} onOpenMemory={() => setTab("memoria")} />
+      )}
       {tab === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
       {tab === "ajustes" && (
         <SettingsPage
@@ -374,9 +409,9 @@ export function GaduApp(props: {
       )}
 
       <nav className="tabs" aria-label="Navegação">
-        {(["conversa", "memoria", "ajustes"] as Tab[]).map((t) => (
+        {(["hoje", "conversa", "memoria", "ajustes"] as Tab[]).map((t) => (
           <button key={t} className="tab" aria-current={tab === t ? "page" : undefined} onClick={() => setTab(t)}>
-            {t === "conversa" ? "Conversa" : t === "memoria" ? "Memória" : "Ajustes"}
+            {TAB_LABEL[t]}
             {t === "memoria" && pending > 0 && <b className="badge">{pending}</b>}
           </button>
         ))}
