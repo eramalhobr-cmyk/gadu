@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { accessOf } from "@/lib/access";
+import { GaduApp } from "@/components/GaduApp";
+import { HelpNav } from "@/components/HelpNav";
+import { loadApp } from "../load";
 import { APP_VERSION } from "@/lib/config";
-import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Como funciona · GaDu" };
@@ -24,13 +24,12 @@ function Arrow({ d, color = S, dash = false }: { d: string; color?: string; dash
 }
 
 export default async function Sobre() {
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getUser();
-  if (!(await accessOf(supabase, data.user)).ok) redirect("/login");
+  const { props } = await loadApp({ tab: "perfil" });
 
   return (
-    <main className="doc sobre">
-      <a href="/app?tab=perfil" className="mono">‹ Voltar ao GaDu</a>
+    <GaduApp {...props} page={
+    <div className="doc sobre">
+      <HelpNav active="sobre" />
       <h1>Como o GaDu funciona</h1>
       <p className="muted">Versão {APP_VERSION}. Um assistente pessoal por voz e texto que lembra de você, organiza seu dia e cuida da sua privacidade.</p>
 
@@ -120,6 +119,7 @@ export default async function Sobre() {
         <div className="navmap-item"><b>Grátis</b><span>Voz do aparelho, banco (plano grátis), notificações, insights, agenda visual.</span></div>
         <div className="navmap-item"><b>Centavos</b><span>Respostas da IA (com limites que você define), resumos e a busca por significado.</span></div>
       </div>
-    </main>
+    </div>
+    } />
   );
 }

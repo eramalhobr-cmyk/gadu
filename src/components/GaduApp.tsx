@@ -66,10 +66,23 @@ export function GaduApp(props: {
   autoStart: "briefing" | "review" | null;
   admin: boolean;
   seenTips: string[];
+  /** Página de conteúdo (guia, como funciona) dentro do mesmo cabeçalho e menu. */
+  page?: React.ReactNode;
 }) {
-  const [tab, setTab] = useState<Tab>(props.initialTab);
+  const [tab, setTabState] = useState<Tab>(props.initialTab);
   const [profileView, setProfileView] = useState<"memoria" | "ajustes" | "admin">(props.initialProfile);
   const [dock, setDock] = useState(false);
+  const [pageOpen, setPageOpen] = useState(Boolean(props.page));
+  // Com uma página de conteúdo aberta, nenhuma aba aparece; tocar numa aba volta ao app.
+  const view: Tab | null = pageOpen ? null : tab;
+  /** Troca de aba. Se estiver numa página de conteúdo, volta para o app e ajusta o endereço. */
+  function setTab(t: Tab) {
+    if (pageOpen) {
+      setPageOpen(false);
+      window.history.replaceState(null, "", `/app?tab=${t}`);
+    }
+    setTabState(t);
+  }
   const [seen, setSeen] = useState<Set<string>>(() => new Set(props.seenTips));
   const [review, setReview] = useState(false);
   const [target, setTarget] = useState<Target>(null);
@@ -379,9 +392,10 @@ export function GaduApp(props: {
         </div>
       </header>
       {!online && <div className="banner" role="status">Sem internet. O app continua aberto e as mensagens ficam no rascunho.</div>}
-      {!seen.has(tab) && <TipCard key={tab} id={tab} onDone={() => markTip(tab)} />}
+      {view && !seen.has(view) && <TipCard key={view} id={view} onDone={() => markTip(view)} />}
+      {pageOpen && <main className="page doc-page">{props.page}</main>}
 
-      {tab === "conversa" && (
+      {view === "conversa" && (
         <main className="main chat">
           <section className="face" aria-label="GaDu">
             <Mind mode={mode} label={`GaDu: ${stateLabel}`} />
@@ -454,12 +468,12 @@ export function GaduApp(props: {
         </main>
       )}
 
-      {tab === "hoje" && (
+      {view === "hoje" && (
         <TodayPage review={review} onReviewDone={() => setReview(false)} onDock={dockTalk} onWrite={() => setTab("conversa")} name={props.name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk} onOpenMemory={() => { setProfileView("memoria"); setTab("perfil"); }} onOpenTasks={() => { setProjView("tarefas"); setTab("projetos"); }} onAsk={(q) => { speaker?.unlock(); setTab("conversa"); void send(q); }} />
       )}
-      {tab === "projetos" && <ProjectsPage key={projView} initialView={projView} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
-      {tab === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
-      {tab === "perfil" && (
+      {view === "projetos" && <ProjectsPage key={projView} initialView={projView} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
+      {view === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
+      {view === "perfil" && (
         <div className="seg seg-top" role="tablist" aria-label="Perfil">
           {(props.admin ? (["memoria", "ajustes", "admin"] as const) : (["memoria", "ajustes"] as const)).map((v) => (
             <button key={v} role="tab" aria-selected={profileView === v} onClick={() => setProfileView(v)}>
@@ -468,9 +482,9 @@ export function GaduApp(props: {
           ))}
         </div>
       )}
-      {tab === "perfil" && profileView === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
-      {tab === "perfil" && profileView === "admin" && props.admin && <AdminPage />}
-      {tab === "perfil" && profileView === "ajustes" && (
+      {view === "perfil" && profileView === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
+      {view === "perfil" && profileView === "admin" && props.admin && <AdminPage />}
+      {view === "perfil" && profileView === "ajustes" && (
         <SettingsPage
           email={props.email}
           version={props.version}
@@ -485,7 +499,7 @@ export function GaduApp(props: {
         />
       )}
 
-      {tab !== "conversa" && (
+      {view !== "conversa" && (
         <VoiceDock
           open={dock}
           mode={mode}
@@ -514,7 +528,7 @@ export function GaduApp(props: {
 
       <nav className="tabs" aria-label="Navegação">
         {TABS.map((t) => (
-          <button key={t} className="tab" aria-current={tab === t ? "page" : undefined} onClick={() => setTab(t)}>
+          <button key={t} className="tab" aria-current={view === t ? "page" : undefined} onClick={() => setTab(t)}>
             <Icon name={TAB_ICON[t]} size={20} />
             {TAB_LABEL[t]}
             {t === "perfil" && pending > 0 && <b className="badge">{pending}</b>}

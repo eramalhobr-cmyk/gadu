@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { accessOf } from "@/lib/access";
-import { supabaseServer } from "@/lib/supabase/server";
+import { GaduApp } from "@/components/GaduApp";
+import { HelpNav } from "@/components/HelpNav";
+import { loadApp } from "../load";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Guia · GaDu" };
@@ -19,9 +19,7 @@ const ASK: { area: string; color: string; say: string[]; then: string }[] = [
 ];
 
 export default async function Guia() {
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getUser();
-  if (!(await accessOf(supabase, data.user)).ok) redirect("/login");
+  const { supabase, props } = await loadApp({ tab: "perfil" });
 
   const head = { count: "exact" as const, head: true };
   const [google, push, agents, memories, convs] = await Promise.all([
@@ -45,8 +43,9 @@ export default async function Guia() {
   const checkable = steps.filter((s) => s.done !== null).length;
 
   return (
-    <main className="doc guia">
-      <a href="/app" className="mono">‹ Voltar ao GaDu</a>
+    <GaduApp {...props} page={
+    <div className="doc guia">
+      <HelpNav active="guia" />
       <h1>Guia do GaDu</h1>
       <p className="muted">Seis passos para deixar tudo pronto e os jeitos de pedir cada coisa. Leva uns 10 minutos.</p>
 
@@ -98,6 +97,7 @@ export default async function Guia() {
       </div>
 
       <p className="muted" style={{ marginTop: 24 }}>Quer ver como tudo se conecta por dentro? <a href="/app/sobre">Como o GaDu funciona</a>.</p>
-    </main>
+    </div>
+    } />
   );
 }
