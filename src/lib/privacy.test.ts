@@ -30,3 +30,12 @@ test("bloco inválido não quebra", () => {
   assert.deepEqual(splitMeta("Oi <<<META>>> {quebrado").memories, []);
   assert.equal(visiblePart("Resposta <<<MET"), "Resposta");
 });
+
+import { costUsd, priceKey } from "./pricing.ts";
+
+test("calcula o custo por modelo", () => {
+  assert.equal(priceKey("anthropic/claude-opus-5.5"), "claude-opus-5-5");
+  const c = costUsd({ model: "claude-opus-5-5", input_tokens: 1000, output_tokens: 500, cache_read_input_tokens: 10000 });
+  assert.ok(Math.abs(c - (0.004 + 0.01 + 0.002)) < 1e-9);
+  assert.equal(costUsd({ model: "desconhecido", input_tokens: 1000 }), 0);
+});

@@ -3,7 +3,7 @@
 export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 export const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
 
-export const APP_VERSION = "0.1.3";
+export const APP_VERSION = "0.2.0";
 
 function list(v: string | undefined): string[] {
   return (v ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
@@ -11,10 +11,13 @@ function list(v: string | undefined): string[] {
 
 export function serverConfig() {
   const limit = Number.parseInt(process.env.DAILY_MESSAGE_LIMIT ?? "", 10);
+  const budget = Number.parseFloat(process.env.MONTHLY_BUDGET_USD ?? "");
   const effort = process.env.GADU_EFFORT ?? "low";
   return {
     allowedEmails: list(process.env.ALLOWED_EMAILS),
     dailyLimit: Number.isFinite(limit) && limit > 0 ? limit : 150,
+    // Teto de gasto com IA por pessoa por mês (US$). Ao atingir, o Gadu para de chamar os motores.
+    monthlyBudgetUsd: Number.isFinite(budget) && budget > 0 ? budget : 20,
     model: process.env.GADU_MODEL || "claude-opus-5-5",
     effort: (["low", "medium", "high", "xhigh", "max"].includes(effort) ? effort : "low") as
       "low" | "medium" | "high" | "xhigh" | "max",

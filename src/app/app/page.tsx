@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { GaduApp, type Msg } from "@/components/GaduApp";
-import { APP_VERSION, isAllowed } from "@/lib/config";
+import { APP_VERSION, isAllowed, serverConfig } from "@/lib/config";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +37,7 @@ export default async function AppPage() {
       initialMessages={messages}
       initialBlocked={Array.isArray(settings.blocked) ? settings.blocked.map(String) : []}
       version={APP_VERSION}
+      monthlyBudget={serverConfig().monthlyBudgetUsd}
     />
   );
 }

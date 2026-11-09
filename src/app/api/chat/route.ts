@@ -3,6 +3,7 @@ import { isAllowed, serverConfig } from "@/lib/config";
 import { AllProvidersFailed, routeChat, NoProviderError } from "@/lib/llm/router";
 import type { ChatTurn } from "@/lib/llm/types";
 import { splitMeta, visiblePart } from "@/lib/meta";
+import { costUsd } from "@/lib/pricing";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
 import { contextBlock, systemPrompt } from "@/lib/prompt";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -51,6 +52,12 @@ export async function POST(request: Request) {
           send({ t: "notice", kind: "quota", text: `Você chegou ao limite de ${cfg.dailyLimit} mensagens de hoje. O limite volta amanhã e pode ser ajustado nas configurações do servidor.` });
           return;
         }
+        // 2b. Teto de gasto mensal.
+        const { data: spent } = await supabase.rpc("month_spend");
+        if (Number(spent ?? 0) >= cfg.monthlyBudgetUsd) {
+          send({ t: "notice", kind: "quota", text: `O teto de gasto do mês (US$ ${cfg.monthlyBudgetUsd.toFixed(2)}) foi atingido. O Gadu volta a responder no próximo mês, ou quando o teto for aumentado.` });
+          return;
+        }
         // 3. Conversa: usa a existente (se for da pessoa) ou cria uma nova.
         let conversationId = parsed.data.conversationId ?? null;
         if (conversationId) {
@@ -87,12 +94,20 @@ export async function POST(request: Request) {
         // 5. Resposta em streaming, com troca de provedor se o principal cair.
         let full = "";
         let provider = "";
+        let usage: { input: number; output: number; cost: number } | null = null;
         let sent = 0;
         for await (const ev of routeChat({
           system: systemPrompt(),
           context: contextBlock(name, memories.data ?? []),
           turns,
           signal: request.signal,
+          onUsage: (u) => {
+            usage = {
+              input: (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0),
+              output: u.output_tokens ?? 0,
+              cost: costUsd(u),
+            };
+          },
         })) {
           if (ev.type === "provider") {
             provider = ev.name;
@@ -111,7 +126,12 @@ export async function POST(request: Request) {
         const { body: answer, memories: proposals } = splitMeta(full);
         await supabase.from("messages").insert([
           { conversation_id: conversationId, role: "user", content: message },
-          { conversation_id: conversationId, role: "assistant", content: answer || "(sem resposta)", provider },
+          {
+            conversation_id: conversationId, role: "assistant", content: answer || "(sem resposta)", provider,
+            input_tokens: (usage as { input: number } | null)?.input ?? null,
+            output_tokens: (usage as { output: number } | null)?.output ?? null,
+            cost_usd: (usage as { cost: number } | null)?.cost ?? null,
+          },
         ]);
         await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
         let added = 0;

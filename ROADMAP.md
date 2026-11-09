@@ -1,6 +1,6 @@
 # Gadu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 08/11/2026 (v0.1.3). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
+Atualizado a cada entrega. Última atualização: 08/11/2026 (v0.2.0). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 ## Fase 0 · MVP publicado (v0.1)
@@ -17,7 +17,8 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] ROADMAP, README, ARQUITETURA e SEGURANÇA documentados
 
 ### Acesso
-- [x] Login sem senha por link enviado ao e-mail (Supabase Auth, PKCE)
+- [x] Login com e-mail e senha (senha criada em Ajustes, mínimo 10 caracteres)
+- [x] Link por e-mail como alternativa (esqueci a senha)
 - [x] Supabase configurado pela API: endereço do site, endereços de retorno, link válido por 10 minutos
 - [x] Login com Google pronto no código (liga com `GOOGLE_LOGIN_ENABLED=1` + cliente OAuth)
 - [x] Lista de convidados (`ALLOWED_EMAILS`); quem não está na lista é desconectado
@@ -37,7 +38,10 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] Primeiro login em produção (link por e-mail)
 - [x] Registro de falha por motor e aviso claro na conversa (chave, crédito, ocupado)
 - [ ] **Primeira resposta real em produção** (nome do modelo corrigido; se ainda falhar, o aviso diz se é chave ou crédito)
-- [ ] Teto de gasto do AI Gateway no painel da Vercel
+- [x] Gasto de cada resposta registrado (tokens e US$) e mostrado em Ajustes
+- [x] Teto de gasto mensal por pessoa (`MONTHLY_BUDGET_USD`, hoje US$ 20)
+- [ ] **Colocar crédito na Anthropic** (a conta está sem saldo; o Gateway da Vercel também exige crédito pago)
+- [ ] Limite mensal também no painel do provedor (segunda trava)
 
 ### Voz (grátis, do aparelho)
 - [x] Apertar para falar (reconhecimento de voz do navegador, pt-BR)
@@ -69,6 +73,12 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] Rosto humanoide pequeno no canto direito, que se acende ao conversar
 - [x] Rosto humanoide animado (repouso, escutando, pensando, falando)
 - [x] Respeita "reduzir movimento" e pausa quando a aba está escondida
+
+## Voz: resposta falada
+- [x] v0: voz do próprio aparelho, frase a frase enquanto a resposta chega (grátis)
+- [ ] v1: escolher a voz em Ajustes e ajustar a velocidade
+- [ ] v2: voz natural (ElevenLabs ou OpenAI) com teto de gasto próprio
+- [ ] v3: conversa contínua com interrupção natural
 
 ## Fase 1 · Memória e método
 - [ ] Memória v2: resumo de cada conversa e busca em camadas (ideias do claude-mem e do mem0)

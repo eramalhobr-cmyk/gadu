@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <LoginFace />
       </div>
       <h1 className="brand" style={{ fontSize: 28, margin: 0 }}>Gadu</h1>
-      <p className="muted" style={{ margin: 0, maxWidth: 340 }}>Seu assistente pessoal, por voz e texto. Entre com o seu e-mail.</p>
+      <p className="muted" style={{ margin: 0, maxWidth: 340 }}>Seu assistente pessoal, por voz e texto. Entre com o seu e-mail e senha.</p>
       {erro && ERRORS[erro] && <div className="notice" role="alert" style={{ maxWidth: 360 }}>{ERRORS[erro]}</div>}
       <EmailLogin />
       {GOOGLE && (

@@ -5,6 +5,8 @@ export type ChatRequest = {
   context: string; // muda pouco: memória aprovada, data
   turns: ChatTurn[]; // histórico + mensagem atual (termina em user)
   signal: AbortSignal;
+  /** Recebe o consumo da resposta (tokens) para calcular o gasto. */
+  onUsage?: (u: import("@/lib/pricing").Usage) => void;
 };
 
 /** Um provedor de modelo. Adicionar um provedor novo = escrever um adaptador. */

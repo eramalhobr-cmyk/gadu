@@ -9,6 +9,7 @@ export type Msg = { id: string; role: "user" | "assistant" | "notice"; content: 
 type Memory = { id: number; content: string; area: string; origin: string; status: "pending" | "approved" };
 type Tab = "conversa" | "memoria" | "ajustes";
 
+const brl = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const AREAS = ["Preferências", "Projetos", "Agent Office", "Pessoal", "Profissional"];
 const LS_DRAFT = "gadu.draft";
 const LS_PREFS = "gadu.prefs";
@@ -29,6 +30,7 @@ export function GaduApp(props: {
   initialMessages: Msg[];
   initialBlocked: string[];
   version: string;
+  monthlyBudget: number;
 }) {
   const [tab, setTab] = useState<Tab>("conversa");
   const [messages, setMessages] = useState<Msg[]>(props.initialMessages);
@@ -291,6 +293,7 @@ export function GaduApp(props: {
           voiceOk={voiceOk}
           onNew={() => { newConversation(); setTab("conversa"); }}
           initialBlocked={props.initialBlocked}
+          monthlyBudget={props.monthlyBudget}
         />
       )}
 
@@ -379,11 +382,30 @@ function SettingsPage(props: {
   voiceOk: boolean;
   onNew: () => void;
   initialBlocked: string[];
+  monthlyBudget: number;
 }) {
   const [blocked, setBlocked] = useState<string[]>(props.initialBlocked);
   const [term, setTerm] = useState("");
   const [saved, setSaved] = useState("");
+  const [spent, setSpent] = useState<number | null>(null);
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [pwMsg, setPwMsg] = useState("");
   const db = supabaseBrowser();
+
+  useEffect(() => {
+    db.rpc("month_spend").then((r: { data: unknown }) => setSpent(Number(r.data ?? 0)));
+  }, [db]);
+
+  async function savePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (pw.length < 10) return setPwMsg("Use pelo menos 10 caracteres.");
+    if (pw !== pw2) return setPwMsg("As duas senhas não são iguais.");
+    const { error } = await db.auth.updateUser({ password: pw });
+    if (error) return setPwMsg(/weak|pwned|leaked/i.test(error.message) ? "Senha fraca ou já vazada na internet. Escolha outra." : "Não consegui salvar a senha. Tente de novo.");
+    setPw(""); setPw2("");
+    setPwMsg("Senha salva. Da próxima vez, entre com e-mail e senha.");
+  }
 
   async function saveBlocked(next: string[]) {
     setBlocked(next);
@@ -397,6 +419,16 @@ function SettingsPage(props: {
 
   return (
     <main className="page">
+      <section className="card">
+        <h2>Gasto com IA neste mês</h2>
+        <div style={{ fontSize: 22, fontVariantNumeric: "tabular-nums" }}>
+          {spent === null ? "…" : `US$ ${brl(spent)}`} <span className="muted" style={{ fontSize: 15 }}>de US$ {brl(props.monthlyBudget)}</span>
+        </div>
+        <div style={{ height: 6, background: "var(--wash)", borderRadius: 3, overflow: "hidden" }} aria-hidden="true">
+          <div style={{ height: "100%", width: `${Math.min(100, ((spent ?? 0) / props.monthlyBudget) * 100)}%`, background: (spent ?? 0) / props.monthlyBudget > 0.8 ? "var(--hot)" : "var(--sig)" }} />
+        </div>
+        <p className="muted" style={{ margin: 0 }}>Estimativa pelos tokens de cada resposta. Ao chegar no teto, o Gadu para de chamar a IA até o próximo mês.</p>
+      </section>
       <section className="card">
         <h2>Voz</h2>
         <label className="switch"><span>Gadu responde falando</span><input type="checkbox" checked={props.prefs.voice} onChange={(e) => props.setPrefs({ ...props.prefs, voice: e.target.checked })} /></label>
@@ -413,6 +445,18 @@ function SettingsPage(props: {
           <button className="btn" disabled={!term.trim()} onClick={() => { void saveBlocked([...new Set([...blocked, term.trim()])]); setTerm(""); }}>Bloquear</button>
         </div>
         {saved && <span className="muted" role="status">{saved}</span>}
+      </section>
+      <section className="card">
+        <h2>Senha</h2>
+        <form onSubmit={savePassword} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <input type="text" autoComplete="username" value={props.email} readOnly hidden />
+          <label className="sr" htmlFor="pw1">Nova senha</label>
+          <input id="pw1" className="field" type="password" autoComplete="new-password" placeholder="Nova senha (mínimo 10 caracteres)" value={pw} onChange={(e) => setPw(e.target.value)} />
+          <label className="sr" htmlFor="pw2">Repita a senha</label>
+          <input id="pw2" className="field" type="password" autoComplete="new-password" placeholder="Repita a senha" value={pw2} onChange={(e) => setPw2(e.target.value)} />
+          <div><button className="btn" type="submit" disabled={!pw || !pw2}>Salvar senha</button></div>
+          {pwMsg && <span className="muted" role="status">{pwMsg}</span>}
+        </form>
       </section>
       <section className="card">
         <h2>Conta</h2>
