@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RobotFace } from "./RobotFace";
+import { Visual } from "./RobotFace";
 import type { FaceMode } from "./robot-engine";
 import { canListen, canSpeak, createRecognizer, Speaker } from "@/lib/speech";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -218,7 +218,10 @@ export function GaduApp(props: {
 
       {tab === "conversa" && (
         <main className="main chat">
-          <section className="face" aria-label="Rosto do Gadu"><RobotFace mode={mode} /></section>
+          <section className="face" aria-label="Cérebro do Gadu">
+            <Visual kind="brain" mode={mode} label="Cérebro do Gadu" />
+            <div className={`mini ${mode !== "idle" ? "on" : ""}`} aria-hidden="true"><Visual kind="robot" mode={mode} compact label="Rosto do Gadu" /></div>
+          </section>
           <div className="log" ref={logRef} aria-live="polite">
             {messages.length === 0 && (
               <div className="msg-b">

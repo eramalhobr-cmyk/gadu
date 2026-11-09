@@ -1,6 +1,6 @@
 # Gadu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 08/11/2026 (v0.1.1). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
+Atualizado a cada entrega. Última atualização: 08/11/2026 (v0.1.2). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 ## Fase 0 · MVP publicado (v0.1)
@@ -33,7 +33,9 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] Memória aprovada entra no contexto; histórico das últimas mensagens
 - [x] Prompt estável em cache (mais rápido e mais barato)
 - [x] Abre na última conversa; botão "Nova conversa"
-- [ ] Primeiro teste real de conversa em produção
+- [x] Primeiro login em produção (link por e-mail)
+- [x] Registro de falha por motor e aviso claro na conversa (chave, crédito, ocupado)
+- [ ] **Primeira resposta real em produção** (o AI Gateway exige crédito pago; a chave direta da Anthropic está sendo verificada)
 - [ ] Teto de gasto do AI Gateway no painel da Vercel
 
 ### Voz (grátis, do aparelho)
@@ -59,7 +61,9 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] `/api/health` para monitoramento
 - [x] Testes automáticos da regra de privacidade e do protocolo de memória
 
-### Robô
+### Visual
+- [x] Cérebro neural no centro (login e conversa)
+- [x] Rosto humanoide pequeno no canto direito, que se acende ao conversar
 - [x] Rosto humanoide animado (repouso, escutando, pensando, falando)
 - [x] Respeita "reduzir movimento" e pausa quando a aba está escondida
 

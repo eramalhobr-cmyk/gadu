@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { isAllowed, serverConfig } from "@/lib/config";
-import { routeChat, NoProviderError } from "@/lib/llm/router";
+import { AllProvidersFailed, routeChat, NoProviderError } from "@/lib/llm/router";
 import type { ChatTurn } from "@/lib/llm/types";
 import { splitMeta, visiblePart } from "@/lib/meta";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
@@ -130,6 +130,15 @@ export async function POST(request: Request) {
       } catch (e) {
         if (e instanceof NoProviderError) {
           send({ t: "notice", kind: "engine", text: "O motor ainda não está configurado neste servidor. Publique na Vercel (usa o AI Gateway) ou cadastre ANTHROPIC_API_KEY." });
+        } else if (e instanceof AllProvidersFailed && !request.signal.aborted) {
+          const text = {
+            auth: "Os motores de IA recusaram a chave de acesso. Confira a chave da Anthropic no servidor.",
+            credits: "Os motores de IA estão sem crédito. Adicione crédito na Anthropic ou no AI Gateway da Vercel.",
+            busy: "Os motores de IA estão ocupados agora. Tente de novo em alguns segundos.",
+            other: "Não consegui responder agora. Tente de novo em instantes.",
+          }[e.kind];
+          console.error("chat error", e.kind);
+          send({ t: "notice", kind: "engine", text });
         } else if (!request.signal.aborted) {
           console.error("chat error", e instanceof Error ? e.message : "unknown");
           send({ t: "notice", kind: "error", text: "Não consegui responder agora. Tente de novo em instantes." });

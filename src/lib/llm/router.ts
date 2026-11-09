@@ -29,10 +29,27 @@ export async function* routeChat(req: ChatRequest): AsyncGenerator<RouterEvent> 
       if (started) return;
     } catch (e) {
       lastError = e;
+      // Registro por motor, sem dados da conversa nem chaves: só nome, status e mensagem curta.
+      const err = e as { status?: number; message?: string };
+      console.error(`motor ${p.name} falhou`, err?.status ?? "-", String(err?.message ?? e).slice(0, 300));
       if (started || req.signal.aborted) throw e;
     }
   }
-  throw lastError ?? new Error("sem resposta");
+  throw new AllProvidersFailed(lastError);
+}
+
+/** Todos os motores falharam antes de responder. Guarda o tipo da última falha para orientar a pessoa. */
+export class AllProvidersFailed extends Error {
+  kind: "auth" | "credits" | "busy" | "other";
+  constructor(last: unknown) {
+    super("Todos os motores falharam");
+    const err = (last ?? {}) as { status?: number; message?: string };
+    const msg = String(err.message ?? "");
+    if (err.status === 401 || /api[_ ]?key|authentication/i.test(msg)) this.kind = "auth";
+    else if (err.status === 402 || /credit|billing|free tier|balance/i.test(msg)) this.kind = "credits";
+    else if (err.status === 429 || err.status === 529 || (err.status ?? 0) >= 500) this.kind = "busy";
+    else this.kind = "other";
+  }
 }
 
 export class NoProviderError extends Error {

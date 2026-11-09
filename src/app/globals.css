@@ -41,6 +41,8 @@ a { color: var(--sig); }
 .main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .face { flex: none; height: 30dvh; min-height: 170px; position: relative; border-bottom: 1px solid var(--line); }
 .face canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.mini { position: absolute; top: 10px; right: 10px; width: 84px; height: 96px; border: 1px solid var(--line); border-radius: 16px; background: rgba(5, 8, 11, 0.7); overflow: hidden; opacity: 0.8; transition: opacity 0.3s, border-color 0.3s; }
+.mini.on { opacity: 1; border-color: var(--sig); }
 .log { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 .msg-u { align-self: flex-end; max-width: 88%; padding: 10px 14px; background: var(--wash); border: 1px solid var(--line-2); border-radius: 14px 14px 4px 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .msg-b { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -71,6 +73,7 @@ a { color: var(--sig); }
 @media (min-width: 900px) {
   .main.chat { display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 520px); grid-template-rows: minmax(0, 1fr) auto; }
   .main.chat .face { grid-row: 1 / 3; height: auto; border-bottom: 0; border-right: 1px solid var(--line); }
+  .mini { top: 16px; right: 16px; width: 150px; height: 172px; }
   .main.chat .log { grid-column: 2; }
   .main.chat .composer { grid-column: 2; }
   .page { max-width: 760px; width: 100%; margin: 0 auto; }

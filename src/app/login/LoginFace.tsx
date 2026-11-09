@@ -1,6 +1,6 @@
 "use client";
-import { RobotFace } from "@/components/RobotFace";
+import { Visual } from "@/components/RobotFace";
 
 export function LoginFace() {
-  return <RobotFace mode="idle" label="Rosto do Gadu" />;
+  return <Visual kind="brain" mode="idle" label="Cérebro do Gadu" />;
 }
