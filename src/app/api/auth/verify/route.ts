@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isAllowed } from "@/lib/config";
+import { accessOf } from "@/lib/access";
 import { supabaseServer } from "@/lib/supabase/server";
 
 const Body = z.object({
@@ -12,10 +12,9 @@ export async function POST(request: Request) {
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Código inválido." }, { status: 400 });
   const { email, token } = parsed.data;
-  if (!isAllowed(email)) return Response.json({ error: "Código inválido ou expirado." }, { status: 401 });
   const supabase = await supabaseServer();
   const { data, error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
-  if (error || !data.user || !isAllowed(data.user.email)) {
+  if (error || !data.user || !(await accessOf(supabase, data.user)).ok) {
     if (data?.user) await supabase.auth.signOut();
     return Response.json({ error: "Código inválido ou expirado. Peça um novo." }, { status: 401 });
   }

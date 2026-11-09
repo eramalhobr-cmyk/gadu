@@ -1,21 +1,13 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { AGENT_PRESETS, AREAS } from "@/lib/presets";
 import { COLORS, colorVar, Icon, ICONS } from "./ui";
 
 export type Agent = { id: number; name: string; area: string; instructions: string; color: string; icon: string; active: boolean };
 type Draft = Omit<Agent, "id" | "active">;
 
-const AREAS = ["Pessoal", "Preferências", "Projetos", "Profissional"];
-
-// Sugestões para a vida pessoal (nada corporativo). A pessoa pode editar tudo depois.
-const PRESETS: Draft[] = [
-  { name: "Saúde e treino", area: "Pessoal", color: "green", icon: "heart", instructions: "Ajude a planejar treinos, sono e alimentação com bom senso e metas pequenas. Pergunte como me sinto antes de sugerir carga. Não faça diagnóstico: quando for caso médico, recomende procurar um profissional." },
-  { name: "Finanças pessoais", area: "Pessoal", color: "hot", icon: "coin", instructions: "Ajude com orçamento da casa, metas de economia e decisões de compra. Mostre contas simples e trocas claras. Nunca peça senhas, números de cartão ou dados bancários." },
-  { name: "Estudos e leitura", area: "Preferências", color: "violet", icon: "book", instructions: "Ajude a montar planos de estudo e leitura, resumir o que aprendi e revisar com perguntas curtas. Sugira o próximo passo do dia." },
-  { name: "Projetos pessoais", area: "Projetos", color: "blue", icon: "code", instructions: "Ajude a destravar meus projetos pessoais: quebre em próximos passos pequenos, sugira tarefas com prazo e me cobre com gentileza." },
-  { name: "Família e casa", area: "Pessoal", color: "pink", icon: "home", instructions: "Ajude a organizar a rotina da casa e da família: compras, manutenção, datas importantes e programas para o fim de semana." },
-];
+const PRESETS: Draft[] = AGENT_PRESETS;
 
 export function AgentsPage({ onTalk }: { onTalk: (a: { id: number; name: string }) => void }) {
   const [items, setItems] = useState<Agent[] | null>(null);

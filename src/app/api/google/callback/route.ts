@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import { connect, GOOGLE_SCOPES } from "@/lib/google";
+import { connect, REQUIRED_SCOPES } from "@/lib/google";
 import { OAUTH_COOKIE, redirectUri, signedIn } from "../_auth";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
   const s1 = Buffer.from(q.data.state), s2 = Buffer.from(saved.state);
   if (s1.length !== s2.length || !timingSafeEqual(s1, s2)) return back("erro");
   const granted = (q.data.scope ?? "").split(" ");
-  const missing = GOOGLE_SCOPES.filter((s) => s.startsWith("https://") && !granted.includes(s));
+  const missing = REQUIRED_SCOPES.filter((s) => !granted.includes(s));
   if (missing.length) return back("permissoes");
   try {
     await connect(a.supabase, a.user.id, q.data.code, saved.verifier, redirectUri(request));

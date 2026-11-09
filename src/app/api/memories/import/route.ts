@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isAllowed, readBudgets } from "@/lib/config";
+import { readBudgets } from "@/lib/config";
+import { accessOf } from "@/lib/access";
 import { IMPORT_MAX_CHARS, IMPORT_MAX_ITEMS, looksLikeList, parseImport } from "@/lib/importer";
 import { complete } from "@/lib/llm/complete";
 import type { ProviderId } from "@/lib/llm/types";
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
   const supabase = await supabaseServer();
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
-  if (!user || !isAllowed(user.email)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!user || !(await accessOf(supabase, user)).ok) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "invalid", message: "Texto vazio ou grande demais (máximo 30 mil caracteres)." }, { status: 400 });
   const { text, origin } = parsed.data;

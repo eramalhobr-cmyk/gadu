@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { isAllowed, readBudgets, serverConfig } from "@/lib/config";
+import { readBudgets, serverConfig } from "@/lib/config";
+import { accessOf } from "@/lib/access";
 import { after } from "next/server";
 import { AllProvidersFailed, BudgetReached, routeChat, NoProviderError } from "@/lib/llm/router";
 import { complete } from "@/lib/llm/complete";
@@ -9,6 +10,9 @@ import { splitMeta, visiblePart } from "@/lib/meta";
 import { costUsd } from "@/lib/pricing";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
 import { accessToken, events, formatEvents, formatMails, GoogleError, googleIntent, inbox } from "@/lib/google";
+import { insights, type InTask } from "@/lib/insights";
+import { embed, embeddingsAvailable, toVector } from "@/lib/embeddings";
+import { agentAreas } from "@/lib/presets";
 import { contextBlock, extrasBlock, systemPrompt } from "@/lib/prompt";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -32,13 +36,14 @@ type Out =
   | { t: "done"; memories: number }
   | { t: "reminders"; items: { id: number; text: string; dueAt: string }[] }
   | { t: "tasks"; items: { id: number; title: string; due: string | null }[] }
+  | { t: "events"; items: { title: string; start: string; end: string; location: string | null }[] }
   | { t: "notice"; text: string; kind: "privacy" | "quota" | "engine" | "error" };
 
 export async function POST(request: Request) {
   const supabase = await supabaseServer();
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
-  if (!user || !isAllowed(user.email)) return Response.json({ error: "Faça login para continuar." }, { status: 401 });
+  if (!user || !(await accessOf(supabase, user)).ok) return Response.json({ error: "Faça login para continuar." }, { status: 401 });
 
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Mensagem inválida." }, { status: 400 });
@@ -97,6 +102,8 @@ export async function POST(request: Request) {
         }
         send({ t: "start", conversationId });
 
+        // Busca por significado em paralelo (memórias, conversas, tarefas, projetos). Falha não atrapalha a conversa.
+        const semantic = semanticContext(supabase, message);
         // 4. Contexto: perfil, memória aprovada, histórico recente, conversas antigas relacionadas e gasto por provedor.
         const [profile, memories, history, related, spendRows, openTasks, activeProjects, agentRow, projectRow] = await Promise.all([
           supabase.from("profiles").select("display_name, settings").eq("id", user.id).maybeSingle(),
@@ -111,6 +118,9 @@ export async function POST(request: Request) {
           agentId ? supabase.from("agents").select("name, area, instructions").eq("id", agentId).maybeSingle() : Promise.resolve({ data: null }),
           projectId ? supabase.from("projects").select("name, goal, next_steps").eq("id", projectId).maybeSingle() : Promise.resolve({ data: null }),
         ]);
+        // Agente: só as memórias da área dele e as preferências gerais.
+        const agentArea = (agentRow.data as { area?: string } | null)?.area;
+        const memFor = ((memories.data ?? []) as { content: string; area: string }[]).filter((m) => !agentArea || agentAreas(agentArea).includes(m.area));
         const extras = extrasBlock({
           tasks: ((openTasks.data ?? []) as unknown as { title: string; priority: number; due_date: string | null; projects: { name: string } | null }[])
             .map((t) => ({ title: t.title, priority: t.priority, due_date: t.due_date, project: t.projects?.name ?? null })),
@@ -136,7 +146,8 @@ export async function POST(request: Request) {
           else turns.push({ role, content: m.content });
         }
         // Fase 2: agenda e e-mails do Google entram no contexto só quando o assunto pede.
-        const google = await googleContext(supabase, user.id, message, blocked);
+        const taskList = ((openTasks.data ?? []) as unknown as { title: string; priority: number; due_date: string | null }[]);
+        const google = await googleContext(supabase, user.id, message, blocked, taskList);
         const lastTurn = turns[turns.length - 1];
         if (lastTurn && lastTurn.role === "user") lastTurn.content += "\n\n" + message;
         else turns.push({ role: "user", content: message });
@@ -148,7 +159,7 @@ export async function POST(request: Request) {
         let sent = 0;
         for await (const ev of routeChat({
           system: systemPrompt(),
-          context: contextBlock(name, memories.data ?? [], (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + google,
+          context: contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google,
           turns,
           signal: request.signal,
           onUsage: (u) => {
@@ -175,7 +186,7 @@ export async function POST(request: Request) {
         }
 
         // 6. Grava a conversa e as memórias propostas (sempre pendentes).
-        const { body: answer, memories: proposals, reminders, tasks: taskProposals } = splitMeta(full);
+        const { body: answer, memories: proposals, reminders, tasks: taskProposals, events: eventProposals } = splitMeta(full);
         await supabase.from("messages").insert([
           { conversation_id: conversationId, role: "user", content: message },
           {
@@ -230,6 +241,9 @@ export async function POST(request: Request) {
             .select("id, title, due_date");
           if (createdTasks?.length) send({ t: "tasks", items: createdTasks.map((t) => ({ id: t.id as number, title: t.title as string, due: (t.due_date as string | null) ?? null })) });
         }
+        // Eventos: só propostas. O app mostra e a pessoa confirma antes de criar na agenda.
+        const okEvents = eventProposals.filter((e) => !isSensitive(e.title) && !blockedTerm(e.title, blocked));
+        if (okEvents.length) send({ t: "events", items: okEvents });
         send({ t: "done", memories: added });
       } catch (e) {
         if (e instanceof BudgetReached) {
@@ -295,7 +309,7 @@ async function summarize(supabase: Db, conversationId: number, skip: Set<Provide
 }
 
 /** Lê agenda e/ou e-mails quando a mensagem pede. Falhas viram um aviso no contexto, nunca derrubam a conversa. */
-async function googleContext(supabase: Db, userId: string, message: string, blocked: string[]): Promise<string> {
+async function googleContext(supabase: Db, userId: string, message: string, blocked: string[], tasks: InTask[]): Promise<string> {
   const want = googleIntent(message);
   if (!want.agenda && !want.email) return "";
   try {
@@ -310,6 +324,9 @@ async function googleContext(supabase: Db, userId: string, message: string, bloc
       want.email ? inbox(token) : Promise.resolve(null),
     ]);
     const parts = [ev ? formatEvents(ev) : "", mails ? formatMails(mails, hide) : ""].filter(Boolean);
+    // Insights calculados (conflitos, janela livre, atrasos, e-mails parados): use no briefing e ao priorizar.
+    const tips = insights({ events: ev ? ev.filter((e) => !e.declined && e.start < new Date(start.getTime() + 86_400_000).toISOString()) : null, tasks, mails: mails?.filter((m) => !hide(`${m.from} ${m.subject} ${m.snippet}`)) ?? null });
+    if (tips.length) parts.push("Insights de hoje:\n" + tips.map((t) => `- ${t.text}`).join("\n"));
     return `\n\nDados do Google (lidos agora, só leitura):\n${parts.join("\n\n")}`;
   } catch (e) {
     if (e instanceof GoogleError && e.kind === "not_connected") {
@@ -317,5 +334,20 @@ async function googleContext(supabase: Db, userId: string, message: string, bloc
     }
     console.error("google no chat falhou", e instanceof Error ? e.message : "erro");
     return "\n\nDados do Google: não consegui ler agora (falha temporária ou acesso revogado). Diga isso com franqueza e sugira tentar de novo ou reconectar em Ajustes.";
+  }
+}
+
+/** Itens parecidos com a mensagem, pela busca por significado. */
+async function semanticContext(supabase: Db, message: string): Promise<string> {
+  if (!embeddingsAvailable() || message.trim().length < 12) return "";
+  try {
+    const [v] = await embed([message]);
+    const { data } = await supabase.rpc("search_similar", { query_embedding: toVector(v), match_count: 6 });
+    const label: Record<string, string> = { memory: "memória", conversation: "conversa anterior", task: "tarefa", project: "projeto" };
+    const hits = ((data ?? []) as { kind: string; content: string; similarity: number }[]).filter((r) => r.similarity > 0.4);
+    if (!hits.length) return "";
+    return "\n\nItens relacionados encontrados por significado (use só se ajudar):\n" + hits.map((h) => `- (${label[h.kind] ?? h.kind}) ${h.content.slice(0, 300)}`).join("\n");
+  } catch {
+    return "";
   }
 }

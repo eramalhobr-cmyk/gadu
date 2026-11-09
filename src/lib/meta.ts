@@ -3,7 +3,7 @@
 // Esse bloco nunca aparece para a pessoa.
 
 export const META = "<<<META>>>";
-export const AREAS = ["Preferências", "Projetos", "Agent Office", "Pessoal", "Profissional"] as const;
+export const AREAS = ["Pessoal", "Preferências", "Saúde", "Finanças", "Estudos", "Família", "Projetos", "Trabalho"] as const;
 
 export type MemoryProposal = { content: string; area: string };
 
@@ -43,16 +43,35 @@ export function validTask(o: { texto?: unknown; prazo?: unknown; prioridade?: un
   return { title, due, priority, project };
 }
 
-export function splitMeta(text: string, now = Date.now()): { body: string; memories: MemoryProposal[]; reminders: ReminderProposal[]; tasks: TaskProposal[] } {
+export type EventProposal = { title: string; start: string; end: string; location: string | null };
+
+function withTz(v: string): string {
+  const t = v.trim();
+  return /[zZ]|[+-]\d{2}:?\d{2}$/.test(t) ? t : `${t}-03:00`;
+}
+
+/** Evento proposto: título, início no futuro (até 1 ano), fim depois do início (padrão: 1 hora). */
+export function validEvent(o: { titulo?: unknown; inicio?: unknown; fim?: unknown; local?: unknown }, now = Date.now()): EventProposal | null {
+  const title = typeof o.titulo === "string" ? o.titulo.trim().slice(0, 160) : "";
+  if (!title || typeof o.inicio !== "string") return null;
+  const start = new Date(withTz(o.inicio));
+  if (Number.isNaN(start.getTime()) || start.getTime() < now - 3_600_000 || start.getTime() > now + 366 * 86_400_000) return null;
+  let end = typeof o.fim === "string" ? new Date(withTz(o.fim)) : new Date(NaN);
+  if (Number.isNaN(end.getTime()) || end <= start || end.getTime() - start.getTime() > 24 * 3_600_000) end = new Date(start.getTime() + 3_600_000);
+  const location = typeof o.local === "string" && o.local.trim() ? o.local.trim().slice(0, 160) : null;
+  return { title, start: start.toISOString(), end: end.toISOString(), location };
+}
+
+export function splitMeta(text: string, now = Date.now()): { body: string; memories: MemoryProposal[]; reminders: ReminderProposal[]; tasks: TaskProposal[]; events: EventProposal[] } {
   const i = text.indexOf(META);
-  if (i < 0) return { body: visiblePart(text), memories: [], reminders: [], tasks: [] };
+  if (i < 0) return { body: visiblePart(text), memories: [], reminders: [], tasks: [], events: [] };
   const body = text.slice(0, i).trim();
   const raw = text.slice(i + META.length);
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
-  if (start < 0 || end <= start) return { body, memories: [], reminders: [], tasks: [] };
+  if (start < 0 || end <= start) return { body, memories: [], reminders: [], tasks: [], events: [] };
   try {
-    const parsed = JSON.parse(raw.slice(start, end + 1)) as { memorias?: unknown; lembretes?: unknown; tarefas?: unknown };
+    const parsed = JSON.parse(raw.slice(start, end + 1)) as { memorias?: unknown; lembretes?: unknown; tarefas?: unknown; eventos?: unknown };
     const list = Array.isArray(parsed.memorias) ? parsed.memorias : [];
     const memories = list
       .map((m) => {
@@ -71,8 +90,12 @@ export function splitMeta(text: string, now = Date.now()): { body: string; memor
       .map((t) => validTask((t ?? {}) as Record<string, unknown>, now))
       .filter((t): t is TaskProposal => Boolean(t))
       .slice(0, 8);
-    return { body, memories, reminders, tasks };
+    const events = (Array.isArray(parsed.eventos) ? parsed.eventos : [])
+      .map((e) => validEvent((e ?? {}) as Record<string, unknown>, now))
+      .filter((e): e is EventProposal => Boolean(e))
+      .slice(0, 3);
+    return { body, memories, reminders, tasks, events };
   } catch {
-    return { body, memories: [], reminders: [], tasks: [] };
+    return { body, memories: [], reminders: [], tasks: [], events: [] };
   }
 }

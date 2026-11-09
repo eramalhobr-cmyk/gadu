@@ -64,6 +64,10 @@ export function SettingsPage(props: {
 
   return (
     <main className="page">
+      <a className="card card-link" href="/app/sobre" style={{ textDecoration: "none" }}>
+        <span><b>Como o GaDu funciona</b><br /><span className="muted" style={{ fontSize: 14 }}>Arquitetura, funções e navegação, em imagens</span></span>
+        <span aria-hidden="true">›</span>
+      </a>
       <NotificationsCard />
       <ConnectionsCard morningLink={props.morningLink} />
       <SpendCard />
@@ -236,7 +240,7 @@ function VoiceCard(props: { prefs: Prefs; setPrefs: (p: Prefs) => void; voiceOk:
   );
 }
 
-type GStatus = { configured: boolean; connected: boolean; email: string | null };
+type GStatus = { configured: boolean; connected: boolean; canWrite?: boolean; email: string | null };
 
 function ConnectionsCard({ morningLink }: { morningLink: string }) {
   const [g, setG] = useState<GStatus | null>(null);
@@ -287,7 +291,10 @@ function ConnectionsCard({ morningLink }: { morningLink: string }) {
         </div>
         {g?.connected ? (
           <>
-            <div className="muted" style={{ fontSize: 14 }}>{g.email ?? "Conta Google"} · só leitura. O GaDu lê agenda e e-mails quando você pergunta ou pede para começar o dia.</div>
+            <div className="muted" style={{ fontSize: 14 }}>{g.email ?? "Conta Google"}. O GaDu lê agenda e e-mails quando você pergunta. E-mail é só leitura.</div>
+            {g.canWrite
+              ? <div className="mono" style={{ color: "var(--sig)" }}>✓ Pode criar eventos (sempre com sua confirmação)</div>
+              : <div className="notice" style={{ fontSize: 14 }}>Para criar eventos pela voz, reconecte uma vez e marque a permissão de agenda. <a className="btn btn-sm" style={{ marginTop: 8 }} href="/api/google/connect">Reconectar Google</a></div>}
             {confirm ? (
               <div className="row">
                 <button className="btn btn-sm" style={{ borderColor: "var(--bad)", color: "var(--bad)" }} onClick={disconnect}>Desconectar de vez</button>
@@ -332,6 +339,7 @@ function NotificationsCard() {
   const [perm, setPerm] = useState<NotificationPermission>("default");
   const [sub, setSub] = useState<PushSubscription | null>(null);
   const [briefing, setBriefing] = useState({ enabled: true, time: "07:00" });
+  const [evening, setEvening] = useState({ enabled: false, time: "21:00" });
   const [msg, setMsg] = useState("");
   const [working, setWorking] = useState(false);
   const db = supabaseBrowser();
@@ -353,6 +361,8 @@ function NotificationsCard() {
       const { data } = await db.from("profiles").select("settings").eq("id", auth.user.id).maybeSingle();
       const b = (data?.settings as { briefing?: { enabled?: unknown; time?: unknown } } | null)?.briefing;
       if (b) setBriefing({ enabled: b.enabled !== false, time: typeof b.time === "string" && /^\d{2}:\d{2}$/.test(b.time) ? b.time : "07:00" });
+      const ev = (data?.settings as { evening?: { enabled?: unknown; time?: unknown } } | null)?.evening;
+      if (ev) setEvening({ enabled: ev.enabled === true, time: typeof ev.time === "string" && /^\d{2}:\d{2}$/.test(ev.time) ? ev.time : "21:00" });
     })();
   }, [db]);
 
@@ -364,6 +374,16 @@ function NotificationsCard() {
     const settings = { ...((data?.settings as object) ?? {}), briefing: next };
     const { error } = await db.from("profiles").update({ settings }).eq("id", auth.user.id);
     setMsg(error ? "Não salvou. Tente de novo." : next.enabled ? `Briefing todo dia às ${next.time}.` : "Briefing desligado.");
+  }
+
+  async function saveEvening(next: { enabled: boolean; time: string }) {
+    setEvening(next);
+    const { data: auth } = await db.auth.getUser();
+    if (!auth.user) return;
+    const { data } = await db.from("profiles").select("settings").eq("id", auth.user.id).maybeSingle();
+    const settings = { ...((data?.settings as object) ?? {}), evening: next };
+    const { error } = await db.from("profiles").update({ settings }).eq("id", auth.user.id);
+    setMsg(error ? "Não salvou. Tente de novo." : next.enabled ? `Revisão todo dia às ${next.time}.` : "Revisão da noite desligada.");
   }
 
   async function enable() {
@@ -434,7 +454,14 @@ function NotificationsCard() {
           <input className="field" type="time" style={{ maxWidth: 140, colorScheme: "dark" }} value={briefing.time} onChange={(e) => /^\d{2}:\d{2}$/.test(e.target.value) && saveBriefing({ ...briefing, time: e.target.value })} />
         </label>
       )}
-      <p className="muted" style={{ margin: 0, fontSize: 14 }}>Todo dia, no horário escolhido, chega um resumo da agenda e dos e-mails. Toque nele para o GaDu começar o dia com você.</p>
+      <p className="muted" style={{ margin: 0, fontSize: 14 }}>Todo dia, no horário escolhido, chega um resumo da agenda, dos e-mails e um alerta (conflito, atraso). Toque nele para o GaDu começar o dia com você.</p>
+      <label className="switch"><span>Revisão da noite</span><input type="checkbox" checked={evening.enabled} onChange={(e) => saveEvening({ ...evening, enabled: e.target.checked })} /></label>
+      {evening.enabled && (
+        <label className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
+          <span className="muted">Horário</span>
+          <input className="field" type="time" style={{ maxWidth: 140, colorScheme: "dark" }} value={evening.time} onChange={(e) => /^\d{2}:\d{2}$/.test(e.target.value) && saveEvening({ ...evening, time: e.target.value })} />
+        </label>
+      )}
       {msg && <span className="muted" role="status">{msg}</span>}
     </section>
   );

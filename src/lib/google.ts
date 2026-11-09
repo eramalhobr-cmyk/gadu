@@ -10,7 +10,11 @@ export const GOOGLE_SCOPES = [
   "email",
   "https://www.googleapis.com/auth/calendar.readonly",
   "https://www.googleapis.com/auth/gmail.readonly",
+  // Criar eventos (sempre com confirmação da pessoa). Opcional: quem conectou antes continua lendo.
+  "https://www.googleapis.com/auth/calendar.events",
 ];
+export const REQUIRED_SCOPES = ["https://www.googleapis.com/auth/calendar.readonly", "https://www.googleapis.com/auth/gmail.readonly"];
+export const WRITE_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const TZ = "America/Sao_Paulo";
 
 export function googleConfigured(): boolean {
@@ -56,7 +60,7 @@ async function tokenRequest(params: Record<string, string>): Promise<TokenRespon
 }
 
 export class GoogleError extends Error {
-  constructor(public kind: "revoked" | "token" | "api" | "not_connected") { super(kind); }
+  constructor(public kind: "revoked" | "token" | "api" | "not_connected" | "scope") { super(kind); }
 }
 
 /** E-mail da conta Google, lido do id_token que veio direto do Google por TLS. */
@@ -122,15 +126,16 @@ export { formatEvents, formatMails, googleIntent } from "@/lib/google-format";
 
 export async function events(token: string, from: Date, to: Date): Promise<CalEvent[]> {
   const q = new URLSearchParams({
-    singleEvents: "true", orderBy: "startTime", maxResults: "40", timeZone: TZ,
+    singleEvents: "true", orderBy: "startTime", maxResults: "120", timeZone: TZ,
     timeMin: from.toISOString(), timeMax: to.toISOString(),
-    fields: "items(summary,start,end,location,hangoutLink,status,attendees(self,responseStatus))",
+    fields: "items(id,summary,start,end,location,hangoutLink,status,colorId,attendees(self,responseStatus))",
   });
-  type Item = { summary?: string; start?: { dateTime?: string; date?: string }; end?: { dateTime?: string; date?: string }; location?: string; hangoutLink?: string; status?: string; attendees?: { self?: boolean; responseStatus?: string }[] };
+  type Item = { id?: string; colorId?: string; summary?: string; start?: { dateTime?: string; date?: string }; end?: { dateTime?: string; date?: string }; location?: string; hangoutLink?: string; status?: string; attendees?: { self?: boolean; responseStatus?: string }[] };
   const j = await gget<{ items?: Item[] }>(token, `https://www.googleapis.com/calendar/v3/calendars/primary/events?${q}`);
   return (j.items ?? [])
     .filter((i) => i.status !== "cancelled")
     .map((i) => ({
+      id: i.id,
       title: (i.summary ?? "(sem título)").slice(0, 160),
       start: i.start?.dateTime ?? i.start?.date ?? "",
       end: i.end?.dateTime ?? i.end?.date ?? "",
@@ -169,3 +174,23 @@ function decodeEntities(s: string): string {
   return s.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
 }
 
+
+/** Cria um evento na agenda principal. Só é chamado depois que a pessoa confirma. */
+export async function createEvent(token: string, ev: { title: string; start: string; end: string; location?: string; description?: string }) {
+  const r = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?fields=id,htmlLink,summary,start,end", {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      summary: ev.title,
+      location: ev.location || undefined,
+      description: ev.description || "Criado pelo GaDu.",
+      start: { dateTime: ev.start, timeZone: TZ },
+      end: { dateTime: ev.end, timeZone: TZ },
+    }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (r.status === 401) throw new GoogleError("revoked");
+  if (r.status === 403) throw new GoogleError("scope");
+  if (!r.ok) throw new GoogleError("api");
+  return (await r.json()) as { id: string; htmlLink: string };
+}

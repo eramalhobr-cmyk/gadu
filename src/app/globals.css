@@ -197,3 +197,111 @@ details summary { cursor: pointer; min-height: 32px; display: flex; align-items:
   .today .hero { min-height: 200px; }
   .today .hero-text h1 { font-size: 30px; }
 }
+
+/* Humanoide com cérebro (duas camadas). S = tamanho do busto, igual ao do desenho. */
+.mind { position: absolute; inset: 0; container-type: size; --S: min(95cqw, 105cqh); }
+.mind-brain { position: absolute; left: 50%; width: calc(var(--S) * 0.58); height: calc(var(--S) * 0.42); top: calc(47cqh - var(--S) * 0.45); transform: translateX(-50%); mix-blend-mode: screen; opacity: 0.85; -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 55%, #000 62%, transparent 100%); mask-image: radial-gradient(ellipse 50% 50% at 50% 55%, #000 62%, transparent 100%); pointer-events: none; }
+
+/* Menu de baixo sempre fixo; o conteúdo rola por trás dele. */
+.shell { padding-bottom: calc(62px + var(--safe-b)); }
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 15; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+
+/* Voz flutuante */
+.fab { position: fixed; right: 16px; bottom: calc(76px + var(--safe-b)); z-index: 16; width: 60px; height: 60px; border-radius: 50%; border: 1px solid var(--sig); background: radial-gradient(circle at 35% 30%, rgba(95, 240, 220, 0.35), rgba(5, 8, 11, 0.95) 70%); color: var(--sig); display: grid; place-items: center; box-shadow: 0 0 0 1px rgba(95, 240, 220, 0.2), 0 8px 28px rgba(95, 240, 220, 0.25); }
+.fab.on { background: var(--sig); color: var(--sig-ink); animation: pulse 1.6s ease-out infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(95, 240, 220, 0.5); } 100% { box-shadow: 0 0 0 18px rgba(95, 240, 220, 0); } }
+.dock { position: fixed; left: 12px; right: 12px; bottom: calc(146px + var(--safe-b)); z-index: 16; max-height: 46dvh; overflow-y: auto; padding: 14px; border-radius: 18px; border: 1px solid var(--line-2); background: rgba(10, 18, 22, 0.97); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); display: flex; flex-direction: column; gap: 10px; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5); animation: fade 0.18s ease-out; }
+.dock-head { display: flex; justify-content: space-between; align-items: center; }
+.dock-answer { max-height: 30dvh; overflow-y: auto; }
+@media (min-width: 900px) { .dock { left: auto; width: 420px; right: 24px; } .fab { right: 24px; } }
+
+/* Barra "Fale com o GaDu" */
+.talk-bar { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 6px 14px 6px 6px; border-radius: 999px; border: 1px solid var(--line-2); background: linear-gradient(90deg, rgba(95, 240, 220, 0.1), rgba(10, 18, 22, 0.9)); box-shadow: 0 0 24px rgba(95, 240, 220, 0.08); }
+.talk-mic { flex: none; width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--sig); color: var(--sig-ink); display: grid; place-items: center; box-shadow: 0 0 16px rgba(95, 240, 220, 0.5); }
+.talk-text { flex: 1; text-align: left; background: none; border: 0; color: var(--ink-3); min-height: 48px; font-size: 16px; }
+.talk-wave { display: flex; gap: 3px; align-items: center; height: 20px; }
+.talk-wave i { width: 3px; border-radius: 2px; background: var(--sig); opacity: 0.7; animation: wave 1.2s ease-in-out infinite; }
+.talk-wave i:nth-child(1) { height: 8px; } .talk-wave i:nth-child(2) { height: 16px; animation-delay: 0.15s; } .talk-wave i:nth-child(3) { height: 12px; animation-delay: 0.3s; } .talk-wave i:nth-child(4) { height: 6px; animation-delay: 0.45s; }
+@keyframes wave { 50% { transform: scaleY(0.4); } }
+
+/* Hoje: hero com humanoide */
+.hero-mind { position: absolute; right: -6px; top: 0; bottom: 0; width: 46%; }
+.today .hero { min-height: 150px; }
+.today .hero-text { max-width: 60%; }
+.help-item.primary { background: linear-gradient(90deg, rgba(95, 240, 220, 0.18), rgba(95, 240, 220, 0.04)); border-color: var(--line-2); font-weight: 500; }
+.card.insights { border-color: rgba(255, 180, 84, 0.35); background: linear-gradient(180deg, rgba(255, 180, 84, 0.08), rgba(10, 18, 22, 0.9)); }
+.card.insights h2 { color: var(--hot); }
+.insight { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; }
+.insight svg { color: var(--hot); flex: none; margin-top: 3px; }
+.card.review { border-color: var(--line-2); }
+.mail-row { gap: 6px; }
+a.mail { display: flex; flex-direction: column; gap: 4px; color: var(--ink); text-decoration: none; }
+
+/* Proposta de evento na conversa */
+.event-card { border: 1px solid var(--line-2); border-radius: 14px; padding: 12px 14px; background: linear-gradient(180deg, rgba(95, 240, 220, 0.08), rgba(10, 18, 22, 0.9)); display: flex; flex-direction: column; gap: 10px; }
+.event-card.discarded { opacity: 0.5; }
+.event-card.created { border-color: var(--sig); }
+.event-ico { width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: 10px; background: var(--wash); color: var(--sig); }
+
+/* Admin */
+.checks { display: flex; flex-wrap: wrap; gap: 6px; }
+.check { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--line); color: var(--ink-3); }
+.check.ok { color: var(--sig); border-color: var(--line-2); }
+
+/* Agenda visual */
+.week-strip { display: grid; grid-template-columns: 32px repeat(7, 1fr) 32px; gap: 4px; align-items: center; }
+.week-strip .icon-btn { width: 32px; height: 40px; font-size: 20px; }
+.day-pill { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 64px; padding: 6px 0; border-radius: 14px; border: 1px solid var(--line); background: rgba(5, 8, 11, 0.6); color: var(--ink-2); }
+.day-pill b { font-size: 18px; font-family: var(--display); font-weight: 500; }
+.day-pill.today b { color: var(--sig); }
+.day-pill.sel { border-color: var(--sig); background: var(--wash); box-shadow: 0 0 14px rgba(95, 240, 220, 0.2); }
+.day-pill .dots { display: flex; gap: 3px; height: 5px; }
+.day-pill .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--sig); }
+.card.cal { padding: 10px 6px 10px 0; overflow: hidden; }
+.cal-grid { display: grid; grid-template-columns: 40px 1fr; max-height: 62dvh; overflow-y: auto; }
+.cal-hours { display: flex; flex-direction: column; }
+.cal-hours span { font: 10px var(--mono); color: var(--ink-3); text-align: right; padding-right: 6px; transform: translateY(-6px); }
+.cal-allday-gap { height: 30px; }
+.cal-day { display: none; min-width: 0; border-left: 1px solid var(--line); }
+.cal-day.sel { display: block; }
+.cal-day-head { display: none; height: 0; }
+.cal-allday { height: 30px; display: flex; gap: 4px; overflow-x: auto; padding: 2px 4px; }
+.cal-chip { flex: none; padding: 2px 8px; border-radius: 8px; font-size: 12px; background: color-mix(in srgb, var(--c) 20%, transparent); color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); white-space: nowrap; }
+.cal-body { position: relative; }
+.cal-slot { position: absolute; left: 0; right: 0; border: 0; border-top: 1px solid var(--line); background: none; }
+.cal-slot:hover { background: var(--wash); }
+.cal-ev { position: absolute; left: 4px; right: 4px; padding: 4px 8px; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; gap: 1px; font-size: 13px; line-height: 1.25; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 28%, transparent), color-mix(in srgb, var(--c) 12%, transparent)); border-left: 3px solid var(--c); box-shadow: 0 0 12px color-mix(in srgb, var(--c) 18%, transparent); pointer-events: none; }
+.cal-ev b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-ev .mono { font-size: 10px; color: var(--ink-2); }
+.cal-ev.past { opacity: 0.45; }
+.cal-now { position: absolute; left: 0; right: 0; height: 2px; background: var(--bad); box-shadow: 0 0 8px var(--bad); pointer-events: none; }
+.cal-now::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
+@media (min-width: 900px) {
+  .page.agenda { max-width: 1200px; }
+  .cal-grid { grid-template-columns: 44px repeat(7, 1fr); }
+  .cal-day { display: block; }
+  .cal-day.sel { background: rgba(95, 240, 220, 0.03); }
+  .cal-day-head { display: block; height: 22px; text-align: center; color: var(--ink-2); }
+  .cal-allday-gap { height: 52px; }
+}
+
+/* Como funciona */
+.sobre .diagram { margin: 12px 0 8px; padding: 12px; border: 1px solid var(--line); border-radius: 18px; background: radial-gradient(circle at 50% 0%, rgba(95, 240, 220, 0.07), transparent 60%), var(--panel); }
+.sobre .diagram svg { display: block; width: 100%; max-width: 520px; height: auto; margin: 0 auto; font-family: var(--body); }
+.sobre figcaption { color: var(--ink-3); font-size: 14px; margin-top: 8px; text-align: center; }
+.flow { list-style: none; padding: 0; margin: 12px 0; display: flex; flex-direction: column; gap: 0; }
+.flow li { display: flex; gap: 14px; position: relative; padding-bottom: 16px; }
+.flow li:not(:last-child)::after { content: ""; position: absolute; left: 15px; top: 34px; bottom: 0; width: 2px; background: linear-gradient(var(--sig), transparent); opacity: 0.5; }
+.flow-n { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--wash); border: 1px solid var(--sig); color: var(--sig); font: 600 14px var(--mono); box-shadow: 0 0 12px rgba(95, 240, 220, 0.3); }
+.flow div { display: flex; flex-direction: column; }
+.flow span { color: var(--ink-3); font-size: 15px; }
+.navmap { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin: 12px 0; }
+.navmap-item { display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); }
+.navmap-item b { color: var(--sig); }
+.navmap-item span { color: var(--ink-2); font-size: 15px; }
+.navmap-item.fab-note { border-color: var(--line-2); }
+.ticks { list-style: none; padding: 0; }
+.ticks li { position: relative; padding-left: 26px; }
+.ticks li::before { content: "✓"; position: absolute; left: 4px; color: var(--sig); }
+/* Espaço para o botão de voz flutuante no fim das páginas */
+.page { padding-bottom: 96px; }

@@ -8,7 +8,7 @@ export default function Privacidade() {
     <main className="doc">
       <a href="/login" className="mono">← GaDu</a>
       <h1>Política de privacidade</h1>
-      <p className="muted">Atualizada em 9 de novembro de 2026.</p>
+      <p className="muted">Atualizada em 10 de novembro de 2026.</p>
 
       <p>O GaDu é um assistente pessoal por voz e texto, de uso particular e por convite. Esta página explica quais dados ele usa, para quê e como você controla tudo.</p>
 
@@ -21,12 +21,12 @@ export default function Privacidade() {
       </ul>
 
       <h2>Dados do Google (Agenda e Gmail)</h2>
-      <p>Só se você conectar a sua conta Google, e sempre com permissão de leitura:</p>
+      <p>Só se você conectar a sua conta Google:</p>
       <ul>
-        <li><strong>Google Agenda (somente leitura):</strong> títulos, horários e locais dos seus compromissos, para responder sobre a sua agenda e montar o briefing do dia.</li>
+        <li><strong>Google Agenda:</strong> leitura de títulos, horários e locais dos seus compromissos, para responder sobre a sua agenda e montar o briefing do dia. Criação de eventos <strong>somente quando você confirma</strong> uma proposta no app.</li>
         <li><strong>Gmail (somente leitura):</strong> remetente, assunto e um trecho curto dos e-mails não lidos recentes, para dizer quais pedem ação.</li>
       </ul>
-      <p>Esses dados são lidos na hora em que você pergunta e <strong>não são armazenados</strong> pelo GaDu, exceto quando aparecem no texto da conversa. O GaDu não envia e-mails, não apaga nada e não altera a sua agenda.</p>
+      <p>Esses dados são lidos na hora em que você pergunta e <strong>não são armazenados</strong> pelo GaDu, exceto quando aparecem no texto da conversa. O GaDu não envia e-mails, não apaga nada e não altera eventos existentes; só cria eventos novos que você confirmar.</p>
       <p>E-mails que contêm dados sensíveis (documentos, senhas, dados bancários ou de saúde) ou termos que você bloqueou não são enviados à inteligência artificial.</p>
       <p>O uso e a transferência de informações recebidas das APIs do Google seguem a <a href="https://developers.google.com/terms/api-services-user-data-policy" rel="noopener noreferrer">Política de Dados do Usuário dos Serviços de API do Google</a>, incluindo os requisitos de Uso Limitado. Os dados do Google não são vendidos, não são usados para publicidade e não são usados para treinar modelos de inteligência artificial.</p>
       <p>O acesso ao Google fica guardado criptografado. Você pode desconectar a qualquer momento em Ajustes, Conexões: o acesso é revogado no Google e apagado do GaDu. Também é possível revogar em <a href="https://myaccount.google.com/permissions" rel="noopener noreferrer">myaccount.google.com/permissions</a>.</p>
@@ -39,7 +39,7 @@ export default function Privacidade() {
       <p>Nenhum dado é vendido ou compartilhado para outros fins.</p>
 
       <h2>Segurança</h2>
-      <p>Cada pessoa só vê os próprios dados (regras de acesso no banco). As chaves ficam só no servidor e toda a comunicação usa HTTPS.</p>
+      <p>Cada pessoa só vê os próprios dados (regras de acesso no banco), inclusive em relação ao administrador que fez o convite: ele vê apenas se a configuração inicial foi feita (por exemplo, Google conectado), nunca o conteúdo. As chaves ficam só no servidor e toda a comunicação usa HTTPS.</p>
 
       <h2>Seus direitos</h2>
       <p>Você pode ver, corrigir e apagar memórias e conversas no próprio app, desconectar o Google e pedir a exclusão completa da conta ao responsável pelo GaDu, pelo e-mail de suporte exibido na tela de autorização do Google.</p>

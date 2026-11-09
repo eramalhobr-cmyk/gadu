@@ -1,9 +1,10 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { Visual } from "./RobotFace";
+import { AgendaView } from "./AgendaView";
+import { Mind } from "./RobotFace";
 import { TasksPanel } from "./TasksPanel";
-import { Icon, Ring } from "./ui";
+import { Icon, Ring, todayKey } from "./ui";
 
 const HELP = [
   { icon: "spark", text: "Priorizar meu dia" },
@@ -14,12 +15,15 @@ const HELP = [
 
 type Ev = { title: string; start: string; end: string; allDay: boolean; where?: string; meet: boolean };
 type Mail = { thread?: string; from: string; subject: string; snippet: string; important: boolean };
-type Today = { connected: boolean; events?: Ev[]; emails?: Mail[]; error?: string };
+type Insight = { kind: string; text: string };
+type Today = { connected: boolean; events?: Ev[]; emails?: Mail[]; insights?: Insight[]; error?: string };
 type Reminder = { id: number; text: string; due_at: string; status: "pending" | "sent" | "done" | "cancelled" };
+type LateTask = { id: number; title: string; due_date: string | null };
 
 const TZ = "America/Sao_Paulo";
 const hm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
 const dayKey = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: TZ });
+const mailLink = (m: Mail) => (m.thread ? `https://mail.google.com/mail/u/0/#inbox/${m.thread}` : "https://mail.google.com/mail/u/0/#inbox");
 
 /** "hoje 14:00", "amanhã 09:00", "sex 14/11 09:00". */
 export function dueLabel(iso: string, now = new Date()): string {
@@ -41,8 +45,12 @@ export function TodayPage(props: {
   name: string;
   pendingMemories: number;
   busy: boolean;
+  review: boolean;
+  onReviewDone: () => void;
   onStartDay: () => void;
   onTalk: () => void;
+  onDock: () => void;
+  onWrite: () => void;
   onOpenMemory: () => void;
   onOpenTasks: () => void;
   onAsk: (q: string) => void;
@@ -54,6 +62,9 @@ export function TodayPage(props: {
   const [when, setWhen] = useState("");
   const [msg, setMsg] = useState("");
   const [now, setNow] = useState(() => new Date());
+  const [agenda, setAgenda] = useState(false);
+  const [tasked, setTasked] = useState<Set<string>>(new Set());
+  const [tasksKey, setTasksKey] = useState(0);
   const db = supabaseBrowser();
 
   const loadToday = useCallback(async () => {
@@ -89,28 +100,50 @@ export function TodayPage(props: {
     void loadRems();
   }
 
+  /** E-mail vira tarefa, com link para abrir o e-mail depois. */
+  async function mailToTask(m: Mail) {
+    const key = m.thread ?? m.subject;
+    const { error } = await db.from("tasks").insert({ title: `Responder ${m.from}: ${m.subject}`.slice(0, 200), origin: "E-mail", link: mailLink(m), priority: m.important ? 1 : 2, due_date: todayKey() });
+    if (!error) { setTasked((s) => new Set(s).add(key)); setTasksKey((k) => k + 1); }
+  }
+
+  if (agenda) return <AgendaView onBack={() => { setAgenda(false); void loadToday(); }} />;
+
   const date = now.toLocaleDateString("pt-BR", { timeZone: TZ, weekday: "long", day: "numeric", month: "long" });
   const events = today?.events ?? [];
   const mails = [...(today?.emails ?? [])].sort((a, b) => Number(b.important) - Number(a.important));
   const nextIdx = events.findIndex((e) => !e.allDay && new Date(e.end) > now);
+  const tips = today?.insights ?? [];
 
   return (
     <main className="page today">
       <div className="col">
-      <section className="hero">
-        <div className="hero-brain" aria-hidden="true"><Visual kind="brain" mode="idle" compact label="" /></div>
-        <div className="hero-text">
-          <div className="mono muted">{date}</div>
-          <h1>{greeting()}{props.name ? `, ${props.name}` : ""}.</h1>
+        <section className="hero">
+          <div className="hero-mind" aria-hidden="true"><Mind mode={props.busy ? "thinking" : "idle"} compact /></div>
+          <div className="hero-text">
+            <div className="mono muted">{date}</div>
+            <h1>{greeting()}{props.name ? `, ${props.name}` : ""}.</h1>
+            <p className="muted" style={{ margin: "4px 0 0", fontSize: 14 }}>Como posso te ajudar hoje?</p>
+          </div>
+        </section>
+        <div className="talk-bar">
+          <button className="talk-mic" onClick={props.onDock} aria-label="Falar com o GaDu"><Icon name="mic" size={22} /></button>
+          <button className="talk-text" onClick={props.onWrite}>Fale com o GaDu…</button>
+          <span className="talk-wave" aria-hidden="true"><i /><i /><i /><i /></span>
         </div>
-      </section>
-      <div className="row" style={{ flexWrap: "nowrap" }}>
-        <button className="btn btn-pri" style={{ flex: 1 }} disabled={props.busy} onClick={props.onStartDay}>Começar o dia</button>
-        <button className="btn" onClick={props.onTalk} aria-label="Falar com o GaDu">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 0 0 6 0V6.5a3 3 0 0 0-3-3zM5.5 12a6.5 6.5 0 0 0 13 0M12 18.5V21" /></svg>
-          Falar
-        </button>
-      </div>
+
+        {props.review && <ReviewCard onDone={() => { props.onReviewDone(); setTasksKey((k) => k + 1); }} />}
+
+        <section className="card help">
+          <button className="help-item primary" disabled={props.busy} onClick={props.onStartDay}>
+            <Icon name="sun" size={18} /><span>Começar o dia</span><span aria-hidden="true">›</span>
+          </button>
+          {HELP.map((h) => (
+            <button key={h.text} className="help-item" disabled={props.busy} onClick={() => props.onAsk(h.text)}>
+              <Icon name={h.icon} size={18} /><span>{h.text}</span><span aria-hidden="true">›</span>
+            </button>
+          ))}
+        </section>
 
         <section className="card progress">
           <Ring value={progress.done} total={progress.done + progress.open} label="Progresso do dia" />
@@ -120,98 +153,156 @@ export function TodayPage(props: {
             <div className="mono muted">{progress.open} pendentes para hoje</div>
           </div>
         </section>
-        <section className="card help">
-          <h2>Como posso ajudar?</h2>
-          {HELP.map((h) => (
-            <button key={h.text} className="help-item" disabled={props.busy} onClick={() => props.onAsk(h.text)}>
-              <Icon name={h.icon} size={18} /><span>{h.text}</span><span aria-hidden="true">›</span>
-            </button>
-          ))}
+
+        {props.pendingMemories > 0 && (
+          <button className="card card-link" onClick={props.onOpenMemory}>
+            <span><b style={{ color: "var(--hot)" }}>{props.pendingMemories}</b> {props.pendingMemories === 1 ? "memória para revisar" : "memórias para revisar"}</span>
+            <span aria-hidden="true">›</span>
+          </button>
+        )}
+      </div>
+
+      <div className="col">
+        {tips.length > 0 && (
+          <section className="card insights">
+            <h2>Insights do GaDu</h2>
+            {tips.map((t, i) => (
+              <div key={i} className="insight"><Icon name={t.kind === "livre" ? "sun" : t.kind === "email" ? "chat" : t.kind === "atrasadas" ? "check" : "spark"} size={16} /><span>{t.text}</span></div>
+            ))}
+          </section>
+        )}
+        <section className="card">
+          <div className="row" style={{ justifyContent: "space-between" }}>
+            <h2>Agenda de hoje</h2>
+            {today?.connected && <button className="link-btn mono" style={{ color: "var(--sig)", textDecoration: "none" }} onClick={() => setAgenda(true)}>Ver semana ›</button>}
+          </div>
+          {today === null ? <p className="muted">Carregando…</p>
+            : !today.connected ? <ConnectHint />
+            : today.error ? <p className="muted">Não consegui ler a agenda agora. <button className="link-btn" onClick={loadToday}>Tentar de novo</button></p>
+            : events.length === 0 ? <p className="muted">Nada marcado hoje. Bom dia para foco.</p>
+            : (
+              <ol className="timeline">
+                {events.map((e, i) => {
+                  const past = !e.allDay && new Date(e.end) <= now;
+                  const live = !e.allDay && new Date(e.start) <= now && new Date(e.end) > now;
+                  return (
+                    <li key={i} className={`${past ? "past" : ""} ${live ? "live" : ""} ${i === nextIdx && !live ? "next" : ""}`}>
+                      <span className="mono t">{e.allDay ? "dia todo" : hm(e.start)}</span>
+                      <span className="ev">{e.title}{e.meet && <span className="mono muted"> · online</span>}{live && <span className="mono" style={{ color: "var(--sig)" }}> · agora</span>}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
         </section>
-      {props.pendingMemories > 0 && (
-        <button className="card card-link" onClick={props.onOpenMemory}>
-          <span><b style={{ color: "var(--hot)" }}>{props.pendingMemories}</b> {props.pendingMemories === 1 ? "memória para revisar" : "memórias para revisar"}</span>
-          <span aria-hidden="true">›</span>
-        </button>
-      )}
-      </div>
-      <div className="col">
-      <section className="card">
-        <div className="row" style={{ justifyContent: "space-between" }}>
-          <h2>Agenda de hoje</h2>
-          {today?.connected && <a className="mono" href="https://calendar.google.com/calendar/r/day" target="_blank" rel="noopener noreferrer">Abrir agenda ›</a>}
-        </div>
-        {today === null ? <p className="muted">Carregando…</p>
-          : !today.connected ? <ConnectHint />
-          : today.error ? <p className="muted">Não consegui ler a agenda agora. <button className="link-btn" onClick={loadToday}>Tentar de novo</button></p>
-          : events.length === 0 ? <p className="muted">Nada marcado hoje. Bom dia para foco.</p>
-          : (
-            <ol className="timeline">
-              {events.map((e, i) => {
-                const past = !e.allDay && new Date(e.end) <= now;
-                const live = !e.allDay && new Date(e.start) <= now && new Date(e.end) > now;
-                return (
-                  <li key={i} className={`${past ? "past" : ""} ${live ? "live" : ""} ${i === nextIdx && !live ? "next" : ""}`}>
-                    <span className="mono t">{e.allDay ? "dia todo" : hm(e.start)}</span>
-                    <span className="ev">{e.title}{e.meet && <span className="mono muted"> · online</span>}{live && <span className="mono" style={{ color: "var(--sig)" }}> · agora</span>}</span>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-      </section>
-      <section className="card">
-        <h2>Lembretes</h2>
-        {rems === null ? <p className="muted">Carregando…</p> : rems.length === 0 ? (
-          <p className="muted" style={{ margin: 0 }}>Nenhum lembrete. Diga “me lembra amanhã às 9h de…” ou crie aqui.</p>
-        ) : rems.map((r) => (
-          <div className="item rem" key={r.id}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ textDecoration: r.status === "sent" ? "none" : undefined }}>{r.text}</div>
-              <div className="mono" style={{ color: r.status === "sent" ? "var(--hot)" : "var(--ink-3)" }}>{r.status === "sent" ? `avisado · ${dueLabel(r.due_at, now)}` : dueLabel(r.due_at, now)}</div>
+        <section className="card">
+          <h2>Lembretes</h2>
+          {rems === null ? <p className="muted">Carregando…</p> : rems.length === 0 ? (
+            <p className="muted" style={{ margin: 0 }}>Nenhum lembrete. Diga “me lembra amanhã às 9h de…” ou crie aqui.</p>
+          ) : rems.map((r) => (
+            <div className="item rem" key={r.id}>
+              <div style={{ minWidth: 0 }}>
+                <div>{r.text}</div>
+                <div className="mono" style={{ color: r.status === "sent" ? "var(--hot)" : "var(--ink-3)" }}>{r.status === "sent" ? `avisado · ${dueLabel(r.due_at, now)}` : dueLabel(r.due_at, now)}</div>
+              </div>
+              <div className="row" style={{ flexWrap: "nowrap" }}>
+                <button className="btn btn-sm" onClick={() => setStatus(r.id, "done")} aria-label={`Concluir ${r.text}`}>Feito</button>
+                {r.status === "pending" && <button className="link-btn" onClick={() => setStatus(r.id, "cancelled")} aria-label={`Cancelar ${r.text}`}>Cancelar</button>}
+              </div>
             </div>
-            <div className="row" style={{ flexWrap: "nowrap" }}>
-              <button className="btn btn-sm" onClick={() => setStatus(r.id, "done")} aria-label={`Concluir ${r.text}`}>Feito</button>
-              {r.status === "pending" && <button className="link-btn" onClick={() => setStatus(r.id, "cancelled")} aria-label={`Cancelar ${r.text}`}>Cancelar</button>}
-            </div>
-          </div>
-        ))}
-        <form onSubmit={addReminder} className="rem-form">
-          <label className="sr" htmlFor="rem-text">Novo lembrete</label>
-          <input id="rem-text" className="field" placeholder="Lembrar de…" value={text} maxLength={300} onChange={(e) => setText(e.target.value)} />
-          <div className="row" style={{ flexWrap: "nowrap" }}>
-            <label className="sr" htmlFor="rem-when">Quando</label>
-            <input id="rem-when" className="field" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
-            <button className="btn" type="submit" disabled={!text.trim() || !when}>Criar</button>
-          </div>
-          {msg && <span className="muted" role="status">{msg}</span>}
-        </form>
-      </section>
-      </div>
-      <div className="col">
-        <TasksPanel mode="today" title="Tarefas prioritárias" onSeeAll={props.onOpenTasks} onChange={(open, done) => setProgress({ open, done })} />
-      <section className="card">
-        <div className="row" style={{ justifyContent: "space-between" }}>
-          <h2>E-mails não lidos</h2>
-          {today?.connected && <a className="mono" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener noreferrer">Abrir Gmail ›</a>}
-        </div>
-        {today === null ? <p className="muted">Carregando…</p>
-          : !today.connected ? <p className="muted" style={{ margin: 0 }}>Conecte o Google para ver aqui.</p>
-          : today.error ? <p className="muted">Não consegui ler os e-mails agora.</p>
-          : mails.length === 0 ? <p className="muted">Caixa de entrada em dia nos últimos 2 dias.</p>
-          : mails.slice(0, 8).map((m, i) => (
-            <a key={i} className="item mail" href={m.thread ? `https://mail.google.com/mail/u/0/#inbox/${m.thread}` : "https://mail.google.com/mail/u/0/#inbox"} target="_blank" rel="noopener noreferrer">
-              <span className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
-                <span className="conv-title">{m.from}</span>
-                {m.important && <span className="mono" style={{ color: "var(--hot)" }}>importante</span>}
-              </span>
-              <span>{m.subject}</span>
-              {m.snippet && <span className="conv-sum">{m.snippet}</span>}
-            </a>
           ))}
-      </section>
+          <form onSubmit={addReminder} className="rem-form">
+            <label className="sr" htmlFor="rem-text">Novo lembrete</label>
+            <input id="rem-text" className="field" placeholder="Lembrar de…" value={text} maxLength={300} onChange={(e) => setText(e.target.value)} />
+            {text.trim() && (
+              <div className="row" style={{ flexWrap: "nowrap" }}>
+                <label className="sr" htmlFor="rem-when">Quando</label>
+                <input id="rem-when" className="field" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
+                <button className="btn" type="submit" disabled={!when}>Criar</button>
+              </div>
+            )}
+            {msg && <span className="muted" role="status">{msg}</span>}
+          </form>
+        </section>
+      </div>
+
+      <div className="col">
+        <TasksPanel key={tasksKey} mode="today" title="Tarefas prioritárias" onSeeAll={props.onOpenTasks} onChange={(open, done) => setProgress({ open, done })} />
+        <section className="card">
+          <div className="row" style={{ justifyContent: "space-between" }}>
+            <h2>E-mails não lidos</h2>
+            {today?.connected && <a className="mono" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener noreferrer">Abrir Gmail ›</a>}
+          </div>
+          {today === null ? <p className="muted">Carregando…</p>
+            : !today.connected ? <p className="muted" style={{ margin: 0 }}>Conecte o Google para ver aqui.</p>
+            : today.error ? <p className="muted">Não consegui ler os e-mails agora.</p>
+            : mails.length === 0 ? <p className="muted">Caixa de entrada em dia nos últimos 2 dias.</p>
+            : mails.slice(0, 8).map((m, i) => {
+              const done = tasked.has(m.thread ?? m.subject);
+              return (
+                <div key={i} className="item mail-row">
+                  <a className="mail" href={mailLink(m)} target="_blank" rel="noopener noreferrer">
+                    <span className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
+                      <span className="conv-title">{m.from}</span>
+                      {m.important && <span className="mono" style={{ color: "var(--hot)" }}>importante</span>}
+                    </span>
+                    <span>{m.subject}</span>
+                    {m.snippet && <span className="conv-sum">{m.snippet}</span>}
+                  </a>
+                  <button className="link-btn" disabled={done} onClick={() => mailToTask(m)}>{done ? "✓ Virou tarefa" : "Virar tarefa"}</button>
+                </div>
+              );
+            })}
+        </section>
       </div>
     </main>
+  );
+}
+
+/** Revisão da noite: o que ficou para hoje vai para amanhã, vira feito ou fica sem prazo. */
+function ReviewCard({ onDone }: { onDone: () => void }) {
+  const [items, setItems] = useState<LateTask[] | null>(null);
+  const db = supabaseBrowser();
+  const load = useCallback(async () => {
+    const { data } = await db.from("tasks").select("id, title, due_date").eq("status", "open").lte("due_date", todayKey()).order("due_date").limit(30);
+    setItems((data as LateTask[]) ?? []);
+  }, [db]);
+  useEffect(() => { void load(); }, [load]);
+
+  const tomorrow = new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA", { timeZone: TZ });
+  async function act(t: LateTask, kind: "done" | "tomorrow" | "nodate") {
+    const patch = kind === "done" ? { status: "done", done_at: new Date().toISOString() } : kind === "tomorrow" ? { due_date: tomorrow } : { due_date: null };
+    setItems((xs) => xs?.filter((x) => x.id !== t.id) ?? null);
+    await db.from("tasks").update(patch).eq("id", t.id);
+  }
+  async function allTomorrow() {
+    if (!items?.length) return;
+    await db.from("tasks").update({ due_date: tomorrow }).in("id", items.map((t) => t.id));
+    setItems([]);
+  }
+
+  return (
+    <section className="card review">
+      <h2>Revisão do dia</h2>
+      {items === null ? <p className="muted">Carregando…</p> : items.length === 0 ? (
+        <p style={{ margin: 0 }}>Tudo em dia. Bom descanso!</p>
+      ) : (
+        <>
+          {items.map((t) => (
+            <div className="item" key={t.id}>
+              <span>{t.title}</span>
+              <div className="row">
+                <button className="btn btn-sm btn-pri" onClick={() => act(t, "tomorrow")}>Amanhã</button>
+                <button className="btn btn-sm" onClick={() => act(t, "done")}>Feito</button>
+                <button className="link-btn" onClick={() => act(t, "nodate")}>Sem prazo</button>
+              </div>
+            </div>
+          ))}
+          <div><button className="btn btn-sm" onClick={allTomorrow}>Passar tudo para amanhã</button></div>
+        </>
+      )}
+      <div><button className="link-btn" onClick={onDone}>Fechar revisão</button></div>
+    </section>
   );
 }
 

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { colorVar, shortDate, todayKey } from "./ui";
 
-export type Task = { id: number; title: string; status: "open" | "done" | "cancelled"; priority: number; due_date: string | null; project_id: number | null; done_at: string | null; projects?: { name: string; color: string } | null };
+export type Task = { id: number; link?: string | null; title: string; status: "open" | "done" | "cancelled"; priority: number; due_date: string | null; project_id: number | null; done_at: string | null; projects?: { name: string; color: string } | null };
 type Mode = "today" | "all" | "project";
 
 const PRIO = { 1: "alta", 2: "normal", 3: "baixa" } as Record<number, string>;
@@ -28,7 +28,7 @@ export function TasksPanel(props: { mode: Mode; projectId?: number; title?: stri
   useEffect(() => { onChangeRef.current = props.onChange; }, [props.onChange]);
 
   const load = useCallback(async () => {
-    let q = db.from("tasks").select("id, title, status, priority, due_date, project_id, done_at, projects(name, color)").eq("status", "open");
+    let q = db.from("tasks").select("id, title, status, priority, due_date, project_id, done_at, link, projects(name, color)").eq("status", "open");
     if (props.mode === "project" && props.projectId) q = q.eq("project_id", props.projectId);
     const since = new Date(Date.now() - 24 * 3_600_000).toISOString();
     let d = db.from("tasks").select("id, title, status, priority, due_date, project_id, done_at").eq("status", "done").gte("done_at", since);
@@ -94,6 +94,7 @@ export function TasksPanel(props: { mode: Mode; projectId?: number; title?: stri
                     {t.priority === 1 && <b style={{ color: "var(--hot)" }}>alta</b>}
                     {t.due_date && <span style={{ color: late ? "var(--bad)" : undefined }}>{late ? "atrasada · " : ""}{shortDate(t.due_date)}</span>}
                     {t.projects && props.mode !== "project" && <span style={{ color: colorVar(t.projects.color) }}>{t.projects.name}</span>}
+                    {t.link && <a href={t.link} target="_blank" rel="noopener noreferrer" style={{ color: "var(--sig)" }}>abrir e-mail ›</a>}
                   </span>
                 </span>
                 {props.mode !== "today" && <button className="link-btn" onClick={() => remove(t)} aria-label={`Remover ${t.title}`}>×</button>}

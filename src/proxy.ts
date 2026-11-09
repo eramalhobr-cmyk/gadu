@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { SUPABASE_KEY, SUPABASE_URL, isAllowed } from "@/lib/config";
+import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/config";
+import { accessOf } from "@/lib/access";
 
 // Roda antes de cada página: renova a sessão, aplica a CSP com nonce
 // e bloqueia quem não está logado ou não está na lista de acesso.
@@ -33,7 +34,7 @@ export async function proxy(request: NextRequest) {
   response.headers.set("Content-Security-Policy", csp);
 
   const path = request.nextUrl.pathname;
-  const isProtected = path.startsWith("/app") || (path.startsWith("/api/") && !path.startsWith("/api/auth") && !path.startsWith("/api/health") && !path.startsWith("/api/cron"));
+  const isProtected = path.startsWith("/app") || (path.startsWith("/api/") && !path.startsWith("/api/auth") && !path.startsWith("/api/health") && !path.startsWith("/api/cron") && !path.startsWith("/api/invite"));
   if (!SUPABASE_URL || !SUPABASE_KEY) return response;
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -51,7 +52,7 @@ export async function proxy(request: NextRequest) {
   const user = data.user;
 
   if (isProtected) {
-    if (!user || !isAllowed(user.email)) {
+    if (!user || !(await accessOf(supabase, user)).ok) {
       if (path.startsWith("/api/")) {
         return NextResponse.json({ error: "Faça login para continuar." }, { status: 401 });
       }

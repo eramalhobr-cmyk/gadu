@@ -55,3 +55,11 @@ test("tarefas do bloco de controle", () => {
   assert.deepEqual(r.tasks[0], { title: "Renovar o seguro do carro", due: "2026-11-14", priority: 1, project: "Casa" });
   assert.deepEqual(r.tasks[1], { title: "Ler o capítulo 3", due: null, priority: 2, project: null });
 });
+
+test("eventos propostos: fim padrão de 1 hora e horário de Brasília", () => {
+  const now = Date.parse("2026-11-10T12:00:00Z");
+  const r = splitMeta('Posso marcar?\n<<<META>>>\n{"eventos":[{"titulo":"Dentista","inicio":"2026-11-12T09:00:00","local":"Centro"},{"titulo":"Treino","inicio":"2026-11-12T18:00:00-03:00","fim":"2026-11-12T19:30:00-03:00"},{"titulo":"Antigo","inicio":"2026-01-01T10:00:00-03:00"}]}', now);
+  assert.equal(r.events.length, 2);
+  assert.deepEqual(r.events[0], { title: "Dentista", start: "2026-11-12T12:00:00.000Z", end: "2026-11-12T13:00:00.000Z", location: "Centro" });
+  assert.equal(r.events[1].end, "2026-11-12T22:30:00.000Z");
+});

@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { GaduApp, type Msg } from "@/components/GaduApp";
 import { TABS, type Tab } from "@/lib/tabs";
-import { APP_VERSION, isAllowed } from "@/lib/config";
+import { APP_VERSION } from "@/lib/config";
+import { accessOf } from "@/lib/access";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,8 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
   const supabase = await supabaseServer();
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
-  if (!user || !isAllowed(user.email)) redirect("/login");
+  const access = await accessOf(supabase, user);
+  if (!user || !access.ok) redirect("/login");
 
   // Abre na última conversa, para continuar de onde parou.
   const [profile, convo] = await Promise.all([
@@ -41,9 +43,10 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
       initialBlocked={Array.isArray(settings.blocked) ? settings.blocked.map(String) : []}
       version={APP_VERSION}
       morningLink={morning}
-      initialTab={TABS.includes(tab as Tab) ? (tab as Tab) : tab === "memoria" || tab === "ajustes" ? "perfil" : google ? "conversa" : "hoje"}
-      initialProfile={tab === "ajustes" ? "ajustes" : "memoria"}
-      autoStart={start === "briefing"}
+      initialTab={TABS.includes(tab as Tab) ? (tab as Tab) : tab === "memoria" || tab === "ajustes" || tab === "admin" ? "perfil" : google ? "conversa" : "hoje"}
+      initialProfile={tab === "ajustes" ? "ajustes" : tab === "admin" && access.admin ? "admin" : "memoria"}
+      admin={access.admin}
+      autoStart={start === "briefing" || start === "review" ? start : null}
       flash={typeof google === "string" ? google.slice(0, 20) : null}
     />
   );

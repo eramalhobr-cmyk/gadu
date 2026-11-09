@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 10/11/2026 (v0.6.0). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
+Atualizado a cada entrega. Última atualização: 10/11/2026 (v0.7.0). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 ## Fase 0 · MVP publicado (v0.1)
@@ -126,8 +126,13 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 
 ### Experiência e visual
 - [x] "Hoje" como painel no desktop: 3 colunas (cérebro, progresso e atalhos · agenda e lembretes · tarefas e e-mails)
-- [ ] Hero com cérebro + humanoide estilizado (o cérebro dentro da cabeça), reagindo à voz
-- [ ] Barra "Fale com o GaDu" fixa no topo do Hoje (atalho para a conversa por voz)
+- [x] Humanoide com o cérebro dentro da cabeça (Conversa e Hoje), reagindo à voz; substitui o robô do canto
+- [x] Barra "Fale com o GaDu" no topo do Hoje
+- [x] Botão de voz flutuante em todas as telas, com painel de resposta (sem sair da tela)
+- [x] Menu de baixo sempre fixo
+- [x] Agenda visual: semana com faixa de dias, blocos por horário, linha de "agora"; no computador, a semana inteira
+- [x] Criar eventos pela voz ("marca dentista quinta às 9") com confirmação, ou tocando num horário vazio
+- [ ] **Você: adicionar a permissão calendar.events no Google Cloud e reconectar o Google**
 - [x] Cards de vidro e cor por projeto e por agente
 - [x] Navegação com ícones: Hoje · Conversa · Projetos · Agentes · Perfil (Memória e Ajustes dentro de Perfil)
 - [x] Anel de progresso do dia (tarefas concluídas hoje x pendentes)
@@ -135,13 +140,16 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 
 ### Organização e arquitetura de dados
 - [x] `tasks` (tarefas): prazo, prioridade, projeto e origem; criadas pela voz ("anota aí…") ou à mão; tarefas abertas entram no contexto do GaDu e no briefing
-- [ ] Transformar e-mail em tarefa com um toque
+- [x] E-mail vira tarefa com um toque (com link para o e-mail)
+- [x] Insights do GaDu: conflito na agenda, janela livre, tarefas atrasadas, e-mail importante parado (no Hoje, no briefing e no Começar o dia)
+- [x] Revisão da noite (opcional): notificação e cartão para passar pendências para amanhã
 - [x] `projects` (projetos pessoais): objetivo, próximos passos, status, cor, tarefas e progresso; "Conversar sobre o projeto"
 - [x] `agents` (agentes): nome, área, instruções, ícone, cor, ativo; 5 sugestões pessoais; "Conversar com o agente"
 - [ ] Agentes com ferramentas permitidas, modelo e teto de gasto próprios
 - [ ] `insights`: sugestões geradas no briefing (atrasos, conflitos de agenda, e-mails sem resposta), com "aceitar/ignorar"
 - [ ] `metrics` pessoais (opcional): sono, treino, leitura, finanças da casa; só números que você decidir registrar
-- [ ] Busca por significado (pgvector) unindo conversas, memórias, tarefas e projetos
+- [x] Busca por significado (pgvector + embeddings pelo AI Gateway) unindo memórias, conversas, tarefas e projetos; indexação pelo agendador; usada na busca e no contexto da conversa
+- [x] Agentes com memória própria (área do agente + preferências)
 - [ ] Toda tabela nova com `user_id` e RLS, como hoje (serve outras pessoas sem mudar código)
 
 ### Cuidados
@@ -156,6 +164,19 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 ## Fase 4 · Privacidade
 - [ ] Presidio com regras brasileiras (CPF, conta, Pix) no lugar das palavras-chave
 - [ ] Transcrição local para assunto sensível
+
+## Pessoas e administração
+- [x] Acesso por convite (tabela `members`); o admin não vê conteúdo de ninguém, só a configuração inicial
+- [x] Área Admin em Perfil: convidar (nome, e-mail, agentes iniciais, negócio próprio), link de 7 dias pelo WhatsApp, acompanhar ✓, bloquear
+- [x] Página do convite: a pessoa cria a senha e já entra, com agentes e projeto prontos
+- [x] Regra revisada: nada do empregador entra; o negócio próprio da pessoa pode entrar
+- [ ] Convidar o primeiro usuário (Luiz Cláudio)
+- [x] Página "Como o GaDu funciona" (arquitetura, fluxo, navegação, dados, segurança, custos)
+
+## Por último (combinado em 10/11)
+- [ ] Testes automáticos de ponta a ponta antes de publicar, alerta de erro e tela de erro própria
+- [ ] Ações com aprovação no Gmail (rascunhos) e foco na agenda
+- [ ] Voz natural paga (ElevenLabs/OpenAI) com teto próprio
 
 ## Fase 5 · Escritório real e versão para outras pessoas
 - [ ] Agentes executando em sessões do Claude Code, com aprovação

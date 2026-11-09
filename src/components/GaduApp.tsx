@@ -1,6 +1,8 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Visual } from "./RobotFace";
+import { Mind } from "./RobotFace";
+import { EventCard, type EventDraft } from "./EventCard";
+import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
 import { canListen, canSpeak, createRecognizer, Speaker } from "@/lib/speech";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -12,7 +14,7 @@ import { AgentsPage } from "./AgentsPage";
 import { ProjectsPage } from "./ProjectsPage";
 import { Icon } from "./ui";
 
-export type Msg = { id: string; role: "user" | "assistant" | "notice"; content: string; via?: string; link?: { href: string; label: string } };
+export type Msg = { id: string; role: "user" | "assistant" | "notice" | "event"; content: string; via?: string; link?: { href: string; label: string }; event?: EventDraft };
 
 const DEFAULT_MORNING = "https://open.spotify.com/search/Update%20Di%C3%A1rio/podcasts";
 const QUICK = ["Começar o dia", "Como está minha agenda hoje?", "Tenho e-mails importantes?"];
@@ -58,11 +60,14 @@ export function GaduApp(props: {
   morningLink: string;
   flash: string | null;
   initialTab: Tab;
-  initialProfile: "memoria" | "ajustes";
-  autoStart: boolean;
+  initialProfile: "memoria" | "ajustes" | "admin";
+  autoStart: "briefing" | "review" | null;
+  admin: boolean;
 }) {
   const [tab, setTab] = useState<Tab>(props.initialTab);
-  const [profileView, setProfileView] = useState<"memoria" | "ajustes">(props.initialProfile);
+  const [profileView, setProfileView] = useState<"memoria" | "ajustes" | "admin">(props.initialProfile);
+  const [dock, setDock] = useState(false);
+  const [review, setReview] = useState(false);
   const [target, setTarget] = useState<Target>(null);
   const [projView, setProjView] = useState<"tarefas" | "projetos">("tarefas");
   const [messages, setMessages] = useState<Msg[]>(props.initialMessages);
@@ -204,6 +209,9 @@ export function GaduApp(props: {
             if (!answerStarted) { answerStarted = true; if (!(prefs.voice && canSpeak())) setMode("speaking"); }
             setMessages((ms) => ms.map((m) => (m.id === botId ? { ...m, content: answer } : m)));
             if (prefs.voice && speaker) { speaker.push(ev.text); spoke = true; }
+          } else if (ev.t === "events") {
+            const items = ev.items as EventDraft[];
+            setMessages((ms) => [...ms, ...items.map((e) => ({ id: crypto.randomUUID(), role: "event" as const, content: e.title, event: e }))]);
           } else if (ev.t === "tasks") {
             const items = ev.items as { title: string; due: string | null }[];
             setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: `${items.length === 1 ? "Tarefa anotada" : "Tarefas anotadas"}: ${items.map((t) => t.title).join("; ")}. Veja em Projetos › Tarefas.` }]);
@@ -259,9 +267,16 @@ export function GaduApp(props: {
     if (!props.autoStart || started.current) return;
     started.current = true;
     window.history.replaceState(null, "", "/app");
+    if (props.autoStart === "review") { setTab("hoje"); setReview(true); return; }
     setTab("conversa");
     setTimeout(() => void sendRef.current("Começar o dia"), 300);
   }, [props.autoStart]);
+
+  // Voz flutuante: fala com o GaDu de qualquer tela, sem sair dela.
+  function dockTalk() {
+    setDock(true);
+    micClick();
+  }
 
   function startDay() {
     speaker?.unlock();
@@ -342,9 +357,8 @@ export function GaduApp(props: {
 
       {tab === "conversa" && (
         <main className="main chat">
-          <section className="face" aria-label="Cérebro do GaDu">
-            <Visual kind="brain" mode={mode} label="Cérebro do GaDu" />
-            <div className={`mini ${mode !== "idle" ? "on" : ""}`} aria-hidden="true"><Visual kind="bot" mode={mode} compact label="Robô do GaDu" /></div>
+          <section className="face" aria-label="GaDu">
+            <Mind mode={mode} label={`GaDu: ${stateLabel}`} />
           </section>
           {target && (
             <div className="target-pill">
@@ -370,6 +384,8 @@ export function GaduApp(props: {
             {messages.map((m) =>
               m.role === "user" ? (
                 <div key={m.id} className="msg-u">{m.content}</div>
+              ) : m.role === "event" && m.event ? (
+                <EventCard key={m.id} ev={m.event} />
               ) : m.role === "notice" ? (
                 <div key={m.id} className="notice" role="status">
                   {m.content}
@@ -413,20 +429,21 @@ export function GaduApp(props: {
       )}
 
       {tab === "hoje" && (
-        <TodayPage name={props.name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk} onOpenMemory={() => { setProfileView("memoria"); setTab("perfil"); }} onOpenTasks={() => { setProjView("tarefas"); setTab("projetos"); }} onAsk={(q) => { speaker?.unlock(); setTab("conversa"); void send(q); }} />
+        <TodayPage review={review} onReviewDone={() => setReview(false)} onDock={dockTalk} onWrite={() => setTab("conversa")} name={props.name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk} onOpenMemory={() => { setProfileView("memoria"); setTab("perfil"); }} onOpenTasks={() => { setProjView("tarefas"); setTab("projetos"); }} onAsk={(q) => { speaker?.unlock(); setTab("conversa"); void send(q); }} />
       )}
       {tab === "projetos" && <ProjectsPage key={projView} initialView={projView} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
       {tab === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
       {tab === "perfil" && (
         <div className="seg seg-top" role="tablist" aria-label="Perfil">
-          {(["memoria", "ajustes"] as const).map((v) => (
+          {(props.admin ? (["memoria", "ajustes", "admin"] as const) : (["memoria", "ajustes"] as const)).map((v) => (
             <button key={v} role="tab" aria-selected={profileView === v} onClick={() => setProfileView(v)}>
-              {v === "memoria" ? "Memória" : "Ajustes"}{v === "memoria" && pending > 0 ? ` · ${pending}` : ""}
+              {v === "memoria" ? "Memória" : v === "ajustes" ? "Ajustes" : "Admin"}{v === "memoria" && pending > 0 ? ` · ${pending}` : ""}
             </button>
           ))}
         </div>
       )}
       {tab === "perfil" && profileView === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
+      {tab === "perfil" && profileView === "admin" && props.admin && <AdminPage />}
       {tab === "perfil" && profileView === "ajustes" && (
         <SettingsPage
           email={props.email}
@@ -438,6 +455,21 @@ export function GaduApp(props: {
           onNew={() => { newConversation(); setTab("conversa"); }}
           initialBlocked={props.initialBlocked}
           morningLink={props.morningLink}
+        />
+      )}
+
+      {tab !== "conversa" && (
+        <VoiceDock
+          open={dock}
+          mode={mode}
+          listening={listening}
+          busy={busy}
+          draft={draft}
+          last={[...messages].reverse().find((m) => m.role === "assistant" || m.role === "notice")}
+          onTalk={dockTalk}
+          onStop={() => { if (listening) recRef.current?.stop(); else { abortRef.current?.abort(); speaker?.cancel(); setMode("idle"); } }}
+          onOpen={() => { setDock(false); setTab("conversa"); }}
+          onClose={() => setDock(false)}
         />
       )}
 
@@ -464,3 +496,38 @@ export function GaduApp(props: {
   );
 }
 
+
+/** Botão de voz flutuante e painel compacto: ouvir, ver a resposta e continuar, em qualquer tela. */
+function VoiceDock(props: { open: boolean; mode: FaceMode; listening: boolean; busy: boolean; draft: string; last?: Msg; onTalk: () => void; onStop: () => void; onOpen: () => void; onClose: () => void }) {
+  const active = props.listening || props.busy || props.mode === "speaking";
+  const label = props.listening ? "Escutando…" : props.mode === "thinking" ? "Pensando…" : props.mode === "speaking" ? "Respondendo…" : "Toque para falar";
+  return (
+    <>
+      {props.open && (
+        <div className="dock" role="dialog" aria-label="Falar com o GaDu">
+          <div className="dock-head">
+            <span className={`mono state ${props.mode === "thinking" ? "hot" : ""}`}><i />{label}</span>
+            <button className="icon-btn" onClick={props.onClose} aria-label="Fechar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+          </div>
+          {props.listening && props.draft && <div className="msg-u" style={{ alignSelf: "flex-end" }}>{props.draft}</div>}
+          {props.last && !props.listening && (
+            <div className={props.last.role === "notice" ? "notice" : "msg-b dock-answer"}>{props.last.content || "…"}</div>
+          )}
+          <div className="row" style={{ flexWrap: "nowrap" }}>
+            {active ? <button className="btn btn-sm" onClick={props.onStop}>Parar</button> : <button className="btn btn-sm btn-pri" onClick={props.onTalk}>Falar de novo</button>}
+            <button className="btn btn-sm" onClick={props.onOpen}>Abrir conversa</button>
+          </div>
+        </div>
+      )}
+      <button className={`fab ${active ? "on" : ""}`} onClick={active ? props.onStop : props.onTalk} aria-label={active ? "Parar" : "Falar com o GaDu"}>
+        {active && !props.listening ? (
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" /></svg>
+        ) : (
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true"><path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 0 0 6 0V6.5a3 3 0 0 0-3-3zM5.5 12a6.5 6.5 0 0 0 13 0M12 18.5V21" /></svg>
+        )}
+      </button>
+    </>
+  );
+}

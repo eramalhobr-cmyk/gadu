@@ -1,11 +1,12 @@
-import { isAllowed } from "@/lib/config";
+import { accessOf } from "@/lib/access";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export async function signedIn() {
   const supabase = await supabaseServer();
   const { data } = await supabase.auth.getUser();
-  if (!data.user || !isAllowed(data.user.email)) return null;
-  return { supabase, user: data.user };
+  const access = await accessOf(supabase, data.user);
+  if (!data.user || !access.ok) return null;
+  return { supabase, user: data.user, admin: access.admin };
 }
 
 export const OAUTH_COOKIE = "g_oauth";

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { accessToken, events, GoogleError, inbox } from "@/lib/google";
 import { spNow } from "@/lib/briefing";
+import { insights } from "@/lib/insights";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
 import { signedIn } from "../google/_auth";
 
@@ -22,18 +23,27 @@ export async function GET(request: Request) {
     // Do começo de hoje (Brasília) até o fim do período: compromissos que já passaram aparecem apagados.
     const from = spNow().start;
     const to = new Date(from.getTime() + q.data.days * 86_400_000);
-    const [ev, mails] = await Promise.all([events(token, from, to), inbox(token)]);
+    const [ev, mails, tasks] = await Promise.all([
+      events(token, from, to),
+      inbox(token),
+      a.supabase.from("tasks").select("title, due_date, priority").eq("status", "open").limit(200),
+    ]);
     const hide = (t: string) => isSensitive(t) || Boolean(blockedTerm(t, blocked));
+    const visible = ev.filter((e) => !e.declined);
     return NextResponse.json(
       {
         connected: true,
-        events: ev.filter((e) => !e.declined),
+        events: visible,
+        insights: insights({ events: visible, tasks: (tasks.data ?? []) as { title: string; due_date: string | null; priority: number }[], mails: mails.filter((m) => !hide(`${m.from} ${m.subject} ${m.snippet}`)) }),
         emails: mails.map((m) => (hide(`${m.from} ${m.subject} ${m.snippet}`) ? { ...m, subject: "(omitido pela regra de privacidade)", snippet: "" } : m)),
       },
       { headers: { "cache-control": "no-store" } },
     );
   } catch (e) {
     const kind = e instanceof GoogleError ? e.kind : "api";
-    return NextResponse.json({ connected: kind !== "not_connected", error: kind }, { status: kind === "not_connected" ? 200 : 502 });
+    // Sem Google, os insights das tarefas continuam valendo.
+    const { data: tasks } = await a.supabase.from("tasks").select("title, due_date, priority").eq("status", "open").limit(200);
+    const tips = insights({ events: null, tasks: (tasks ?? []) as { title: string; due_date: string | null; priority: number }[], mails: null });
+    return NextResponse.json({ connected: kind !== "not_connected", error: kind, insights: tips }, { status: kind === "not_connected" ? 200 : 502 });
   }
 }

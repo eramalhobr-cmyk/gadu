@@ -5,15 +5,15 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { when } from "./ConversationsDrawer";
 
 type Memory = { id: number; content: string; area: string; origin: string; status: "pending" | "approved" };
-type Hit = { kind: "memoria" | "conversa" | "mensagem"; id: number; text: string; sub: string; conversationId?: number };
+type Hit = { kind: "memoria" | "conversa" | "mensagem" | "tarefa" | "projeto"; id: number; text: string; sub: string; conversationId?: number; semantic?: boolean };
 
-const AREAS = ["Preferências", "Projetos", "Agent Office", "Pessoal", "Profissional"];
+import { AREAS } from "@/lib/presets";
 const ORIGINS = ["ChatGPT", "Claude", "Gemini", "Outra"] as const;
 
 export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked: string[]; onChange: () => void; onOpenConversation: (id: number) => void }) {
   const [items, setItems] = useState<Memory[] | null>(null);
   const [text, setText] = useState("");
-  const [area, setArea] = useState(AREAS[3]);
+  const [area, setArea] = useState<string>(AREAS[0]);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[] | null>(null);
@@ -33,7 +33,8 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
     if (!words) { setHits(null); return; }
     const id = setTimeout(async () => {
       const opt = { type: "websearch" as const, config: "portuguese" };
-      const [m, c, msg] = await Promise.all([
+      const [sem, m, c, msg] = await Promise.all([
+        fetch(`/api/search?q=${encodeURIComponent(q.trim().slice(0, 300))}`).then((r) => r.json()).catch(() => ({ results: [] })) as Promise<{ results: { kind: string; ref_id: number; content: string; similarity: number }[] }>,
         db.from("memories").select("id, content, area, status").textSearch("search", words, opt).limit(10),
         db.from("conversations").select("id, title, summary, updated_at").textSearch("search", words, opt).order("updated_at", { ascending: false }).limit(8),
         db.from("messages").select("id, content, conversation_id, created_at, role").textSearch("search", words, opt).order("created_at", { ascending: false }).limit(10),
@@ -43,7 +44,13 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
         ...((c.data ?? []) as { id: number; title: string | null; summary: string | null; updated_at: string }[]).map((x) => ({ kind: "conversa" as const, id: x.id, text: x.title || "Sem título", sub: `${when(x.updated_at)}${x.summary ? ` · ${x.summary.slice(0, 140)}` : ""}`, conversationId: x.id })),
         ...((msg.data ?? []) as { id: number; content: string; conversation_id: number; created_at: string; role: string }[]).map((x) => ({ kind: "mensagem" as const, id: x.id, text: x.content.slice(0, 180), sub: `${x.role === "user" ? "Você" : "GaDu"} · ${when(x.created_at)}`, conversationId: x.conversation_id })),
       ];
-      setHits(out);
+      // Busca por significado primeiro (encontra mesmo sem as palavras exatas), sem repetir o que a busca por palavras achou.
+      const seen = new Set(out.map((h) => `${h.kind}-${h.id}`));
+      const kindMap: Record<string, Hit["kind"]> = { memory: "memoria", conversation: "conversa", task: "tarefa", project: "projeto" };
+      const semHits: Hit[] = (sem.results ?? [])
+        .map((r) => ({ kind: kindMap[r.kind] ?? "memoria", id: r.ref_id, text: r.content.slice(0, 200), sub: "parecido com a busca", conversationId: r.kind === "conversation" ? r.ref_id : undefined, semantic: true }))
+        .filter((h) => !seen.has(`${h.kind}-${h.id}`));
+      setHits([...semHits.slice(0, 6), ...out]);
     }, 300);
     return () => clearTimeout(id);
   }, [q, db]);
@@ -68,7 +75,7 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
           <h2>Resultados</h2>
           {hits.length === 0 ? <p className="muted">Nada encontrado.</p> : hits.map((h) => (
             <div className="item" key={`${h.kind}-${h.id}`}>
-              <div className="mono" style={{ color: h.kind === "memoria" ? "var(--sig)" : "var(--ink-3)" }}>{h.kind === "memoria" ? "Memória" : h.kind === "conversa" ? "Conversa" : "Mensagem"}</div>
+              <div className="mono" style={{ color: h.kind === "memoria" ? "var(--sig)" : "var(--ink-3)" }}>{({ memoria: "Memória", conversa: "Conversa", mensagem: "Mensagem", tarefa: "Tarefa", projeto: "Projeto" } as const)[h.kind]}{h.semantic ? " · por significado" : ""}</div>
               <div>{h.text}</div>
               <div className="muted" style={{ fontSize: 14 }}>{h.sub}</div>
               {h.conversationId && <div><button className="btn btn-sm" onClick={() => onOpenConversation(h.conversationId!)}>Abrir conversa</button></div>}

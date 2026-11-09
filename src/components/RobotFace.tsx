@@ -2,18 +2,19 @@
 import { useEffect, useRef } from "react";
 import { Brain } from "./brain-engine";
 import { Bot } from "./bot-engine";
+import { Head } from "./head-engine";
 import { Robot, pointer, type FaceMode } from "./robot-engine";
 
-type Kind = "brain" | "robot" | "bot";
+type Kind = "brain" | "robot" | "bot" | "head";
 
 /** Canvas animado (cérebro ou rosto). Pausa quando a aba some e respeita "reduzir movimento". */
-export function Visual({ kind, mode, compact = false, icon = false, label }: { kind: Kind; mode: FaceMode; compact?: boolean; icon?: boolean; label: string }) {
+export function Visual({ kind, mode, compact = false, icon = false, hud, label }: { kind: Kind; mode: FaceMode; compact?: boolean; icon?: boolean; hud?: boolean; label: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const engine = useRef<{ mode: FaceMode; step: (dt: number) => void; draw: () => void } | null>(null);
 
   useEffect(() => {
     if (!canvas.current) return;
-    const e = kind === "brain" ? new Brain(canvas.current, { compact, icon, hud: !compact && !icon }) : kind === "bot" ? new Bot(canvas.current, { compact }) : new Robot(canvas.current, { compact });
+    const e = kind === "brain" ? new Brain(canvas.current, { compact, icon, hud: hud ?? (!compact && !icon) }) : kind === "bot" ? new Bot(canvas.current, { compact }) : kind === "head" ? new Head(canvas.current, { compact }) : new Robot(canvas.current, { compact });
     e.mode = mode;
     engine.current = e;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -52,10 +53,20 @@ export function Visual({ kind, mode, compact = false, icon = false, label }: { k
     if (engine.current) engine.current.mode = mode;
   }, [mode]);
 
-  return <canvas ref={canvas} role="img" aria-label={label} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }} />;
+  return <canvas ref={canvas} role={label ? "img" : undefined} aria-label={label || undefined} aria-hidden={label ? undefined : true} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }} />;
 }
 
 /** Compatibilidade: rosto humanoide. */
 export function RobotFace({ mode, compact = false, label = "Rosto do GaDu" }: { mode: FaceMode; compact?: boolean; label?: string }) {
   return <Visual kind="robot" mode={mode} compact={compact} label={label} />;
+}
+
+/** Humanoide com o cérebro dentro da cabeça: duas camadas (busto + cérebro), o cérebro "brilha" através do crânio. */
+export function Mind({ mode, compact = false, label = "GaDu" }: { mode: FaceMode; compact?: boolean; label?: string }) {
+  return (
+    <div className={`mind ${compact ? "compact" : ""}`} role="img" aria-label={label}>
+      <Visual kind="head" mode={mode} compact={compact} label="" />
+      <div className="mind-brain" aria-hidden="true"><Visual kind="brain" mode={mode} compact={compact} hud={false} label="" /></div>
+    </div>
+  );
 }

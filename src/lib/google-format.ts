@@ -1,5 +1,5 @@
 // Texto da agenda e dos e-mails para o modelo, e detecção de intenção. Sem dependências (testável).
-export type CalEvent = { title: string; start: string; end: string; allDay: boolean; where?: string; meet: boolean; declined: boolean };
+export type CalEvent = { id?: string; title: string; start: string; end: string; allDay: boolean; where?: string; meet: boolean; declined: boolean };
 export type Mail = { thread?: string; from: string; subject: string; snippet: string; date: string; important: boolean };
 const TZ = "America/Sao_Paulo";
 
@@ -44,7 +44,7 @@ export function googleIntent(message: string): { agenda: boolean; email: boolean
   const t = message.toLowerCase();
   const day = /come[cç]ar o dia|meu dia|bom dia|resumo do dia|briefing/.test(t);
   return {
-    agenda: day || /agenda|compromisso|reuni[aã]o|reuni[oõ]es|calend|evento|hor[aá]rio livre|tempo livre|amanh[aã]|semana|ocupad/.test(t),
+    agenda: day || /agenda|compromisso|reuni[aã]o|reuni[oõ]es|calend|evento|hor[aá]rio livre|tempo livre|amanh[aã]|semana|ocupad|\bmarca|agend/.test(t),
     email: day || /e-?mails?|gmail|caixa de entrada|inbox|mensagens? (importantes|não lidas|nao lidas)/.test(t),
     week: /semana|pr[oó]ximos dias/.test(t),
   };

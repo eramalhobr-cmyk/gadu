@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getVercelOidcToken } from "@vercel/oidc";
 import { z } from "zod";
-import { isAllowed, readBudgets, serverConfig } from "@/lib/config";
+import { readBudgets, serverConfig } from "@/lib/config";
+import { accessOf } from "@/lib/access";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ async function gatewayCredits(): Promise<{ balance: number; used: number } | nul
 async function auth() {
   const supabase = await supabaseServer();
   const { data } = await supabase.auth.getUser();
-  if (!data.user || !isAllowed(data.user.email)) return null;
+  if (!data.user || !(await accessOf(supabase, data.user)).ok) return null;
   return { supabase, user: data.user };
 }
 
