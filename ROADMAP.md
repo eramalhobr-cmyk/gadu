@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 10/11/2026 (v0.8.0). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
+Atualizado a cada entrega. Última atualização: 10/11/2026 (v0.8.1). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 ## Fase 0 · MVP publicado (v0.1)
@@ -129,6 +129,7 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] Humanoide com o cérebro dentro da cabeça (Conversa e Hoje), reagindo à voz; substitui o robô do canto
 - [x] Avatar oficial (ilustração) animado: sinapses no cérebro, fones ao escutar, ondas ao falar, âmbar ao pensar, HUD e pedestal girando; usado no login, Hoje e Conversa
 - [x] Ícone do app com o avatar e o nome GaDu (versão adaptada para Android)
+- [x] Home aberta em "/" (não comercial): avatar animado, pilares, funções, um dia com o GaDu, ilustração do app, arquitetura simples, privacidade, Pessoal e Trabalho, botão Entrar (quem já entrou vai direto ao app)
 - [x] Barra "Fale com o GaDu" no topo do Hoje
 - [x] Botão de voz flutuante em todas as telas, com painel de resposta (sem sair da tela)
 - [x] Menu de baixo sempre fixo

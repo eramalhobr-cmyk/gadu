@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation";
+import { accessOf } from "@/lib/access";
+import { supabaseServer } from "@/lib/supabase/server";
 import { EmailLogin } from "./EmailLogin";
 import { LoginFace } from "./LoginFace";
 
@@ -10,6 +13,10 @@ const ERRORS: Record<string, string> = {
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
   const { erro } = await searchParams;
+  // Quem já entrou vai direto para o app.
+  const supabase = await supabaseServer();
+  const { data } = await supabase.auth.getUser();
+  if (!erro && (await accessOf(supabase, data.user)).ok) redirect("/app");
   return (
     <main className="shell dots" style={{ alignItems: "center", justifyContent: "center", padding: 24, gap: 20, textAlign: "center" }}>
       <div style={{ position: "relative", width: "min(72vw, 300px)", height: "min(80vw, 330px)" }}>
@@ -26,7 +33,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       </a>
       )}
       <p className="mono muted" style={{ margin: 0 }}>Acesso por convite · seus dados ficam só com você</p>
-      <p className="muted" style={{ margin: 0, fontSize: 14 }}><a href="/privacidade">Privacidade</a> · <a href="/termos">Termos</a></p>
+      <p className="muted" style={{ margin: 0, fontSize: 14 }}><a href="/">Sobre o GaDu</a> · <a href="/privacidade">Privacidade</a> · <a href="/termos">Termos</a></p>
     </main>
   );
 }
