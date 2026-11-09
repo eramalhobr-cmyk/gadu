@@ -23,7 +23,8 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] Lista de convidados (`ALLOWED_EMAILS`); quem não está na lista é desconectado
 - [x] Rotas protegidas no servidor (proxy) e no banco (RLS)
 - [ ] Código de 6 dígitos no e-mail (exige SMTP próprio, ex.: Resend; o plano grátis do Supabase não deixa mudar o e-mail)
-- [ ] Desligar novos cadastros no Supabase depois do primeiro login (mais segurança)
+- [x] Novos cadastros desligados no Supabase; o link só entra em contas existentes
+- [ ] Convidar novas pessoas pelo painel (criar a conta antes de liberar o e-mail)
 - [ ] (Opcional) Ativar o botão do Google
 
 ### Conversa
@@ -35,7 +36,7 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] Abre na última conversa; botão "Nova conversa"
 - [x] Primeiro login em produção (link por e-mail)
 - [x] Registro de falha por motor e aviso claro na conversa (chave, crédito, ocupado)
-- [ ] **Primeira resposta real em produção** (o AI Gateway exige crédito pago; a chave direta da Anthropic está sendo verificada)
+- [ ] **Primeira resposta real em produção** (nome do modelo corrigido; se ainda falhar, o aviso diz se é chave ou crédito)
 - [ ] Teto de gasto do AI Gateway no painel da Vercel
 
 ### Voz (grátis, do aparelho)

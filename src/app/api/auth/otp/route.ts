@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   if (isAllowed(email)) {
     const supabase = await supabaseServer();
     const origin = new URL(request.url).origin;
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: `${origin}/auth/callback` } });
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: `${origin}/auth/callback` } });
     if (error) {
       const wait = /rate|seconds|security purposes/i.test(error.message);
       return Response.json(
