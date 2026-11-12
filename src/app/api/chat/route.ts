@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { checkDailyQuota, checkMonthlyBudget } from "@/lib/chat-budget-guard";
 import { readBudgets, serverConfig } from "@/lib/config";
 import { accessOf } from "@/lib/access";
 import { after } from "next/server";
@@ -61,15 +62,25 @@ export async function POST(request: Request) {
           return;
         }
         // 2. Cota diária (proteção de custo).
-        const { data: okQuota } = await supabase.rpc("consume_quota", { p_limit: cfg.dailyLimit });
-        if (okQuota === false) {
-          send({ t: "notice", kind: "quota", text: `Você chegou ao limite de ${cfg.dailyLimit} mensagens de hoje. O limite volta amanhã e pode ser ajustado nas configurações do servidor.` });
+        const daily = checkDailyQuota(await supabase.rpc("consume_quota", { p_limit: cfg.dailyLimit }));
+        if (!daily.allowed) {
+          if (daily.reason === "unavailable") {
+            console.error("chat quota validation unavailable");
+            send({ t: "notice", kind: "error", text: "Não consegui verificar seu limite de mensagens agora. Tente novamente em instantes." });
+          } else {
+            send({ t: "notice", kind: "quota", text: `Você chegou ao limite de ${cfg.dailyLimit} mensagens de hoje. O limite volta amanhã e pode ser ajustado nas configurações do servidor.` });
+          }
           return;
         }
-        // 2b. Teto de gasto mensal.
-        const { data: spent } = await supabase.rpc("month_spend");
-        if (Number(spent ?? 0) >= cfg.monthlyBudgetUsd) {
-          send({ t: "notice", kind: "quota", text: `O teto de gasto do mês (US$ ${cfg.monthlyBudgetUsd.toFixed(2)}) foi atingido. O GaDu volta a responder no próximo mês, ou quando o teto for aumentado.` });
+        // 2b. Teto de gasto mensal: erros ou valores inválidos bloqueiam a chamada ao provedor.
+        const monthly = checkMonthlyBudget(await supabase.rpc("month_spend"), cfg.monthlyBudgetUsd);
+        if (!monthly.allowed) {
+          if (monthly.reason === "unavailable") {
+            console.error("chat monthly budget validation unavailable");
+            send({ t: "notice", kind: "error", text: "Não consegui verificar seu orçamento de IA agora. Tente novamente em instantes." });
+          } else {
+            send({ t: "notice", kind: "quota", text: `O teto de gasto do mês (US$ ${cfg.monthlyBudgetUsd.toFixed(2)}) foi atingido. O GaDu volta a responder no próximo mês, ou quando o teto for aumentado.` });
+          }
           return;
         }
         // 3. Conversa: usa a existente (se for da pessoa) ou cria uma nova.
