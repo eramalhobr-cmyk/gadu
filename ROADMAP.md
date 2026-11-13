@@ -198,6 +198,20 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [ ] Convites por e-mail e painel de administração
 - [ ] Guia de instalação para outra pessoa (um projeto Supabase + Vercel por pessoa, ou multiusuário)
 
+
+## GaDu AI Radar · Inteligência de evolução tecnológica (planejado em 12/11/2026)
+- [ ] Criar módulo de notícias e oportunidades de IA dentro do GaDu, após estabilização das correções críticas.
+- [ ] Monitorar fontes oficiais e changelogs de OpenAI, Anthropic/Claude, Google/Gemini, GitHub, modelos abertos, MCPs, skills e ferramentas de agentes.
+- [ ] Coletar título, fonte, URL, data de publicação, versão e disponibilidade; deduplicar novidades e distinguir anúncio, beta e disponibilidade efetiva.
+- [ ] Classificar impactos potenciais em voz, memória, agentes, automações, segurança, UX, desempenho e custos; indicar compatibilidade com a arquitetura atual.
+- [ ] Gerar propostas priorizadas com benefício, esforço, risco, dependências, custo estimado e critérios de aceite, vinculadas ao roadmap e a ADRs.
+- [ ] Apresentar painel com novidades, itens avaliados, oportunidades recomendadas, descartadas e já incorporadas.
+- [ ] Enviar briefing semanal configurável e alertas apenas para mudanças relevantes; permitir opt-in e controle de frequência.
+- [ ] Em fase posterior, integrar ao Agent Office para preparar especificações, testes e PRs em branches isoladas.
+- [ ] Exigir aprovação humana explícita antes de instalar dependências, modificar código, integrar PRs, alterar infraestrutura ou publicar.
+- [ ] Definir controles de segurança para conteúdo externo não confiável (prompt injection), links e licenças, limites de custo e auditoria.
+- [ ] MVP: curadoria com fontes oficiais + análise de aplicabilidade + backlog de oportunidades; automação de implementação fica para etapa futura.
+
 ## Operação
 - [ ] Monitoramento de erros e alerta de saúde
 - [ ] Backups do banco conferidos (plano grátis: diário, 7 dias)
