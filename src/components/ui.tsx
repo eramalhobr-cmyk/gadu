@@ -52,7 +52,7 @@ export function Ring({ value, total, label }: { value: number; total: number; la
     <div className="ring" role="img" aria-label={`${label}: ${pct}%`}>
       <svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true">
         <circle cx="42" cy="42" r={r} fill="none" stroke="var(--wash)" strokeWidth="7" />
-        <circle cx="42" cy="42" r={r} fill="none" stroke="var(--sig)" strokeWidth="7" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct / 100)} transform="rotate(-90 42 42)" style={{ transition: "stroke-dashoffset .6s", filter: "drop-shadow(0 0 6px rgba(95,240,220,.5))" }} />
+        <circle cx="42" cy="42" r={r} fill="none" stroke="var(--sig)" strokeWidth="7" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct / 100)} transform="rotate(-90 42 42)" style={{ transition: "stroke-dashoffset .6s", filter: "drop-shadow(0 0 6px rgb(var(--sig-rgb) / .5))" }} />
       </svg>
       <span className="ring-pct">{total ? `${pct}%` : "–"}</span>
     </div>

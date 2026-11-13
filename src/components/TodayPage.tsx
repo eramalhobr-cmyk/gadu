@@ -5,6 +5,8 @@ import { AgendaView } from "./AgendaView";
 import { Avatar } from "./RobotFace";
 import { TasksPanel } from "./TasksPanel";
 import { Icon, Ring, todayKey } from "./ui";
+import { ModuleCards } from "./ModulePage";
+import type { ViewId } from "@/lib/modules";
 
 const HELP = [
   { icon: "spark", text: "Priorizar meu dia" },
@@ -54,6 +56,7 @@ export function TodayPage(props: {
   onOpenMemory: () => void;
   onOpenTasks: () => void;
   onAsk: (q: string) => void;
+  onOpen: (view: ViewId) => void;
 }) {
   const [progress, setProgress] = useState({ open: 0, done: 0 });
   const [today, setToday] = useState<Today | null>(null);
@@ -116,52 +119,38 @@ export function TodayPage(props: {
   const tips = today?.insights ?? [];
 
   return (
-    <main className="page today">
-      <div className="col">
-        <section className="hero">
-          <div className="hero-mind" aria-hidden="true"><Avatar mode={props.busy ? "thinking" : "idle"} compact /></div>
-          <div className="hero-text">
-            <div className="mono muted">{date}</div>
+    <main className="page" id="conteudo">
+      <div className="wrap dash">
+        <section className="dash-hero on-dark">
+          <div className="txt">
+            <span className="mono muted">{date}</span>
             <h1>{greeting()}{props.name ? `, ${props.name}` : ""}.</h1>
-            <p className="muted" style={{ margin: "4px 0 0", fontSize: 14 }}>Como posso te ajudar hoje?</p>
+            <span className="muted">{today?.connected ? `${events.length} ${events.length === 1 ? "compromisso" : "compromissos"} hoje · ` : ""}{progress.open} {progress.open === 1 ? "tarefa pendente" : "tarefas pendentes"}</span>
+            <div className="cta">
+              <button className="btn btn-pri" disabled={props.busy} onClick={props.onStartDay}><Icon name="sun" size={18} />Começar o dia</button>
+              <button className="btn" onClick={props.onDock}><Icon name="mic" size={18} />Falar com o GaDu</button>
+            </div>
           </div>
+          <div className="ava" aria-hidden="true"><Avatar mode={props.busy ? "thinking" : "idle"} compact /></div>
         </section>
-        <div className="talk-bar">
-          <button className="talk-mic" onClick={props.onDock} aria-label="Falar com o GaDu"><Icon name="mic" size={22} /></button>
-          <button className="talk-text" onClick={props.onWrite}>Fale com o GaDu…</button>
-          <span className="talk-wave" aria-hidden="true"><i /><i /><i /><i /></span>
+
+        <div className="kpis">
+          <button className="kpi sig" onClick={props.onOpenTasks}><span className="n">{progress.open}</span><span className="l">tarefas para hoje</span></button>
+          <div className="kpi"><span className="n">{today?.connected ? events.length : "–"}</span><span className="l">{today?.connected ? "compromissos hoje" : "agenda não conectada"}</span></div>
+          <div className="kpi"><span className="n">{rems?.length ?? "–"}</span><span className="l">lembretes ativos</span></div>
+          <button className={`kpi ${props.pendingMemories > 0 ? "hot" : ""}`} onClick={props.onOpenMemory}><span className="n">{props.pendingMemories}</span><span className="l">memórias para revisar</span></button>
+        </div>
+
+        <div className="quick-row" aria-label="Peça ao GaDu">
+          {HELP.map((h) => (
+            <button key={h.text} className="chip" disabled={props.busy} onClick={() => props.onAsk(h.text)}><Icon name={h.icon} size={16} />{h.text}</button>
+          ))}
+          <button className="chip" onClick={props.onWrite}><Icon name="chat" size={16} />Escrever para o GaDu</button>
         </div>
 
         {props.review && <ReviewCard onDone={() => { props.onReviewDone(); setTasksKey((k) => k + 1); }} />}
 
-        <section className="card help">
-          <button className="help-item primary" disabled={props.busy} onClick={props.onStartDay}>
-            <Icon name="sun" size={18} /><span>Começar o dia</span><span aria-hidden="true">›</span>
-          </button>
-          {HELP.map((h) => (
-            <button key={h.text} className="help-item" disabled={props.busy} onClick={() => props.onAsk(h.text)}>
-              <Icon name={h.icon} size={18} /><span>{h.text}</span><span aria-hidden="true">›</span>
-            </button>
-          ))}
-        </section>
-
-        <section className="card progress">
-          <Ring value={progress.done} total={progress.done + progress.open} label="Progresso do dia" />
-          <div>
-            <h2>Progresso do dia</h2>
-            <div className="mono" style={{ color: "var(--sig)" }}>{progress.done} concluídas</div>
-            <div className="mono muted">{progress.open} pendentes para hoje</div>
-          </div>
-        </section>
-
-        {props.pendingMemories > 0 && (
-          <button className="card card-link" onClick={props.onOpenMemory}>
-            <span><b style={{ color: "var(--hot)" }}>{props.pendingMemories}</b> {props.pendingMemories === 1 ? "memória para revisar" : "memórias para revisar"}</span>
-            <span aria-hidden="true">›</span>
-          </button>
-        )}
-      </div>
-
+        <div className="dash-grid">
       <div className="col">
         {tips.length > 0 && (
           <section className="card insights">
@@ -228,6 +217,17 @@ export function TodayPage(props: {
 
       <div className="col">
         <TasksPanel key={tasksKey} mode="today" title="Tarefas prioritárias" onSeeAll={props.onOpenTasks} onChange={(open, done) => setProgress({ open, done })} />
+        <section className="card progress">
+          <Ring value={progress.done} total={progress.done + progress.open} label="Progresso do dia" />
+          <div>
+            <h2>Progresso do dia</h2>
+            <div className="mono" style={{ color: "var(--sig)" }}>{progress.done} concluídas</div>
+            <div className="mono muted">{progress.open} pendentes para hoje</div>
+          </div>
+        </section>
+      </div>
+
+      <div className="col wide">
         <section className="card">
           <div className="row" style={{ justifyContent: "space-between" }}>
             <h2>E-mails não lidos</h2>
@@ -254,6 +254,11 @@ export function TodayPage(props: {
               );
             })}
         </section>
+      </div>
+        </div>
+
+        <div className="sec-head"><h2>Módulos do GaDu</h2><span className="muted">O que já funciona e o que está no plano</span></div>
+        <ModuleCards onOpen={props.onOpen} />
       </div>
     </main>
   );

@@ -16,6 +16,7 @@ import { insights, type InTask } from "@/lib/insights";
 import { embed, embeddingsAvailable, toVector } from "@/lib/embeddings";
 import { agentAreas } from "@/lib/presets";
 import { contextBlock, extrasBlock, systemPrompt } from "@/lib/prompt";
+import { AssistantContextSchema, contextLine } from "@/lib/assistant-context";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -28,6 +29,8 @@ const Body = z.object({
   // Só valem ao criar uma conversa nova: conversa sobre um projeto ou com um agente.
   projectId: z.number().int().positive().nullable().optional(),
   agentId: z.number().int().positive().nullable().optional(),
+  // Assistente Universal: em que módulo e tela a pessoa está. Só um rótulo validado; não carrega dados nem amplia o acesso.
+  context: AssistantContextSchema.nullable().optional(),
 });
 
 // Eventos enviados ao app, um JSON por linha (NDJSON).
@@ -206,7 +209,7 @@ export async function POST(request: Request) {
         let sent = 0;
         for await (const ev of routeChat({
           system: systemPrompt(),
-          context: contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google,
+          context: contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + (parsed.data.context ? contextLine(parsed.data.context) : ""),
           turns,
           signal: request.signal,
           onUsage: (u) => {
