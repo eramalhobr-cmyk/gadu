@@ -6,6 +6,20 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`). Só documentação, não integrada.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-13 · `883ea23` · UX/UI v2 (PR #12)
+- **Módulos** (`src/lib/modules.ts`, `ModulePage.tsx`): seis módulos com status real; módulo planejado abre uma página que diz que ele ainda não existe.
+- **Navegação** (`GaduApp.tsx`, `src/app/v2.css`): menu lateral por módulos no computador; no celular, barra de baixo com o assistente no centro e folha de módulos.
+- **Assistente Universal** (`Assistant.tsx`): voz e texto em qualquer tela, com a mesma conversa. Painel lateral no computador, painel de baixo expansível no celular.
+- **Contrato de contexto** (`src/lib/assistant-context.ts`, `src/app/api/chat/route.ts`): rótulo de módulo e tela, validado no servidor; inválido é recusado com 400 antes de qualquer custo; não amplia o acesso.
+- **Temas claro e escuro** (`src/lib/theme.ts`, `layout.tsx`): cookie `gadu_theme`; cores antigas viraram tokens.
+- **Telas redesenhadas**: painel Hoje (`TodayPage.tsx`), Conversa, Perfil e ajustes (`SettingsPage.tsx`), home pública (`src/app/page.tsx`). Memória virou tela própria.
+- Preservados: avatar animado, marca GaDu e `public/avatar`.
+- Testado:
+  - 45 testes unitários e 16 de integração (7 novos), typecheck, build e CI;
+  - navegador com sessão autenticada de um usuário de teste, local e em produção, em 1440 e 390 px, nos dois temas, sem rolagem horizontal.
+- **Publicado**: deploy `dpl_ENVExSFmz4Wq1BLn6drKSreuQc5j` `READY`. Em produção, o assistente respondeu pelo painel no computador e no celular e informou corretamente a tela ("módulo Pessoal, tela Tarefas e projetos").
+- Não incluído: redesenho de Projetos, Agentes, Memória, Admin, Guia e Agenda (usam os temas, com o desenho anterior); cruzamento de dados entre módulos ou clientes; validação da voz nos aparelhos.
+
 ## 2026-11-13 · `fd77f84` · Design System v1, menu lateral e responsividade (PR #10)
 - Tokens únicos em `:root` (`src/app/globals.css`): espaço, raio, texto, movimento, camadas, toque, gradiente holográfico.
 - Computador (1024+): menu lateral fixo (`.side` em `src/components/GaduApp.tsx`), cabeçalho com o título da tela, sem o menu de baixo.
