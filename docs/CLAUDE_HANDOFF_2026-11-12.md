@@ -69,3 +69,78 @@ O GitHub é a fonte oficial; `AGENTS.md`, `CLAUDE.md`, `docs/PROJECT_CONTEXT.md`
 
 ### Próxima atividade recomendada
 PR de **cota diária atômica**: nova migração que (a) não incrementa acima do limite, (b) tira o limite do argumento do cliente (limite controlado pelo servidor), (c) usa o dia de Brasília, (d) testes de concorrência em Supabase local. Exige aprovação antes de aplicar no banco remoto.
+
+---
+
+## Etapa 2 — Cota diária atômica (Claude Code, 2026-11-13)
+
+Branch `fix/daily-quota-atomic-20261113`, **empilhada sobre o PR #2** (mesma rota do chat). PR em rascunho com base no branch do PR #2; ao integrar o PR #2, mudar a base para `main`. Nada aplicado no banco remoto, sem merge, sem deploy.
+
+### O que foi feito
+- **Migração nova** `supabase/migrations/20261113120001_daily_quota_atomic.sql` (não edita migração aplicada):
+  - `private.quota_policy` (limite global, semeado com 150 = valor atual de produção) e `private.user_quota` (exceção por pessoa), fora da API, com RLS ligada e sem privilégios para `anon`/`authenticated`.
+  - `public.consume_daily_quota()` sem argumentos: incremento condicional atômico, nunca passa do limite, dia de Brasília, fail closed sem política ou com limite ≤ 0. Retorna `{"allowed","used","limit"}`.
+  - `consume_quota(integer)` **mantida** nesta etapa para não quebrar a versão em produção.
+- **App:** `src/app/api/chat/route.ts` chama `consume_daily_quota()` sem enviar limite; a cota passou a ser a **última** verificação (teto mensal e limites por provedor antes), então mensagem bloqueada não gasta cota; o aviso usa o limite real do banco.
+- **Guard:** `checkDailyQuota` aceita só o objeto `{"allowed": bool, "used": int ≥ 0, "limit": int ≥ 0}` coerente; qualquer outra resposta bloqueia.
+- **Testes de banco locais:** `scripts/test-db.sh` (`npm run test:db`) sobe um Postgres temporário, aplica `supabase/tests/00_supabase_shim.sql` (papéis e `auth.uid()` como no Supabase) e as migrações, roda `supabase/tests/10_daily_quota.test.sql` e testes de concorrência com conexões paralelas. Apaga tudo no final; nunca conecta no remoto.
+- **CI:** job `database` no workflow do PR roda `test:db` no Postgres do runner (sem segredos); o CI também dispara para `supabase/**`, `test/**` e `scripts/**`.
+- **ADR:** `docs/adr/0001-cota-diaria-atomica.md`.
+
+### Testes executados e resultados (local, Postgres 16, Node 22)
+| Suite | Resultado |
+|---|---|
+| `npm run test:unit` | 28/28 ok |
+| `npm run test:integration` (rota real, Supabase e IA simulados) | 10/10 ok |
+| `npm run test:db`: SQL | 21/21 ok |
+| `npm run test:db`: concorrência | 6/6 ok |
+| `npm run typecheck` / `npm run build` | ok / ok |
+| Prova de falha do script (asserção alterada de propósito) | script sai com erro |
+
+Casos SQL: primeiro uso, último permitido, excedente (negado e contagem parada no limite), usuários distintos, limite individual menor/maior, limite zero sem gravar, sem usuário, sem política (fecha), dia de Brasília, função sem argumento de limite, `authenticated` sem acesso à política, `anon` sem execução, usuário não zera nem insere contagem (RLS), função antiga mantida.
+
+Concorrência: 40 chamadas simultâneas do mesmo usuário com limite 10 → **10 permitidas, contagem 10**; dois usuários disputando ao mesmo tempo (25 + 25) → 10 e 10. Comparação com a função de produção, mesmo cenário: **contagem 40**.
+
+Integração nova: cota não é consumida quando o teto mensal ou os limites por provedor bloqueiam; o app não envia limite ao banco.
+
+### Plano de implantação (precisa de aprovação a cada passo)
+1. Integrar o PR #2.
+2. **Aplicar a migração `20261113120001` no Supabase** (aditiva; não altera dados nem a função antiga).
+3. Só então integrar este PR e publicar o app. **Se o app subir antes da migração, o chat fica bloqueado para todos** (fail closed).
+4. Depois do app estável: migração da etapa 2 revogando e removendo `consume_quota(integer)`.
+
+**Rollback:** reverter o app (a função antiga continua existindo). Se for preciso desfazer o banco: `drop function public.consume_daily_quota(); drop table private.user_quota; drop table private.quota_policy;`.
+
+### Riscos e pendências
+- **Ordem de implantação** acima é obrigatória.
+- `DAILY_MESSAGE_LIMIT` deixa de valer para o chat; mudar o limite passa a ser `update private.quota_policy …` (com aprovação) até existir tela de administração.
+- Na virada para o dia de Brasília, a contagem do dia da implantação pode zerar ou continuar (efeito único, inofensivo).
+- Mensagem que passa na cota e falha no provedor continua contando: definir devolução no PR de orçamento.
+- O shim imita o Supabase, mas não é o Supabase: validar a migração num projeto de testes ou branch do Supabase antes da produção, se possível.
+- Etapa 2 (remover `consume_quota`) ainda não escrita.
+
+### Próxima atividade recomendada
+PR de **orçamento mensal com reserva e reconciliação** (P1), reaproveitando `scripts/test-db.sh` para testes de concorrência, e tratando junto a devolução de cota em falha do provedor e as leituras de gasto por provedor da importação de memórias e do resumo.
+
+### Resposta à revisão do ChatGPT no PR #3 (2026-11-13)
+| Ponto da revisão | Tratamento |
+|---|---|
+| 1. Limite inicial | **Confirmado**: `DAILY_MESSAGE_LIMIT` em produção = **150** (variável não secreta, lida na Vercel sem alterar nada). A migração semeia 150. A mudança de env para tabela continua **pendente de aprovação** do Eduardo. |
+| 2. Supabase real (staging) | **Pendente de decisão**: exige criar um branch ou projeto de staging no Supabase (custo/permissão). Não foi feito. Recomendado antes da produção. |
+| 3. Ordem do rollout e deploy inesperado | **Mitigado no código**: se o app novo subir antes da migração, o banco responde "função não existe" (`PGRST202`/`42883`) e a rota usa `consume_quota(limite do servidor)`, como hoje, em vez de bloquear todos. Qualquer outro erro continua fail closed. Roteiro abaixo. |
+| 4. Função antiga chamável / abuso | Mantida só na transição. Chamá-la direto não contorna a verificação do app (a rota usa a função nova), mas permite inflar a própria contagem. **Etapa 2**: revogar `EXECUTE` e remover logo após o deploy estável. Limite reduzido abaixo do uso: testado (nega, mantém contagem). Mudança de política durante a corrida: cada chamada lê o limite na hora; no máximo uma decisão usa o valor anterior (READ COMMITTED). Retries: cada nova requisição consome 1; não há idempotência por requisição (avaliar no PR de orçamento junto da devolução em falha do provedor). |
+| 5. Outros consumos | Verificado no código: **importação de memórias** (`/api/memories/import`) e **resumo de conversa** (em segundo plano após o chat) **não passam pela cota diária**. Usam o modelo barato e respeitam limites por provedor, mas a leitura do gasto por provedor ainda falha aberta. Busca por significado (embeddings no agendador) também não tem cota por pessoa. Tratar no PR de orçamento. |
+| Contrato `used > 0` | **Feito**: resposta positiva exige `used ≥ 1` e `used ≤ limit`; teste unitário. |
+
+Testes após os ajustes: unitários 30/30, integração 12/12 (inclui a transição e "outros erros continuam bloqueando"), banco SQL 24/24, concorrência 6/6, typecheck e build ok.
+
+#### Roteiro de implantação (cada passo com aprovação)
+1. Integrar o PR #2 em `main` (a Vercel publica sozinha) e verificar o chat em produção.
+2. Validar a migração `20261113120001` em staging do Supabase (se aprovado).
+3. Aplicar a migração em produção. A versão antiga do app segue usando `consume_quota`. Conferir: `select public.consume_daily_quota()` como usuário de teste; `select * from private.quota_policy` = 150.
+4. Mudar a base do PR #3 para `main`, integrar e deixar a Vercel publicar.
+5. Monitorar por 24h: logs da Vercel sem `chat quota validation unavailable` e sem o aviso de transição `consume_daily_quota ausente`; `usage_daily` nunca acima do limite.
+6. Etapa 2: migração revogando `EXECUTE` e removendo `consume_quota(integer)`, junto com a remoção do código de transição.
+
+**Rollback operacional:** reverter o app primeiro (a função antiga continua no banco). Só depois, se necessário, remover a função nova e as tabelas de política. Nunca remover `consume_quota` antes de o app novo estar estável.
+**Deploy automático inesperado** (PR #3 integrado antes da migração): o código de transição mantém o chat funcionando com a função antiga; aplicar a migração em seguida.
