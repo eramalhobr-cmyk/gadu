@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { checkDailyQuota, checkMonthlyBudget, checkProviderSpend, safeRpc } from "@/lib/chat-budget-guard";
+import { checkDailyQuota, checkLegacyQuota, checkMonthlyBudget, checkProviderSpend, isMissingFunction, safeRpc } from "@/lib/chat-budget-guard";
 import { readBudgets, serverConfig } from "@/lib/config";
 import { accessOf } from "@/lib/access";
 import { after } from "next/server";
@@ -86,7 +86,14 @@ export async function POST(request: Request) {
         }
         // 2c. Cota diária por último, logo antes de gravar: atômica no banco, limite definido pelo servidor
         //     (nunca enviado pelo app) e dia de Brasília. Mensagem bloqueada acima não gasta cota.
-        const daily = checkDailyQuota(await safeRpc<unknown>(() => supabase.rpc("consume_daily_quota")));
+        const quotaRes = await safeRpc<unknown>(() => supabase.rpc("consume_daily_quota"));
+        let daily = checkDailyQuota(quotaRes);
+        if (!daily.allowed && daily.reason === "unavailable" && isMissingFunction(quotaRes.error)) {
+          // Transição: app novo publicado antes da migração. Usa a função antiga com o limite do servidor
+          // (comportamento de hoje) em vez de bloquear todo mundo. Remover junto com consume_quota (etapa 2).
+          console.warn("consume_daily_quota ausente no banco; usando consume_quota (transição)");
+          daily = checkLegacyQuota(await safeRpc<unknown>(() => supabase.rpc("consume_quota", { p_limit: cfg.dailyLimit })), cfg.dailyLimit);
+        }
         if (!daily.allowed) {
           if (daily.reason === "unavailable") {
             console.error("chat quota validation unavailable");

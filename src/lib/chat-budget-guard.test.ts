@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkDailyQuota, checkMonthlyBudget, checkProviderSpend, safeRpc } from "./chat-budget-guard.ts";
+import { checkDailyQuota, checkLegacyQuota, checkMonthlyBudget, checkProviderSpend, isMissingFunction, safeRpc } from "./chat-budget-guard.ts";
 
 const ok = <T>(data: T) => ({ data, error: null });
 const failed = { data: null, error: { message: "database unavailable" } };
@@ -52,4 +52,17 @@ test("provider spend fails closed on errors and invalid rows", () => {
   for (const result of [failed, ok(null), ok({}), ok([{ provider: "anthropic", cost_usd: null }]), ok([{ provider: "", cost_usd: 1 }]), ok([{ provider: "gateway", cost_usd: -2 }]), ok([{ cost_usd: 1 }])]) {
     assert.deepEqual(checkProviderSpend(result as never), { ok: false });
   }
+});
+
+test("daily quota rejects a positive answer that did not consume", () => {
+  assert.deepEqual(checkDailyQuota(ok({ allowed: true, used: 0, limit: 150 })), { allowed: false, reason: "unavailable" });
+});
+
+test("legacy quota fallback only for a missing function", () => {
+  assert.equal(isMissingFunction({ code: "PGRST202", message: "Could not find the function" }), true);
+  assert.equal(isMissingFunction({ code: "42883" }), true);
+  for (const e of [null, {}, { code: "PGRST301" }, { code: "57014" }, { message: "PGRST202" }]) assert.equal(isMissingFunction(e), false);
+  assert.deepEqual(checkLegacyQuota(ok(true), 150), { allowed: true, used: null, limit: 150 });
+  assert.deepEqual(checkLegacyQuota(ok(false), 150), { allowed: false, reason: "daily", used: 150, limit: 150 });
+  for (const r of [failed, ok(null), ok("true"), ok(1)]) assert.deepEqual(checkLegacyQuota(r as never, 150), { allowed: false, reason: "unavailable" });
 });

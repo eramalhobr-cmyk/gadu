@@ -121,3 +121,26 @@ Integração nova: cota não é consumida quando o teto mensal ou os limites por
 
 ### Próxima atividade recomendada
 PR de **orçamento mensal com reserva e reconciliação** (P1), reaproveitando `scripts/test-db.sh` para testes de concorrência, e tratando junto a devolução de cota em falha do provedor e as leituras de gasto por provedor da importação de memórias e do resumo.
+
+### Resposta à revisão do ChatGPT no PR #3 (2026-11-13)
+| Ponto da revisão | Tratamento |
+|---|---|
+| 1. Limite inicial | **Confirmado**: `DAILY_MESSAGE_LIMIT` em produção = **150** (variável não secreta, lida na Vercel sem alterar nada). A migração semeia 150. A mudança de env para tabela continua **pendente de aprovação** do Eduardo. |
+| 2. Supabase real (staging) | **Pendente de decisão**: exige criar um branch ou projeto de staging no Supabase (custo/permissão). Não foi feito. Recomendado antes da produção. |
+| 3. Ordem do rollout e deploy inesperado | **Mitigado no código**: se o app novo subir antes da migração, o banco responde "função não existe" (`PGRST202`/`42883`) e a rota usa `consume_quota(limite do servidor)`, como hoje, em vez de bloquear todos. Qualquer outro erro continua fail closed. Roteiro abaixo. |
+| 4. Função antiga chamável / abuso | Mantida só na transição. Chamá-la direto não contorna a verificação do app (a rota usa a função nova), mas permite inflar a própria contagem. **Etapa 2**: revogar `EXECUTE` e remover logo após o deploy estável. Limite reduzido abaixo do uso: testado (nega, mantém contagem). Mudança de política durante a corrida: cada chamada lê o limite na hora; no máximo uma decisão usa o valor anterior (READ COMMITTED). Retries: cada nova requisição consome 1; não há idempotência por requisição (avaliar no PR de orçamento junto da devolução em falha do provedor). |
+| 5. Outros consumos | Verificado no código: **importação de memórias** (`/api/memories/import`) e **resumo de conversa** (em segundo plano após o chat) **não passam pela cota diária**. Usam o modelo barato e respeitam limites por provedor, mas a leitura do gasto por provedor ainda falha aberta. Busca por significado (embeddings no agendador) também não tem cota por pessoa. Tratar no PR de orçamento. |
+| Contrato `used > 0` | **Feito**: resposta positiva exige `used ≥ 1` e `used ≤ limit`; teste unitário. |
+
+Testes após os ajustes: unitários 30/30, integração 12/12 (inclui a transição e "outros erros continuam bloqueando"), banco SQL 24/24, concorrência 6/6, typecheck e build ok.
+
+#### Roteiro de implantação (cada passo com aprovação)
+1. Integrar o PR #2 em `main` (a Vercel publica sozinha) e verificar o chat em produção.
+2. Validar a migração `20261113120001` em staging do Supabase (se aprovado).
+3. Aplicar a migração em produção. A versão antiga do app segue usando `consume_quota`. Conferir: `select public.consume_daily_quota()` como usuário de teste; `select * from private.quota_policy` = 150.
+4. Mudar a base do PR #3 para `main`, integrar e deixar a Vercel publicar.
+5. Monitorar por 24h: logs da Vercel sem `chat quota validation unavailable` e sem o aviso de transição `consume_daily_quota ausente`; `usage_daily` nunca acima do limite.
+6. Etapa 2: migração revogando `EXECUTE` e removendo `consume_quota(integer)`, junto com a remoção do código de transição.
+
+**Rollback operacional:** reverter o app primeiro (a função antiga continua no banco). Só depois, se necessário, remover a função nova e as tabelas de política. Nunca remover `consume_quota` antes de o app novo estar estável.
+**Deploy automático inesperado** (PR #3 integrado antes da migração): o código de transição mantém o chat funcionando com a função antiga; aplicar a migração em seguida.

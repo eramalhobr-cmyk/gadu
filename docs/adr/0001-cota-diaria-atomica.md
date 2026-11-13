@@ -23,5 +23,5 @@
 ## Consequências
 - `DAILY_MESSAGE_LIMIT` (env) deixa de ser usado pelo chat. O limite passa a ser alterado em `private.quota_policy` (SQL, com aprovação) e, no futuro, pela administração de créditos.
 - Abre caminho para cotas individuais (`private.user_quota`) sem mudar código.
-- Ordem de implantação obrigatória: **aplicar a migração antes do deploy do app**. Se o app subir antes, a RPC não existe e o chat fica bloqueado (fail closed).
+- Ordem de implantação recomendada: aplicar a migração antes do deploy do app. Proteção de transição: se o app subir antes, a rota detecta "função não existe" (`PGRST202`/`42883`) e usa a função antiga com o limite do servidor, como hoje; qualquer outro erro continua bloqueando. O código de transição sai na etapa 2.
 - Mensagens cujo provedor falhar depois de passar na cota continuam contando (definir política de devolução no PR de orçamento).

@@ -6,7 +6,7 @@ export type GuardResult =
   | { allowed: false; reason: "unavailable" | "monthly" };
 
 export type DailyResult =
-  | { allowed: true; used: number; limit: number }
+  | { allowed: true; used: number | null; limit: number }
   | { allowed: false; reason: "daily"; used: number; limit: number }
   | { allowed: false; reason: "unavailable" };
 
@@ -45,7 +45,8 @@ export function checkDailyQuota(result: RpcResult<unknown>): DailyResult {
   const d = result.data as { allowed?: unknown; used?: unknown; limit?: unknown };
   const used = count(d.used), limit = count(d.limit);
   if (typeof d.allowed !== "boolean" || used === null || limit === null) return { allowed: false, reason: "unavailable" };
-  if (d.allowed && used > limit) return { allowed: false, reason: "unavailable" }; // resposta incoerente
+  // Resposta positiva coerente: consumiu ao menos 1 e não passou do limite.
+  if (d.allowed && (used < 1 || used > limit)) return { allowed: false, reason: "unavailable" };
   return d.allowed ? { allowed: true, used, limit } : { allowed: false, reason: "daily", used, limit };
 }
 
@@ -72,4 +73,19 @@ export function checkProviderSpend(result: RpcResult<unknown>): ProviderSpend {
     spentBy[r.provider] = (spentBy[r.provider] ?? 0) + cost;
   }
   return { ok: true, spentBy };
+}
+
+/** O banco ainda não tem a função nova (migração não aplicada): PostgREST PGRST202 ou Postgres 42883. */
+export function isMissingFunction(error: unknown): boolean {
+  const code = (error as { code?: unknown } | null)?.code;
+  return code === "PGRST202" || code === "42883";
+}
+
+/**
+ * Transição (só enquanto a migração 20261113120001 não estiver aplicada): resposta booleana da função
+ * antiga consume_quota(limite do servidor). Mantém o comportamento de hoje em vez de bloquear todos.
+ */
+export function checkLegacyQuota(result: RpcResult<unknown>, limit: number): DailyResult {
+  if (result.error || typeof result.data !== "boolean" || !Number.isInteger(limit) || limit < 0) return { allowed: false, reason: "unavailable" };
+  return result.data ? { allowed: true, used: null, limit } : { allowed: false, reason: "daily", used: limit, limit };
 }

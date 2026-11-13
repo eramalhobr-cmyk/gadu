@@ -90,6 +90,14 @@ begin
   reset role;
 end $$;
 
+-- 8b. Limite reduzido abaixo do que já foi usado hoje: nega, mantém a contagem e responde de forma coerente.
+update private.quota_policy set daily_limit = 2;
+select pg_temp.check(pg_temp.consume('00000000-0000-0000-0000-00000000000a') = '{"allowed": false, "used": 3, "limit": 2}', 'limite reduzido abaixo do uso nega');
+select pg_temp.check((select messages from public.usage_daily where user_id = '00000000-0000-0000-0000-00000000000a') = 3, 'limite reduzido não altera a contagem já feita');
+update private.quota_policy set daily_limit = 4;
+select pg_temp.check(pg_temp.consume('00000000-0000-0000-0000-00000000000a') = '{"allowed": true, "used": 4, "limit": 4}', 'limite aumentado no mesmo dia libera a diferença');
+update private.quota_policy set daily_limit = 3;
+
 -- 9. Compatibilidade da etapa 1: a função antiga continua existindo para a versão em produção.
 select pg_temp.check(exists (select 1 from pg_proc where proname = 'consume_quota'), 'consume_quota(integer) mantida até a etapa 2');
 

@@ -146,3 +146,23 @@ test("o app nunca envia o limite da cota ao banco", async () => {
   assert.ok(rpcCalls.includes("consume_daily_quota"));
   assert.ok(!rpcCalls.some((c) => c.startsWith("consume_quota") || c === "consume_daily_quota(args)"), "nenhum argumento de limite é enviado");
 });
+
+test("transição: sem a função nova no banco, usa a antiga com o limite do servidor", async () => {
+  const missing = async () => ({ data: null, error: { code: "PGRST202", message: "Could not find the function public.consume_daily_quota" } });
+  rpcs = { ...healthy(), consume_daily_quota: missing, consume_quota: ok(true) };
+  await chat();
+  assert.ok(rpcCalls.includes("consume_quota(args)"), "cai na função antiga");
+  assert.equal(providerCalls.length, 1, "o chat continua funcionando como hoje");
+
+  rpcs = { ...healthy(), consume_daily_quota: missing, consume_quota: ok(false) }; tables = []; providerCalls = []; rpcCalls = [];
+  assertBlocked(await chat(), "quota", /limite de 150 mensagens de hoje/);
+
+  rpcs = { ...healthy(), consume_daily_quota: missing, consume_quota: err }; tables = []; providerCalls = []; rpcCalls = [];
+  assertBlocked(await chat(), "error", /limite de mensagens/);
+});
+
+test("transição: outros erros da função nova continuam bloqueando (sem cair na antiga)", async () => {
+  rpcs = { ...healthy(), consume_daily_quota: async () => ({ data: null, error: { code: "PGRST301", message: "JWT expired" } }), consume_quota: ok(true) };
+  assertBlocked(await chat(), "error", /limite de mensagens/);
+  assert.ok(!rpcCalls.includes("consume_quota(args)"));
+});
