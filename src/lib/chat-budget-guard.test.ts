@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkDailyQuota, checkMonthlyBudget } from "./chat-budget-guard.ts";
+import { checkDailyQuota, checkMonthlyBudget, checkProviderSpend, safeRpc } from "./chat-budget-guard.ts";
 
 const ok = <T>(data: T) => ({ data, error: null });
 const failed = { data: null, error: { message: "database unavailable" } };
@@ -25,4 +25,26 @@ test("monthly budget fails closed for invalid RPC responses", () => {
   }
   assert.deepEqual(checkMonthlyBudget(ok(0), NaN), { allowed: false, reason: "unavailable" });
   assert.deepEqual(checkMonthlyBudget(ok(0), -1), { allowed: false, reason: "unavailable" });
+});
+
+test("monthly budget accepts numeric text in scientific notation", () => {
+  assert.deepEqual(checkMonthlyBudget(ok("1e-7"), 5), { allowed: true });
+  assert.deepEqual(checkMonthlyBudget(ok("0.009556"), 5), { allowed: true });
+  assert.deepEqual(checkMonthlyBudget(ok("5.0"), 5), { allowed: false, reason: "monthly" });
+});
+
+test("safeRpc turns thrown errors and empty results into errors", async () => {
+  assert.deepEqual(await safeRpc(async () => { throw new Error("fetch failed"); }), { data: null, error: { message: "rpc request failed" } });
+  assert.deepEqual(await safeRpc(async () => undefined as never), { data: null, error: { message: "invalid rpc response" } });
+  assert.deepEqual(await safeRpc(async () => ok(true)), ok(true));
+  // Resultado de safeRpc com exceção nunca libera a cota.
+  assert.deepEqual(checkDailyQuota(await safeRpc<boolean>(async () => { throw new Error("timeout"); })), { allowed: false, reason: "unavailable" });
+});
+
+test("provider spend fails closed on errors and invalid rows", () => {
+  assert.deepEqual(checkProviderSpend(ok([])), { ok: true, spentBy: {} });
+  assert.deepEqual(checkProviderSpend(ok([{ provider: "anthropic", cost_usd: 1.5 }, { provider: "gateway", cost_usd: "0.25" }])), { ok: true, spentBy: { anthropic: 1.5, gateway: 0.25 } });
+  for (const result of [failed, ok(null), ok({}), ok([{ provider: "anthropic", cost_usd: null }]), ok([{ provider: "", cost_usd: 1 }]), ok([{ provider: "gateway", cost_usd: -2 }]), ok([{ cost_usd: 1 }])]) {
+    assert.deepEqual(checkProviderSpend(result as never), { ok: false });
+  }
 });

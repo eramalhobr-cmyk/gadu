@@ -5,6 +5,30 @@ export type GuardResult =
   | { allowed: true }
   | { allowed: false; reason: "unavailable" | "daily" | "monthly" };
 
+/** Valor monetário vindo do banco: número finito ≥ 0, ou texto numérico (inclui notação científica). */
+function money(v: unknown): number | null {
+  if (typeof v === "number") return Number.isFinite(v) && v >= 0 ? v : null;
+  if (typeof v === "string" && /^\+?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(v.trim())) {
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+  return null;
+}
+
+/**
+ * Executa uma RPC obrigatória sem deixar exceções escaparem: falha de rede, timeout ou erro inesperado
+ * viram `error`, para a decisão fail-closed tratar tudo do mesmo jeito.
+ */
+export async function safeRpc<T>(call: () => PromiseLike<RpcResult<T>>): Promise<RpcResult<T>> {
+  try {
+    const r = await call();
+    if (!r || typeof r !== "object") return { data: null, error: { message: "invalid rpc response" } };
+    return r;
+  } catch {
+    return { data: null, error: { message: "rpc request failed" } };
+  }
+}
+
 export function checkDailyQuota(result: RpcResult<boolean>): GuardResult {
   if (result.error || typeof result.data !== "boolean") return { allowed: false, reason: "unavailable" };
   return result.data ? { allowed: true } : { allowed: false, reason: "daily" };
@@ -12,12 +36,25 @@ export function checkDailyQuota(result: RpcResult<boolean>): GuardResult {
 
 export function checkMonthlyBudget(result: RpcResult<number | string>, budgetUsd: number): GuardResult {
   if (result.error || result.data === null || result.data === undefined) return { allowed: false, reason: "unavailable" };
-  if (typeof result.data !== "number" && (typeof result.data !== "string" || !/^\d+(\.\d+)?$/.test(result.data))) {
-    return { allowed: false, reason: "unavailable" };
-  }
-  const spent = Number(result.data);
-  if (!Number.isFinite(spent) || spent < 0 || !Number.isFinite(budgetUsd) || budgetUsd < 0) {
-    return { allowed: false, reason: "unavailable" };
-  }
+  const spent = money(result.data);
+  if (spent === null || !Number.isFinite(budgetUsd) || budgetUsd < 0) return { allowed: false, reason: "unavailable" };
   return spent >= budgetUsd ? { allowed: false, reason: "monthly" } : { allowed: true };
+}
+
+export type ProviderSpend = { ok: true; spentBy: Record<string, number> } | { ok: false };
+
+/**
+ * Gasto do mês por provedor (limites definidos pela pessoa em Ajustes). Sem esse dado não dá para
+ * saber se um motor passou do limite: falha ou linha inválida bloqueia a chamada (fail closed).
+ */
+export function checkProviderSpend(result: RpcResult<unknown>): ProviderSpend {
+  if (result.error || !Array.isArray(result.data)) return { ok: false };
+  const spentBy: Record<string, number> = {};
+  for (const row of result.data as unknown[]) {
+    const r = (row ?? {}) as { provider?: unknown; cost_usd?: unknown };
+    const cost = money(r.cost_usd);
+    if (typeof r.provider !== "string" || !r.provider || cost === null) return { ok: false };
+    spentBy[r.provider] = (spentBy[r.provider] ?? 0) + cost;
+  }
+  return { ok: true, spentBy };
 }
