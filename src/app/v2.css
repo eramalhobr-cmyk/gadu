@@ -207,10 +207,10 @@ button.kpi:hover { border-color: var(--line-2); }
 .modpage-hero h1 { margin: 0; font: 500 clamp(24px, 5vw, 34px)/1.15 var(--display); }
 .modpage-hero p { margin: 0; color: var(--ink-2); max-width: 640px; }
 .modpage-cols { display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); }
-.ticks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
-.ticks li { display: flex; gap: var(--s-2); align-items: flex-start; }
-.ticks li svg { flex: none; margin-top: 3px; color: var(--ink-3); }
-.ticks.ok li svg { color: var(--ok); }
+.plist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.plist li { display: flex; gap: var(--s-2); align-items: flex-start; }
+.plist li svg { flex: none; margin-top: 3px; color: var(--ink-3); }
+.plist.ok li svg { color: var(--ok); }
 .honest { display: flex; gap: var(--s-3); align-items: flex-start; padding: var(--s-3) var(--s-4); border: 1px dashed var(--line-2); border-radius: var(--r-lg); color: var(--ink-2); }
 .honest svg { flex: none; margin-top: 2px; color: var(--hot); }
 
@@ -297,7 +297,7 @@ button.kpi:hover { border-color: var(--line-2); }
 .lp-section > .lp-kicker { display: block; margin-bottom: 6px; }
 .lp-section .mods { margin-top: var(--s-4); }
 .lp-assist { display: grid; gap: var(--s-6); align-items: center; }
-.lp-assist .ticks { margin-top: var(--s-4); }
+.lp-assist .plist { margin-top: var(--s-4); }
 .lp-assist-mock { display: flex; flex-direction: column; width: 100%; max-width: 400px; justify-self: center; border: 1px solid var(--line-2); border-radius: var(--r-xl); background: var(--panel); box-shadow: 0 24px 60px rgb(var(--shadow-rgb) / 0.35); overflow: hidden; }
 .lp-assist-mock .assist-log { flex: none; }
 :root[data-theme="light"] .lp-feature, :root[data-theme="light"] .lp-pillar, :root[data-theme="light"] .lp-badge { background: var(--panel); box-shadow: var(--elev); }

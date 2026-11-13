@@ -55,17 +55,17 @@ export function ModulePage({ id, onOpen }: { id: ModuleId; onOpen: (view: ViewId
           {m.available.length > 0 && (
             <section className="card">
               <h2>Já funciona</h2>
-              <ul className="ticks ok">{m.available.map((t) => <li key={t}><Icon name="check" size={16} /><span>{t}</span></li>)}</ul>
+              <ul className="plist ok">{m.available.map((t) => <li key={t}><Icon name="check" size={16} /><span>{t}</span></li>)}</ul>
             </section>
           )}
           <section className="card">
             <h2>{m.status === "planejado" ? "O que está previsto" : "Ainda no plano"}</h2>
-            <ul className="ticks">{m.planned.map((t) => <li key={t}><Icon name="spark" size={16} /><span>{t}</span></li>)}</ul>
+            <ul className="plist">{m.planned.map((t) => <li key={t}><Icon name="spark" size={16} /><span>{t}</span></li>)}</ul>
           </section>
           {m.needs.length > 0 && (
             <section className="card">
               <h2>Depende de</h2>
-              <ul className="ticks">{m.needs.map((t) => <li key={t}><Icon name="lock" size={16} /><span>{t}</span></li>)}</ul>
+              <ul className="plist">{m.needs.map((t) => <li key={t}><Icon name="lock" size={16} /><span>{t}</span></li>)}</ul>
             </section>
           )}
         </div>

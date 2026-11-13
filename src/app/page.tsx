@@ -93,7 +93,7 @@ export default async function Home() {
             <span className="mono lp-kicker">Assistente universal</span>
             <h2>Voz e texto em qualquer tela</h2>
             <p className="muted">O GaDu fica sempre à mão: um painel ao lado no computador e um painel que sobe no celular. Ele sabe em que tela você está e responde sem tirar você de lá.</p>
-            <ul className="ticks ok">
+            <ul className="plist ok">
               <li><Icon name="check" size={16} /><span>Fale ou escreva, como preferir</span></li>
               <li><Icon name="check" size={16} /><span>A mesma conversa em todas as telas</span></li>
               <li><Icon name="check" size={16} /><span>Usa só os seus dados, com as suas permissões</span></li>

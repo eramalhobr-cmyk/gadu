@@ -436,7 +436,7 @@ export function GaduApp(props: {
         {MODULES.filter((m) => m.status === "planejado").map((m) => (
           <button key={m.id} className="nav-item soon" aria-current={view === m.views[0].id ? "page" : undefined} onClick={() => setTab(m.views[0].id)} style={{ ["--c" as string]: colorVar(m.color) }}>
             <Icon name={m.icon} size={19} />
-            <span>{m.id === "studio" ? "Office Studio" : m.name}</span>
+            <span>{m.id === "studio" ? "Studio" : m.name}</span>
             <StatusPill status={m.status} />
           </button>
         ))}

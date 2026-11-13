@@ -1,6 +1,6 @@
 # GaDu · Matriz de funcionalidades
 
-Atualizada em 13/11/2026 (tarde), a partir do código na `main` (`fd77f84`) e de PRs abertos. Status:
+Atualizada em 13/11/2026 (UX/UI v2), a partir do código na `main` (`883ea23`) e de PRs abertos. Status:
 - **implementado**: na `main` e em produção.
 - **beta**: em produção, mas parcial, dependente de passo manual ou sem validação real.
 - **em desenvolvimento**: em branch ou PR.
@@ -29,7 +29,9 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Modo conversa (volta a ouvir) | beta | P1 | `GaduApp.tsx`, `src/lib/speech.ts` | estabilidade melhorada no PR #9 (testes com voz simulada); validar no iPhone e no Android |
 | Voz natural paga (ElevenLabs/OpenAI) com teto | planejado | P2 | — | aprovação de custo |
 | Conversa contínua com interrupção natural | planejado | P2 | — | voz paga |
-| Voz e texto em qualquer módulo novo (Finanças, Office, 3D) | planejado | P1 | — | decisão oficial: todo módulo novo recebe voz e texto |
+| Assistente Universal em todas as telas (painel lateral e painel de baixo) | implementado | — | `src/components/Assistant.tsx`, `GaduApp.tsx` | PR #12; validar nos aparelhos |
+| Contexto do módulo e da tela enviado ao assistente | implementado | — | `src/lib/assistant-context.ts`, `src/app/api/chat/route.ts` | só rótulo validado; não amplia o acesso |
+| Relacionar informações entre módulos | planejado | P2 | — | permissões, isolamento por organização e cliente, auditoria de segurança |
 
 ## 3. Inteligência contextual e integração entre módulos
 | Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
@@ -97,6 +99,10 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | PWA instalável, tela offline, rascunho local | implementado | — | `public/manifest.webmanifest`, `public/sw.js`, `src/app/offline` | — |
 | Guia, dicas e "Como funciona" | implementado | — | `src/app/app/guia`, `src/app/app/sobre`, `src/lib/tips.ts` | — |
 | Design System com tokens centralizados | implementado (v1) | P1 | `src/app/globals.css`, `docs/DESIGN_SYSTEM.md` | PR #10; etapa 2: migrar estilos inline e criar componentes compartilhados |
-| Menu lateral no computador e layouts para tablet | implementado | — | `src/components/GaduApp.tsx` (`.side`), `globals.css` | PR #10 |
+| Arquitetura de módulos com status real | implementado | — | `src/lib/modules.ts`, `src/components/ModulePage.tsx` | PR #12; os módulos planejados só têm página de visão geral |
+| Navegação por módulos (menu lateral; barra de baixo e folha de módulos) | implementado | — | `GaduApp.tsx`, `src/app/v2.css` | PR #12 |
+| Temas claro e escuro | implementado | — | `src/lib/theme.ts`, `src/app/v2.css`, `src/app/layout.tsx` | PR #12; auditoria de contraste do tema claro (P1) |
+| Painel Hoje, Conversa, Perfil e ajustes e home no desenho da v2 | implementado | — | `TodayPage.tsx`, `GaduApp.tsx`, `SettingsPage.tsx`, `src/app/page.tsx` | PR #12 |
+| Projetos, Agentes, Memória, Admin, Guia e Agenda no desenho da v2 | planejado | P1 | — | hoje usam os temas, com o desenho anterior |
 | Acessibilidade (atalho de teclado, alvos de toque, foco) | implementado | — | `GaduApp.tsx`, `globals.css` | PR #10; auditoria completa de contraste (P2) |
 | Validação do PWA na Streaming Box do carro | planejado | P3 | ROADMAP do PR #1 | — |
