@@ -8,3 +8,7 @@
 - Migrações novas em `supabase/migrations/AAAAMMDDHHMMSS_nome.sql`; nunca editar uma já aplicada.
 - Antes de subir: `npm run typecheck && npm test && npm run build`.
 - Textos da interface em português do Brasil, frases curtas e diretas.
+
+## GaDu Fast Track (13/11/2026)
+- Siga `docs/FAST_TRACK.md`: **baixo risco** (interface, experiência, funcionalidades reversíveis, docs) usa processo simplificado com CI verde e validação em produção; **alto risco** (banco, autenticação, permissões, credenciais, segurança, consumo financeiro) mantém testes completos, plano de rollback e aprovação explícita a cada passo sensível.
+- Na dúvida, trate como alto risco.
