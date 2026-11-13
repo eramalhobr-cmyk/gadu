@@ -8,3 +8,11 @@
 - Migrações novas em `supabase/migrations/AAAAMMDDHHMMSS_nome.sql`; nunca editar uma já aplicada.
 - Antes de subir: `npm run typecheck && npm test && npm run build`.
 - Textos da interface em português do Brasil, frases curtas e diretas.
+
+
+## Continuidade entre ferramentas (2026-11-12)
+- Leia também `AGENTS.md` como instrução compartilhada e `docs/PROJECT_CONTEXT.md`, `docs/DESIGN_SYSTEM.md` e `docs/DEVELOPMENT_HANDOFF.md`.
+- O GitHub é a fonte oficial de contexto; não dependa do histórico de conversas do Claude Code, Codex ou ChatGPT.
+- Antes de implementar, confira o código e classifique funcionalidades como implementadas, parciais, planejadas ou a validar.
+- Use branch e pull request; sem deploy, alterações de banco remoto, segredos ou produção sem aprovação.
+- Priorize UX, mobile first e experiência desktop dedicada. Atualize documentação e testes a cada entrega.

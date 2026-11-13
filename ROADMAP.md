@@ -198,6 +198,46 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [ ] Convites por e-mail e painel de administração
 - [ ] Guia de instalação para outra pessoa (um projeto Supabase + Vercel por pessoa, ou multiusuário)
 
+
+## GaDu AI Radar · Inteligência de evolução tecnológica (planejado em 12/11/2026)
+- [ ] Criar módulo de notícias e oportunidades de IA dentro do GaDu, após estabilização das correções críticas.
+- [ ] Monitorar fontes oficiais e changelogs de OpenAI, Anthropic/Claude, Google/Gemini, GitHub, modelos abertos, MCPs, skills e ferramentas de agentes.
+- [ ] Coletar título, fonte, URL, data de publicação, versão e disponibilidade; deduplicar novidades e distinguir anúncio, beta e disponibilidade efetiva.
+- [ ] Classificar impactos potenciais em voz, memória, agentes, automações, segurança, UX, desempenho e custos; indicar compatibilidade com a arquitetura atual.
+- [ ] Gerar propostas priorizadas com benefício, esforço, risco, dependências, custo estimado e critérios de aceite, vinculadas ao roadmap e a ADRs.
+- [ ] Apresentar painel com novidades, itens avaliados, oportunidades recomendadas, descartadas e já incorporadas.
+- [ ] Enviar briefing semanal configurável e alertas apenas para mudanças relevantes; permitir opt-in e controle de frequência.
+- [ ] Em fase posterior, integrar ao Agent Office para preparar especificações, testes e PRs em branches isoladas.
+- [ ] Exigir aprovação humana explícita antes de instalar dependências, modificar código, integrar PRs, alterar infraestrutura ou publicar.
+- [ ] Definir controles de segurança para conteúdo externo não confiável (prompt injection), links e licenças, limites de custo e auditoria.
+- [ ] MVP: curadoria com fontes oficiais + análise de aplicabilidade + backlog de oportunidades; automação de implementação fica para etapa futura.
+
+## GaDu na Streaming Box Farfetch · acesso via PWA (planejado em 12/11/2026)
+- [ ] Validar o GaDu PWA no navegador da Streaming Box Farfetch, sem criar aplicativo Android nativo.
+- [ ] Testar instalação/atalho do PWA, login, sessão, responsividade em tela horizontal, conexão e reprodução de áudio.
+- [ ] Verificar se o navegador da box permite acesso ao microfone e reconhecimento de voz; oferecer entrada por texto caso a voz não esteja disponível.
+- [ ] Testar com o veículo estacionado e priorizar comandos por voz, sem interações que distraiam durante a condução.
+- [ ] Registrar resultados e limitações do dispositivo antes de qualquer adaptação específica.
+- [ ] Manter como melhoria futura de compatibilidade do PWA, sem desviar das correções de segurança atuais.
+
+## GaDu Casa Inteligente · Tuya e assistentes domésticos (futuro, 12/11/2026)
+- [ ] Criar painel de casa inteligente no GaDu para visualizar ambientes, dispositivos, estado e ações disponíveis.
+- [ ] Avaliar integração oficial com Tuya/Smart Life (hub e dispositivos já usados pelo usuário), com autenticação segura, permissões mínimas e verificação de compatibilidade por modelo/região.
+- [ ] Mapear interoperabilidade com Alexa e Google Home, distinguindo dispositivos controláveis por API de funcionalidades restritas aos ecossistemas; não presumir controle direto das caixas Alexa.
+- [ ] Permitir comandos por voz e texto, por exemplo ligar luzes e abrir/fechar persianas, com confirmação de execução e tratamento de falhas.
+- [ ] Avaliar câmeras compatíveis, visualização de vídeo ao vivo e permissões específicas; nunca presumir que todas oferecem streaming externo.
+- [ ] Planejar cenas, rotinas e automações com aprovação explícita e histórico de ações.
+- [ ] Aplicar isolamento multiusuário, credenciais criptografadas, logs mínimos e autorização reforçada para fechaduras, alarmes, portões e câmeras.
+- [ ] MVP futuro: conectar Tuya, listar dispositivos/estados e controlar um conjunto pequeno de ações de baixo risco; ampliar depois de testes reais.
+- [ ] Manter como backlog futuro, sem interferir na validação de segurança e no PR #2 em andamento.
+
+## GaDu Agent Collaboration · orquestração multiagente (longo prazo, 12/11/2026)
+- [ ] Avaliar integração entre ChatGPT, Claude Code e Codex por MCP e/ou APIs oficiais, com GitHub e documentação versionada como fonte de verdade.
+- [ ] Criar orquestrador para delegar especificação, implementação, revisão, testes e handoff entre agentes sem cópia manual de mensagens.
+- [ ] Definir permissões, isolamento de branches, rastreabilidade, custos, limites de execução e prevenção de alterações concorrentes.
+- [ ] Exigir aprovação explícita do usuário para merges, deploys, mudanças em produção, acesso sensível e ações irreversíveis.
+- [ ] **Prioridade baixa / longo prazo**: iniciar somente após segurança, estabilidade e módulos essenciais do GaDu; por enquanto usar colaboração via GitHub, PRs e handoffs.
+
 ## Operação
 - [ ] Monitoramento de erros e alerta de saúde
 - [ ] Backups do banco conferidos (plano grátis: diário, 7 dias)
