@@ -1,5 +1,6 @@
 "use client";
 import "./globals.css";
+import "./v2.css";
 
 // Erro no próprio layout: página mínima, sem depender do resto do app.
 export default function GlobalError({ reset }: { error: Error; reset: () => void }) {

@@ -12,7 +12,7 @@ const RID = "3f2b1c9e-8d7a-4b6c-9e5f-1a2b3c4d5e6f";
 let rpcs: Record<string, (args?: Record<string, unknown>) => Promise<Rpc>> = {};
 let tables: string[] = [];
 let inserts: { table: string; row: unknown }[] = [];
-let providerCalls: { skip: string[] }[] = [];
+let providerCalls: { skip: string[]; context?: string }[] = [];
 let rpcCalls: { name: string; args?: Record<string, unknown> }[] = [];
 let providerMode: "ok" | "throw" = "ok";
 
@@ -68,8 +68,8 @@ class AllProvidersFailed extends Error { kind = "other"; }
 mock.module(src("lib/llm/router.ts"), {
   namedExports: {
     BudgetReached, NoProviderError, AllProvidersFailed,
-    routeChat: async function* (req: { onUsage?: (u: unknown) => void }, skip: Set<string>) {
-      providerCalls.push({ skip: [...skip] });
+    routeChat: async function* (req: { onUsage?: (u: unknown) => void; context?: string }, skip: Set<string>) {
+      providerCalls.push({ skip: [...skip], context: req.context });
       if (providerMode === "throw") throw new AllProvidersFailed("down");
       yield { type: "provider", name: "Claude", id: "anthropic" };
       yield { type: "text", text: "Olá!" };
@@ -81,8 +81,9 @@ mock.module("next/server", { namedExports: { after: () => {} } });
 
 const { POST } = await import(src("app/api/chat/route.ts"));
 
-async function chat(message = "oi") {
-  const res: Response = await POST(new Request("http://localhost/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message }) }));
+async function chat(message = "oi", extra: Record<string, unknown> = {}) {
+  const res: Response = await POST(new Request("http://localhost/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message, ...extra }) }));
+  if (res.status !== 200) return [{ t: "http", kind: String(res.status) }];
   const text = await res.text();
   return text.trim().split("\n").filter(Boolean).map((l) => JSON.parse(l) as { t: string; kind?: string; text?: string });
 }
@@ -215,4 +216,27 @@ test("transição: sem a função nova de cota, usa a antiga com o limite do ser
 test("o app nunca envia o limite da cota ao banco", async () => {
   await chat();
   assert.equal(called("consume_daily_quota")[0].args, undefined);
+});
+
+test("assistente universal: o contexto da tela chega ao modelo como rótulo", async () => {
+  await chat("oi", { context: { module: "pessoal", view: "hoje" } });
+  assert.match(providerCalls[0].context ?? "", /módulo Pessoal, tela Hoje/);
+
+  reset();
+  await chat("oi", { context: { module: "financeiro", view: "financeiro" } });
+  assert.match(providerCalls[0].context ?? "", /ainda está planejado/);
+
+  reset();
+  await chat("oi");
+  assert.doesNotMatch(providerCalls[0].context ?? "", /Tela atual/, "sem contexto, nada é acrescentado");
+});
+
+test("assistente universal: contexto inválido ou com campos extras é recusado antes de qualquer custo", async () => {
+  for (const context of [{ module: "financeiro", view: "hoje" }, { module: "pessoal", view: "hoje", org: "outra-empresa" }, { module: "x", view: "y" }, "texto livre"]) {
+    reset();
+    const out = await chat("oi", { context });
+    assert.deepEqual(out, [{ t: "http", kind: "400" }]);
+    assert.equal(providerCalls.length, 0);
+    assert.equal(rpcCalls.length, 0, "nem consulta o banco");
+  }
 });

@@ -1,6 +1,6 @@
 # GaDu · Design System
 
-Versão 1, de 13/11/2026. Este documento descreve **o que está no código**. Os tokens ficam em `:root`, no `src/app/globals.css`. A especificação inicial do PR #1 (identidade e cobertura) foi incorporada aqui.
+Versão 2, de 13/11/2026 (UX/UI v2). Este documento descreve **o que está no código**. Os tokens ficam em `src/app/v2.css`. A especificação inicial do PR #1 (identidade e cobertura) foi incorporada aqui.
 
 ## Identidade (decisão oficial, não muda sem aprovação)
 - Nome **GaDu**, com G e D maiúsculos.
@@ -8,41 +8,62 @@ Versão 1, de 13/11/2026. Este documento descreve **o que está no código**. Os
 - Fundo azul-marinho quase preto; elementos holográficos em ciano e azul; detalhes em violeta e laranja.
 - Inteligência digital com traços humanoides, não pele realista.
 
+## Arquivos
+- `src/app/v2.css`: tokens dos dois temas, estrutura do app, navegação, assistente, painel, conversa, ajustes e home (v2).
+- `src/app/globals.css`: componentes de base e telas anteriores, já usando os tokens.
+- `src/lib/modules.ts`: módulos, telas e status. `src/lib/theme.ts`: tema. `src/lib/assistant-context.ts`: contexto do assistente.
+
+## Temas
+- **Escuro** é o padrão e a identidade da marca. **Claro** é opcional (Perfil e ajustes › Aparência, ou o botão de sol/lua).
+- A escolha fica no cookie `gadu_theme`; o servidor aplica `data-theme` no `<html>`, sem piscar.
+- O avatar, o menu lateral e o destaque do painel ficam sempre sobre fundo escuro (classe `.on-dark`), nos dois temas.
+- Regra: nenhuma cor fixa em componente. Cores com transparência usam os trios `--*-rgb`: `rgb(var(--sig-rgb) / 0.2)`.
+
 ## Tokens
 | Grupo | Tokens | Uso |
 |---|---|---|
-| Superfícies | `--bg` `--panel` `--deep` | fundo, cartões, áreas profundas |
+| Trios RGB | `--bg-rgb` `--panel-rgb` `--raise-rgb` `--deep-rgb` `--sig-rgb` `--line-rgb` `--hot-rgb` `--violet-rgb` `--hi-rgb` `--shadow-rgb` | cores com transparência, por tema |
+| Superfícies | `--bg` `--panel` `--deep` `--surface` `--surface-2` | fundo, cartões, campos |
 | Texto | `--ink` `--ink-2` `--ink-3` | principal, secundário, apoio |
-| Sinal e estados | `--sig` (ciano) `--hot` (laranja) `--bad` (erro) | ação principal, atenção, erro |
-| Acentos | `--c-sig` `--c-hot` `--c-violet` `--c-blue` `--c-green` `--c-pink` | cor por projeto e agente (`colorVar()` em `src/components/ui.tsx`) |
-| Holográfico | `--holo` (gradiente ciano → azul → violeta), `--glow` | marca de item ativo, destaques |
+| Sinal e estados | `--sig` `--sig-ink` `--hot` `--bad` `--ok` | ação principal, atenção, erro, sucesso |
+| Acentos | `--c-sig` `--c-hot` `--c-violet` `--c-blue` `--c-green` `--c-pink` | cor por módulo, projeto e agente (`colorVar()`) |
+| Efeitos | `--holo` `--glow` `--elev` | gradiente holográfico, brilho, elevação |
 | Linhas | `--line` `--line-2` `--wash` | bordas e fundos sutis |
-| Espaço | `--s-1` 4 · `--s-2` 8 · `--s-3` 12 · `--s-4` 16 · `--s-5` 20 · `--s-6` 24 · `--s-8` 32 · `--s-10` 40 | margens e espaçamentos |
-| Raio | `--r-sm` 8 · `--r-md` 12 · `--r-lg` 16 · `--r-xl` 20 · `--r-pill` | cantos |
-| Texto (tamanho) | `--fs-xs` 12 · `--fs-sm` 14 · `--fs-md` 16 · `--fs-lg` 18 · `--fs-xl` 22 · `--fs-2xl` 30 | escala tipográfica |
-| Fontes | `--display` (Michroma), `--body` (Instrument Sans), `--mono` (IBM Plex Mono) | títulos, texto, rótulos |
-| Movimento | `--dur` 0,18 s · `--ease` | transições; tudo para com "reduzir movimento" |
-| Camadas | `--z-nav` `--z-fab` `--z-drawer` `--z-skip` | ordem de sobreposição |
-| Toque | `--touch` 44 px | altura mínima de alvos de toque |
-| Layout | `--side-w` 248 px (272 px a partir de 1440) | largura do menu lateral |
+| Espaço | `--s-1` 4 a `--s-10` 40 | margens e espaçamentos |
+| Raio | `--r-sm` 8 · `--r-md` 12 · `--r-lg` 16 · `--r-xl` 22 · `--r-pill` | cantos |
+| Texto (tamanho) | `--fs-xs` 12 a `--fs-3xl` 40 | escala tipográfica |
+| Fontes | `--display` (Michroma), `--body` (Instrument Sans), `--mono` (IBM Plex Mono) | títulos, texto e números, rótulos |
+| Movimento | `--dur` · `--ease` | transições; tudo para com "reduzir movimento" |
+| Camadas | `--z-nav` `--z-assist` `--z-sheet` `--z-skip` | sobreposição |
+| Layout | `--nav-w` 264 · `--assist-w` 384 · `--bar-h` 60 · `--dock-h` 64 · `--touch` 44 | estrutura |
 
-Regra: valor novo de cor, espaço, raio ou movimento entra como token, não fixo no componente. Os estilos inline antigos migram aos poucos (há cerca de 140 hoje, mais da metade em Ajustes, Hoje e Agenda).
+## Módulos e status
+Seis módulos: Pessoal, Financeiro, Agent Office, Agent Office Studio, 3D Studio, Plataforma. O status vem de `modules.ts` e aparece no selo `.pill`: **Disponível** (verde), **Parcial** (laranja), **Planejado** (tracejado). Módulo planejado nunca mostra ação: abre a `ModulePage`, que diz que ele ainda não existe. Um teste garante que módulo planejado não lista nada como disponível.
 
-## Componentes (classes em `globals.css`)
-- **Botões:** `.btn` (48 px), `.btn-pri` (ação principal, uma por área), `.btn-sm` (40 px), `.icon-btn` (44 px), `.link-btn`, `.chip` (40 px).
-- **Campos:** `.field`.
-- **Superfícies:** `.card` (vidro), `.notice` (aviso), `.banner` (faixa de sistema).
-- **Navegação:** `.tabs` e `.tab` (menu de baixo, no celular), `.side`, `.side-item` e `.side-nav` (menu lateral, no computador), `.drawer` (menu ☰ e conversas), `.seg` (abas internas), `.skip` (atalho de teclado).
-- **Voz:** `.fab` (botão flutuante), `.dock` (painel compacto), `.mic`, `.talk-bar`.
-- **Erros:** `ErrorScreen` (`src/components/ErrorScreen.tsx`); mensagens em `src/lib/errors.ts`.
+## Componentes
+- **Estrutura:** `.app`, `.nav` (menu lateral), `.frame`, `.bar` (cabeçalho), `.dockbar` (barra de baixo), `.sheet` (folha de módulos).
+- **Navegação:** `.nav-mod`, `.nav-item`, `.dock-item`, `.dock-orb`, `.pill`, `.skip`.
+- **Assistente Universal:** `.assist` (painel), `.assist-head`, `.assist-log`, `.assist-composer`, `.orb-fab`, `.round` (botões redondos).
+- **Mensagens:** `.bub.u` (pessoa), `.bub.b` (GaDu), `.notice`.
+- **Conversa:** `.chat2`, `.chat-stage` (palco do avatar), `.chat-log`, `.chat-box`.
+- **Painel:** `.dash-hero`, `.kpis` e `.kpi`, `.quick-row`, `.dash-grid`, `.mods` e `.mod`.
+- **Ajustes:** `.set-head`, `.set-nav`, `.set-group`, `.set-cards`, `.theme-opt`.
+- **Base (globals.css):** `.btn`, `.btn-pri`, `.btn-sm`, `.icon-btn`, `.chip`, `.field`, `.card`, `.banner`, `.seg`, `.drawer`.
+- **Erros:** `ErrorScreen`; mensagens em `src/lib/errors.ts`.
 
 ## Navegação e layout
 | Largura | Navegação | Layout |
 |---|---|---|
-| até 699 px (celular) | menu de baixo fixo, ☰ com menu e conversas, voz flutuante | uma coluna; o conteúdo nunca fica atrás do botão de voz |
-| 700 a 1023 px (tablet) | menu de baixo | Hoje em duas colunas; conversa com o avatar ao lado a partir de 900 px |
-| 1024 a 1279 px | **menu lateral fixo** (abas, Nova conversa, Conversas anteriores, Guia, Como funciona, estado do GaDu); cabeçalho com o título da tela | Hoje em duas colunas; conversa com o avatar em 38% e a leitura centralizada (máx. 760 px) |
-| 1280 px ou mais | menu lateral | Hoje em três colunas |
+| até 699 px | barra de baixo: Hoje, Conversa, assistente (centro), Tarefas, Módulos | uma coluna; assistente como painel de baixo, que expande |
+| 700 a 1023 px | barra de baixo | painel em duas colunas; assistente flutuante à direita |
+| 1024 px ou mais | menu lateral por módulos; cabeçalho com módulo e tela | assistente como coluna à direita; conversa com palco do avatar e leitura de até 780 px |
+| 1280 px ou mais | igual | painel em três colunas (duas com o assistente aberto, três a partir de 1500 px) |
+
+## Assistente Universal
+- Uma conversa só: o painel e a tela Conversa mostram as mesmas mensagens.
+- O app envia `context: { module, view }` em cada mensagem. O servidor valida (a tela precisa pertencer ao módulo; campos extras são recusados) e acrescenta uma linha ao contexto do modelo.
+- O contexto é um rótulo. Não carrega dados, não identifica organização nem cliente e não amplia o acesso (`scopesFor` devolve sempre `["pessoal"]`).
+- Cruzar informações entre módulos, organizações ou clientes depende da arquitetura de isolamento e da auditoria de segurança do Agent Office. Não implementado.
 
 ## Acessibilidade
 - Foco visível em tudo (`:focus-visible` ciano).
@@ -57,6 +78,7 @@ Regra: valor novo de cor, espaço, raio ou movimento entra como token, não fixo
 3. Conferir o console: nenhum erro de hidratação. O que depende do aparelho (voz, microfone) é detectado em `useEffect`, nunca durante a renderização.
 
 ## Próximos passos
-- Migrar estilos inline de Ajustes, Hoje e Agenda para classes e tokens.
-- Componentes React compartilhados (`Button`, `Card`, `Field`) quando o número de telas crescer.
-- Aplicar o mesmo sistema aos módulos novos (Finanças, 3D Studio, Agent Office).
+- Migrar os estilos inline restantes (Ajustes, Hoje e Agenda) e as telas Projetos, Agentes, Memória e Admin para os componentes da v2.
+- Auditoria de contraste do tema claro em todas as telas.
+- Componentes React compartilhados (`Button`, `Card`, `Field`).
+- Aplicar o sistema aos módulos novos quando forem construídos.

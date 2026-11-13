@@ -1,4 +1,6 @@
 "use client";
+import type { ViewId } from "@/lib/modules";
+import type { Theme } from "@/lib/theme";
 import { useCallback, useEffect, useState } from "react";
 import { canSpeak, listVoices, voiceLabel, type Speaker } from "@/lib/speech";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -25,8 +27,13 @@ function Bar({ value, max }: { value: number; max: number }) {
 }
 
 export function SettingsPage(props: {
+  name: string;
   email: string;
   version: string;
+  theme: Theme;
+  onTheme: (t: Theme) => void;
+  admin: boolean;
+  onOpen: (view: ViewId) => void;
   prefs: Prefs;
   setPrefs: (p: Prefs) => void;
   voiceOk: boolean;
@@ -65,17 +72,56 @@ export function SettingsPage(props: {
   }
 
   return (
-    <main className="page">
-      <section className="card">
-        <h2>Ajuda</h2>
-        <a className="help-item primary" href="/app/guia" style={{ textDecoration: "none" }}><span style={{ flex: 1 }}>Guia passo a passo</span><span aria-hidden="true">›</span></a>
-        <a className="help-item" href="/app/sobre" style={{ textDecoration: "none" }}><span style={{ flex: 1 }}>Como o GaDu funciona (arquitetura)</span><span aria-hidden="true">›</span></a>
-        <button className="help-item" onClick={props.onResetTips}><span style={{ flex: 1 }}>Rever as dicas de cada tela</span><span aria-hidden="true">›</span></button>
-      </section>
+    <main className="page" id="conteudo">
+      <div className="wrap">
+        <section className="set-head">
+          <span className="initial" aria-hidden="true">{(props.name || props.email || "G").trim().charAt(0).toUpperCase()}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1>{props.name || "Seu perfil"}</h1>
+            <div className="muted" style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{props.email}</div>
+            <div className="mono muted">GaDu {props.version}</div>
+          </div>
+          <form action="/auth/signout" method="post"><button className="btn btn-sm" type="submit">Sair</button></form>
+        </section>
+        <nav className="set-nav" aria-label="Seções dos ajustes">
+          {GROUPS.map((g) => <a key={g.id} className="chip" href={`#${g.id}`}>{g.label}</a>)}
+        </nav>
+
+        <section className="set-group" id="g-aparencia" aria-labelledby="h-aparencia">
+          <h2 id="h-aparencia">Aparência e voz</h2>
+          <div className="set-cards">
+            <section className="card">
+              <h2>Tema</h2>
+              <div className="theme-opts">
+                {(["dark", "light"] as const).map((t) => (
+                  <button key={t} className="theme-opt" aria-pressed={props.theme === t} onClick={() => props.onTheme(t)}>
+                    <span className={`theme-swatch ${t}`} aria-hidden="true"><i /><i /></span>
+                    <b>{t === "dark" ? "Escuro" : "Claro"}</b>
+                    <span className="muted" style={{ fontSize: 14 }}>{t === "dark" ? "Identidade do GaDu. Melhor à noite." : "Mais legível em ambientes claros."}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+            <VoiceCard {...props} />
+          </div>
+        </section>
+
+        <section className="set-group" id="g-conexoes" aria-labelledby="h-conexoes">
+          <h2 id="h-conexoes">Avisos e conexões</h2>
+          <div className="set-cards">
       <NotificationsCard />
       <ConnectionsCard morningLink={props.morningLink} />
-      <SpendCard />
-      <VoiceCard {...props} />
+          </div>
+        </section>
+
+        <section className="set-group" id="g-custos" aria-labelledby="h-custos">
+          <h2 id="h-custos">Custos de IA</h2>
+          <div className="set-cards"><SpendCard /></div>
+        </section>
+
+        <section className="set-group" id="g-conta" aria-labelledby="h-conta">
+          <h2 id="h-conta">Privacidade e conta</h2>
+          <div className="set-cards">
       <section className="card">
         <h2>Termos bloqueados</h2>
         <p className="muted" style={{ margin: 0 }}>Memórias com estes termos não podem ser aprovadas. Use para o nome da empresa e assuntos corporativos.</p>
@@ -99,18 +145,38 @@ export function SettingsPage(props: {
           {pwMsg && <span className="muted" role="status">{pwMsg}</span>}
         </form>
       </section>
+          </div>
+        </section>
+
+        <section className="set-group" id="g-ajuda" aria-labelledby="h-ajuda">
+          <h2 id="h-ajuda">Ajuda</h2>
+          <div className="set-cards">
       <section className="card">
-        <h2>Conta</h2>
-        <div>{props.email}</div>
-        <div className="row">
-          <button className="btn" onClick={props.onNew}>Nova conversa</button>
-          <form action="/auth/signout" method="post"><button className="btn" type="submit">Sair</button></form>
-        </div>
-        <div className="mono muted">GaDu {props.version}</div>
+        <h2>Aprender a usar</h2>
+        <a className="help-item primary" href="/app/guia" style={{ textDecoration: "none" }}><span style={{ flex: 1 }}>Guia passo a passo</span><span aria-hidden="true">›</span></a>
+        <a className="help-item" href="/app/sobre" style={{ textDecoration: "none" }}><span style={{ flex: 1 }}>Como o GaDu funciona (arquitetura)</span><span aria-hidden="true">›</span></a>
+        <button className="help-item" onClick={props.onResetTips}><span style={{ flex: 1 }}>Rever as dicas de cada tela</span><span aria-hidden="true">›</span></button>
       </section>
+            <section className="card">
+              <h2>Atalhos</h2>
+              <button className="help-item" onClick={props.onNew}><span style={{ flex: 1 }}>Nova conversa</span><span aria-hidden="true">›</span></button>
+              <button className="help-item" onClick={() => props.onOpen("memoria")}><span style={{ flex: 1 }}>Revisar a memória</span><span aria-hidden="true">›</span></button>
+              {props.admin && <button className="help-item" onClick={() => props.onOpen("admin")}><span style={{ flex: 1 }}>Pessoas e convites</span><span aria-hidden="true">›</span></button>}
+            </section>
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
+
+const GROUPS = [
+  { id: "g-aparencia", label: "Aparência e voz" },
+  { id: "g-conexoes", label: "Avisos e conexões" },
+  { id: "g-custos", label: "Custos de IA" },
+  { id: "g-conta", label: "Privacidade e conta" },
+  { id: "g-ajuda", label: "Ajuda" },
+];
 
 function SpendCard() {
   const [u, setU] = useState<Usage | null>(null);
