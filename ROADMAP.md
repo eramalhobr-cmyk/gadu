@@ -231,6 +231,13 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [ ] MVP futuro: conectar Tuya, listar dispositivos/estados e controlar um conjunto pequeno de ações de baixo risco; ampliar depois de testes reais.
 - [ ] Manter como backlog futuro, sem interferir na validação de segurança e no PR #2 em andamento.
 
+## GaDu Agent Collaboration · orquestração multiagente (longo prazo, 12/11/2026)
+- [ ] Avaliar integração entre ChatGPT, Claude Code e Codex por MCP e/ou APIs oficiais, com GitHub e documentação versionada como fonte de verdade.
+- [ ] Criar orquestrador para delegar especificação, implementação, revisão, testes e handoff entre agentes sem cópia manual de mensagens.
+- [ ] Definir permissões, isolamento de branches, rastreabilidade, custos, limites de execução e prevenção de alterações concorrentes.
+- [ ] Exigir aprovação explícita do usuário para merges, deploys, mudanças em produção, acesso sensível e ações irreversíveis.
+- [ ] **Prioridade baixa / longo prazo**: iniciar somente após segurança, estabilidade e módulos essenciais do GaDu; por enquanto usar colaboração via GitHub, PRs e handoffs.
+
 ## Operação
 - [ ] Monitoramento de erros e alerta de saúde
 - [ ] Backups do banco conferidos (plano grátis: diário, 7 dias)
