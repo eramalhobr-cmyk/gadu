@@ -172,7 +172,7 @@ Branch `fix/monthly-budget-reservation-20261113`, **empilhada sobre o PR #3**. P
 | Unitários | 32/32 ok |
 | Integração da rota do chat | 14/14 ok |
 | SQL cota | 24/24 ok |
-| SQL orçamento | 28/28 ok |
+| SQL orçamento | 31/31 ok |
 | Concorrência | 10/10 ok |
 | typecheck / build | ok / ok |
 
