@@ -9,6 +9,7 @@ type Usage = {
   spent: { anthropic: number; gateway: number; gemini: number };
   total: number;
   monthlyBudget: number;
+  reserved?: number;
   gateway: { balance: number; used: number } | null;
 };
 
@@ -157,9 +158,13 @@ function SpendCard() {
       ) : (
         <>
           <div style={{ fontSize: 22, fontVariantNumeric: "tabular-nums" }}>
-            {usd(u.total)} <span className="muted" style={{ fontSize: 15 }}>de {usd(u.monthlyBudget)} (teto geral)</span>
+            {usd(u.total)} <span className="muted" style={{ fontSize: 15 }}>de {usd(u.monthlyBudget)} (teto do mês)</span>
           </div>
-          <Bar value={u.total} max={u.monthlyBudget} />
+          <Bar value={u.total + (u.reserved ?? 0)} max={u.monthlyBudget} />
+          <div className="muted" style={{ fontSize: 14 }}>
+            Disponível: {usd(Math.max(0, u.monthlyBudget - u.total - (u.reserved ?? 0)))}
+            {(u.reserved ?? 0) > 0 ? ` · ${usd(u.reserved ?? 0)} reservado para respostas em andamento` : ""}
+          </div>
           {rows.map((r) => {
             const spent = u.spent[r.id];
             const limit = u.budgets[r.id];

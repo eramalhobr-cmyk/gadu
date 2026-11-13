@@ -5,6 +5,7 @@ import { EventCard, type EventDraft } from "./EventCard";
 import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
 import { canListen, canSpeak, createRecognizer, Speaker } from "@/lib/speech";
+import { chatErrorMessage, micErrorMessage } from "@/lib/errors";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { ConversationsDrawer } from "./ConversationsDrawer";
 import { MemoryPage } from "./MemoryPage";
@@ -142,22 +143,23 @@ export function GaduApp(props: {
   const listen = useCallback(() => {
     if (!voiceOk || busy) return;
     speaker?.cancel();
+    // Nunca dois microfones abertos ao mesmo tempo (toques repetidos ou modo conversa).
+    try { recRef.current?.abort(); } catch {}
+    // Avisos de um microfone antigo (já trocado) são ignorados.
+    const mine = () => recRef.current === rec;
     const rec = createRecognizer({
       onText: (text, final) => {
+        if (!mine()) return;
         setDraft(text);
         if (final && text) void sendRef.current(text);
       },
-      onEnd: () => { setListening(false); setMode((m) => (m === "listening" ? "idle" : m)); },
+      onEnd: () => { if (!mine()) return; setListening(false); setMode((m) => (m === "listening" ? "idle" : m)); },
       onError: (code) => {
+        if (!mine()) return;
         setListening(false);
         setMode("idle");
-        const text: Record<string, string> = {
-          "not-allowed": "O microfone está bloqueado. Libere o microfone para este site nas configurações do navegador.",
-          "service-not-allowed": "O microfone está bloqueado. Libere o microfone para este site nas configurações do navegador.",
-          "audio-capture": "Não encontrei um microfone neste aparelho.",
-          network: "O reconhecimento de voz precisa de internet. Confira a conexão e tente de novo.",
-        };
-        if (text[code]) setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: text[code] }]);
+        const text = micErrorMessage(code);
+        if (text) setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: text }]);
       },
     });
     if (!rec) return;
@@ -204,7 +206,7 @@ export function GaduApp(props: {
         signal: ctrl.signal,
       });
       if (res.status === 401) { window.location.href = "/login"; return; }
-      if (!res.ok || !res.body) throw new Error(String(res.status));
+      if (!res.ok || !res.body) throw Object.assign(new Error("http"), { status: res.status || 500 });
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       let buf = "";
@@ -253,24 +255,30 @@ export function GaduApp(props: {
       try {
         await attempt();
       } catch (e) {
-        // Contingência: uma nova tentativa automática se a rede caiu antes de responder.
-        if (ctrl.signal.aborted || answer) throw e;
+        // Contingência: uma nova tentativa automática se a rede caiu (ou o servidor falhou) antes de responder.
+        // Erros da própria mensagem (4xx) não melhoram tentando de novo.
+        const st = (e as { status?: number }).status ?? 0;
+        if (ctrl.signal.aborted || answer || (st >= 400 && st < 500)) throw e;
         await new Promise((r) => setTimeout(r, 800));
         await attempt();
       }
       if (answer && /^come[cç]ar o dia\b/i.test(message)) {
         setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "Quer ouvir as notícias agora?", link: { href: props.morningLink || DEFAULT_MORNING, label: "Ouvir o Update Diário" } }]);
       }
-    } catch {
+    } catch (e) {
       if (!ctrl.signal.aborted) {
-        setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "Não consegui falar com o servidor. Sua mensagem ficou no rascunho; tente de novo." }]);
+        setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: chatErrorMessage((e as { status?: number }).status ?? 0) }]);
         setDraft(message);
       }
     } finally {
       setBusy(false);
       abortRef.current = null;
       if (spoke && speaker) speaker.flush();
-      else setMode("idle");
+      else {
+        setMode("idle");
+        // Modo conversa com a voz da resposta desligada: volta a ouvir mesmo assim.
+        if (answer && !ctrl.signal.aborted && handsFreeRef.current) setTimeout(() => listenRef.current(), 600);
+      }
     }
   }, [busy, conversationId, prefs.voice, refreshPending, speaker, props.morningLink, target]);
 
