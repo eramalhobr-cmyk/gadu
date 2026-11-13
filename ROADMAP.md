@@ -184,7 +184,7 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [~] PR #2: chat bloqueia quando cota, teto mensal ou limites por provedor não podem ser validados (fail closed), com testes de integração. Em revisão, sem merge
 - [~] PR #3: cota diária atômica (limite no servidor, dia de Brasília, sem passar do teto), testes SQL e de concorrência locais. Em revisão; migração ainda não aplicada no Supabase
 - [ ] Remover `consume_quota(integer)` antiga (etapa 2, depois do deploy do PR #3)
-- [ ] Orçamento mensal com reserva e reconciliação (concorrência)
+- [~] PR #5: orçamento mensal com reserva atômica, liquidação pelo custo real, liberação em falha, expiração e teto global opcional; chat, resumo e importação passam pelo orçamento. Em revisão; migração ainda não aplicada
 - [ ] Auditoria de RLS, autenticação, permissões e isolamento entre usuários
 - [ ] Administração de créditos e consumo por pessoa
 

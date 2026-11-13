@@ -89,3 +89,26 @@ export function checkLegacyQuota(result: RpcResult<unknown>, limit: number): Dai
   if (result.error || typeof result.data !== "boolean" || !Number.isInteger(limit) || limit < 0) return { allowed: false, reason: "unavailable" };
   return result.data ? { allowed: true, used: null, limit } : { allowed: false, reason: "daily", used: limit, limit };
 }
+
+export type Reservation =
+  | { ok: true; id: string; amount: number }
+  | { ok: false; reason: "monthly" | "global"; spent: number | null; limit: number | null }
+  | { ok: false; reason: "unavailable" };
+
+/**
+ * Resposta de reserve_ai_budget(): {"allowed": true, "reservation_id", "amount", ...}
+ * ou {"allowed": false, "reason": "monthly" | "global" | ...}. Formato inesperado bloqueia (fail closed).
+ */
+export function checkReservation(result: RpcResult<unknown>): Reservation {
+  if (result.error || !result.data || typeof result.data !== "object" || Array.isArray(result.data)) return { ok: false, reason: "unavailable" };
+  const d = result.data as { allowed?: unknown; reservation_id?: unknown; amount?: unknown; reason?: unknown; spent?: unknown; limit?: unknown };
+  if (d.allowed === true) {
+    const amount = money(d.amount);
+    if (typeof d.reservation_id !== "string" || !/^[0-9a-f-]{36}$/i.test(d.reservation_id) || amount === null || amount <= 0) return { ok: false, reason: "unavailable" };
+    return { ok: true, id: d.reservation_id, amount };
+  }
+  if (d.allowed === false && (d.reason === "monthly" || d.reason === "global")) {
+    return { ok: false, reason: d.reason, spent: money(d.spent), limit: money(d.limit) };
+  }
+  return { ok: false, reason: "unavailable" };
+}

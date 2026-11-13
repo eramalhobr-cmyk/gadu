@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkDailyQuota, checkLegacyQuota, checkMonthlyBudget, checkProviderSpend, isMissingFunction, safeRpc } from "./chat-budget-guard.ts";
+import { checkDailyQuota, checkLegacyQuota, checkMonthlyBudget, checkProviderSpend, checkReservation, isMissingFunction, safeRpc } from "./chat-budget-guard.ts";
 
 const ok = <T>(data: T) => ({ data, error: null });
 const failed = { data: null, error: { message: "database unavailable" } };
@@ -65,4 +65,19 @@ test("legacy quota fallback only for a missing function", () => {
   assert.deepEqual(checkLegacyQuota(ok(true), 150), { allowed: true, used: null, limit: 150 });
   assert.deepEqual(checkLegacyQuota(ok(false), 150), { allowed: false, reason: "daily", used: 150, limit: 150 });
   for (const r of [failed, ok(null), ok("true"), ok(1)]) assert.deepEqual(checkLegacyQuota(r as never, 150), { allowed: false, reason: "unavailable" });
+});
+
+test("budget reservation: only a well-formed allowed answer reserves", () => {
+  const id = "3f2b1c9e-8d7a-4b6c-9e5f-1a2b3c4d5e6f";
+  assert.deepEqual(checkReservation(ok({ allowed: true, reservation_id: id, amount: 0.25 })), { ok: true, id, amount: 0.25 });
+  assert.deepEqual(checkReservation(ok({ allowed: true, reservation_id: id, amount: "0.250000" })), { ok: true, id, amount: 0.25 });
+  assert.deepEqual(checkReservation(ok({ allowed: false, reason: "monthly", spent: 19.9, limit: 20 })), { ok: false, reason: "monthly", spent: 19.9, limit: 20 });
+  assert.deepEqual(checkReservation(ok({ allowed: false, reason: "global" })), { ok: false, reason: "global", spent: null, limit: null });
+  for (const r of [
+    failed, ok(null), ok(true), ok([]), ok({ allowed: true }), ok({ allowed: true, reservation_id: "x", amount: 1 }),
+    ok({ allowed: true, reservation_id: id, amount: 0 }), ok({ allowed: true, reservation_id: id, amount: -1 }),
+    ok({ allowed: false, reason: "auth" }), ok({ allowed: false, reason: "invalid" }), ok({ allowed: "true", reservation_id: id, amount: 1 }),
+  ]) {
+    assert.deepEqual(checkReservation(r as never), { ok: false, reason: "unavailable" });
+  }
 });

@@ -8,7 +8,8 @@ import { complete } from "@/lib/llm/complete";
 import type { ProviderId } from "@/lib/llm/types";
 import type { ChatTurn } from "@/lib/llm/types";
 import { splitMeta, visiblePart } from "@/lib/meta";
-import { costUsd } from "@/lib/pricing";
+import { costUsd, estimateMaxCost } from "@/lib/pricing";
+import { releaseBudget, reserveBudget, settleBudget } from "@/lib/ai-budget";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
 import { accessToken, events, formatEvents, formatMails, GoogleError, googleIntent, inbox } from "@/lib/google";
 import { insights, type InTask } from "@/lib/insights";
@@ -55,33 +56,50 @@ export async function POST(request: Request) {
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (o: Out) => controller.enqueue(encoder.encode(JSON.stringify(o) + "\n"));
+      // Reserva de orçamento desta resposta: liquidada pelo custo real ou liberada no finally.
+      let reservationId: string | null = null;
+      let settled = false;
       try {
         // 1. Privacidade: dado sensível não sai daqui e nem é gravado.
         if (isSensitive(message)) {
           send({ t: "notice", kind: "privacy", text: "Percebi um dado sensível nessa mensagem (documento, senha, dado bancário ou de saúde). Pela regra de privacidade, ele não vai para nenhuma IA externa, então não enviei. Pode reescrever sem esse dado?" });
           return;
         }
-        // 2. Leituras de limite primeiro (não gastam nada): teto mensal geral e gasto por provedor.
-        //    Erros ou valores inválidos bloqueiam a chamada ao provedor (fail closed).
-        const [monthRes, spendRows] = await Promise.all([
-          safeRpc<number | string>(() => supabase.rpc("month_spend")),
-          safeRpc<unknown>(() => supabase.rpc("month_spend_by_provider")),
-        ]);
-        const monthly = checkMonthlyBudget(monthRes, cfg.monthlyBudgetUsd);
-        if (!monthly.allowed) {
-          if (monthly.reason === "unavailable") {
-            console.error("chat monthly budget validation unavailable");
-            send({ t: "notice", kind: "error", text: "Não consegui verificar seu orçamento de IA agora. Tente novamente em instantes." });
-          } else {
-            send({ t: "notice", kind: "quota", text: `O teto de gasto do mês (US$ ${cfg.monthlyBudgetUsd.toFixed(2)}) foi atingido. O GaDu volta a responder no próximo mês, ou quando o teto for aumentado.` });
-          }
-          return;
-        }
-        // 2b. Limites por provedor (Ajustes): sem o gasto por provedor não dá para respeitá-los.
+        // 2. Limites por provedor (Ajustes): leitura sem custo. Sem esse dado não dá para respeitá-los (fail closed).
+        const spendRows = await safeRpc<unknown>(() => supabase.rpc("month_spend_by_provider"));
         const providerSpend = checkProviderSpend(spendRows);
         if (!providerSpend.ok) {
           console.error("chat provider budget validation unavailable");
           send({ t: "notice", kind: "error", text: "Não consegui verificar os limites dos motores de IA agora. Tente novamente em instantes." });
+          return;
+        }
+        // 2b. Teto mensal com RESERVA atômica: o banco soma gasto + reservas abertas + estimativa desta resposta.
+        //     Pedidos simultâneos não ultrapassam o teto. Estimativa: contexto típico (~60 mil caracteres) e saída máxima.
+        const reservation = await reserveBudget(supabase, "chat", estimateMaxCost(cfg.model, message.length + 60_000, 8000));
+        if (reservation.ok) {
+          reservationId = reservation.id;
+        } else if (reservation.legacy) {
+          // Transição: banco sem a migração de orçamento. Mantém a verificação de leitura de hoje.
+          console.warn("reserve_ai_budget ausente no banco; usando month_spend (transição)");
+          const monthly = checkMonthlyBudget(await safeRpc<number | string>(() => supabase.rpc("month_spend")), cfg.monthlyBudgetUsd);
+          if (!monthly.allowed) {
+            if (monthly.reason === "unavailable") {
+              console.error("chat monthly budget validation unavailable");
+              send({ t: "notice", kind: "error", text: "Não consegui verificar seu orçamento de IA agora. Tente novamente em instantes." });
+            } else {
+              send({ t: "notice", kind: "quota", text: `O teto de gasto do mês (US$ ${cfg.monthlyBudgetUsd.toFixed(2)}) foi atingido. O GaDu volta a responder no próximo mês, ou quando o teto for aumentado.` });
+            }
+            return;
+          }
+        } else if (reservation.reason === "unavailable") {
+          console.error("chat budget reservation unavailable");
+          send({ t: "notice", kind: "error", text: "Não consegui verificar seu orçamento de IA agora. Tente novamente em instantes." });
+          return;
+        } else {
+          const lim = reservation.limit !== null ? ` (US$ ${reservation.limit.toFixed(2)})` : "";
+          send({ t: "notice", kind: "quota", text: reservation.reason === "global"
+            ? "O limite de gasto com IA da conta foi atingido neste mês. Fale com o administrador do GaDu."
+            : `O teto de gasto do mês${lim} foi atingido. O GaDu volta a responder no próximo mês, ou quando o teto for aumentado.` });
           return;
         }
         // 2c. Cota diária por último, logo antes de gravar: atômica no banco, limite definido pelo servidor
@@ -226,9 +244,8 @@ export async function POST(request: Request) {
           },
         ]);
         const u = usage as { input: number; output: number; cost: number; provider: ProviderId; model: string } | null;
-        if (u) {
-          await supabase.from("usage_events").insert({ provider: u.provider, model: u.model.slice(0, 80), kind: "chat", input_tokens: u.input, output_tokens: u.output, cost_usd: u.cost });
-        }
+        // Liquida a reserva pelo custo real (consumo gravado na mesma transação).
+        if (u) settled = await settleBudget(supabase, reservationId, "chat", u);
         const newCount = msgCount + 2;
         await supabase.from("conversations").update({ updated_at: new Date().toISOString(), message_count: newCount }).eq("id", conversationId);
         // Memória v2: resume a conversa em segundo plano (depois de responder), a cada 6 mensagens.
@@ -293,6 +310,8 @@ export async function POST(request: Request) {
           send({ t: "notice", kind: "error", text: "Não consegui responder agora. Tente de novo em instantes." });
         }
       } finally {
+        // Reserva não liquidada (bloqueio, erro do provedor, cancelamento): libera para não prender o orçamento.
+        if (reservationId && !settled) await releaseBudget(supabase, reservationId);
         controller.close();
       }
     },
@@ -326,12 +345,22 @@ async function summarize(supabase: Db, conversationId: number, skip: Set<Provide
     ]);
     const transcript = (msgs ?? []).reverse().map((m) => `${m.role === "user" ? "Pessoa" : "GaDu"}: ${String(m.content).slice(0, 1500)}`).join("\n");
     if (!transcript) return;
+    // Resumo também passa pelo orçamento: reserva antes, liquida depois; sem orçamento, não resume.
+    const prompt = transcript.length + 800;
+    const resv = await reserveBudget(supabase, "summary", estimateMaxCost(serverConfig().cheapModel, prompt, 600));
+    if (!resv.ok && !resv.legacy) return;
+    const rid = resv.ok ? resv.id : null;
+    let done = false;
+    try {
     const r = await complete(
       `Resuma a conversa abaixo em português do Brasil, em até 120 palavras, para servir de memória futura do assistente. Inclua decisões, pedidos pendentes, nomes de projetos e datas citadas. Não inclua dados sensíveis (documentos, senhas, dados bancários ou de saúde). Responda só com o resumo, sem título.${conv?.summary ? `\n\nResumo anterior:\n${conv.summary}` : ""}\n\nConversa:\n${transcript}`,
       { maxTokens: 600, skip },
     );
     await supabase.from("conversations").update({ summary: r.text.slice(0, 2000), summary_at: new Date().toISOString() }).eq("id", conversationId);
-    await supabase.from("usage_events").insert({ provider: r.provider, model: r.model.slice(0, 80), kind: "summary", input_tokens: r.input, output_tokens: r.output, cost_usd: r.cost });
+    done = await settleBudget(supabase, rid, "summary", r);
+    } finally {
+      if (rid && !done) await releaseBudget(supabase, rid);
+    }
   } catch (e) {
     console.error("resumo falhou", e instanceof Error ? e.message.slice(0, 200) : "erro");
   }
