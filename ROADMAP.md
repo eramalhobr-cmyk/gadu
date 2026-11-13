@@ -181,12 +181,15 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] Guia e Como funciona dentro da mesma estrutura do app (cabeçalho, menu ☰, menu de baixo e voz flutuante), com alternância Guia | Como funciona
 
 ## Marco Zero · segurança (auditoria de 12/11, ver docs/SECURITY_AUDIT_2026-11-12.md no PR #1)
-- [~] PR #2: chat bloqueia quando cota, teto mensal ou limites por provedor não podem ser validados (fail closed), com testes de integração. Em revisão, sem merge
-- [~] PR #3: cota diária atômica (limite no servidor, dia de Brasília, sem passar do teto), testes SQL e de concorrência locais. Em revisão; migração ainda não aplicada no Supabase
-- [ ] Remover `consume_quota(integer)` antiga (etapa 2, depois do deploy do PR #3)
-- [ ] Orçamento mensal com reserva e reconciliação (concorrência)
+- [x] PR #2: chat bloqueia quando cota, teto mensal ou limites por provedor não podem ser validados (fail closed), com testes de integração. Em produção desde 13/11
+- [x] PR #3: cota diária atômica (limite no servidor, dia de Brasília, sem passar do teto), testes SQL e de concorrência. Migração aplicada no Supabase e app em produção desde 13/11
+- [ ] Remover `consume_quota(integer)` antiga (etapa 2, depois de 24h estável)
+- [~] PR #6: orçamento mensal com reserva e reconciliação (concorrência). Em revisão; migração ainda não aplicada
 - [ ] Auditoria de RLS, autenticação, permissões e isolamento entre usuários
 - [ ] Administração de créditos e consumo por pessoa
+
+## Modelo de trabalho
+- [x] GaDu Fast Track documentado (`docs/FAST_TRACK.md`): baixo risco com processo simplificado, alto risco com aprovações específicas
 
 ## Fase 6 · Agentes Pessoal e Trabalho (proposta em discussão, ver docs/PLANO-AGENTES.md)
 - [ ] 6.1 Fundamentos: espaços Pessoal e Trabalho; agentes com categoria, papel, hierarquia, autonomia e teto; organograma
