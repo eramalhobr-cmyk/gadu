@@ -220,6 +220,17 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [ ] Registrar resultados e limitações do dispositivo antes de qualquer adaptação específica.
 - [ ] Manter como melhoria futura de compatibilidade do PWA, sem desviar das correções de segurança atuais.
 
+## GaDu Casa Inteligente · Tuya e assistentes domésticos (futuro, 12/11/2026)
+- [ ] Criar painel de casa inteligente no GaDu para visualizar ambientes, dispositivos, estado e ações disponíveis.
+- [ ] Avaliar integração oficial com Tuya/Smart Life (hub e dispositivos já usados pelo usuário), com autenticação segura, permissões mínimas e verificação de compatibilidade por modelo/região.
+- [ ] Mapear interoperabilidade com Alexa e Google Home, distinguindo dispositivos controláveis por API de funcionalidades restritas aos ecossistemas; não presumir controle direto das caixas Alexa.
+- [ ] Permitir comandos por voz e texto, por exemplo ligar luzes e abrir/fechar persianas, com confirmação de execução e tratamento de falhas.
+- [ ] Avaliar câmeras compatíveis, visualização de vídeo ao vivo e permissões específicas; nunca presumir que todas oferecem streaming externo.
+- [ ] Planejar cenas, rotinas e automações com aprovação explícita e histórico de ações.
+- [ ] Aplicar isolamento multiusuário, credenciais criptografadas, logs mínimos e autorização reforçada para fechaduras, alarmes, portões e câmeras.
+- [ ] MVP futuro: conectar Tuya, listar dispositivos/estados e controlar um conjunto pequeno de ações de baixo risco; ampliar depois de testes reais.
+- [ ] Manter como backlog futuro, sem interferir na validação de segurança e no PR #2 em andamento.
+
 ## Operação
 - [ ] Monitoramento de erros e alerta de saúde
 - [ ] Backups do banco conferidos (plano grátis: diário, 7 dias)
