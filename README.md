@@ -2,7 +2,10 @@
 
 Assistente pessoal por voz e texto. Mobile first, multiusuário (cada pessoa vê só os próprios dados), feito para rodar de graça na Vercel + Supabase.
 
-- O que está pronto e o que falta: [ROADMAP.md](ROADMAP.md)
+- Situação atual e ponto de retomada: [PROJECT_STATUS.md](PROJECT_STATUS.md)
+- O que está pronto e o que falta: [ROADMAP.md](ROADMAP.md) e [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md)
+- Histórico de entregas: [CHANGELOG.md](CHANGELOG.md)
+- Modelo de trabalho: [docs/FAST_TRACK.md](docs/FAST_TRACK.md)
 - Como funciona por dentro: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - Segurança: [docs/SECURITY.md](docs/SECURITY.md)
 
