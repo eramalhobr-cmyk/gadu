@@ -225,3 +225,12 @@ Pendências:
 - Etapa 2 da cota, depois de 24h estável: revogar e remover `consume_quota(integer)` e o código de transição.
 - Apagar `private.backup_usage_daily_20261113` depois de estabilizar.
 - PR #6: aprovação do Eduardo para aplicar `20261113140001` e fazer o merge.
+
+## Implantação de 13/11/2026 à tarde (Claude Code, autorizada pelo Eduardo)
+| Etapa | Ação | Resultado |
+|---|---|---|
+| PR #6 | Backup `private.backup_usage_events_20261113` (44 linhas, somas iguais); migração `ai_budget_reservations` aplicada; merge `9e9351a`; deploy `dpl_CBrNxW8e…` | Usuário temporário com rollback: reserva de 0,60 com teto 1,00 permitida; 2ª negada (`monthly`); liquidação idempotente; liberação; outra pessoa não liquida nem enxerga; `anon` não reserva; `authenticated` não expira, não lê a política nem escreve reservas direto. **Uso real**: 1 reserva liquidada e ligada ao consumo |
+| PR #9 | Erros em português, telas de erro, voz mais estável, teto e reservas em Ajustes; merge `758286c`; deploy `dpl_ELAhLL3G…` | 40 unitários e 14 de integração; 404 conferido em produção |
+| PR #10 | Design System v1, menu lateral, layouts responsivos, acessibilidade; merge `fd77f84`; deploy `dpl_H9wxTBkN…` | Capturas em 4 larguras, teclado, alvos de toque, sem erro de hidratação; smoke test em produção ok |
+
+Pendente: etapa 2 da cota (remover `consume_quota`), apagar os backups lógicos, validar a voz nos aparelhos, migrar estilos inline.
