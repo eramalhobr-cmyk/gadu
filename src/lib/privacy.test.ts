@@ -31,13 +31,14 @@ test("bloco inválido não quebra", () => {
   assert.equal(visiblePart("Resposta <<<MET"), "Resposta");
 });
 
-import { costUsd, priceKey } from "./pricing.ts";
+import { costUsd, estimateMaxCost, priceKey } from "./pricing.ts";
 
 test("calcula o custo por modelo", () => {
   assert.equal(priceKey("anthropic/claude-opus-5.5"), "claude-opus-5-5");
   const c = costUsd({ model: "claude-opus-5-5", input_tokens: 1000, output_tokens: 500, cache_read_input_tokens: 10000 });
   assert.ok(Math.abs(c - (0.004 + 0.01 + 0.002)) < 1e-9);
-  assert.equal(costUsd({ model: "desconhecido", input_tokens: 1000 }), 0);
+  // Modelo desconhecido nunca custa zero: usa o preço mais caro da tabela.
+  assert.equal(costUsd({ model: "desconhecido", input_tokens: 1000 }), costUsd({ model: "claude-opus-5-5", input_tokens: 1000 }));
 });
 
 test("lembretes do bloco de controle: futuros e válidos", () => {
@@ -62,4 +63,12 @@ test("eventos propostos: fim padrão de 1 hora e horário de Brasília", () => {
   assert.equal(r.events.length, 2);
   assert.deepEqual(r.events[0], { title: "Dentista", start: "2026-11-12T12:00:00.000Z", end: "2026-11-12T13:00:00.000Z", location: "Centro" });
   assert.equal(r.events[1].end, "2026-11-12T22:30:00.000Z");
+});
+
+test("estimativa de custo máximo para reservar orçamento", () => {
+  // Opus: 30.000 caracteres (~10.000 tokens) × US$ 4/M + 8.000 tokens × US$ 20/M = 0,04 + 0,16
+  assert.equal(Number(estimateMaxCost("claude-opus-5-5", 30000, 8000).toFixed(4)), 0.2);
+  assert.equal(estimateMaxCost("anthropic/claude-haiku-5.5", 0, 0), 0);
+  assert.ok(estimateMaxCost("modelo-novo", 3000, 1000) >= estimateMaxCost("claude-opus-5-5", 3000, 1000));
+  assert.equal(estimateMaxCost("claude-opus-5-5", NaN, -5), 0);
 });

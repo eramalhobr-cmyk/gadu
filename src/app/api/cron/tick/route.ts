@@ -129,13 +129,20 @@ async function indexing(db: Db) {
   return rows.length;
 }
 
+// Reconciliação do orçamento: marca reservas vencidas (que já não contam no teto). Sem a migração, não faz nada.
+async function expireReservations(db: Db) {
+  const { data, error } = await db.rpc("expire_ai_reservations");
+  if (error) return error.code === "PGRST202" || error.code === "42883" ? 0 : Promise.reject(new Error(error.message));
+  return Number(data ?? 0);
+}
+
 export async function GET(request: Request) {
   if (!authorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!pushConfigured() || !process.env.SUPABASE_SECRET_KEY) return NextResponse.json({ ok: false, reason: "not_configured" });
   const db = supabaseAdmin();
-  const [r, b, ev, ix] = await Promise.allSettled([reminders(db), briefings(db), evenings(db), indexing(db)]);
+  const [r, b, ev, ix, rs] = await Promise.allSettled([reminders(db), briefings(db), evenings(db), indexing(db), expireReservations(db)]);
   const val = (x: PromiseSettledResult<number>) => (x.status === "fulfilled" ? x.value : -1);
-  const out = { ok: true, reminders: val(r), briefings: val(b), evenings: val(ev), indexed: val(ix) };
-  for (const [k, x] of Object.entries({ r, b, ev, ix })) if (x.status === "rejected") console.error("cron com falha", k, x.reason instanceof Error ? x.reason.message.slice(0, 160) : "erro");
+  const out = { ok: true, reminders: val(r), briefings: val(b), evenings: val(ev), indexed: val(ix), expired: val(rs) };
+  for (const [k, x] of Object.entries({ r, b, ev, ix, rs })) if (x.status === "rejected") console.error("cron com falha", k, x.reason instanceof Error ? x.reason.message.slice(0, 160) : "erro");
   return NextResponse.json(out);
 }

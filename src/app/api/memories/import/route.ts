@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { readBudgets } from "@/lib/config";
+import { readBudgets, serverConfig } from "@/lib/config";
+import { releaseBudget, reserveBudget, settleBudget } from "@/lib/ai-budget";
+import { checkProviderSpend, safeRpc } from "@/lib/chat-budget-guard";
+import { estimateMaxCost } from "@/lib/pricing";
 import { accessOf } from "@/lib/access";
 import { IMPORT_MAX_CHARS, IMPORT_MAX_ITEMS, looksLikeList, parseImport } from "@/lib/importer";
 import { complete } from "@/lib/llm/complete";
@@ -28,10 +31,10 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "invalid", message: "Texto vazio ou grande demais (máximo 30 mil caracteres)." }, { status: 400 });
   const { text, origin } = parsed.data;
 
-  const [{ data: profile }, { data: existing }, { data: spend }] = await Promise.all([
+  const [{ data: profile }, { data: existing }, spendRes] = await Promise.all([
     supabase.from("profiles").select("settings").eq("id", user.id).maybeSingle(),
     supabase.from("memories").select("content"),
-    supabase.rpc("month_spend_by_provider"),
+    safeRpc<unknown>(() => supabase.rpc("month_spend_by_provider")),
   ]);
   const settings = (profile?.settings ?? {}) as { blocked?: unknown };
   const blocked = Array.isArray(settings.blocked) ? settings.blocked.map(String) : [];
@@ -42,11 +45,20 @@ export async function POST(request: Request) {
     items = parseImport(text).map((c) => ({ content: c, area: parsed.data.area ?? "Pessoal" }));
   } else {
     // Texto livre: o modelo barato extrai fatos duráveis. Respeita os limites de gasto.
+    // Sem o gasto por provedor não dá para respeitar os limites de Ajustes: bloqueia (fail closed).
+    const spend = checkProviderSpend(spendRes);
+    if (!spend.ok) return NextResponse.json({ error: "budget", message: "Não consegui verificar seus limites de IA agora. Tente de novo em instantes." }, { status: 503 });
     const budgets = readBudgets(profile?.settings);
     const skip = new Set<ProviderId>();
-    for (const r of (spend ?? []) as { provider: ProviderId; cost_usd: number | string }[]) {
-      if ((r.provider === "anthropic" || r.provider === "gateway") && Number(r.cost_usd) >= budgets[r.provider]) skip.add(r.provider);
+    if ((spend.spentBy.anthropic ?? 0) >= budgets.anthropic) skip.add("anthropic");
+    if ((spend.spentBy.gateway ?? 0) >= budgets.gateway) skip.add("gateway");
+    // Teto mensal com reserva atômica (transição: sem a migração, segue como antes).
+    const resv = await reserveBudget(supabase, "import", estimateMaxCost(serverConfig().cheapModel, text.length + 600, 3000));
+    if (!resv.ok && !resv.legacy) {
+      return NextResponse.json({ error: "budget", message: resv.reason === "unavailable" ? "Não consegui verificar seu orçamento de IA agora. Tente de novo em instantes." : "O teto de gasto com IA do mês foi atingido. Importe como lista (uma informação por linha), que não usa IA." }, { status: resv.reason === "unavailable" ? 503 : 402 });
     }
+    const rid = resv.ok ? resv.id : null;
+    let settledImport = false;
     try {
       const r = await complete(
         `Extraia do texto abaixo fatos duráveis sobre a pessoa (preferências, rotina, projetos pessoais, pessoas próximas, objetivos). ` +
@@ -55,7 +67,7 @@ export async function POST(request: Request) {
         { maxTokens: 3000, skip },
       );
       usedAi = true;
-      await supabase.from("usage_events").insert({ provider: r.provider, model: r.model.slice(0, 80), kind: "import", input_tokens: r.input, output_tokens: r.output, cost_usd: r.cost });
+      settledImport = await settleBudget(supabase, rid, "import", r);
       const json = r.text.slice(r.text.indexOf("{"), r.text.lastIndexOf("}") + 1);
       const list = (JSON.parse(json) as { memorias?: { texto?: unknown; area?: unknown }[] }).memorias ?? [];
       items = list
@@ -66,6 +78,8 @@ export async function POST(request: Request) {
         .filter((m) => m.content.length >= 8);
     } catch {
       return NextResponse.json({ error: "ai", message: "Não consegui ler esse texto agora. Tente colar como lista, uma informação por linha." }, { status: 502 });
+    } finally {
+      if (rid && !settledImport) await releaseBudget(supabase, rid);
     }
   }
 

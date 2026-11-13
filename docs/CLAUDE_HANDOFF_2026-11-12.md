@@ -144,3 +144,84 @@ Testes após os ajustes: unitários 30/30, integração 12/12 (inclui a transiç
 
 **Rollback operacional:** reverter o app primeiro (a função antiga continua no banco). Só depois, se necessário, remover a função nova e as tabelas de política. Nunca remover `consume_quota` antes de o app novo estar estável.
 **Deploy automático inesperado** (PR #3 integrado antes da migração): o código de transição mantém o chat funcionando com a função antiga; aplicar a migração em seguida.
+
+---
+
+## Etapa 3 — Orçamento mensal com reserva e reconciliação (Claude Code, 2026-11-13)
+
+Branch `fix/monthly-budget-reservation-20261113`, **empilhada sobre o PR #3**. PR em rascunho. Nada aplicado no banco remoto.
+
+### O que foi feito
+- **Migração** `supabase/migrations/20261113140001_ai_budget_reservations.sql` (aditiva):
+  - `private.budget_policy` (teto de US$ 20 = valor atual; reserva mínima de 0,01, máxima de 1,00; TTL de 10 min; teto global opcional) e `private.user_budget`;
+  - `public.ai_reservations` (RLS: cada um lê as próprias; escrita só pelas funções);
+  - `reserve_ai_budget`, `settle_ai_budget`, `release_ai_budget`, `budget_status` (authenticated) e `expire_ai_reservations` (service role).
+- **App:**
+  - `src/lib/ai-budget.ts`: reservar, liquidar e liberar.
+  - `checkReservation` no guard.
+  - Chat: limites por provedor → reserva → cota (libera se a cota negar) → IA → liquidação; liberação garantida no `finally`.
+  - Resumo de conversa e importação de memórias também reservam e liquidam. A importação passou a falhar fechado sem o gasto por provedor.
+  - Agendador expira reservas vencidas.
+  - Modelo sem preço deixa de custar zero.
+  - Transição automática para a leitura antiga se a migração não estiver aplicada.
+- **ADR:** `docs/adr/0002-orcamento-com-reserva.md`.
+
+### Testes (local, Postgres 16, Node 22)
+| Suite | Resultado |
+|---|---|
+| Unitários | 32/32 ok |
+| Integração da rota do chat | 14/14 ok |
+| SQL cota | 24/24 ok |
+| SQL orçamento | 31/31 ok |
+| Concorrência | 10/10 ok |
+| typecheck / build | ok / ok |
+
+**Concorrência:**
+- Teto de US$ 1,00, 20 reservas simultâneas de US$ 0,25 → **exatamente 4**, total reservado 1,00.
+- Teto global ocupado por uma pessoa → reservas de outras pessoas negadas.
+- Teto global livre, duas pessoas disputando ao mesmo tempo → 4 no total.
+
+Também corrigi o próprio `scripts/test-db.sh`: uma contagem ausente podia passar como sucesso. Agora conta como falha.
+
+### Implantação (alto risco, cada passo com aprovação)
+Depois de PR #2 e PR #3 em produção:
+1. Aplicar `20261113140001`.
+2. Conferir `select public.budget_status()` como usuário e `select * from private.budget_policy`.
+3. Integrar este PR.
+4. Monitorar `ai_reservations` (reservas abertas sem liquidar, `over`) por 24h.
+
+Se o app subir antes da migração, a transição mantém a verificação de hoje.
+
+**Rollback:** reverter o app. Depois, se necessário, remover as funções novas, `ai_reservations` e as tabelas de política.
+
+### Riscos e pendências
+- Stream cancelado antes de o provedor informar o uso: custo daquela resposta pode não ser registrado.
+- Reconciliação automática com a fatura real dos provedores não implementada.
+- `MONTHLY_BUDGET_USD` passa a valer só na transição; mudar o teto será `update private.budget_policy` até existir a tela de administração.
+- Limites por provedor (Ajustes) continuam por leitura, não por reserva.
+- Embeddings do agendador não passam pelo orçamento por pessoa (custo muito baixo).
+
+### Próxima atividade recomendada
+Implantar PR #2 → migração da cota → PR #3 → migração do orçamento → este PR. Em paralelo, entregas de baixo risco para uso diário: tela de gasto e limites a partir de `budget_status()`, e polimento de voz e conversa.
+
+## Implantação Fast Track — 13/11/2026 (Claude Code, autorizada pelo Eduardo)
+
+| Etapa | Ação | Resultado |
+|---|---|---|
+| 1 | PR #2 com merge na `main` (`6ae6bac`); deploy da Vercel `READY` | Home 200, `/api/chat` sem login → 401, sem erros nos logs. RPCs usadas pelo código (`consume_quota`, `month_spend`, `month_spend_by_provider`) testadas com usuário temporário em transação desfeita |
+| 2 | Cópia de `usage_daily` em `private.backup_usage_daily_20261113` (2 linhas, somas iguais; RLS ligada, sem acesso de `anon`/`authenticated`) e aplicação de `20261113120001_daily_quota_atomic` (registrada no Supabase como `daily_quota_atomic`) | Usuário temporário (transação desfeita): 1/150 e 2/150 permitidos; com limite individual 2, a 3ª chamada foi negada sem incrementar (contagem 2); sem usuário → negado. `anon` não executa; `authenticated` não lê a política. SECURITY DEFINER com `search_path=''`. `usage_daily` idêntica ao backup |
+| 3 | Base do PR #3 trocada para `main`, merge (`d18286f`), deploy `READY` | Smoke test ok, sem erros nos logs. **Falta o teste real de chat com login (Eduardo)** |
+| 4 | PR #4: conflito no `ROADMAP.md` resolvido (mantidas as duas seções), merge (`c6bbb30`) | Só documentação |
+| 5 | PR #6: `main` integrada ao branch, base trocada para `main`; continua em rascunho | 32 unitários, 14 de integração, `test:db` (SQL + concorrência), typecheck e build ok. Dependências conferidas no banco remoto (somente leitura): `usage_events` com `kind` em chat/summary/import e `provider` em anthropic/gateway/gemini, como a migração espera. Nada aplicado |
+
+Supervisor de segurança do Supabase depois da migração: só os avisos esperados (tabelas private com RLS e sem políticas, de propósito; `consume_quota` antiga executável, que sai na etapa 2; proteção de senhas vazadas desligada no Auth, item antigo).
+
+Rollback disponível:
+- App: promover na Vercel o deploy anterior (`dpl_6tjFxWQV…` para antes do PR #3, `dpl_VQszN7E9…` para antes do PR #2).
+- Banco: `drop function public.consume_daily_quota(); drop table private.user_quota; drop table private.quota_policy;`. A função antiga continua lá.
+
+Pendências:
+- Teste real do chat pelo Eduardo. Depois: conferir `usage_daily` de hoje (dia de Brasília) subindo 1 por mensagem.
+- Etapa 2 da cota, depois de 24h estável: revogar e remover `consume_quota(integer)` e o código de transição.
+- Apagar `private.backup_usage_daily_20261113` depois de estabilizar.
+- PR #6: aprovação do Eduardo para aplicar `20261113140001` e fazer o merge.
