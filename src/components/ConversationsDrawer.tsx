@@ -63,9 +63,9 @@ export function ConversationsDrawer(props: {
 
   return (
     <div className="drawer-wrap" onClick={props.onClose}>
-      <aside className="drawer" role="dialog" aria-modal="true" aria-label="Conversas" ref={panel} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+      <aside className="drawer" role="dialog" aria-modal="true" aria-label="Menu" ref={panel} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <div className="drawer-head">
-          <h2 className="mono" style={{ margin: 0, color: "var(--sig)", fontWeight: 500 }}>Conversas</h2>
+          <h2 className="mono" style={{ margin: 0, color: "var(--sig)", fontWeight: 500 }}>Menu</h2>
           <button className="icon-btn" onClick={props.onClose} aria-label="Fechar">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
           </button>
@@ -75,6 +75,7 @@ export function ConversationsDrawer(props: {
           <a className="btn btn-sm" style={{ flex: 1 }} href="/app/guia">Guia</a>
           <a className="btn btn-sm" style={{ flex: 1 }} href="/app/sobre">Como funciona</a>
         </div>
+        <h3 className="mono muted" style={{ margin: "var(--s-2) 0 0", fontWeight: 500 }}>Conversas anteriores</h3>
         <label className="sr" htmlFor="conv-q">Buscar nas conversas</label>
         <input id="conv-q" className="field" type="search" placeholder="Buscar por assunto" value={q} onChange={(e) => setQ(e.target.value)} />
         {error && <div className="notice" role="alert">{error}</div>}

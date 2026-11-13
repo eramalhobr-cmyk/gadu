@@ -387,19 +387,50 @@ export function GaduApp(props: {
 
   return (
     <div className="shell dots">
+      <a className="skip" href="#conteudo">Pular para o conteúdo</a>
+      {/* Computador: menu lateral fixo com tudo à mão. No celular, o menu de baixo e o ☰ fazem esse papel. */}
+      <aside className="side" aria-label="Menu">
+        <a className="side-brand" href="/app" aria-label="GaDu, início">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/avatar/logo-96.webp" alt="" width={36} height={36} />
+          <span className="brand">GaDu</span>
+        </a>
+        <nav className="side-nav" aria-label="Navegação principal">
+          {TABS.map((t) => (
+            <button key={t} className="side-item" aria-current={view === t ? "page" : undefined} onClick={() => setTab(t)}>
+              <Icon name={TAB_ICON[t]} size={20} />
+              <span>{TAB_LABEL[t]}</span>
+              {t === "perfil" && pending > 0 && <b className="side-badge" aria-label={`${pending} memórias para revisar`}>{pending}</b>}
+            </button>
+          ))}
+        </nav>
+        <div className="side-group">
+          <button className="btn btn-pri side-new" onClick={() => { newConversation(); setTab("conversa"); }}>Nova conversa</button>
+          <button className="side-item" onClick={() => setDrawer(true)} aria-expanded={drawer}>
+            <Icon name="chat" size={18} /><span>Conversas anteriores</span>
+          </button>
+          <a className="side-item" href="/app/guia"><Icon name="book" size={18} /><span>Guia</span></a>
+          <a className="side-item" href="/app/sobre"><Icon name="spark" size={18} /><span>Como funciona</span></a>
+        </div>
+        <span className={`mono state side-state ${mode === "thinking" ? "hot" : ""}`}><i />{stateLabel}</span>
+      </aside>
       <header className="top">
-        <div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
-          <button className="icon-btn" onClick={() => setDrawer(true)} aria-label="Conversas anteriores" aria-expanded={drawer}>
+        <div className="row top-brand" style={{ gap: 4, flexWrap: "nowrap" }}>
+          <button className="icon-btn" onClick={() => setDrawer(true)} aria-label="Menu e conversas anteriores" aria-expanded={drawer}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" /></svg>
           </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="top-logo" src="/avatar/logo-96.webp" alt="" width={28} height={28} />
           <span className="brand">GaDu</span>
         </div>
+        <h1 className="top-title">{view ? TAB_LABEL[view] : "GaDu"}</h1>
         <div className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
           <span className={`mono state ${mode === "thinking" ? "hot" : ""}`}><i />{stateLabel}</span>
           <a className="icon-btn help-btn" href="/app/guia" aria-label="Guia do GaDu" title="Guia do GaDu">?</a>
         </div>
       </header>
       {!online && <div className="banner" role="status">Sem internet. O app continua aberto e as mensagens ficam no rascunho.</div>}
+      <div id="conteudo" tabIndex={-1} className="sr" />
       {view && !seen.has(view) && <TipCard key={view} id={view} onDone={() => markTip(view)} />}
       {pageOpen && <main className="page doc-page">{props.page}</main>}
 
