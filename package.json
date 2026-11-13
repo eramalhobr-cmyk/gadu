@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "node --test --experimental-strip-types src/lib/*.test.ts",
-    "test:integration": "node --test --experimental-strip-types --experimental-test-module-mocks --import ./test/register-alias.mjs test/*.test.ts"
+    "test:integration": "node --test --experimental-strip-types --experimental-test-module-mocks --import ./test/register-alias.mjs test/*.test.ts",
+    "test:db": "bash scripts/test-db.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.6.0",

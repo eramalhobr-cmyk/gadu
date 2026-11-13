@@ -61,19 +61,8 @@ export async function POST(request: Request) {
           send({ t: "notice", kind: "privacy", text: "Percebi um dado sensível nessa mensagem (documento, senha, dado bancário ou de saúde). Pela regra de privacidade, ele não vai para nenhuma IA externa, então não enviei. Pode reescrever sem esse dado?" });
           return;
         }
-        // 2. Cota diária (proteção de custo).
-        const daily = checkDailyQuota(await safeRpc<boolean>(() => supabase.rpc("consume_quota", { p_limit: cfg.dailyLimit })));
-        if (!daily.allowed) {
-          if (daily.reason === "unavailable") {
-            console.error("chat quota validation unavailable");
-            send({ t: "notice", kind: "error", text: "Não consegui verificar seu limite de mensagens agora. Tente novamente em instantes." });
-          } else {
-            send({ t: "notice", kind: "quota", text: `Você chegou ao limite de ${cfg.dailyLimit} mensagens de hoje. O limite volta amanhã e pode ser ajustado nas configurações do servidor.` });
-          }
-          return;
-        }
-        // 2b. Teto de gasto mensal: erros ou valores inválidos bloqueiam a chamada ao provedor.
-        // Teto geral e gasto por provedor são consultados juntos, antes de qualquer gravação.
+        // 2. Leituras de limite primeiro (não gastam nada): teto mensal geral e gasto por provedor.
+        //    Erros ou valores inválidos bloqueiam a chamada ao provedor (fail closed).
         const [monthRes, spendRows] = await Promise.all([
           safeRpc<number | string>(() => supabase.rpc("month_spend")),
           safeRpc<unknown>(() => supabase.rpc("month_spend_by_provider")),
@@ -88,11 +77,23 @@ export async function POST(request: Request) {
           }
           return;
         }
-        // 2c. Limites por provedor (Ajustes): sem o gasto por provedor não dá para respeitá-los (fail closed).
+        // 2b. Limites por provedor (Ajustes): sem o gasto por provedor não dá para respeitá-los.
         const providerSpend = checkProviderSpend(spendRows);
         if (!providerSpend.ok) {
           console.error("chat provider budget validation unavailable");
           send({ t: "notice", kind: "error", text: "Não consegui verificar os limites dos motores de IA agora. Tente novamente em instantes." });
+          return;
+        }
+        // 2c. Cota diária por último, logo antes de gravar: atômica no banco, limite definido pelo servidor
+        //     (nunca enviado pelo app) e dia de Brasília. Mensagem bloqueada acima não gasta cota.
+        const daily = checkDailyQuota(await safeRpc<unknown>(() => supabase.rpc("consume_daily_quota")));
+        if (!daily.allowed) {
+          if (daily.reason === "unavailable") {
+            console.error("chat quota validation unavailable");
+            send({ t: "notice", kind: "error", text: "Não consegui verificar seu limite de mensagens agora. Tente novamente em instantes." });
+          } else {
+            send({ t: "notice", kind: "quota", text: `Você chegou ao limite de ${daily.limit} mensagens de hoje. O limite volta à meia-noite.` });
+          }
           return;
         }
         // 3. Conversa: usa a existente (se for da pessoa) ou cria uma nova.

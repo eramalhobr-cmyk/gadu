@@ -5,10 +5,15 @@ import { checkDailyQuota, checkMonthlyBudget, checkProviderSpend, safeRpc } from
 const ok = <T>(data: T) => ({ data, error: null });
 const failed = { data: null, error: { message: "database unavailable" } };
 
-test("daily quota permits only explicit true", () => {
-  assert.deepEqual(checkDailyQuota(ok(true)), { allowed: true });
-  assert.deepEqual(checkDailyQuota(ok(false)), { allowed: false, reason: "daily" });
-  for (const result of [failed, ok(null), ok(undefined), ok(1), ok("true")]) {
+test("daily quota permits only a well-formed allowed response", () => {
+  assert.deepEqual(checkDailyQuota(ok({ allowed: true, used: 3, limit: 150 })), { allowed: true, used: 3, limit: 150 });
+  assert.deepEqual(checkDailyQuota(ok({ allowed: false, used: 150, limit: 150 })), { allowed: false, reason: "daily", used: 150, limit: 150 });
+  assert.deepEqual(checkDailyQuota(ok({ allowed: false, used: 0, limit: 0 })), { allowed: false, reason: "daily", used: 0, limit: 0 });
+  for (const result of [
+    failed, ok(null), ok(undefined), ok(true), ok(1), ok("true"), ok([]),
+    ok({ allowed: "true", used: 1, limit: 2 }), ok({ allowed: true, used: -1, limit: 2 }), ok({ allowed: true, used: 1.5, limit: 2 }),
+    ok({ allowed: true, used: 1 }), ok({ allowed: true, used: 3, limit: 2 }),
+  ]) {
     assert.deepEqual(checkDailyQuota(result as never), { allowed: false, reason: "unavailable" });
   }
 });
@@ -38,7 +43,7 @@ test("safeRpc turns thrown errors and empty results into errors", async () => {
   assert.deepEqual(await safeRpc(async () => undefined as never), { data: null, error: { message: "invalid rpc response" } });
   assert.deepEqual(await safeRpc(async () => ok(true)), ok(true));
   // Resultado de safeRpc com exceção nunca libera a cota.
-  assert.deepEqual(checkDailyQuota(await safeRpc<boolean>(async () => { throw new Error("timeout"); })), { allowed: false, reason: "unavailable" });
+  assert.deepEqual(checkDailyQuota(await safeRpc<unknown>(async () => { throw new Error("timeout"); })), { allowed: false, reason: "unavailable" });
 });
 
 test("provider spend fails closed on errors and invalid rows", () => {

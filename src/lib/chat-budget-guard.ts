@@ -3,7 +3,12 @@ export type RpcResult<T> = { data: T | null; error: { message?: string } | null 
 
 export type GuardResult =
   | { allowed: true }
-  | { allowed: false; reason: "unavailable" | "daily" | "monthly" };
+  | { allowed: false; reason: "unavailable" | "monthly" };
+
+export type DailyResult =
+  | { allowed: true; used: number; limit: number }
+  | { allowed: false; reason: "daily"; used: number; limit: number }
+  | { allowed: false; reason: "unavailable" };
 
 /** Valor monetário vindo do banco: número finito ≥ 0, ou texto numérico (inclui notação científica). */
 function money(v: unknown): number | null {
@@ -29,9 +34,19 @@ export async function safeRpc<T>(call: () => PromiseLike<RpcResult<T>>): Promise
   }
 }
 
-export function checkDailyQuota(result: RpcResult<boolean>): GuardResult {
-  if (result.error || typeof result.data !== "boolean") return { allowed: false, reason: "unavailable" };
-  return result.data ? { allowed: true } : { allowed: false, reason: "daily" };
+const count = (v: unknown) => (typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : null);
+
+/**
+ * Resposta de consume_daily_quota(): {"allowed": bool, "used": int, "limit": int}.
+ * Só um objeto com esse formato exato libera; qualquer outra coisa bloqueia (fail closed).
+ */
+export function checkDailyQuota(result: RpcResult<unknown>): DailyResult {
+  if (result.error || !result.data || typeof result.data !== "object" || Array.isArray(result.data)) return { allowed: false, reason: "unavailable" };
+  const d = result.data as { allowed?: unknown; used?: unknown; limit?: unknown };
+  const used = count(d.used), limit = count(d.limit);
+  if (typeof d.allowed !== "boolean" || used === null || limit === null) return { allowed: false, reason: "unavailable" };
+  if (d.allowed && used > limit) return { allowed: false, reason: "unavailable" }; // resposta incoerente
+  return d.allowed ? { allowed: true, used, limit } : { allowed: false, reason: "daily", used, limit };
 }
 
 export function checkMonthlyBudget(result: RpcResult<number | string>, budgetUsd: number): GuardResult {

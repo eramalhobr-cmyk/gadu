@@ -11,11 +11,13 @@ const src = (p: string) => new URL(`../src/${p}`, import.meta.url).href;
 let rpcs: Record<string, () => Promise<Rpc>> = {};
 let tables: string[] = [];
 let providerCalls: { skip: string[] }[] = [];
+let rpcCalls: string[] = [];
 
 const ok = (data: unknown) => async () => ({ data, error: null });
 const err = async () => ({ data: null, error: { message: "database unavailable" } });
 const boom = async (): Promise<Rpc> => { throw new Error("fetch failed"); };
-const healthy = () => ({ consume_quota: ok(true), month_spend: ok(1.25), month_spend_by_provider: ok([]) });
+const quotaOk = ok({ allowed: true, used: 1, limit: 150 });
+const healthy = () => ({ consume_daily_quota: quotaOk, month_spend: ok(1.25), month_spend_by_provider: ok([]) });
 
 /** Consulta encadeável do Supabase que resolve sempre para uma linha vazia (conversa nova recebe id 1). */
 function query(table: string) {
@@ -31,7 +33,7 @@ mock.module(src("lib/supabase/server.ts"), {
   namedExports: {
     supabaseServer: async () => ({
       auth: { getUser: async () => ({ data: { user: { id: "user-test", email: "teste@exemplo.com" } } }) },
-      rpc: (name: string) => (rpcs[name] ?? err)(),
+      rpc: (name: string, args?: unknown) => { rpcCalls.push(args === undefined ? name : `${name}(args)`); return (rpcs[name] ?? err)(); },
       from: (table: string) => { tables.push(table); return query(table); },
     }),
   },
@@ -69,7 +71,7 @@ async function chat(message = "oi") {
   return text.trim().split("\n").filter(Boolean).map((l) => JSON.parse(l) as { t: string; kind?: string; text?: string });
 }
 
-beforeEach(() => { rpcs = healthy(); tables = []; providerCalls = []; });
+beforeEach(() => { rpcs = healthy(); tables = []; providerCalls = []; rpcCalls = []; });
 
 function assertBlocked(events: { t: string; kind?: string; text?: string }[], kind: string, words: RegExp) {
   assert.equal(providerCalls.length, 0, "o provedor de IA não pode ser chamado");
@@ -88,20 +90,20 @@ test("caminho feliz: limites validados chamam o provedor uma vez", async () => {
 });
 
 test("cota: falha de comunicação com o Supabase bloqueia", async () => {
-  rpcs.consume_quota = boom;
+  rpcs.consume_daily_quota = boom;
   assertBlocked(await chat(), "error", /limite de mensagens/);
 });
 
 test("cota: erro da RPC e resposta nula bloqueiam", async () => {
-  for (const r of [err, ok(null), ok("true"), ok(1)]) {
-    rpcs = { ...healthy(), consume_quota: r }; tables = []; providerCalls = [];
+  for (const r of [err, ok(null), ok(true), ok("true"), ok({ allowed: true }), ok({ allowed: "sim", used: 1, limit: 2 })]) {
+    rpcs = { ...healthy(), consume_daily_quota: r }; tables = []; providerCalls = [];
     assertBlocked(await chat(), "error", /limite de mensagens/);
   }
 });
 
 test("cota diária esgotada avisa sem chamar o provedor", async () => {
-  rpcs.consume_quota = ok(false);
-  assertBlocked(await chat(), "quota", /limite de \d+ mensagens de hoje/);
+  rpcs.consume_daily_quota = ok({ allowed: false, used: 40, limit: 40 });
+  assertBlocked(await chat(), "quota", /limite de 40 mensagens de hoje/);
 });
 
 test("teto mensal: falha, nulo e valor inválido bloqueiam", async () => {
@@ -128,4 +130,19 @@ test("provedor que passou do limite fica de fora desta resposta", async () => {
   await chat();
   assert.equal(providerCalls.length, 1);
   assert.deepEqual(providerCalls[0].skip, ["anthropic"]);
+});
+
+test("cota é a última verificação: teto mensal ou limites ilegíveis não gastam cota", async () => {
+  for (const r of [{ month_spend: ok(20) }, { month_spend: err }, { month_spend_by_provider: err }]) {
+    rpcs = { ...healthy(), ...r }; tables = []; providerCalls = []; rpcCalls = [];
+    await chat();
+    assert.equal(providerCalls.length, 0);
+    assert.ok(!rpcCalls.includes("consume_daily_quota"), "a cota não pode ser consumida quando outro limite já bloqueou");
+  }
+});
+
+test("o app nunca envia o limite da cota ao banco", async () => {
+  await chat();
+  assert.ok(rpcCalls.includes("consume_daily_quota"));
+  assert.ok(!rpcCalls.some((c) => c.startsWith("consume_quota") || c === "consume_daily_quota(args)"), "nenhum argumento de limite é enviado");
 });

@@ -69,3 +69,55 @@ O GitHub é a fonte oficial; `AGENTS.md`, `CLAUDE.md`, `docs/PROJECT_CONTEXT.md`
 
 ### Próxima atividade recomendada
 PR de **cota diária atômica**: nova migração que (a) não incrementa acima do limite, (b) tira o limite do argumento do cliente (limite controlado pelo servidor), (c) usa o dia de Brasília, (d) testes de concorrência em Supabase local. Exige aprovação antes de aplicar no banco remoto.
+
+---
+
+## Etapa 2 — Cota diária atômica (Claude Code, 2026-11-13)
+
+Branch `fix/daily-quota-atomic-20261113`, **empilhada sobre o PR #2** (mesma rota do chat). PR em rascunho com base no branch do PR #2; ao integrar o PR #2, mudar a base para `main`. Nada aplicado no banco remoto, sem merge, sem deploy.
+
+### O que foi feito
+- **Migração nova** `supabase/migrations/20261113120001_daily_quota_atomic.sql` (não edita migração aplicada):
+  - `private.quota_policy` (limite global, semeado com 150 = valor atual de produção) e `private.user_quota` (exceção por pessoa), fora da API, com RLS ligada e sem privilégios para `anon`/`authenticated`.
+  - `public.consume_daily_quota()` sem argumentos: incremento condicional atômico, nunca passa do limite, dia de Brasília, fail closed sem política ou com limite ≤ 0. Retorna `{"allowed","used","limit"}`.
+  - `consume_quota(integer)` **mantida** nesta etapa para não quebrar a versão em produção.
+- **App:** `src/app/api/chat/route.ts` chama `consume_daily_quota()` sem enviar limite; a cota passou a ser a **última** verificação (teto mensal e limites por provedor antes), então mensagem bloqueada não gasta cota; o aviso usa o limite real do banco.
+- **Guard:** `checkDailyQuota` aceita só o objeto `{"allowed": bool, "used": int ≥ 0, "limit": int ≥ 0}` coerente; qualquer outra resposta bloqueia.
+- **Testes de banco locais:** `scripts/test-db.sh` (`npm run test:db`) sobe um Postgres temporário, aplica `supabase/tests/00_supabase_shim.sql` (papéis e `auth.uid()` como no Supabase) e as migrações, roda `supabase/tests/10_daily_quota.test.sql` e testes de concorrência com conexões paralelas. Apaga tudo no final; nunca conecta no remoto.
+- **CI:** job `database` no workflow do PR roda `test:db` no Postgres do runner (sem segredos); o CI também dispara para `supabase/**`, `test/**` e `scripts/**`.
+- **ADR:** `docs/adr/0001-cota-diaria-atomica.md`.
+
+### Testes executados e resultados (local, Postgres 16, Node 22)
+| Suite | Resultado |
+|---|---|
+| `npm run test:unit` | 28/28 ok |
+| `npm run test:integration` (rota real, Supabase e IA simulados) | 10/10 ok |
+| `npm run test:db`: SQL | 21/21 ok |
+| `npm run test:db`: concorrência | 6/6 ok |
+| `npm run typecheck` / `npm run build` | ok / ok |
+| Prova de falha do script (asserção alterada de propósito) | script sai com erro |
+
+Casos SQL: primeiro uso, último permitido, excedente (negado e contagem parada no limite), usuários distintos, limite individual menor/maior, limite zero sem gravar, sem usuário, sem política (fecha), dia de Brasília, função sem argumento de limite, `authenticated` sem acesso à política, `anon` sem execução, usuário não zera nem insere contagem (RLS), função antiga mantida.
+
+Concorrência: 40 chamadas simultâneas do mesmo usuário com limite 10 → **10 permitidas, contagem 10**; dois usuários disputando ao mesmo tempo (25 + 25) → 10 e 10. Comparação com a função de produção, mesmo cenário: **contagem 40**.
+
+Integração nova: cota não é consumida quando o teto mensal ou os limites por provedor bloqueiam; o app não envia limite ao banco.
+
+### Plano de implantação (precisa de aprovação a cada passo)
+1. Integrar o PR #2.
+2. **Aplicar a migração `20261113120001` no Supabase** (aditiva; não altera dados nem a função antiga).
+3. Só então integrar este PR e publicar o app. **Se o app subir antes da migração, o chat fica bloqueado para todos** (fail closed).
+4. Depois do app estável: migração da etapa 2 revogando e removendo `consume_quota(integer)`.
+
+**Rollback:** reverter o app (a função antiga continua existindo). Se for preciso desfazer o banco: `drop function public.consume_daily_quota(); drop table private.user_quota; drop table private.quota_policy;`.
+
+### Riscos e pendências
+- **Ordem de implantação** acima é obrigatória.
+- `DAILY_MESSAGE_LIMIT` deixa de valer para o chat; mudar o limite passa a ser `update private.quota_policy …` (com aprovação) até existir tela de administração.
+- Na virada para o dia de Brasília, a contagem do dia da implantação pode zerar ou continuar (efeito único, inofensivo).
+- Mensagem que passa na cota e falha no provedor continua contando: definir devolução no PR de orçamento.
+- O shim imita o Supabase, mas não é o Supabase: validar a migração num projeto de testes ou branch do Supabase antes da produção, se possível.
+- Etapa 2 (remover `consume_quota`) ainda não escrita.
+
+### Próxima atividade recomendada
+PR de **orçamento mensal com reserva e reconciliação** (P1), reaproveitando `scripts/test-db.sh` para testes de concorrência, e tratando junto a devolução de cota em falha do provedor e as leituras de gasto por provedor da importação de memórias e do resumo.

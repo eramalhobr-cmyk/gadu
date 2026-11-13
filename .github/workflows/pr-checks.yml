@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - 'src/**'
+      - 'test/**'
+      - 'supabase/**'
+      - 'scripts/**'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/pr-checks.yml'
@@ -27,3 +30,12 @@ jobs:
       - run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+
+  database:
+    # Postgres temporário do próprio runner: aplica migrações e roda testes SQL e de concorrência.
+    # Não usa nenhum segredo e não conecta no Supabase remoto.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/test-db.sh
