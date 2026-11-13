@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { checkDailyQuota, checkLegacyQuota, checkMonthlyBudget, checkProviderSpend, isMissingFunction, safeRpc } from "@/lib/chat-budget-guard";
 import { readBudgets, serverConfig } from "@/lib/config";
 import { accessOf } from "@/lib/access";
 import { after } from "next/server";
@@ -60,16 +61,46 @@ export async function POST(request: Request) {
           send({ t: "notice", kind: "privacy", text: "Percebi um dado sensível nessa mensagem (documento, senha, dado bancário ou de saúde). Pela regra de privacidade, ele não vai para nenhuma IA externa, então não enviei. Pode reescrever sem esse dado?" });
           return;
         }
-        // 2. Cota diária (proteção de custo).
-        const { data: okQuota } = await supabase.rpc("consume_quota", { p_limit: cfg.dailyLimit });
-        if (okQuota === false) {
-          send({ t: "notice", kind: "quota", text: `Você chegou ao limite de ${cfg.dailyLimit} mensagens de hoje. O limite volta amanhã e pode ser ajustado nas configurações do servidor.` });
+        // 2. Leituras de limite primeiro (não gastam nada): teto mensal geral e gasto por provedor.
+        //    Erros ou valores inválidos bloqueiam a chamada ao provedor (fail closed).
+        const [monthRes, spendRows] = await Promise.all([
+          safeRpc<number | string>(() => supabase.rpc("month_spend")),
+          safeRpc<unknown>(() => supabase.rpc("month_spend_by_provider")),
+        ]);
+        const monthly = checkMonthlyBudget(monthRes, cfg.monthlyBudgetUsd);
+        if (!monthly.allowed) {
+          if (monthly.reason === "unavailable") {
+            console.error("chat monthly budget validation unavailable");
+            send({ t: "notice", kind: "error", text: "Não consegui verificar seu orçamento de IA agora. Tente novamente em instantes." });
+          } else {
+            send({ t: "notice", kind: "quota", text: `O teto de gasto do mês (US$ ${cfg.monthlyBudgetUsd.toFixed(2)}) foi atingido. O GaDu volta a responder no próximo mês, ou quando o teto for aumentado.` });
+          }
           return;
         }
-        // 2b. Teto de gasto mensal.
-        const { data: spent } = await supabase.rpc("month_spend");
-        if (Number(spent ?? 0) >= cfg.monthlyBudgetUsd) {
-          send({ t: "notice", kind: "quota", text: `O teto de gasto do mês (US$ ${cfg.monthlyBudgetUsd.toFixed(2)}) foi atingido. O GaDu volta a responder no próximo mês, ou quando o teto for aumentado.` });
+        // 2b. Limites por provedor (Ajustes): sem o gasto por provedor não dá para respeitá-los.
+        const providerSpend = checkProviderSpend(spendRows);
+        if (!providerSpend.ok) {
+          console.error("chat provider budget validation unavailable");
+          send({ t: "notice", kind: "error", text: "Não consegui verificar os limites dos motores de IA agora. Tente novamente em instantes." });
+          return;
+        }
+        // 2c. Cota diária por último, logo antes de gravar: atômica no banco, limite definido pelo servidor
+        //     (nunca enviado pelo app) e dia de Brasília. Mensagem bloqueada acima não gasta cota.
+        const quotaRes = await safeRpc<unknown>(() => supabase.rpc("consume_daily_quota"));
+        let daily = checkDailyQuota(quotaRes);
+        if (!daily.allowed && daily.reason === "unavailable" && isMissingFunction(quotaRes.error)) {
+          // Transição: app novo publicado antes da migração. Usa a função antiga com o limite do servidor
+          // (comportamento de hoje) em vez de bloquear todo mundo. Remover junto com consume_quota (etapa 2).
+          console.warn("consume_daily_quota ausente no banco; usando consume_quota (transição)");
+          daily = checkLegacyQuota(await safeRpc<unknown>(() => supabase.rpc("consume_quota", { p_limit: cfg.dailyLimit })), cfg.dailyLimit);
+        }
+        if (!daily.allowed) {
+          if (daily.reason === "unavailable") {
+            console.error("chat quota validation unavailable");
+            send({ t: "notice", kind: "error", text: "Não consegui verificar seu limite de mensagens agora. Tente novamente em instantes." });
+          } else {
+            send({ t: "notice", kind: "quota", text: `Você chegou ao limite de ${daily.limit} mensagens de hoje. O limite volta à meia-noite.` });
+          }
           return;
         }
         // 3. Conversa: usa a existente (se for da pessoa) ou cria uma nova.
@@ -105,14 +136,13 @@ export async function POST(request: Request) {
         // Busca por significado em paralelo (memórias, conversas, tarefas, projetos). Falha não atrapalha a conversa.
         const semantic = semanticContext(supabase, message);
         // 4. Contexto: perfil, memória aprovada, histórico recente, conversas antigas relacionadas e gasto por provedor.
-        const [profile, memories, history, related, spendRows, openTasks, activeProjects, agentRow, projectRow] = await Promise.all([
+        const [profile, memories, history, related, openTasks, activeProjects, agentRow, projectRow] = await Promise.all([
           supabase.from("profiles").select("display_name, settings").eq("id", user.id).maybeSingle(),
           supabase.from("memories").select("content, area").eq("status", "approved").order("created_at", { ascending: true }).limit(80),
           supabase.from("messages").select("role, content").eq("conversation_id", conversationId).order("created_at", { ascending: false }).limit(16),
           relatedQuery(message)
             ? supabase.from("conversations").select("title, summary, updated_at").textSearch("search", relatedQuery(message), { type: "websearch", config: "portuguese" }).not("summary", "is", null).neq("id", conversationId).order("updated_at", { ascending: false }).limit(3)
             : Promise.resolve({ data: [] as { title: string; summary: string; updated_at: string }[] }),
-          supabase.rpc("month_spend_by_provider"),
           supabase.from("tasks").select("title, priority, due_date, projects(name)").eq("status", "open").order("due_date", { ascending: true, nullsFirst: false }).order("priority").limit(15),
           supabase.from("projects").select("id, name, goal").eq("status", "active").order("updated_at", { ascending: false }).limit(20),
           agentId ? supabase.from("agents").select("name, area, instructions").eq("id", agentId).maybeSingle() : Promise.resolve({ data: null }),
@@ -130,8 +160,7 @@ export async function POST(request: Request) {
         });
         // Limite por provedor: quem passou do limite do mês fica de fora desta resposta.
         const budgets = readBudgets(profile.data?.settings);
-        const spentBy: Record<string, number> = {};
-        for (const r of (spendRows.data ?? []) as { provider: string; cost_usd: number }[]) spentBy[r.provider] = Number(r.cost_usd);
+        const spentBy = providerSpend.spentBy;
         const skip = new Set<ProviderId>();
         if ((spentBy.anthropic ?? 0) >= budgets.anthropic) skip.add("anthropic");
         if ((spentBy.gateway ?? 0) >= budgets.gateway) skip.add("gateway");
