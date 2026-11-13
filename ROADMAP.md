@@ -1,7 +1,41 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 10/11/2026 (v0.8.1). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
+Atualizado a cada entrega. Última atualização: 13/11/2026. Produção: https://gadu-agent.vercel.app (commit `fcf7415`).
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
+
+Documentos relacionados:
+- [PROJECT_STATUS.md](PROJECT_STATUS.md): situação atual e ponto de retomada.
+- [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md): status por funcionalidade, com arquivos de código.
+- [CHANGELOG.md](CHANGELOG.md): histórico.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): arquitetura e decisões oficiais.
+
+## Visão por módulo (13/11/2026)
+Status:
+- **implementado**: em produção.
+- **beta**: em produção, parcial ou sem validação real.
+- **em desenvolvimento**: em PR.
+- **planejado**: só em documento.
+- **bloqueado**: depende de decisão ou recurso externo.
+
+Prioridade: P0 agora · P1 próximo ciclo · P2 depois · P3 longo prazo.
+
+| Módulo | Objetivo | Status | Prioridade | Dependências | Próximos passos |
+|---|---|---|---|---|---|
+| Assistente pessoal e conversacional | Conversa confiável, barata e segura | implementado; orçamento com reserva em desenvolvimento (PR #6) | P0 | PR #6 | aplicar o PR #6; mostrar gastos na tela; erros em português |
+| Assistente universal de voz e texto | Falar ou digitar em qualquer tela e módulo | implementado (voz do aparelho); modo conversa em beta | P1 | — | estabilidade da voz; depois voz natural paga com teto |
+| Inteligência contextual | Conectar memória, agenda, tarefas, e-mail e módulos, respeitando permissões | implementado (memória, busca por significado, insights) | P1 | módulos futuros | contexto de Finanças e Office com permissões |
+| Financeiro | Controle mensal pela conversa: lançar, classificar, prever caixa | planejado (especificação no PR #5) | P1 | tabelas `fin_*` com RLS | revisar o PR #5; base Contas e Dia a dia |
+| Tarefas, agenda e memórias | Organizar o dia com voz | implementado; notificações e criação de eventos em beta | P1 | permissão `calendar.events`; PWA instalado | liberar a permissão; instalar o PWA no iPhone |
+| Agent Office e agentes | Agentes por área, multiusuário, organizações e clientes | agentes simples implementados; Office planejado | P2 | PR #6 (teto por agente); isolamento por organização | 6.1 fundamentos (docs/PLANO-AGENTES.md) |
+| Agent Office Studio | Agentes que criam sites, aplicações web e PWAs (sem app nativo nesta fase) | planejado | P3 | Agent Office; execução isolada | especificar depois do Office |
+| 3D Studio e impressão 3D | Buscar, organizar e gerar modelos imprimíveis; exportar para fatiador | planejado | P2 | — | especificar depois do GaDu Personal, antes do Agent Office |
+| Integrações, segurança e permissões | Isolamento por pessoa, custos sob controle, integrações autorizadas | implementado (RLS, fail closed, cota atômica, CI); auditoria completa pendente | P0 | — | etapa 2 da cota; auditoria de RLS; créditos por pessoa; alerta de erro |
+| Home pública, dashboard e desktop/mobile | Primeira impressão e uso diário em qualquer tela | implementado (home, Hoje em painel, PWA, avatar oficial) | P1 | Design System (PR #1) | tokens centralizados; tela de erro própria |
+
+Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis, voz, erros) → Finanças → 3D Studio → Agent Office → Agent Office Studio.
+
+## Histórico detalhado por fase
+`[x]` feito · `[ ]` falta · `[~]` em andamento.
 
 ## Fase 0 · MVP publicado (v0.1)
 
@@ -190,6 +224,13 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 
 ## Modelo de trabalho
 - [x] GaDu Fast Track documentado (`docs/FAST_TRACK.md`): baixo risco com processo simplificado, alto risco com aprovações específicas
+- [x] Documentação central: PROJECT_STATUS, CHANGELOG, FEATURE_MATRIX, ARCHITECTURE e decisões oficiais (PR #7)
+
+## Módulos futuros (planejados, sem código)
+- [ ] Financeiro: ver a seção "Finanças pessoais" no PR #5 (`docs/FEATURE-FINANCAS.md`)
+- [ ] 3D Studio: busca de modelos gratuitos respeitando licenças, biblioteca, geração de modelos imprimíveis, exportação para fatiador
+- [ ] Agent Office Studio: agentes que criam sites, aplicações web e PWAs, com execução isolada e aprovação; sem app nativo Android/iOS nesta fase
+- [ ] Voz e texto em todos os módulos novos (decisão oficial)
 
 ## Fase 6 · Agentes Pessoal e Trabalho (proposta em discussão, ver docs/PLANO-AGENTES.md)
 - [ ] 6.1 Fundamentos: espaços Pessoal e Trabalho; agentes com categoria, papel, hierarquia, autonomia e teto; organograma

@@ -1,0 +1,100 @@
+# GaDu · Matriz de funcionalidades
+
+Atualizada em 13/11/2026, a partir do código na `main` (`c6bbb30`) e de PRs abertos. Status:
+- **implementado**: na `main` e em produção.
+- **beta**: em produção, mas parcial, dependente de passo manual ou sem validação real.
+- **em desenvolvimento**: em branch ou PR.
+- **planejado**: só em documento.
+- **bloqueado**: depende de decisão ou recurso externo.
+
+Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** longo prazo. Nada que exista só em design, mockup ou plano aparece como implementado.
+
+## 1. Assistente pessoal e conversacional
+| Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
+|---|---|---|---|---|
+| Conversa em streaming, com o motor que respondeu | implementado | — | `src/app/api/chat/route.ts`, `src/components/GaduApp.tsx` | — |
+| Contingência de motor (Gateway Claude → Gemini) e limite por motor | implementado | — | `src/lib/llm/*` | — |
+| Chat fail closed (cota, teto e limites ilegíveis bloqueiam) | implementado | — | `src/lib/chat-budget-guard.ts` | PR #2 |
+| Cota diária atômica (150/dia, dia de Brasília) | implementado | — | `supabase/migrations/20261113120001_daily_quota_atomic.sql` | remover `consume_quota` na etapa 2 |
+| Teto mensal com reserva e reconciliação | em desenvolvimento | P0 | PR #6: `src/lib/ai-budget.ts`, migração `20261113140001` | aprovação para aplicar a migração |
+| Gastos, reservas e limite visíveis no app | planejado | P0 | `src/components/SettingsPage.tsx`, `src/app/api/usage/route.ts` | depende do PR #6 (`budget_status()`) |
+| Mensagens de erro em português e tela de erro própria | planejado | P1 | — | — |
+| Lista de conversas (abrir, buscar, apagar) | implementado | — | `src/components/ConversationsDrawer.tsx` | — |
+
+## 2. Assistente universal de voz e texto
+| Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
+|---|---|---|---|---|
+| Apertar para falar, resposta falada frase a frase, interromper | implementado | — | `src/lib/speech.ts`, `GaduApp.tsx` | — |
+| Botão de voz flutuante em todas as telas | implementado | — | `GaduApp.tsx` | — |
+| Modo conversa (volta a ouvir) | beta | P1 | `GaduApp.tsx` | estabilidade varia por navegador e aparelho; melhorar |
+| Voz natural paga (ElevenLabs/OpenAI) com teto | planejado | P2 | — | aprovação de custo |
+| Conversa contínua com interrupção natural | planejado | P2 | — | voz paga |
+| Voz e texto em qualquer módulo novo (Finanças, Office, 3D) | planejado | P1 | — | decisão oficial: todo módulo novo recebe voz e texto |
+
+## 3. Inteligência contextual e integração entre módulos
+| Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
+|---|---|---|---|---|
+| Memória com aprovação, importação de outras IAs | implementado | — | `src/components/MemoryPage.tsx`, `src/lib/importer.ts`, `src/app/api/memories/import` | — |
+| Resumo automático de conversas (memória v2) | implementado | — | `src/app/api/chat/route.ts` | — |
+| Busca por significado (pgvector) em memórias, conversas, tarefas e projetos | implementado | — | `src/app/api/search`, `src/lib/embeddings.ts`, `search_index` | — |
+| Insights: conflito de agenda, janela livre, atrasos, e-mail parado | implementado | — | `src/lib/insights.ts` | — |
+| Regra de privacidade (dado sensível não sai nem é gravado) | implementado | — | `src/lib/privacy.ts` | Presidio com regras brasileiras (P2) |
+| Contexto entre módulos com permissões (Finanças, Office) | planejado | P2 | — | módulos ainda não existem |
+
+## 4. Financeiro
+| Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
+|---|---|---|---|---|
+| Especificação de referência | em desenvolvimento | P1 | PR #5: `docs/FEATURE-FINANCAS.md` | revisão e merge |
+| Contas, dia a dia, lançamento pela conversa, extratos, caixa, plano, simulador | planejado | P1 | — | tabelas `fin_*` com RLS (alto risco: banco) |
+
+## 5. Tarefas, agenda e memórias
+| Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
+|---|---|---|---|---|
+| Aba Hoje (painel em 3 colunas no desktop) | implementado | — | `src/components/TodayPage.tsx`, `src/app/api/today` | — |
+| Tarefas (voz ou manual, prazo, prioridade, e-mail vira tarefa) | implementado | — | `src/components/TasksPanel.tsx`, tabela `tasks` | — |
+| Projetos pessoais | implementado | — | `src/components/ProjectsPage.tsx` | — |
+| Lembretes por voz e notificações (Web Push e Cron) | beta | P1 | `src/lib/push.ts`, `src/app/api/cron/tick` | falta o Eduardo instalar o PWA no iPhone e ligar as notificações |
+| Briefing da manhã e revisão da noite | beta | P1 | `src/lib/briefing.ts`, `src/app/api/cron/tick` | depende das notificações |
+| Google: agenda e Gmail (só leitura) | implementado | — | `src/lib/google.ts`, `src/app/api/google/*` | — |
+| Agenda visual semanal | implementado | — | `src/components/AgendaView.tsx` | — |
+| Criar eventos pela voz | beta | P1 | `src/app/api/calendar/route.ts` | bloqueado até liberar a permissão `calendar.events` no Google Cloud e reconectar |
+| Rascunhos de e-mail e foco na agenda com aprovação | planejado | P2 | — | — |
+
+## 6. Agent Office e agentes especializados
+| Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
+|---|---|---|---|---|
+| Agentes simples (nome, área, instruções, memória própria, "conversar com o agente") | implementado | — | `src/components/AgentsPage.tsx`, tabela `agents` | — |
+| Espaços Pessoal e Trabalho, hierarquia, CRM leve, orquestração, aprovações | planejado | P2 | `docs/PLANO-AGENTES.md` | isolamento multiusuário, organização e cliente (decisão oficial) |
+| Ferramentas permitidas, modelo e teto por agente | planejado | P2 | — | orçamento com reserva (PR #6) |
+
+## 7. Agent Office Studio (sites, aplicações web e PWAs)
+| Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
+|---|---|---|---|---|
+| Criação de sites, aplicações web e PWAs por agentes | planejado | P3 | — | Agent Office; sandbox de execução; sem app nativo Android/iOS nesta fase (decisão oficial) |
+
+## 8. 3D Studio e impressão 3D
+| Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
+|---|---|---|---|---|
+| Busca de modelos gratuitos (respeitando licenças), biblioteca, geração de modelos imprimíveis, exportação para fatiador | planejado | P2 | descrito em `docs/PROJECT_CONTEXT.md` (PR #1, não integrado) | vem depois do GaDu Personal e antes do Agent Office |
+
+## 9. Integrações, segurança e permissões
+| Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
+|---|---|---|---|---|
+| RLS com `(select auth.uid())` em todas as tabelas públicas | implementado | — | `supabase/migrations/*` | auditoria completa (P1) |
+| CSP com nonce, HSTS, cabeçalhos de segurança | implementado | — | `src/proxy.ts` | — |
+| Token do Google criptografado (AES-256-GCM) | implementado | — | `src/lib/crypto.ts` | — |
+| Convites e admin sem acesso a conteúdo | implementado | — | `src/components/AdminPage.tsx`, `src/app/api/admin/*`, `src/lib/invites.ts` | — |
+| Administração de créditos e consumo por pessoa | planejado | P1 | — | PR #6 (`private.user_budget` é a base) |
+| Testes no CI (unitários, integração, banco) | implementado | — | `.github/workflows/pr-checks.yml`, `scripts/test-db.sh` | testes de ponta a ponta no navegador (P1) |
+| Monitoramento e alerta de erro | planejado | P1 | — | — |
+| Casa inteligente (Tuya, Alexa, Google Home) | planejado | P3 | ROADMAP do PR #1 | — |
+
+## 10. Home pública, dashboard e experiência desktop/mobile
+| Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
+|---|---|---|---|---|
+| Home pública em `/` com botão Entrar | implementado | — | `src/app/page.tsx` | — |
+| Avatar holográfico animado e ícone oficiais | implementado | — | `src/components/avatar-engine.ts`, `RobotFace.tsx`, `public/avatar`, `public/icons` | preservar (decisão oficial) |
+| PWA instalável, tela offline, rascunho local | implementado | — | `public/manifest.webmanifest`, `public/sw.js`, `src/app/offline` | — |
+| Guia, dicas e "Como funciona" | implementado | — | `src/app/app/guia`, `src/app/app/sobre`, `src/lib/tips.ts` | — |
+| Design System com tokens centralizados | planejado | P1 | `docs/DESIGN_SYSTEM.md` (PR #1) | inventário de estilos atuais |
+| Validação do PWA na Streaming Box do carro | planejado | P3 | ROADMAP do PR #1 | — |
