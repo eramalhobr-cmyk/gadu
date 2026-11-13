@@ -1,6 +1,6 @@
 # GaDu · Matriz de funcionalidades
 
-Atualizada em 13/11/2026, a partir do código na `main` (`c6bbb30`) e de PRs abertos. Status:
+Atualizada em 13/11/2026 (tarde), a partir do código na `main` (`fd77f84`) e de PRs abertos. Status:
 - **implementado**: na `main` e em produção.
 - **beta**: em produção, mas parcial, dependente de passo manual ou sem validação real.
 - **em desenvolvimento**: em branch ou PR.
@@ -16,9 +16,9 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Contingência de motor (Gateway Claude → Gemini) e limite por motor | implementado | — | `src/lib/llm/*` | — |
 | Chat fail closed (cota, teto e limites ilegíveis bloqueiam) | implementado | — | `src/lib/chat-budget-guard.ts` | PR #2 |
 | Cota diária atômica (150/dia, dia de Brasília) | implementado | — | `supabase/migrations/20261113120001_daily_quota_atomic.sql` | remover `consume_quota` na etapa 2 |
-| Teto mensal com reserva e reconciliação | em desenvolvimento | P0 | PR #6: `src/lib/ai-budget.ts`, migração `20261113140001` | aprovação para aplicar a migração |
-| Gastos, reservas e limite visíveis no app | planejado | P0 | `src/components/SettingsPage.tsx`, `src/app/api/usage/route.ts` | depende do PR #6 (`budget_status()`) |
-| Mensagens de erro em português e tela de erro própria | planejado | P1 | — | — |
+| Teto mensal com reserva e reconciliação | implementado | — | `src/lib/ai-budget.ts`, migração `20261113140001` | validado no uso real (PR #6) |
+| Gastos, reservas e limite visíveis no app | implementado | — | `src/components/SettingsPage.tsx`, `src/app/api/usage/route.ts` | em Ajustes (PR #9); levar ao Hoje (P2) |
+| Mensagens de erro em português e tela de erro própria | implementado | — | `src/lib/errors.ts`, `src/app/error.tsx`, `global-error.tsx`, `not-found.tsx` | PR #9 |
 | Lista de conversas (abrir, buscar, apagar) | implementado | — | `src/components/ConversationsDrawer.tsx` | — |
 
 ## 2. Assistente universal de voz e texto
@@ -26,7 +26,7 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 |---|---|---|---|---|
 | Apertar para falar, resposta falada frase a frase, interromper | implementado | — | `src/lib/speech.ts`, `GaduApp.tsx` | — |
 | Botão de voz flutuante em todas as telas | implementado | — | `GaduApp.tsx` | — |
-| Modo conversa (volta a ouvir) | beta | P1 | `GaduApp.tsx` | estabilidade varia por navegador e aparelho; melhorar |
+| Modo conversa (volta a ouvir) | beta | P1 | `GaduApp.tsx`, `src/lib/speech.ts` | estabilidade melhorada no PR #9 (testes com voz simulada); validar no iPhone e no Android |
 | Voz natural paga (ElevenLabs/OpenAI) com teto | planejado | P2 | — | aprovação de custo |
 | Conversa contínua com interrupção natural | planejado | P2 | — | voz paga |
 | Voz e texto em qualquer módulo novo (Finanças, Office, 3D) | planejado | P1 | — | decisão oficial: todo módulo novo recebe voz e texto |
@@ -84,7 +84,7 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | CSP com nonce, HSTS, cabeçalhos de segurança | implementado | — | `src/proxy.ts` | — |
 | Token do Google criptografado (AES-256-GCM) | implementado | — | `src/lib/crypto.ts` | — |
 | Convites e admin sem acesso a conteúdo | implementado | — | `src/components/AdminPage.tsx`, `src/app/api/admin/*`, `src/lib/invites.ts` | — |
-| Administração de créditos e consumo por pessoa | planejado | P1 | — | PR #6 (`private.user_budget` é a base) |
+| Administração de créditos e consumo por pessoa | planejado | P1 | — | a base existe: `private.user_budget` (PR #6) |
 | Testes no CI (unitários, integração, banco) | implementado | — | `.github/workflows/pr-checks.yml`, `scripts/test-db.sh` | testes de ponta a ponta no navegador (P1) |
 | Monitoramento e alerta de erro | planejado | P1 | — | — |
 | Casa inteligente (Tuya, Alexa, Google Home) | planejado | P3 | ROADMAP do PR #1 | — |
@@ -96,5 +96,7 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Avatar holográfico animado e ícone oficiais | implementado | — | `src/components/avatar-engine.ts`, `RobotFace.tsx`, `public/avatar`, `public/icons` | preservar (decisão oficial) |
 | PWA instalável, tela offline, rascunho local | implementado | — | `public/manifest.webmanifest`, `public/sw.js`, `src/app/offline` | — |
 | Guia, dicas e "Como funciona" | implementado | — | `src/app/app/guia`, `src/app/app/sobre`, `src/lib/tips.ts` | — |
-| Design System com tokens centralizados | planejado | P1 | `docs/DESIGN_SYSTEM.md` (PR #1) | inventário de estilos atuais |
+| Design System com tokens centralizados | implementado (v1) | P1 | `src/app/globals.css`, `docs/DESIGN_SYSTEM.md` | PR #10; etapa 2: migrar estilos inline e criar componentes compartilhados |
+| Menu lateral no computador e layouts para tablet | implementado | — | `src/components/GaduApp.tsx` (`.side`), `globals.css` | PR #10 |
+| Acessibilidade (atalho de teclado, alvos de toque, foco) | implementado | — | `GaduApp.tsx`, `globals.css` | PR #10; auditoria completa de contraste (P2) |
 | Validação do PWA na Streaming Box do carro | planejado | P3 | ROADMAP do PR #1 | — |

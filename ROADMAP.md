@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 13/11/2026. Produção: https://gadu-agent.vercel.app (commit `fcf7415`).
+Atualizado a cada entrega. Última atualização: 13/11/2026 (tarde). Produção: https://gadu-agent.vercel.app (commit `fd77f84`).
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 Documentos relacionados:
@@ -21,16 +21,16 @@ Prioridade: P0 agora · P1 próximo ciclo · P2 depois · P3 longo prazo.
 
 | Módulo | Objetivo | Status | Prioridade | Dependências | Próximos passos |
 |---|---|---|---|---|---|
-| Assistente pessoal e conversacional | Conversa confiável, barata e segura | implementado; orçamento com reserva em desenvolvimento (PR #6) | P0 | PR #6 | aplicar o PR #6; mostrar gastos na tela; erros em português |
-| Assistente universal de voz e texto | Falar ou digitar em qualquer tela e módulo | implementado (voz do aparelho); modo conversa em beta | P1 | — | estabilidade da voz; depois voz natural paga com teto |
+| Assistente pessoal e conversacional | Conversa confiável, barata e segura | implementado: fail closed, cota atômica, orçamento com reserva (PRs #2, #3, #6), erros em português (PR #9) | P0 | — | etapa 2 da cota; créditos por pessoa |
+| Assistente universal de voz e texto | Falar ou digitar em qualquer tela e módulo | implementado (voz do aparelho); modo conversa em beta, com estabilidade melhorada no PR #9 (falta validar nos aparelhos) | P1 | — | validar no iPhone e no Android; depois voz natural paga com teto |
 | Inteligência contextual | Conectar memória, agenda, tarefas, e-mail e módulos, respeitando permissões | implementado (memória, busca por significado, insights) | P1 | módulos futuros | contexto de Finanças e Office com permissões |
 | Financeiro | Controle mensal pela conversa: lançar, classificar, prever caixa | planejado (especificação no PR #5) | P1 | tabelas `fin_*` com RLS | revisar o PR #5; base Contas e Dia a dia |
 | Tarefas, agenda e memórias | Organizar o dia com voz | implementado; notificações e criação de eventos em beta | P1 | permissão `calendar.events`; PWA instalado | liberar a permissão; instalar o PWA no iPhone |
 | Agent Office e agentes | Agentes por área, multiusuário, organizações e clientes | agentes simples implementados; Office planejado | P2 | PR #6 (teto por agente); isolamento por organização | 6.1 fundamentos (docs/PLANO-AGENTES.md) |
 | Agent Office Studio | Agentes que criam sites, aplicações web e PWAs (sem app nativo nesta fase) | planejado | P3 | Agent Office; execução isolada | especificar depois do Office |
 | 3D Studio e impressão 3D | Buscar, organizar e gerar modelos imprimíveis; exportar para fatiador | planejado | P2 | — | especificar depois do GaDu Personal, antes do Agent Office |
-| Integrações, segurança e permissões | Isolamento por pessoa, custos sob controle, integrações autorizadas | implementado (RLS, fail closed, cota atômica, CI); auditoria completa pendente | P0 | — | etapa 2 da cota; auditoria de RLS; créditos por pessoa; alerta de erro |
-| Home pública, dashboard e desktop/mobile | Primeira impressão e uso diário em qualquer tela | implementado (home, Hoje em painel, PWA, avatar oficial) | P1 | Design System (PR #1) | tokens centralizados; tela de erro própria |
+| Integrações, segurança e permissões | Isolamento por pessoa, custos sob controle, integrações autorizadas | implementado (RLS, fail closed, cota atômica, orçamento com reserva, CI); auditoria completa pendente | P0 | — | etapa 2 da cota; auditoria de RLS; créditos por pessoa; alerta de erro |
+| Home pública, dashboard e desktop/mobile | Primeira impressão e uso diário em qualquer tela | implementado: home, Hoje em painel, PWA, avatar oficial, Design System v1 com menu lateral no computador e layouts para tablet (PR #10), telas de erro (PR #9) | P1 | — | Design System etapa 2: migrar estilos inline; componentes compartilhados |
 
 Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis, voz, erros) → Finanças → 3D Studio → Agent Office → Agent Office Studio.
 
@@ -218,13 +218,23 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [x] PR #2: chat bloqueia quando cota, teto mensal ou limites por provedor não podem ser validados (fail closed), com testes de integração. Em produção desde 13/11
 - [x] PR #3: cota diária atômica (limite no servidor, dia de Brasília, sem passar do teto), testes SQL e de concorrência. Migração aplicada no Supabase e app em produção desde 13/11
 - [ ] Remover `consume_quota(integer)` antiga (etapa 2, depois de 24h estável)
-- [~] PR #6: orçamento mensal com reserva e reconciliação (concorrência). Em revisão; migração ainda não aplicada
+- [x] PR #6: orçamento mensal com reserva e reconciliação (concorrência). Migração aplicada e em produção desde 13/11; validado no uso real
 - [ ] Auditoria de RLS, autenticação, permissões e isolamento entre usuários
 - [ ] Administração de créditos e consumo por pessoa
 
 ## Modelo de trabalho
 - [x] GaDu Fast Track documentado (`docs/FAST_TRACK.md`): baixo risco com processo simplificado, alto risco com aprovações específicas
 - [x] Documentação central: PROJECT_STATUS, CHANGELOG, FEATURE_MATRIX, ARCHITECTURE e decisões oficiais (PR #7)
+
+## Uso diário · experiência (13/11)
+- [x] Mensagens de erro em português por situação e telas de erro próprias (PR #9)
+- [x] Voz mais estável: fim da fala só com a resposta inteira, prazo por trecho, despertador no Chrome, um microfone por vez (PR #9)
+- [ ] Validar a voz nova no iPhone e no Android
+- [x] Teto, reservas e valor disponível do mês em Ajustes (PR #9)
+- [x] Design System v1: tokens únicos e `docs/DESIGN_SYSTEM.md` (PR #10)
+- [x] Menu lateral no computador; Hoje em 2 ou 3 colunas conforme a largura; conversa com leitura centralizada (PR #10)
+- [x] Acessibilidade: atalho de teclado e alvos de toque de 40 px (PR #10)
+- [ ] Design System etapa 2: migrar estilos inline e criar componentes compartilhados
 
 ## Módulos futuros (planejados, sem código)
 - [ ] Financeiro: ver a seção "Finanças pessoais" no PR #5 (`docs/FEATURE-FINANCAS.md`)
@@ -241,7 +251,7 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [ ] Convidar o Luiz Cláudio depois da 6.2
 
 ## Por último (combinado em 10/11)
-- [ ] Testes automáticos de ponta a ponta antes de publicar, alerta de erro e tela de erro própria
+- [ ] Testes automáticos de ponta a ponta antes de publicar e alerta de erro (tela de erro própria: feita no PR #9)
 - [ ] Ações com aprovação no Gmail (rascunhos) e foco na agenda
 - [ ] Voz natural paga (ElevenLabs/OpenAI) com teto próprio
 
