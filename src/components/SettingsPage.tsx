@@ -206,6 +206,9 @@ function SpendCard() {
 
 function VoiceCard(props: { prefs: Prefs; setPrefs: (p: Prefs) => void; voiceOk: boolean; speaker: Speaker | null }) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  // Detectado só no aparelho: no servidor não há síntese de voz (evita diferença entre servidor e navegador).
+  const [speakOk, setSpeakOk] = useState(false);
+  useEffect(() => { setSpeakOk(canSpeak()); }, []);
   useEffect(() => {
     if (!canSpeak()) return;
     const upd = () => setVoices(listVoices());
@@ -227,7 +230,7 @@ function VoiceCard(props: { prefs: Prefs; setPrefs: (p: Prefs) => void; voiceOk:
       <label className="switch"><span>GaDu responde falando</span><input type="checkbox" checked={p.voice} onChange={(e) => set({ voice: e.target.checked })} /></label>
       <label className="switch"><span>Modo conversa (volta a ouvir depois de responder)</span><input type="checkbox" checked={p.handsFree} disabled={!props.voiceOk} onChange={(e) => set({ handsFree: e.target.checked })} /></label>
       {!props.voiceOk && <p className="muted" style={{ margin: 0 }}>Este navegador não reconhece voz. No celular, use o Chrome (Android) ou o Safari (iPhone), ou o ditado do teclado.</p>}
-      {canSpeak() && (
+      {speakOk && (
         <>
           <label htmlFor="voice" className="muted" style={{ fontSize: 14 }}>Voz do GaDu</label>
           <select id="voice" className="field" value={p.voiceURI} onChange={(e) => { set({ voiceURI: e.target.value }); test({ voiceURI: e.target.value }); }}>
