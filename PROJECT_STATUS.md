@@ -6,7 +6,7 @@ Atualizado em 13/11/2026 (Claude Code). Fonte de verdade: o código na `main` e 
 | Item | Estado | Evidência |
 |---|---|---|
 | App | https://gadu-agent.vercel.app | Vercel, projeto `gadu-agent`, região `iad1` |
-| Última publicação | commit `c6bbb30` (merge do PR #4) | deploy `dpl_2vUKHfMwytwdzztYpVXhQkb34RhN`, `READY`, alias `gadu-agent.vercel.app` |
+| Última publicação | commit `fcf7415` (merge do PR #7, só documentação; último código: `d18286f`, PR #3) | deploy `dpl_25gzRNdYZfvUpKajHRTQr6j7cVLd`, `READY`, alias `gadu-agent.vercel.app`; home 200 e `/api/chat` sem login 401 |
 | Erros em produção | nenhum nas 2h após o deploy | `get_runtime_errors` da Vercel |
 | Banco | Supabase `sa-east-1`, Postgres 17 | 8 migrações registradas; a última é `daily_quota_atomic` |
 | Cota diária | `consume_daily_quota()` ativa, limite 150 em `private.quota_policy` | teste com usuário temporário e rollback: para no limite sem passar |
@@ -19,6 +19,7 @@ Atualizado em 13/11/2026 (Claude Code). Fonte de verdade: o código na `main` e 
   - PR #2: o chat bloqueia quando cota, teto mensal ou limites por motor não podem ser validados (fail closed).
   - PR #3: cota diária atômica, com limite no servidor e dia de Brasília. Migração aplicada e verificada.
 - Modelo de trabalho: GaDu Fast Track (PR #4, [docs/FAST_TRACK.md](docs/FAST_TRACK.md)).
+- Documentação central (PR #7): este arquivo, CHANGELOG, matriz de funcionalidades, arquitetura e decisões oficiais.
 
 ## Em andamento
 | Trabalho | Estágio | Onde |
@@ -26,7 +27,6 @@ Atualizado em 13/11/2026 (Claude Code). Fonte de verdade: o código na `main` e 
 | Orçamento mensal com reserva e reconciliação | Código e testes prontos, CI verde; **migração não aplicada; aguarda aprovação** | PR #6, branch `fix/monthly-budget-reservation-20261113` |
 | Documentação Marco Zero (contexto mestre, Design System, auditoria) | Rascunho, não integrado | PR #1 |
 | Especificação de Finanças pessoais | Pronta para revisão, não integrada | PR #5 |
-| Documentação central (este arquivo, CHANGELOG, matriz, arquitetura) | Em PR | branch `docs/central-docs-20261113` |
 
 ## Pendente
 - Teste real do chat com login em produção, feito pelo Eduardo. O último uso real registrado é de 10/11.
