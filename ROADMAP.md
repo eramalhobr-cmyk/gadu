@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 13/11/2026. Produção: https://gadu-agent.vercel.app (commit `c6bbb30`).
+Atualizado a cada entrega. Última atualização: 13/11/2026. Produção: https://gadu-agent.vercel.app (commit `fcf7415`).
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 Documentos relacionados:
@@ -224,7 +224,7 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 
 ## Modelo de trabalho
 - [x] GaDu Fast Track documentado (`docs/FAST_TRACK.md`): baixo risco com processo simplificado, alto risco com aprovações específicas
-- [~] Documentação central: PROJECT_STATUS, CHANGELOG, FEATURE_MATRIX, ARCHITECTURE e decisões oficiais (em PR)
+- [x] Documentação central: PROJECT_STATUS, CHANGELOG, FEATURE_MATRIX, ARCHITECTURE e decisões oficiais (PR #7)
 
 ## Módulos futuros (planejados, sem código)
 - [ ] Financeiro: ver a seção "Finanças pessoais" no PR #5 (`docs/FEATURE-FINANCAS.md`)

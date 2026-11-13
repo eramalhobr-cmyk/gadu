@@ -7,12 +7,12 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`). Só documentação, não integrada.
 - **PR #1 · Marco Zero: contexto mestre, Design System, auditoria de segurança.** Só documentação, rascunho.
 
-## 2026-11-13 · Documentação central
+## 2026-11-13 · `fcf7415` · Documentação central (PR #7)
 - Novos `PROJECT_STATUS.md`, `CHANGELOG.md` e `docs/FEATURE_MATRIX.md`.
 - `ROADMAP.md` ganha uma visão por módulo, com prioridade, status, dependências e próximos passos.
 - `docs/ARCHITECTURE.md` atualizado com o fluxo real do chat, a cota e as decisões oficiais.
 - `CLAUDE.md` passa a apontar para a documentação central e para as decisões vigentes.
-- Estado: desenvolvido, em PR.
+- **Publicado** (só documentação, merge `fcf7415`).
 
 ## 2026-11-12 · `c6bbb30` · GaDu Fast Track (PR #4)
 - `docs/FAST_TRACK.md`, seção no `CLAUDE.md`, item "Modelo de trabalho" no ROADMAP.
