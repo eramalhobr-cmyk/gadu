@@ -307,3 +307,18 @@ button.kpi:hover { border-color: var(--line-2); }
   .lp-assist { grid-template-columns: minmax(0, 1fr) minmax(0, 420px); }
   .lp-stage { padding: var(--s-4); }
 }
+
+/* Ajustes da primeira revisão visual */
+.app { overflow: hidden; }
+.kpi .n { font-family: var(--body); font-weight: 600; font-size: 30px; letter-spacing: -0.01em; }
+.nav-item .pill { flex: none; }
+.nav-item.soon svg { color: var(--c); opacity: 0.8; }
+.nav-scroll { gap: var(--s-3); }
+.nav-item { min-height: 42px; }
+.nav-foot .nav-item { min-height: 40px; }
+.dash-hero .cta .btn { white-space: nowrap; min-height: 44px; padding: 0 14px; }
+.nav-mod-head { min-height: 22px; }
+@media (max-width: 699px) { .dash-hero { padding: var(--s-4); gap: var(--s-2); } .dash-hero .ava { width: 96px; height: 110px; } .dash-hero .cta .btn { font-size: var(--fs-sm); } }
+@media (min-width: 1024px) { .chat-log .quick { display: none; } .nav-item { min-height: 40px; } }
+@media (max-width: 1023px) { .bar-actions [aria-label$="o assistente"] { display: none; } }
+@media (max-width: 699px) { .assist-head [aria-label="Nova conversa"] { display: none; } .assist-head { gap: var(--s-2); padding-left: var(--s-3); } }

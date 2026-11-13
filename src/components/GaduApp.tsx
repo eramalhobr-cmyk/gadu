@@ -419,25 +419,34 @@ export function GaduApp(props: {
   /** Menu de módulos: o mesmo no computador (lateral) e no celular (folha). */
   const moduleNav = (
     <div className="nav-scroll">
-      {MODULES.map((m) => (
+      {MODULES.filter((m) => m.status !== "planejado").map((m) => (
         <div className="nav-mod" key={m.id} style={{ ["--c" as string]: colorVar(m.color) }}>
           <div className="nav-mod-head"><i className="dot" aria-hidden="true" /><span className="name">{m.name}</span>{m.status !== "disponivel" && <StatusPill status={m.status} />}</div>
           {m.views.filter((v) => !v.adminOnly || props.admin).map((v) => (
-            <button key={v.id} className={`nav-item ${m.status === "planejado" ? "soon" : ""}`} aria-current={view === v.id ? "page" : undefined} onClick={() => setTab(v.id)}>
+            <button key={v.id} className="nav-item" aria-current={view === v.id ? "page" : undefined} onClick={() => setTab(v.id)}>
               <Icon name={v.icon} size={19} />
-              <span>{m.status === "planejado" ? "Ver o que está previsto" : v.label}</span>
+              <span>{v.label}</span>
               {v.id === "memoria" && pending > 0 && <b className="nav-badge" aria-label={`${pending} memórias para revisar`}>{pending}</b>}
             </button>
           ))}
         </div>
       ))}
+      <div className="nav-mod">
+        <div className="nav-mod-head"><span className="name">No plano</span></div>
+        {MODULES.filter((m) => m.status === "planejado").map((m) => (
+          <button key={m.id} className="nav-item soon" aria-current={view === m.views[0].id ? "page" : undefined} onClick={() => setTab(m.views[0].id)} style={{ ["--c" as string]: colorVar(m.color) }}>
+            <Icon name={m.icon} size={19} />
+            <span>{m.id === "studio" ? "Office Studio" : m.name}</span>
+            <StatusPill status={m.status} />
+          </button>
+        ))}
+      </div>
     </div>
   );
   const navFoot = (
     <div className="nav-foot">
       <button className="nav-item" onClick={() => { setSheet(false); setDrawer(true); }} aria-expanded={drawer}><Icon name="history" size={19} /><span>Conversas anteriores</span></button>
-      <a className="nav-item" href="/app/guia"><Icon name="book" size={19} /><span>Guia</span></a>
-      <a className="nav-item" href="/app/sobre"><Icon name="spark" size={19} /><span>Como funciona</span></a>
+      <a className="nav-item" href="/app/guia"><Icon name="book" size={19} /><span>Guia e como funciona</span></a>
       <div className="nav-user">
         <span className="initial" aria-hidden="true">{initial}</span>
         <span className="who"><b>{props.name || "Você"}</b><small>{props.email}</small></span>

@@ -103,7 +103,7 @@ export default async function Home() {
             <div className="assist-head">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/avatar/logo-96.webp" alt="" width={36} height={36} />
-              <div className="t"><b>GaDu <span className="mono assist-state">· Pronto</span></b><small>Você está em Pessoal › Hoje</small></div>
+              <div className="t"><b>GaDu <span className="mono assist-state">· Pronto</span></b><small>Em Pessoal › Hoje</small></div>
             </div>
             <div className="assist-log">
               <div className="bub u">Como está o meu dia?</div>

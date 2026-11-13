@@ -53,7 +53,7 @@ export function Assistant(props: {
         <img src="/avatar/logo-96.webp" alt="" width={36} height={36} />
         <div className="t">
           <b>GaDu <span className={`mono assist-state ${props.mode === "thinking" ? "hot" : ""}`}>· {state}</span></b>
-          <small title="O assistente sabe em que tela você está">Você está em {contextLabel(props.context)}</small>
+          <small title="O assistente sabe em que tela você está">Em {contextLabel(props.context)}</small>
         </div>
         <button className="icon-btn only-mobile" onClick={props.onToggleFull} aria-label={props.full ? "Reduzir painel" : "Expandir painel"} aria-expanded={props.full}>
           <span style={{ display: "grid", transform: props.full ? "rotate(180deg)" : undefined }}><Icon name="expand" /></span>
