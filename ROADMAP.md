@@ -212,6 +212,17 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [ ] Definir controles de segurança para conteúdo externo não confiável (prompt injection), links e licenças, limites de custo e auditoria.
 - [ ] MVP: curadoria com fontes oficiais + análise de aplicabilidade + backlog de oportunidades; automação de implementação fica para etapa futura.
 
+## GaDu no carro · Android Streaming Box / Android embarcado (planejado em 12/11/2026)
+- [ ] Tratar o dispositivo do usuário como Android independente instalado na tela do carro, com aplicativos próprios; **não presumir** que seja Android Auto oficial ou projeção do telefone.
+- [ ] Levantar marca/modelo da Streaming Box, versão do Android, navegador/WebView, resolução, orientação, microfone, saída de áudio, conexão e permissões antes de prometer compatibilidade.
+- [ ] MVP: validar acesso ao GaDu PWA no navegador do box, autenticação, sessão, áudio de saída, reconhecimento de voz, conexão, toque e layout horizontal.
+- [ ] Criar perfil de interface 'Carro': botões grandes, alto contraste, poucas ações, respostas curtas faladas, leitura de agenda e tarefas, interrupção por voz e nenhuma digitação durante a condução.
+- [ ] Avaliar instalação do PWA e, somente se necessário, empacotamento Android (TWA ou app nativo) conforme capacidades do dispositivo.
+- [ ] Testar em dispositivo real, com carro estacionado; verificar limitações de microfone, Web Speech API, permissões, áudio em segundo plano, wake lock e rede.
+- [ ] Aplicar bloqueios de interações visuais complexas durante movimento; nunca oferecer vídeo, edição de texto ou fluxos que distraiam o motorista.
+- [ ] Diferenciar compatibilidade com box Android genérico de suporte nativo ao Android Auto, que possui regras específicas de categoria e segurança e exige avaliação separada.
+- [ ] Não alterar produção nem publicar aplicativo sem aprovação; documentar matriz de compatibilidade e critérios de aceite.
+
 ## Operação
 - [ ] Monitoramento de erros e alerta de saúde
 - [ ] Backups do banco conferidos (plano grátis: diário, 7 dias)
