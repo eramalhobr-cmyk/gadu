@@ -98,11 +98,29 @@ export function speakable(text: string): string {
     .trim();
 }
 
-/** Fala enquanto o texto chega. A 1ª frase sai logo; as seguintes são agrupadas para soar contínuo. */
+/** Tempo máximo esperado para falar um trecho: se o aparelho não avisar o fim, seguimos mesmo assim. */
+export function speakTimeout(text: string, rate = 1): number {
+  const perSecond = 13 * Math.min(1.6, Math.max(0.7, rate || 1)); // ~13 caracteres por segundo em pt-BR
+  return Math.round(4000 + (text.length / perSecond) * 1000);
+}
+
+/** Chrome (computador e Android) para de falar depois de ~15 s se não for "acordado". iPhone não precisa. */
+function needsKeepAlive(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  return /Chrome|Chromium|CriOS|Edg\//.test(ua) && !/iPhone|iPad|iPod/.test(ua);
+}
+
+/** Fala enquanto o texto chega. A 1ª frase sai logo; as seguintes são agrupadas para soar contínuo.
+ * Estabilidade: "terminou" só depois que a resposta inteira chegou (flush) e a fila esvaziou; cada trecho
+ * tem um prazo (o iPhone às vezes não avisa o fim); no Chrome, um "despertador" evita que a voz trave. */
 export class Speaker {
   private buffer = "";
   private queue = 0;
   private spoken = 0;
+  private open = false;
+  private keepAlive: ReturnType<typeof setInterval> | null = null;
+  private timers = new Set<ReturnType<typeof setTimeout>>();
   prefs: VoicePrefs = DEFAULT_VOICE;
   onIdle: () => void = () => {};
   onStart: () => void = () => {};
@@ -117,7 +135,16 @@ export class Speaker {
     u.volume = 0;
     window.speechSynthesis.speak(u);
   }
+  /** Está falando ou ainda esperando o resto da resposta. */
+  get active(): boolean {
+    return this.open || this.queue > 0;
+  }
   push(delta: string) {
+    if (!this.open) {
+      this.open = true;
+      // Voz presa de uma resposta anterior (acontece no Chrome): limpa antes de começar.
+      if (this.queue === 0 && canSpeak() && window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+    }
     this.buffer += delta;
     // Frases curtas são juntadas (até ~220 caracteres): menos pausas e entonação mais natural.
     const min = this.spoken === 0 ? 1 : 90;
@@ -135,16 +162,33 @@ export class Speaker {
       this.push("");
     }
   }
+  /** A resposta terminou de chegar: fala o que sobrou e avisa quando acabar. */
   flush() {
     if (this.buffer.trim()) this.say(this.buffer);
     this.buffer = "";
-    if (this.queue === 0) { this.spoken = 0; this.onIdle(); }
+    this.open = false;
+    this.maybeIdle();
   }
   cancel() {
     this.buffer = "";
     this.queue = 0;
     this.spoken = 0;
+    this.open = false;
+    this.stopTimers();
     if (canSpeak()) window.speechSynthesis.cancel();
+  }
+  private maybeIdle() {
+    if (this.queue === 0 && !this.open && !this.buffer) {
+      this.spoken = 0;
+      this.stopTimers();
+      this.onIdle();
+    }
+  }
+  private stopTimers() {
+    if (this.keepAlive) clearInterval(this.keepAlive);
+    this.keepAlive = null;
+    for (const t of this.timers) clearTimeout(t);
+    this.timers.clear();
   }
   /** Frase de teste para a tela de Ajustes. */
   test(text = "Oi! Esta é a minha voz. Posso falar mais rápido ou mais devagar, como você preferir.") {
@@ -163,10 +207,24 @@ export class Speaker {
     this.queue++;
     this.spoken++;
     if (this.queue === 1) this.onStart();
-    u.onend = u.onerror = () => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      this.timers.delete(timer);
       this.queue = Math.max(0, this.queue - 1);
-      if (this.queue === 0 && !this.buffer) { this.spoken = 0; this.onIdle(); }
+      this.maybeIdle();
     };
+    // O prazo conta a partir de agora e soma a fila: trechos esperam os anteriores.
+    const timer = setTimeout(finish, speakTimeout(clean, u.rate) * this.queue);
+    this.timers.add(timer);
+    u.onend = u.onerror = finish;
+    if (needsKeepAlive() && !this.keepAlive) {
+      this.keepAlive = setInterval(() => {
+        const s = window.speechSynthesis;
+        if (s.speaking && !s.paused) { s.pause(); s.resume(); }
+      }, 10_000);
+    }
     window.speechSynthesis.speak(u);
   }
 }
