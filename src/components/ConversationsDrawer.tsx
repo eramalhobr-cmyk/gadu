@@ -1,6 +1,8 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { EmptyState } from "./kit";
+import { Icon } from "./ui";
 
 type Conv = { id: number; title: string | null; summary: string | null; updated_at: string; message_count: number | null };
 
@@ -63,50 +65,50 @@ export function ConversationsDrawer(props: {
 
   return (
     <div className="drawer-wrap" onClick={props.onClose}>
-      <aside className="drawer" role="dialog" aria-modal="true" aria-label="Menu" ref={panel} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-        <div className="drawer-head">
-          <h2 className="mono" style={{ margin: 0, color: "var(--sig)", fontWeight: 500 }}>Menu</h2>
-          <button className="icon-btn" onClick={props.onClose} aria-label="Fechar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-          </button>
+      <aside className="drawer hist" role="dialog" aria-modal="true" aria-label="Histórico de conversas" ref={panel} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+        <div className="hist-head">
+          <h2>Conversas</h2>
+          <button className="icon-btn" onClick={props.onClose} aria-label="Fechar"><Icon name="x" size={20} /></button>
         </div>
-        <button className="btn btn-pri" onClick={props.onNew}>Nova conversa</button>
-        <div className="row" style={{ flexWrap: "nowrap" }}>
-          <a className="btn btn-sm" style={{ flex: 1 }} href="/app/guia">Guia</a>
-          <a className="btn btn-sm" style={{ flex: 1 }} href="/app/sobre">Como funciona</a>
+        <button className="btn btn-pri hist-new" onClick={props.onNew}><Icon name="plus" size={18} />Nova conversa</button>
+        <div className="search">
+          <Icon name="history" size={18} />
+          <label className="sr" htmlFor="conv-q">Buscar nas conversas</label>
+          <input id="conv-q" className="search-input" type="search" placeholder="Buscar por assunto" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <h3 className="mono muted" style={{ margin: "var(--s-2) 0 0", fontWeight: 500 }}>Conversas anteriores</h3>
-        <label className="sr" htmlFor="conv-q">Buscar nas conversas</label>
-        <input id="conv-q" className="field" type="search" placeholder="Buscar por assunto" value={q} onChange={(e) => setQ(e.target.value)} />
         {error && <div className="notice" role="alert">{error}</div>}
-        <div className="drawer-list">
+        <div className="drawer-list hist-list">
           {items === null ? (
-            <p className="muted">Carregando…</p>
+            <p className="muted" role="status">Carregando…</p>
           ) : items.length === 0 ? (
-            <p className="muted">{q ? "Nada encontrado." : "Nenhuma conversa ainda."}</p>
+            <EmptyState icon="chat" title={q ? "Nada encontrado" : "Nenhuma conversa ainda"} text={q ? "Tente outras palavras." : "Comece uma nova conversa acima."} />
           ) : (
             items.map((c) => (
-              <div key={c.id} className={`conv ${c.id === props.currentId ? "on" : ""}`}>
-                <button className="conv-open" onClick={() => props.onOpen(c.id)} aria-current={c.id === props.currentId ? "true" : undefined}>
-                  <span className="conv-top">
-                    <span className="conv-title">{c.title || "Sem título"}</span>
-                    <span className="mono muted">{when(c.updated_at)}</span>
+              <div key={c.id} className={`hist-item ${c.id === props.currentId ? "on" : ""}`}>
+                <button className="hist-open" onClick={() => props.onOpen(c.id)} aria-current={c.id === props.currentId ? "true" : undefined}>
+                  <span className="hist-top">
+                    <span className="hist-title">{c.title || "Sem título"}</span>
+                    <span className="hist-when">{when(c.updated_at)}</span>
                   </span>
-                  {c.summary && <span className="conv-sum">{c.summary}</span>}
-                  <span className="mono muted">{c.message_count ?? 0} mensagens</span>
+                  {c.summary && <span className="hist-sum">{c.summary}</span>}
+                  <span className="hist-count">{c.message_count ?? 0} mensagens</span>
                 </button>
                 {confirm === c.id ? (
-                  <div className="row">
-                    <button className="btn btn-sm" onClick={() => remove(c.id)} style={{ borderColor: "var(--bad)", color: "var(--bad)" }}>Apagar de vez</button>
+                  <div className="hist-confirm">
+                    <button className="btn btn-sm btn-bad" onClick={() => remove(c.id)}>Apagar de vez</button>
                     <button className="btn btn-sm" onClick={() => setConfirm(null)}>Cancelar</button>
                   </div>
                 ) : (
-                  <button className="link-btn" onClick={() => setConfirm(c.id)} aria-label={`Apagar conversa ${c.title ?? ""}`}>Apagar</button>
+                  <button className="icon-btn hist-del" onClick={() => setConfirm(c.id)} aria-label={`Apagar conversa ${c.title ?? ""}`}><Icon name="x" size={16} /></button>
                 )}
               </div>
             ))
           )}
         </div>
+        <nav className="hist-foot" aria-label="Ajuda">
+          <a href="/app/guia"><Icon name="book" size={16} />Guia</a>
+          <a href="/app/sobre"><Icon name="spark" size={16} />Como funciona</a>
+        </nav>
       </aside>
     </div>
   );

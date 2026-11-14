@@ -1,4 +1,5 @@
 "use client";
+import { Panel } from "./kit";
 import { colorVar, Icon } from "./ui";
 import { MODULES, STATUS_LABEL, type ModuleDef, type ModuleId, type ViewId } from "@/lib/modules";
 
@@ -32,42 +33,49 @@ export function ModuleCards({ onOpen, skip }: { onOpen?: (view: ViewId) => void;
 export function ModulePage({ id, onOpen }: { id: ModuleId; onOpen: (view: ViewId) => void }) {
   const m = MODULES.find((x) => x.id === id) ?? MODULES[0];
   const live = m.views.filter((v) => v.id !== id && v.id !== "office");
+  // No Agent Office, esta página é a tela "Equipes e delegações", que ainda não existe.
+  const office = m.id === "office";
+  const title = office ? (m.views.find((v) => v.id === "office")?.label ?? m.name) : m.name;
   return (
     <main className="page" id="conteudo">
-      <div className="wrap">
-        <section className="modpage-hero" style={{ ["--c" as string]: colorVar(m.color) }}>
-          <span className="row" style={{ gap: 12 }}><span className="mod-ico"><Icon name={m.icon} size={22} /></span><StatusPill status={m.status} /></span>
-          <h1>{m.name}</h1>
-          <p>{m.tagline}</p>
-          {m.status === "parcial" && live.length > 0 && (
-            <div className="row">{live.map((v) => <button key={v.id} className="btn btn-pri btn-sm" onClick={() => onOpen(v.id)}>Abrir {v.label}</button>)}</div>
+      <div className="wrap" style={{ ["--c" as string]: colorVar(m.color) }}>
+        <section className="mp-hero">
+          <span className="mp-ico" aria-hidden="true"><Icon name={m.icon} size={26} /></span>
+          <div className="mp-text">
+            <span className="mp-eyebrow">{office ? m.name : "Módulo"} <StatusPill status={office ? "planejado" : m.status} /></span>
+            <h1>{title}</h1>
+            <p>{office ? "Equipes de agentes, delegação entre eles e uma caixa de aprovações. Ainda não existe; os agentes individuais já funcionam." : m.tagline}</p>
+          </div>
+          {live.length > 0 && (
+            <div className="mp-actions">{live.map((v) => <button key={v.id} className="btn btn-pri" onClick={() => onOpen(v.id)}><Icon name={v.icon} size={18} />Abrir {v.label}</button>)}</div>
           )}
         </section>
 
-        {m.status === "planejado" && (
+        {(m.status === "planejado" || office) && (
           <div className="honest" role="note">
             <Icon name="lock" size={18} />
-            <span><b>Este módulo ainda não existe no GaDu.</b> Ele está no plano. Nada aqui funciona ainda e nenhum dado é guardado. Esta página mostra o que está previsto.</span>
+            <span><b>{office ? "Esta tela ainda não existe no GaDu." : "Este módulo ainda não existe no GaDu."}</b> Está no plano. Nada aqui funciona ainda e nenhum dado é guardado. Abaixo, o que está previsto.</span>
           </div>
         )}
 
-        <div className="modpage-cols">
-          {m.available.length > 0 && (
-            <section className="card">
-              <h2>Já funciona</h2>
-              <ul className="plist ok">{m.available.map((t) => <li key={t}><Icon name="check" size={16} /><span>{t}</span></li>)}</ul>
-            </section>
-          )}
-          <section className="card">
-            <h2>{m.status === "planejado" ? "O que está previsto" : "Ainda no plano"}</h2>
-            <ul className="plist">{m.planned.map((t) => <li key={t}><Icon name="spark" size={16} /><span>{t}</span></li>)}</ul>
-          </section>
-          {m.needs.length > 0 && (
-            <section className="card">
-              <h2>Depende de</h2>
-              <ul className="plist">{m.needs.map((t) => <li key={t}><Icon name="lock" size={16} /><span>{t}</span></li>)}</ul>
-            </section>
-          )}
+        <div className="grid-2">
+          <Panel title={m.status === "planejado" ? "O que está previsto" : "Ainda no plano"} icon="spark">
+            <ol className="roadmap">
+              {m.planned.map((t) => <li key={t}><span className="rm-dot" aria-hidden="true" /><span className="rm-t">{t}</span><span className="rm-tag">Previsto</span></li>)}
+            </ol>
+          </Panel>
+          <div className="stack">
+            {m.available.length > 0 && (
+              <Panel title="Já funciona" icon="check">
+                <ul className="plist ok">{m.available.map((t) => <li key={t}><Icon name="check" size={16} /><span>{t}</span></li>)}</ul>
+              </Panel>
+            )}
+            {m.needs.length > 0 && (
+              <Panel title="Depende de" icon="lock">
+                <ul className="plist">{m.needs.map((t) => <li key={t}><Icon name="lock" size={16} /><span>{t}</span></li>)}</ul>
+              </Panel>
+            )}
+          </div>
         </div>
       </div>
     </main>

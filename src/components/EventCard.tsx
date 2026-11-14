@@ -32,24 +32,25 @@ export function EventCard({ ev }: { ev: EventDraft }) {
     }
   }
 
+  const label = state === "created" ? "Criado na agenda" : state === "discarded" ? "Descartado" : "Evento para confirmar";
   return (
-    <div className={`event-card ${state}`}>
-      <div className="row" style={{ gap: 10, flexWrap: "nowrap", alignItems: "flex-start" }}>
-        <span className="event-ico"><Icon name="sun" size={18} /></span>
-        <div style={{ minWidth: 0 }}>
-          <div className="mono" style={{ color: "var(--sig)" }}>{state === "created" ? "Criado na agenda" : state === "discarded" ? "Descartado" : "Evento para confirmar"}</div>
-          <div style={{ fontWeight: 500 }}>{ev.title}</div>
-          <div className="muted" style={{ fontSize: 14 }}>{eventWhen(ev.start, ev.end)}{ev.location ? ` · ${ev.location}` : ""}</div>
+    <div className={`evc ${state}`}>
+      <div className="evc-top">
+        <span className="evc-ico"><Icon name={state === "created" ? "check" : "calendar"} size={18} /></span>
+        <div className="evc-body">
+          <span className="evc-label">{label}</span>
+          <b className="evc-title">{ev.title}</b>
+          <span className="evc-when">{eventWhen(ev.start, ev.end)}{ev.location ? ` · ${ev.location}` : ""}</span>
         </div>
       </div>
       {(state === "proposed" || state === "error" || state === "saving") && (
-        <div className="row">
+        <div className="evc-actions">
           <button className="btn btn-sm btn-pri" disabled={state === "saving"} onClick={create}>{state === "saving" ? "Criando…" : "Criar na agenda"}</button>
           <button className="btn btn-sm" disabled={state === "saving"} onClick={() => setState("discarded")}>Descartar</button>
         </div>
       )}
-      {state === "created" && link && <a className="mono" href={link} target="_blank" rel="noopener noreferrer">Abrir no Google Agenda ›</a>}
-      {msg && state === "error" && <span className="muted" role="alert" style={{ fontSize: 14 }}>{msg}</span>}
+      {state === "created" && link && <a className="evc-link" href={link} target="_blank" rel="noopener noreferrer">Abrir no Google Agenda<Icon name="chevron" size={14} /></a>}
+      {msg && state === "error" && <span className="evc-err" role="alert">{msg}</span>}
     </div>
   );
 }
