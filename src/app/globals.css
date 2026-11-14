@@ -239,7 +239,7 @@ a.mail { display: flex; flex-direction: column; gap: 4px; color: var(--ink); tex
 
 /* Agenda visual */
 .week-strip { display: grid; grid-template-columns: 32px repeat(7, 1fr) 32px; gap: 4px; align-items: center; }
-.week-strip .icon-btn { width: 32px; height: 40px; font-size: 20px; }
+.week-strip .icon-btn { width: var(--touch); height: var(--touch); font-size: 20px; }
 .day-pill { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 64px; padding: 6px 0; border-radius: 14px; border: 1px solid var(--line); background: rgb(var(--bg-rgb) / 0.6); color: var(--ink-2); }
 .day-pill b { font-size: 18px; font-family: var(--display); font-weight: 500; }
 .day-pill.today b { color: var(--sig); }

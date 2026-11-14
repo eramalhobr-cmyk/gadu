@@ -232,7 +232,7 @@ button.kpi:hover { border-color: var(--line-2); }
 .theme-opt[aria-pressed="true"] { border-color: var(--sig); box-shadow: 0 0 0 3px rgb(var(--sig-rgb) / 0.18); }
 .theme-swatch { height: 56px; border-radius: var(--r-md); border: 1px solid rgb(127 127 127 / 0.3); display: flex; align-items: flex-end; gap: 6px; padding: 8px; }
 .theme-swatch i { display: block; height: 8px; border-radius: 4px; }
-.theme-swatch.dark { background: #05080b; } .theme-swatch.dark i:first-child { width: 40%; background: #5ff0dc; } .theme-swatch.dark i:last-child { width: 25%; background: #1c2e35; }
+.theme-swatch.dark { background: #0a111e; } .theme-swatch.dark i:first-child { width: 40%; background: #3ed6e8; } .theme-swatch.dark i:last-child { width: 25%; background: #19283d; }
 .theme-swatch.light { background: #f2f6f8; } .theme-swatch.light i:first-child { width: 40%; background: #00756b; } .theme-swatch.light i:last-child { width: 25%; background: #cfdade; }
 
 /* ---------- Tablet (700+) ---------- */
@@ -503,7 +503,7 @@ button.stat:hover { border-color: var(--line-2); }
 .assist-head img { box-shadow: none; }
 .assist-head .t b { font: 600 var(--fs-md)/1.2 var(--display); }
 .assist-head .t b .assist-state { font: 500 var(--fs-xs)/1 var(--body); letter-spacing: 0; text-transform: none; }
-.assist-head .icon-btn { width: 40px; height: 40px; }
+.assist-head .icon-btn { width: var(--touch); height: var(--touch); }
 .assist .only-desktop { display: none; }
 .assist-log { padding: var(--s-3); }
 .assist-sug button { background: var(--surface); }
@@ -540,3 +540,126 @@ button.stat:hover { border-color: var(--line-2); }
 .chat-stage .acts .btn { min-height: var(--touch); min-width: var(--touch); justify-content: center; }
 input[type="range"] { min-height: var(--touch); }
 .set-nav { scroll-snap-type: x proximity; }
+
+/* ================= v2.2 · navegação híbrida, assistente em três estados, pendências da v2.1 ================= */
+/* Cabeçalho: no celular, menu à esquerda; tema e guia ficam no menu. */
+.bar-menu { flex: none; margin-left: calc(-1 * var(--s-2)); }
+@media (max-width: 1023px) { .desk-only { display: none !important; } }
+@media (min-width: 1024px) { .bar-menu { display: none; } }
+html.menu-open, html.menu-open body { overflow: hidden; }
+
+/* Menu do celular: gaveta pela esquerda, sempre montada; entra e sai com o mesmo movimento. */
+.menu-wrap { position: fixed; inset: 0; z-index: var(--z-sheet); pointer-events: none; }
+.menu-wrap.open { pointer-events: auto; }
+.menu-scrim { position: absolute; inset: 0; border: 0; padding: 0; background: rgb(var(--deep-rgb) / 0.62); opacity: 0; transition: opacity 0.24s var(--ease); cursor: default; }
+.menu-wrap.open .menu-scrim { opacity: 1; }
+.menu-panel { position: absolute; inset: 0 auto 0 0; width: min(86vw, 340px); display: flex; flex-direction: column; gap: var(--s-3); padding: calc(var(--s-3) + var(--safe-t)) var(--s-3) calc(var(--s-4) + var(--safe-b)) calc(var(--s-3) + env(safe-area-inset-left, 0px)); background: var(--panel); border-right: 1px solid var(--line-2); box-shadow: 20px 0 60px rgb(var(--shadow-rgb) / 0.45); transform: translateX(-104%); transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1); will-change: transform; }
+.menu-wrap.open .menu-panel { transform: none; }
+.menu-panel .nav-scroll { gap: var(--s-4); }
+.menu-sec { display: flex; flex-direction: column; gap: 2px; }
+.menu-label { padding: 0 var(--s-3) var(--s-1); color: var(--ink-3); font-size: var(--fs-xs); font-weight: 600; }
+.menu-panel .nav-user { padding: var(--s-2) var(--s-1); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--wash); }
+.nav-user .who { min-height: var(--touch); text-align: left; background: none; border: 0; color: inherit; padding: 0; }
+@media (min-width: 1024px) { .menu-wrap { display: none; } }
+
+/* Menu lateral do computador: por área; recolhível (só ícones). */
+.nav-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
+.nav-top .nav-brand { padding-bottom: 0; }
+.nav-new span { white-space: nowrap; }
+.soon-tag { flex: none; font-size: 11px; color: var(--ink-3); border: 1px dashed var(--line-2); border-radius: var(--r-pill); padding: 1px 8px; }
+.nav-grp-head .name { text-transform: none; letter-spacing: 0; font-size: var(--fs-sm); }
+@media (min-width: 1024px) {
+  .app.nav-mini { --nav-w: 76px; }
+  .app.nav-mini .nav { padding-inline: var(--s-2); align-items: stretch; }
+  .app.nav-mini .nav-top { flex-direction: column; }
+  .app.nav-mini .nav-brand .brand { font-size: 13px; }
+  .app.nav-mini .nav-item span, .app.nav-mini .nav-item .pill, .app.nav-mini .soon-tag, .app.nav-mini .nav-new span,
+  .app.nav-mini .nav-grp-head, .app.nav-mini .nav-user .who, .app.nav-mini .nav-user .initial { display: none; }
+  .app.nav-mini .nav-item, .app.nav-mini .nav-new { justify-content: center; padding: 0; }
+  .app.nav-mini .nav-grp-body { padding: 0 0 var(--s-2); border-bottom: 1px solid var(--line); }
+  .app.nav-mini .nav-badge { position: absolute; top: 2px; right: 2px; }
+  .app.nav-mini .nav-user { justify-content: center; padding: 0; }
+}
+
+/* Assistente: estado rápido (painel) com alça no celular e borda arrastável no computador. */
+.assist-grab { display: none; }
+.assist-resize { display: none; }
+.assist-ava { position: relative; flex: none; width: 36px; height: 36px; border-radius: 50%; }
+.assist-ava img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; display: block; }
+.assist-ava::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid transparent; transition: border-color var(--dur) var(--ease); }
+.assist-ava.s-listening::after { border-color: var(--sig); animation: pulse 1.4s ease-out infinite; }
+.assist-ava.s-thinking::after { border-color: var(--c-violet); animation: pulse 1.8s ease-out infinite; }
+.assist-ava.s-speaking::after { border-color: var(--c-blue); animation: pulse 1.2s ease-out infinite; }
+.assist-composer { flex-direction: column; align-items: stretch; }
+.assist-row { display: flex; align-items: flex-end; gap: var(--s-2); }
+.assist-row .field { flex: 1; min-width: 0; }
+.assist-composer .listening-bar { margin: 0; }
+.assist-more { align-self: center; min-height: var(--touch); padding: 0 var(--s-3); border: 1px dashed var(--line-2); border-radius: var(--r-pill); background: none; color: var(--ink-2); font-size: var(--fs-sm); }
+@media (max-width: 1023px) {
+  .assist { padding-top: 0; }
+  .assist-grab { display: grid; place-items: center; flex: none; height: 22px; border: 0; background: none; padding: 0; cursor: grab; touch-action: none; }
+  .assist-grab span { width: 40px; height: 4px; border-radius: 2px; background: var(--line-2); }
+  .assist-head { padding-top: 0; }
+}
+@media (min-width: 1024px) {
+  .assist { position: relative; inset: auto; }
+  .assist-resize { display: block; position: absolute; left: -4px; top: 0; bottom: 0; width: 8px; cursor: col-resize; z-index: 2; touch-action: none; }
+  .assist-resize:hover, .assist-resize:focus-visible { background: linear-gradient(90deg, transparent 3px, rgb(var(--sig-rgb) / 0.6) 3px, rgb(var(--sig-rgb) / 0.6) 5px, transparent 5px); outline: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-panel, .menu-scrim { transition: none; }
+  .assist-ava::after { animation: none !important; }
+}
+
+/* Tela Módulos. */
+.hub { display: flex; flex-direction: column; gap: var(--s-6); }
+.hub-area { display: flex; flex-direction: column; gap: var(--s-3); }
+.hub-head h2 { margin: 0; font-size: var(--fs-lg); font-weight: 600; }
+.hub-head p { margin: 2px 0 0; color: var(--ink-3); font-size: var(--fs-sm); }
+.hub-tiles { display: grid; gap: var(--s-2); grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+.hub-tile { display: flex; align-items: center; gap: var(--s-3); min-height: 64px; padding: var(--s-3); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--panel); color: var(--ink); text-align: left; transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease); }
+.hub-tile:hover { border-color: color-mix(in srgb, var(--c) 60%, var(--line)); }
+.hub-ico { flex: none; width: 42px; height: 42px; display: grid; place-items: center; border-radius: var(--r-md); color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.hub-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hub-t b { font-weight: 600; }
+.hub-t small { color: var(--ink-3); font-size: var(--fs-xs); line-height: 1.35; }
+.hub-soon { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.hub-soon-i { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--touch); padding: 0 var(--s-3); border: 1px dashed var(--line-2); border-radius: var(--r-pill); background: none; color: var(--ink-2); font-size: var(--fs-sm); }
+.hub-soon-i svg { color: var(--c); }
+.mp-doc { margin: 0; color: var(--ink-3); font-size: var(--fs-xs); }
+
+/* Configurações: abas quebram em linhas no celular (sem rolagem lateral escondida). */
+@media (max-width: 699px) { .set-nav { flex-wrap: wrap; overflow: visible; } }
+/* Interruptor: linha inteira clicável; visual de chave, foco visível no próprio controle. */
+.switch { cursor: pointer; }
+.switch .tgl { position: relative; flex: none; width: 46px; height: 28px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line-2); transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease); }
+.switch .tgl::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--ink-3); transition: transform var(--dur) var(--ease), background var(--dur) var(--ease); }
+.switch input:checked + .tgl { background: rgb(var(--sig-rgb) / 0.25); border-color: var(--sig); }
+.switch input:checked + .tgl::after { transform: translateX(18px); background: var(--sig); }
+.switch input:focus-visible + .tgl { outline: 2px solid var(--sig); outline-offset: 2px; }
+.switch input:disabled + .tgl { opacity: 0.45; }
+
+/* Hoje (v2.2): o que importa agora primeiro; indicadores compactos; menos altura no celular. */
+.now-card { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-4); border: 1px solid rgb(var(--sig-rgb) / 0.35); border-radius: var(--r-lg); background: linear-gradient(90deg, rgb(var(--sig-rgb) / 0.12), transparent 70%), var(--panel); }
+.now-ico { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; color: var(--sig); background: rgb(var(--sig-rgb) / 0.14); }
+.now-card p { flex: 1; min-width: 0; margin: 0; display: flex; flex-direction: column; }
+.now-card small { color: var(--ink-3); font-size: var(--fs-xs); }
+.now-card b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 699px) {
+  .greet { padding: var(--s-3); gap: var(--s-2) var(--s-3); grid-template-columns: 48px minmax(0, 1fr); }
+  .greet-ava { width: 48px; height: 48px; }
+  .greet h1 { font-size: 22px; }
+  .greet-acts .btn { flex: 1 1 auto; justify-content: center; }
+  .dash .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .dash .stats .stat { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; min-height: 64px; padding: 6px 4px; text-align: center; }
+  .dash .stats .stat svg { display: none; }
+  .dash .stats .stat b { font-size: var(--fs-lg); line-height: 1.1; }
+  .dash .stats .stat span { font-size: 11px; line-height: 1.2; color: var(--ink-3); }
+  .dash .stats .stat.hot { grid-column: 1 / -1; flex-direction: row; gap: var(--s-2); min-height: 44px; }
+}
+.lp-ctx-2 { display: block; margin-top: var(--s-3); }
+
+@media (min-width: 700px) { .dash .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } .dash .stats .stat { flex-direction: row; align-items: center; gap: var(--s-2); min-height: 52px; } .dash .stats .stat.hot { grid-column: 1 / -1; } }
+/* Alvos de toque: 44 px também nos botões pequenos, chips, grupos do menu, marca e abas. */
+.btn-sm, .chip, .nav-grp-head, .nav-brand, .set-nav a, .tip .btn { min-height: var(--touch); }
+.btn-sm, .tip .btn { min-width: var(--touch); }
