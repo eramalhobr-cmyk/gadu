@@ -527,7 +527,7 @@ export function GaduApp(props: {
           </div>
         </header>
         {!online && <div className="banner" role="status">Sem internet. O app continua aberto e as mensagens ficam no rascunho.</div>}
-        {tip && !seen.has(tip) && <TipCard key={tip} id={tip} onDone={() => markTip(tip)} />}
+        {tip && !seen.has(tip) && <TipCard key={`tip-${tip}`} id={tip} onDone={() => markTip(tip)} />}
         {pageOpen && <main className="page doc-page" id="conteudo">{props.page}</main>}
 
         {view === "conversa" && (
@@ -599,7 +599,7 @@ export function GaduApp(props: {
             onOpenMemory={() => setTab("memoria")} onOpenTasks={() => setTab("tarefas")} onOpen={setTab}
             onAsk={(q) => { speaker?.unlock(); openAssist(true); void send(q); }} />
         )}
-        {(view === "tarefas" || view === "projetos") && <ProjectsPage key={view} initialView={view} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
+        {(view === "tarefas" || view === "projetos") && <ProjectsPage key={`pp-${view}`} initialView={view} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
         {view === "agenda" && <main className="page" id="conteudo"><div className="wrap"><AgendaView onBack={() => setTab("hoje")} /></div></main>}
         {view === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
         {view && isOverview(view) && <ModulePage id={moduleOf(view).id} onOpen={setTab} />}
