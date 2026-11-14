@@ -14,7 +14,8 @@
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "node --test --experimental-strip-types src/lib/*.test.ts",
     "test:integration": "node --test --experimental-strip-types --experimental-test-module-mocks --import ./test/register-alias.mjs test/*.test.ts",
-    "test:db": "bash scripts/test-db.sh"
+    "test:db": "bash scripts/test-db.sh",
+    "test:e2e": "node --test --test-concurrency=1 e2e/*.e2e.cjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.6.0",

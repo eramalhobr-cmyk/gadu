@@ -302,9 +302,9 @@ function VoiceCard(props: { prefs: Prefs; setPrefs: (p: Prefs) => void; voiceOk:
   return (
     <section className="card">
       <h2>Voz</h2>
-      <label className="switch"><span>GaDu responde falando</span><input type="checkbox" checked={p.voice} onChange={(e) => set({ voice: e.target.checked })} /></label>
-      <label className="switch"><span>Enviar sozinho o que eu falar (desligado: o texto fica no campo para você corrigir)</span><input type="checkbox" checked={p.autoSend} onChange={(e) => set({ autoSend: e.target.checked })} /></label>
-      <label className="switch"><span>Modo conversa (volta a ouvir depois de responder)</span><input type="checkbox" checked={p.handsFree} disabled={!props.voiceOk} onChange={(e) => set({ handsFree: e.target.checked })} /></label>
+      <label className="switch"><span>GaDu responde falando</span><input type="checkbox" role="switch" className="sr" checked={p.voice} onChange={(e) => set({ voice: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
+      <label className="switch"><span>Enviar sozinho o que eu falar<small className="muted"> · desligado (padrão): o texto fica no campo para você revisar e enviar</small></span><input type="checkbox" role="switch" className="sr" checked={p.autoSend} onChange={(e) => set({ autoSend: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
+      <label className="switch"><span>Modo mãos-livres<small className="muted"> · volta a ouvir depois de responder e envia sozinho; só liga se você escolher</small></span><input type="checkbox" role="switch" className="sr" checked={p.handsFree} disabled={!props.voiceOk} onChange={(e) => set({ handsFree: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
       {!props.voiceOk && <p className="muted" style={{ margin: 0 }}>Este navegador não reconhece voz. No celular, use o Chrome (Android) ou o Safari (iPhone), ou o ditado do teclado.</p>}
       {speakOk && (
         <>
@@ -534,7 +534,7 @@ function NotificationsCard() {
           </>
         )
       )}
-      <label className="switch"><span>Briefing da manhã</span><input type="checkbox" checked={briefing.enabled} onChange={(e) => saveBriefing({ ...briefing, enabled: e.target.checked })} /></label>
+      <label className="switch"><span>Briefing da manhã</span><input type="checkbox" role="switch" className="sr" checked={briefing.enabled} onChange={(e) => saveBriefing({ ...briefing, enabled: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
       {briefing.enabled && (
         <label className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
           <span className="muted">Horário</span>
@@ -542,7 +542,7 @@ function NotificationsCard() {
         </label>
       )}
       <p className="muted" style={{ margin: 0, fontSize: 14 }}>Todo dia, no horário escolhido, chega um resumo da agenda, dos e-mails e um alerta (conflito, atraso). Toque nele para o GaDu começar o dia com você.</p>
-      <label className="switch"><span>Revisão da noite</span><input type="checkbox" checked={evening.enabled} onChange={(e) => saveEvening({ ...evening, enabled: e.target.checked })} /></label>
+      <label className="switch"><span>Revisão da noite</span><input type="checkbox" role="switch" className="sr" checked={evening.enabled} onChange={(e) => saveEvening({ ...evening, enabled: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
       {evening.enabled && (
         <label className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
           <span className="muted">Horário</span>

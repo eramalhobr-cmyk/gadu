@@ -6,6 +6,52 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`). Só documentação, não integrada.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-14 · PR #16 · Sprint UX/UI v2.2
+- **Navegação híbrida no celular** (`GaduApp.tsx`, `src/app/v2.css`):
+  - a barra de baixo fica com o uso frequente: Hoje, Conversas, GaDu, Tarefas e Módulos;
+  - nova tela **Módulos** (`ModulesHub`) para explorar o produto por área, com os planejados discretos;
+  - o menu (☰) virou uma gaveta pela esquerda, só com conta, plataforma, histórico e guia (sem repetir a barra);
+  - a gaveta fica sempre montada, com animação de entrada e saída e fundo escurecido;
+  - fecha ao tocar fora, ao escolher um destino, com Esc e com o **Voltar do Android**;
+  - respeita as safe areas e o "reduzir movimento", e trava a rolagem da página por trás.
+- **Computador:** menu lateral por área (Produtividade pessoal, Vida pessoal, Agentes e criação, Plataforma), **recolhível só para ícones**, com a escolha salva no aparelho.
+- **Assistente Universal em três estados**, com a mesma conversa nos três (`Assistant.tsx`):
+  - compacto: o orbe;
+  - rápido: painel com as últimas trocas, alça para fechar e link para as anteriores;
+  - completo: a tela Conversa.
+  - No computador, a borda do painel é arrastável (320 a 640 px, também pelo teclado).
+  - O avatar do painel ganhou halo por estado.
+  - Corrigido: o cabeçalho do painel ficava fora da tela no computador.
+- **Voz:**
+  - tocar enquanto o GaDu responde agora só interrompe (antes, abria o microfone junto);
+  - o modo mãos-livres só volta a ouvir quando nada está acontecendo;
+  - o envio automático vem **desligado por padrão**, e a transcrição fica no campo para revisar;
+  - trocar de tela com o microfone aberto e sem controle à vista para a escuta;
+  - no celular, o assistente não abre sozinho ao carregar.
+- **Pendências da v2.1:**
+  - botões do painel com 44 px, e todos os botões pequenos, chips, grupos e abas com 44 px;
+  - `themeColor` e manifest com as cores novas;
+  - abas de Configurações quebram em linhas no celular;
+  - interruptores acessíveis (`role="switch"`, linha inteira clicável);
+  - a Agenda é dona da própria página;
+  - dicas próprias para Tarefas e Projetos;
+  - Hoje mais compacto, com indicadores em uma linha e o cartão **"Agora"** (próximo compromisso real);
+  - o estado da voz no cabeçalho só aparece quando há algo acontecendo.
+- **Contexto:** a interface separa "Contexto da tela" (Beta) de "Inteligência integrada entre módulos" (Planejada).
+- **Módulos novos, planejados:**
+  - **Metas & Conquistas** e **Casa Inteligente (GaDu Casa)** no catálogo único (`modules.ts`), com páginas e especificação;
+  - docs `CASA_INTELIGENTE.md`, `METAS_CONQUISTAS.md` e `INTEGRACOES_SAUDE.md` (Samsung Health e Health Connect).
+  - Nenhuma integração real e nenhuma tabela.
+- **Protótipo do Lovable:** encontrado e avaliado (`docs/LOVABLE_VISUAL_REFRESH.md`); incorporados o cartão "Agora" e o halo por estado.
+- **Home e Guia** atualizados com a visão ampliada.
+- Testado:
+  - typecheck, 46 testes unitários e 16 de integração, build;
+  - **16 testes de interface com Playwright** (`npm run test:e2e`, `e2e/ui.e2e.cjs`) contra o servidor local com o usuário de teste;
+  - os testes cobrem: 7 larguras sem rolagem lateral e com alvos de 44 px; menu (toque fora, Esc, Voltar, escolha); tela Módulos; barra de baixo sem esconder conteúdo; temas; assistente (orbe, Voltar, alça, histórico compartilhado); voz simulada (microfone negado, revisão da transcrição, limite de 20 s, interrupção, troca de tela); interruptores; Tarefas e Projetos com fixtures, estado vazio e erro; menu recolhível e largura do painel no computador;
+  - chat e voz simulados, sem chamada à IA paga.
+- Não verificado: voz e teclado em aparelhos físicos; prévia navegável do protótipo do Lovable (bloqueada pela rede do ambiente).
+- **Publicado**: PUBLICACAO_PENDENTE
+
 ## 2026-11-14 · `9733685` · Sprint UX/UI v2.1 (PR #14)
 - **Identidade** (`src/app/v2.css`):
   - paleta azul-marinho e grafite no lugar do preto puro; ciano, azul e laranja como cores de identidade; menos neon;

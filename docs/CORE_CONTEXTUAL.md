@@ -1,6 +1,6 @@
 # Core Contextual do GaDu: arquitetura futura
 
-Estado em 14/11/2026: **planejado**. Hoje existe só o contrato de contexto do Assistente Universal (`src/lib/assistant-context.ts`). Os tipos da etapa futura ficam em `src/lib/core-context.ts`, sem uso em produção. Nada aqui amplia o acesso atual.
+Estado em 14/11/2026: **planejado**. Na interface, isto aparece como "Inteligência integrada entre módulos · Planejado"; o que existe hoje aparece como "Contexto da tela · Beta". Hoje existe só o contrato de contexto do Assistente Universal (`src/lib/assistant-context.ts`). Os tipos da etapa futura ficam em `src/lib/core-context.ts`, sem uso em produção. Nada aqui amplia o acesso atual.
 
 ## Objetivo
 Permitir que o GaDu relacione informações entre módulos (tarefas, agenda, memória, projetos, financeiro, agentes, Studio, 3D Studio) para responder melhor. Exemplo: "tenho dinheiro para a viagem do projeto X na semana que vem?". O acesso deve continuar sempre limitado ao que a pessoa pode ver.
@@ -31,6 +31,11 @@ Pedido (texto/voz + pista de tela)
   → modelo responde e propõe ações
   → ações passam por aprovação → executam → auditoria
 ```
+
+## Fontes futuras previstas
+- Metas & Conquistas (`docs/METAS_CONQUISTAS.md`): metas ligadas a tarefas, projetos, agenda e financeiro; metas compartilhadas só com autorização de cada pessoa.
+- Casa Inteligente (`docs/CASA_INTELIGENTE.md`): estado de dispositivos como fato; comandos sempre como ação com aprovação, com regras próprias para dispositivos críticos.
+- Saúde (`docs/INTEGRACOES_SAUDE.md`): dados sensíveis (LGPD art. 11), só por conector autorizado, com minimização e retenção definida.
 
 ## Dependências antes de implementar
 - Auditoria completa de RLS e isolamento (prioridade 1 do próximo ciclo).

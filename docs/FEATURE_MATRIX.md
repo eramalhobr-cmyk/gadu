@@ -1,6 +1,6 @@
 # GaDu · Matriz de funcionalidades
 
-Atualizada em 14/11/2026 (Sprint UX/UI v2.1, PR #14), a partir do código na `main` e de PRs abertos. Status:
+Atualizada em 14/11/2026 (Sprint UX/UI v2.2, PR #16), a partir do código na `main` e de PRs abertos. Status:
 - **implementado**: na `main` e em produção.
 - **beta**: em produção, mas parcial, dependente de passo manual ou sem validação real.
 - **em desenvolvimento**: em branch ou PR.
@@ -29,10 +29,10 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Modo conversa (volta a ouvir) | beta | P1 | `GaduApp.tsx`, `src/lib/speech.ts` | estabilidade melhorada no PR #9 (testes com voz simulada); validar no iPhone e no Android |
 | Voz natural paga (ElevenLabs/OpenAI) com teto | planejado | P2 | — | aprovação de custo |
 | Conversa contínua com interrupção natural | planejado | P2 | — | voz paga |
-| Assistente Universal em todas as telas (painel lateral e painel de baixo) | implementado | — | `src/components/Assistant.tsx`, `GaduApp.tsx` | PR #12; validar nos aparelhos |
+| Assistente Universal em todas as telas, em três estados (compacto, rápido, completo) | implementado | — | `src/components/Assistant.tsx`, `GaduApp.tsx` | PR #12, três estados e largura ajustável no PR #16; validar nos aparelhos |
 | Contexto do módulo e da tela enviado ao assistente | implementado | — | `src/lib/assistant-context.ts`, `src/app/api/chat/route.ts` | só rótulo validado; não amplia o acesso |
 | Relacionar informações entre módulos (Core Contextual) | planejado | P1 | `docs/CORE_CONTEXTUAL.md`, `src/lib/core-context.ts` (só tipos) | auditoria de RLS e isolamento; modelo de organizações |
-| Transcrição de voz revisável e escuta com limite de 20 s | implementado | — | `GaduApp.tsx`, `SettingsPage.tsx` | PR #14; validar nos aparelhos |
+| Transcrição de voz revisável e escuta com limite de 20 s | implementado | — | `GaduApp.tsx`, `SettingsPage.tsx` | PR #14; envio automático desligado por padrão e interrupção sem reabrir o microfone no PR #16; testes com voz simulada; validar nos aparelhos |
 
 ## 3. Inteligência contextual e integração entre módulos
 | Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
@@ -106,6 +106,12 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Painel Hoje, Conversa, Perfil e ajustes e home no desenho da v2 | implementado | — | `TodayPage.tsx`, `GaduApp.tsx`, `SettingsPage.tsx`, `src/app/page.tsx` | PR #12 |
 | Projetos, Agentes, Memória, Admin, Guia e Agenda no desenho da v2 | implementado | — | `ProjectsPage.tsx`, `TasksPanel.tsx`, `AgendaView.tsx`, `AgentsPage.tsx`, `MemoryPage.tsx`, `AdminPage.tsx`, `src/app/v2-pages.css`, `kit.tsx` | PR #14; Admin sem verificação na tela (usuário de teste não é admin) |
 | Menu com grupos recolhíveis; barra de baixo sem duplicação | implementado | — | `GaduApp.tsx`, `src/app/v2.css` | PR #14 |
+| Navegação híbrida no celular (barra de baixo, tela Módulos, menu da conta pela esquerda, Voltar do Android) | implementado | — | `GaduApp.tsx`, `ModulePage.tsx` (`ModulesHub`), `src/app/v2.css` | PR #16; validar o Voltar em aparelho Android |
+| Menu lateral do computador por área e recolhível | implementado | — | `GaduApp.tsx`, `src/app/v2.css` | PR #16 |
+| Testes de interface automatizados (Playwright) | implementado | — | `e2e/ui.e2e.cjs` | PR #16; rodam contra servidor com usuário de teste; ainda fora do CI |
+| Metas & Conquistas | planejado | P2 | `src/lib/modules.ts` (catálogo), `docs/METAS_CONQUISTAS.md` | sem banco e sem dados; depende do Core Contextual |
+| Casa Inteligente (GaDu Casa) | planejado | P2 | `src/lib/modules.ts` (catálogo), `docs/CASA_INTELIGENTE.md` | sem integração real; Home Assistant recomendado |
+| Integração de saúde (Samsung Health, Health Connect) | planejado | P3 | `docs/INTEGRACOES_SAUDE.md` | PWA não lê esses dados; exige conector Android e aprovação |
 | Logo novo (três movimentos) | bloqueado | P1 | — | aguardando o arquivo; hoje marca em texto |
 | Acessibilidade (atalho de teclado, alvos de toque, foco) | implementado | — | `GaduApp.tsx`, `globals.css` | PR #10; alvos de 44 px e contraste AA auditados em 360 a 1920 px (PR #14) |
 | Validação do PWA na Streaming Box do carro | planejado | P3 | ROADMAP do PR #1 | — |

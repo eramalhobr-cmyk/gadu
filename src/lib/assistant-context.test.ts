@@ -1,16 +1,30 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { AssistantContextSchema, contextLabel, contextLine, contextOf, scopesFor } from "./assistant-context.ts";
-import { isOverview, MODULES, moduleOf, parseView, VIEW_IDS } from "./modules.ts";
+import { AREAS, isOverview, MODULES, moduleOf, parseView, VIEW_IDS } from "./modules.ts";
 
-test("módulos: seis módulos, telas únicas e status coerente", () => {
-  assert.deepEqual(MODULES.map((m) => m.id), ["pessoal", "financeiro", "office", "studio", "studio3d", "plataforma"]);
+test("módulos: oito módulos, telas únicas e status coerente", () => {
+  assert.deepEqual(MODULES.map((m) => m.id), ["pessoal", "metas", "financeiro", "casa", "office", "studio", "studio3d", "plataforma"]);
   assert.equal(new Set(VIEW_IDS).size, VIEW_IDS.length);
   for (const m of MODULES) {
     if (m.status === "planejado") assert.equal(m.available.length, 0, `${m.name} planejado não lista nada como disponível`);
     if (m.status === "disponivel") assert.ok(m.available.length > 0);
     for (const v of m.views) if (m.status === "planejado") assert.ok(isOverview(v.id), "módulo planejado só tem tela de visão geral");
   }
+});
+
+test("áreas cobrem todos os módulos uma única vez; Casa e Metas são planejados", () => {
+  const ids = AREAS.flatMap((a) => a.modules);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.deepEqual([...ids].sort(), MODULES.map((m) => m.id).sort());
+  for (const id of ["casa", "metas"] as const) {
+    const m = MODULES.find((x) => x.id === id)!;
+    assert.equal(m.status, "planejado");
+    assert.equal(m.available.length, 0, "módulo planejado não mostra nada como disponível");
+    assert.ok(isOverview(m.views[0].id));
+  }
+  assert.equal(parseView("casa", false), "casa");
+  assert.equal(parseView("modulos", false), "modulos");
 });
 
 test("endereços antigos continuam abrindo a tela certa", () => {

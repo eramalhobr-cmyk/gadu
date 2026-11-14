@@ -26,6 +26,7 @@ const PATHS: Record<string, string> = {
   gear: "M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1",
   moon: "M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z",
   menu: "M4 7h16M4 12h16M4 17h16",
+  full: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
   x: "M6 6l12 12M18 6L6 18",
   send: "M4.5 12h15M13 5.5l6.5 6.5-6.5 6.5",
   history: "M4 12a8 8 0 1 0 2.6-5.9M4 4.5V9h4.5M12 8v4.5l3 1.8",
@@ -37,6 +38,7 @@ const PATHS: Record<string, string> = {
   calendar: "M4.5 6.5h15v13h-15zM4.5 10.5h15M8.5 4v4M15.5 4v4",
   link: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
   chevron: "M9 6l6 6-6 6",
+  target: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM12 11a1 1 0 1 0 0 2 1 1 0 0 0 0-2z",
   bell: "M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15zM10 20.5a2 2 0 0 0 4 0",
 };
 export const ICONS = Object.keys(PATHS).filter((k) => !["folder", "check", "chat", "sun", "grid", "user", "agents", "mic", "cube", "gear", "moon", "menu", "x", "send", "history", "plus", "expand", "panel", "stop", "lock", "calendar", "link", "chevron", "bell"].includes(k));

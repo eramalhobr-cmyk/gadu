@@ -39,7 +39,7 @@ export default async function Guia() {
     { title: "Conecte o Google", why: "Para o GaDu ler sua agenda e seus e-mails e criar eventos quando você confirmar.", how: ["Configurações › Conexões › Conectar Google.", "Na tela do Google, marque todas as caixas."], done: has(google), href: "/app?tab=ajustes", cta: "Conectar" },
     { title: "Traga o que outras IAs já sabem", why: "Assim o GaDu começa já conhecendo você.", how: ["Memórias › Importar de outra IA.", "Copie o pedido, cole no ChatGPT ou no Claude e traga a resposta.", "Aprove o que fizer sentido."], done: has(memories), href: "/app?tab=memoria", cta: "Abrir Memórias" },
     { title: "Escolha seus agentes", why: "Versões do GaDu para cada área: saúde, finanças, estudos, seu negócio.", how: ["Agentes › Adicionar sugeridos, ou Novo agente.", "Edite as instruções do seu jeito."], done: has(agents), href: "/app?tab=agentes", cta: "Ver agentes" },
-    { title: "Converse pela primeira vez", why: "Fale como falaria com uma pessoa. Comece por: Começar o dia.", how: ["Toque no microfone, fale e solte.", "Ou use o botão redondo no canto, em qualquer tela."], done: has(convs), href: "/app?tab=conversa", cta: "Conversar" },
+    { title: "Converse pela primeira vez", why: "Fale como falaria com uma pessoa. Comece por: Começar o dia.", how: ["Toque no microfone, fale, revise o texto e envie.", "Ou toque no GaDu no centro da barra, em qualquer tela."], done: has(convs), href: "/app?tab=conversa", cta: "Conversar" },
   ];
   const doneCount = steps.filter((s) => s.done).length;
   const checkable = steps.filter((s) => s.done !== null).length;
@@ -92,9 +92,10 @@ export default async function Guia() {
       <div className="grid-2">
         <Panel title="Voz: como usar bem" icon="mic">
           <ul className="plist ok">
-            <li><Icon name="check" size={16} /><span>Toque no microfone, fale e faça uma pausa. Ele entende quando você terminou.</span></li>
-            <li><Icon name="check" size={16} /><span>Para interromper a resposta, toque de novo no botão.</span></li>
-            <li><Icon name="check" size={16} /><span>Em Configurações, escolha a voz e a velocidade. Ligue o modo conversa para ele voltar a ouvir sozinho.</span></li>
+            <li><Icon name="check" size={16} /><span>Toque no microfone e fale. O texto aparece no campo para você revisar e enviar.</span></li>
+            <li><Icon name="check" size={16} /><span>O microfone desliga sozinho em até 20 segundos e nunca escuta enquanto o GaDu fala.</span></li>
+            <li><Icon name="check" size={16} /><span>Para interromper a resposta, toque no botão de parar.</span></li>
+            <li><Icon name="check" size={16} /><span>Em Configurações: voz, velocidade, envio automático e modo mãos-livres. Os dois últimos só ligam se você escolher.</span></li>
           </ul>
         </Panel>
         <Panel title="Se algo der errado" icon="bell">

@@ -18,10 +18,10 @@ import { Icon } from "./ui";
 import { TipCard } from "./TipCard";
 import { TIP_IDS, type TipId } from "@/lib/tips";
 import { Assistant } from "./Assistant";
-import { ModulePage, StatusPill } from "./ModulePage";
+import { ModulePage, ModulesHub, StatusPill } from "./ModulePage";
 import { colorVar } from "./ui";
 import { contextOf } from "@/lib/assistant-context";
-import { isOverview, MODULES, moduleOf, viewDef, type ViewId } from "@/lib/modules";
+import { AREAS, isOverview, moduleById, moduleOf, parseView, viewDef, type ViewId } from "@/lib/modules";
 import { applyTheme, readTheme, type Theme } from "@/lib/theme";
 
 export type Msg = { id: string; role: "user" | "assistant" | "notice" | "event"; content: string; via?: string; link?: { href: string; label: string }; event?: EventDraft };
@@ -36,13 +36,15 @@ const FLASH: Record<string, string> = {
   erro: "Não consegui concluir a conexão com o Google. Tente de novo em Ajustes, Conexões.",
 };
 /** Dica da primeira visita de cada tela. */
-const TIP_OF: Partial<Record<ViewId, TipId>> = { hoje: "hoje", conversa: "conversa", tarefas: "projetos", projetos: "projetos", agentes: "agentes", memoria: "perfil", ajustes: "perfil" };
+const TIP_OF: Partial<Record<ViewId, TipId>> = { hoje: "hoje", conversa: "conversa", tarefas: "tarefas", projetos: "projetos", agentes: "agentes", memoria: "perfil", ajustes: "perfil" };
 const LS_ASSIST = "gadu.assist";
+const LS_ASSIST_W = "gadu.assistW";
+const LS_NAV_MINI = "gadu.navMini";
 type Target = { kind: "project" | "agent"; id: number; name: string } | null;
 
 const LS_DRAFT = "gadu.draft";
 const LS_PREFS = "gadu.prefs";
-const DEFAULT_PREFS: Prefs = { voice: true, handsFree: false, voiceURI: "", rate: 1, autoSend: true };
+const DEFAULT_PREFS: Prefs = { voice: true, handsFree: false, voiceURI: "", rate: 1, autoSend: false };
 
 function readPrefs(): Prefs {
   try {
@@ -53,7 +55,8 @@ function readPrefs(): Prefs {
       handsFree: Boolean(p.handsFree),
       voiceURI: typeof p.voiceURI === "string" ? p.voiceURI : "",
       rate: Number.isFinite(rate) && rate >= 0.7 && rate <= 1.6 ? rate : 1,
-      autoSend: p.autoSend !== false,
+      // Envio automático só com escolha explícita (padrão: desligado; o texto fica no campo para revisar).
+      autoSend: p.autoSend === true,
     };
   } catch {
     return DEFAULT_PREFS;
@@ -79,18 +82,20 @@ export function GaduApp(props: {
 }) {
   const [tab, setTabState] = useState<ViewId>(props.initialView);
   const [assist, setAssist] = useState(false);
-  const [assistFull, setAssistFull] = useState(false);
-  const [assistWide, setAssistWide] = useState(false);
-  const [sheet, setSheet] = useState(false);
-  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set([moduleOf(props.initialView).id]));
+  /** Largura do painel do assistente no computador (arrastável), em px. */
+  const [assistW, setAssistW] = useState(384);
+  const [menu, setMenu] = useState(false);
+  const [navMini, setNavMini] = useState(false);
+  const areaOf = (v: ViewId) => AREAS.find((a) => a.modules.includes(moduleOf(v).id))?.id ?? "produtividade";
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(["produtividade", areaOf(props.initialView)]));
   useEffect(() => {
     try { const saved = JSON.parse(localStorage.getItem("gadu.nav") || "null"); if (Array.isArray(saved)) setOpenGroups(new Set(saved.map(String))); } catch {}
   }, []);
   // O grupo da tela atual sempre fica aberto.
   useEffect(() => {
-    const m = moduleOf(tab);
-    const id = m.status === "planejado" ? "soon" : m.id;
+    const id = areaOf(tab);
     setOpenGroups((g) => (g.has(id) ? g : new Set(g).add(id)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
   function toggleGroup(id: string) {
     setOpenGroups((g) => { const n = new Set(g); if (n.has(id)) n.delete(id); else n.add(id); try { localStorage.setItem("gadu.nav", JSON.stringify([...n])); } catch {} return n; });
@@ -104,12 +109,11 @@ export function GaduApp(props: {
     if (t === "admin" && !props.admin) t = "ajustes";
     setPageOpen(false);
     window.history.replaceState(null, "", `/app?tab=${t}`);
-    setSheet(false);
+    setMenu(false);
     setTabState(t);
   }
   function openAssist(on: boolean) {
     setAssist(on);
-    if (!on) setAssistFull(false);
     try { localStorage.setItem(LS_ASSIST, on ? "1" : "0"); } catch {}
   }
   function toggleTheme(next?: Theme) {
@@ -145,8 +149,12 @@ export function GaduApp(props: {
     setTheme(readTheme(props.initialTheme));
     // Assistente: aberto por padrão em telas largas; depois vale a escolha da pessoa.
     try {
+      // No celular o assistente começa fechado: abrir é sempre uma ação da pessoa.
       const saved = localStorage.getItem(LS_ASSIST);
-      setAssist(saved ? saved === "1" : window.innerWidth >= 1360);
+      if (window.innerWidth >= 1024) setAssist(saved ? saved === "1" : window.innerWidth >= 1360);
+      const w = Number(localStorage.getItem(LS_ASSIST_W));
+      if (w >= 320 && w <= 640) setAssistW(w);
+      setNavMini(localStorage.getItem(LS_NAV_MINI) === "1");
     } catch {}
     try { setDraft(localStorage.getItem(LS_DRAFT) || ""); } catch {}
     setOnline(navigator.onLine);
@@ -189,7 +197,8 @@ export function GaduApp(props: {
       onText: (text, final) => {
         if (!mine()) return;
         setDraft(text);
-        if (final && text && prefsRef.current.autoSend) void sendRef.current(text);
+        // Envio automático só se a pessoa escolheu (ou no modo mãos-livres, que depende disso).
+        if (final && text && (prefsRef.current.autoSend || prefsRef.current.handsFree)) void sendRef.current(text);
       },
       onEnd: () => { if (!mine()) return; setListening(false); setMode((m) => (m === "listening" ? "idle" : m)); },
       onError: (code) => {
@@ -235,7 +244,8 @@ export function GaduApp(props: {
       speaker.onStart = () => setMode("speaking");
       speaker.onIdle = () => {
         setMode("idle");
-        if (handsFreeRef.current) setTimeout(() => listenRef.current(), 400);
+        // Modo mãos-livres: volta a ouvir só quando nada mais está acontecendo.
+        if (handsFreeRef.current) setTimeout(() => { if (modeRef.current === "idle" && !busyRef.current && !listeningRef.current) listenRef.current(); }, 400);
       };
     }
     const attempt = async () => {
@@ -317,11 +327,17 @@ export function GaduApp(props: {
       else {
         setMode("idle");
         // Modo conversa com a voz da resposta desligada: volta a ouvir mesmo assim.
-        if (answer && !ctrl.signal.aborted && handsFreeRef.current) setTimeout(() => listenRef.current(), 600);
+        if (answer && !ctrl.signal.aborted && handsFreeRef.current) setTimeout(() => { if (modeRef.current === "idle" && !busyRef.current && !listeningRef.current) listenRef.current(); }, 600);
       }
     }
   }, [busy, conversationId, prefs.voice, refreshPending, speaker, props.morningLink, target]);
 
+  const modeRef = useRef(mode);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+  const busyRef = useRef(busy);
+  useEffect(() => { busyRef.current = busy; }, [busy]);
+  const listeningRef = useRef(listening);
+  useEffect(() => { listeningRef.current = listening; }, [listening]);
   const prefsRef = useRef(prefs);
   useEffect(() => { prefsRef.current = prefs; }, [prefs]);
   const tabRef = useRef(tab);
@@ -381,8 +397,8 @@ export function GaduApp(props: {
       return;
     }
     if (listening) { recRef.current?.stop(); return; }
-    if (busy) { abortRef.current?.abort(); speaker?.cancel(); setMode("idle"); return; }
-    speaker?.cancel();
+    // Respondendo (pensando ou falando): o toque interrompe e para. Não abre o microfone junto.
+    if (busy || mode === "speaking") { abortRef.current?.abort(); speaker?.cancel(); setMode("idle"); return; }
     listen();
   }
 
@@ -441,52 +457,100 @@ export function GaduApp(props: {
   }
   const initial = (props.name || props.email || "G").trim().charAt(0).toUpperCase();
 
-  /** Menu de módulos: o mesmo no computador (lateral) e no celular (folha). Grupos recolhíveis; o do lugar atual abre sozinho.
-   * No celular (`mobile`), as telas que já estão na barra de baixo não se repetem. */
-  const inDock: ViewId[] = ["hoje", "conversa", "tarefas"];
-  const navGroups = (mobile: boolean) => {
-    const live = MODULES.filter((m) => m.status !== "planejado");
-    const soon = MODULES.filter((m) => m.status === "planejado");
-    const home = MODULES[0].views.find((v) => v.home);
-    const item = (v: { id: ViewId; label: string; icon: string }, extra?: React.ReactNode) => (
-      <button key={v.id} className="nav-item" aria-current={view === v.id ? "page" : undefined} onClick={() => setTab(v.id)}>
-        <Icon name={v.icon} size={19} /><span>{v.label}</span>
-        {v.id === "memoria" && pending > 0 && <b className="nav-badge" aria-label={`${pending} memórias para revisar`}>{pending}</b>}
-        {extra}
-      </button>
-    );
-    const group = (id: string, title: string, color: string, children: React.ReactNode, pill?: React.ReactNode) => {
-      const isOpen = openGroups.has(id);
-      return (
-        <div className={`nav-grp ${isOpen ? "open" : ""}`} key={id} style={{ ["--c" as string]: colorVar(color) }}>
-          <button className="nav-grp-head" aria-expanded={isOpen} aria-controls={`grp-${id}-${mobile ? "m" : "d"}`} onClick={() => toggleGroup(id)}>
-            <i className="dot" aria-hidden="true" /><span className="name">{title}</span>{pill}<span className="chev" aria-hidden="true"><Icon name="chevron" size={16} /></span>
-          </button>
-          <div className="nav-grp-body" id={`grp-${id}-${mobile ? "m" : "d"}`} hidden={!isOpen}>{children}</div>
-        </div>
-      );
+  // Botão Voltar (Android e navegador): fecha primeiro o que estiver aberto por cima (conversas, menu, assistente no celular);
+  // sem nada aberto, volta para a tela anterior.
+  const isPhone = () => typeof window !== "undefined" && window.innerWidth < 1024;
+  const overlayOpen = menu || drawer || (showAssist && isPhone());
+  const overlayRef = useRef({ menu, drawer, assist: showAssist });
+  overlayRef.current = { menu, drawer, assist: showAssist && isPhone() };
+  useEffect(() => {
+    if (overlayOpen) { if (!window.history.state?.gaduOverlay) window.history.pushState({ gaduOverlay: 1 }, ""); }
+    else if (window.history.state?.gaduOverlay) window.history.back();
+  }, [overlayOpen]);
+  useEffect(() => {
+    const onPop = () => {
+      const o = overlayRef.current;
+      if (o.drawer) setDrawer(false);
+      else if (o.menu) setMenu(false);
+      else if (o.assist) openAssist(false);
+      else {
+        const t = parseView(new URLSearchParams(window.location.search).get("tab") ?? undefined, props.admin);
+        if (t) { setPageOpen(false); setTabState(t); }
+      }
     };
-    return (
-      <div className="nav-scroll">
-        {!mobile && home && <div className="nav-home">{item(home)}</div>}
-        {live.map((m) => {
-          const views = m.views.filter((v) => !v.home && (!v.adminOnly || props.admin) && !(mobile && inDock.includes(v.id)));
-          if (!views.length) return null;
-          return group(m.id, m.name, m.color, views.map((v) => item(v)), m.status !== "disponivel" ? <StatusPill status={m.status} /> : undefined);
-        })}
-        {group("soon", "Em breve", "blue", soon.map((m) => (
-          <button key={m.id} className="nav-item soon" aria-current={view === m.views[0].id ? "page" : undefined} onClick={() => setTab(m.views[0].id)} style={{ ["--c" as string]: colorVar(m.color) }}>
-            <Icon name={m.icon} size={19} /><span>{m.name}</span>
-          </button>
-        )), <span className="nav-count">{soon.length}</span>)}
-        <div className="nav-extra">
-          <button className="nav-item" onClick={() => { setSheet(false); setDrawer(true); }} aria-expanded={drawer}><Icon name="history" size={19} /><span>Conversas anteriores</span></button>
-          <a className="nav-item" href="/app/guia"><Icon name="book" size={19} /><span>Guia e como funciona</span></a>
-        </div>
-        {mobile && navUser}
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { if (overlayRef.current.drawer) return; setMenu(false); } };
+    window.addEventListener("popstate", onPop);
+    window.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("popstate", onPop); window.removeEventListener("keydown", onKey); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Menu aberto: a página por trás não rola.
+  useEffect(() => { document.documentElement.classList.toggle("menu-open", menu); }, [menu]);
+  // Mudou de tela com o microfone aberto e sem nenhum controle de voz à vista: para de ouvir.
+  useEffect(() => {
+    if (listeningRef.current && !(tab === "conversa" || showAssist)) recRef.current?.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+  function toggleNavMini() {
+    setNavMini((v) => { try { localStorage.setItem(LS_NAV_MINI, v ? "0" : "1"); } catch {} return !v; });
+  }
+  /** Painel do assistente no computador: arrastar a borda muda a largura (320 a 640 px), sem espremer a área de trabalho. */
+  function startResize(e: React.PointerEvent) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = assistW;
+    let last = startW;
+    const max = () => Math.max(320, Math.min(640, window.innerWidth - (navMini ? 76 : 280) - 560));
+    const move = (ev: PointerEvent) => { last = Math.round(Math.min(max(), Math.max(320, startW + (startX - ev.clientX)))); setAssistW(last); };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      try { localStorage.setItem(LS_ASSIST_W, String(last)); } catch {}
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
+  function stepAssistW(delta: number) {
+    setAssistW((w) => { const n = Math.min(640, Math.max(320, w + delta)); try { localStorage.setItem(LS_ASSIST_W, String(n)); } catch {} return n; });
+  }
+
+  const inDock: ViewId[] = ["hoje", "conversa", "tarefas", "modulos"];
+  const accountViews: ViewId[] = ["perfil", "ajustes", "integracoes", "admin"];
+  /** Menu lateral do computador: por área do produto, com grupos recolhíveis.
+   * Módulo planejado aparece discreto, dentro da área, com o selo. */
+  const navItem = (v: { id: ViewId; label: string; icon: string }, extra?: React.ReactNode) => (
+    <button key={v.id} className="nav-item" aria-current={view === v.id ? "page" : undefined} onClick={() => setTab(v.id)} title={navMini ? v.label : undefined}>
+      <Icon name={v.icon} size={19} /><span>{v.label}</span>
+      {v.id === "memoria" && pending > 0 && <b className="nav-badge" aria-label={`${pending} memórias para revisar`}>{pending}</b>}
+      {extra}
+    </button>
+  );
+  const navGroups = () => (
+    <div className="nav-scroll">
+      <div className="nav-home">{navItem(viewDef("hoje"))}</div>
+      {AREAS.map((a) => {
+        const mods = a.modules.map(moduleById);
+        const items = mods.flatMap((m) => m.status === "planejado"
+          ? [<button key={m.id} className="nav-item soon" aria-current={view === m.views[0].id ? "page" : undefined} onClick={() => setTab(m.views[0].id)} style={{ ["--c" as string]: colorVar(m.color) }} title={navMini ? `${m.name} (planejado)` : undefined}>
+              <Icon name={m.icon} size={19} /><span>{m.name}</span><small className="soon-tag">Planejado</small>
+            </button>]
+          : m.views.filter((v) => !v.home && !v.hub && (!v.adminOnly || props.admin)).map((v) => navItem(v, m.status !== "disponivel" && v === m.views[0] ? <StatusPill status={m.status} /> : undefined)));
+        const isOpen = navMini || openGroups.has(a.id);
+        return (
+          <div className={`nav-grp ${isOpen ? "open" : ""}`} key={a.id}>
+            <button className="nav-grp-head" aria-expanded={isOpen} aria-controls={`grp-${a.id}`} onClick={() => toggleGroup(a.id)}>
+              <span className="name">{a.name}</span><span className="chev" aria-hidden="true"><Icon name="chevron" size={16} /></span>
+            </button>
+            <div className="nav-grp-body" id={`grp-${a.id}`} hidden={!isOpen}>{items}</div>
+          </div>
+        );
+      })}
+      <div className="nav-extra">
+        <button className="nav-item" onClick={() => setDrawer(true)} aria-expanded={drawer} title={navMini ? "Conversas anteriores" : undefined}><Icon name="history" size={19} /><span>Conversas anteriores</span></button>
+        <a className="nav-item" href="/app/guia" title={navMini ? "Guia e como funciona" : undefined}><Icon name="book" size={19} /><span>Guia e como funciona</span></a>
       </div>
-    );
-  };
+    </div>
+  );
   const navUser = (
     <div className="nav-user">
       <span className="initial" aria-hidden="true">{initial}</span>
@@ -494,22 +558,41 @@ export function GaduApp(props: {
       <button className="icon-btn" onClick={() => toggleTheme()} aria-label={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"} title={theme === "dark" ? "Tema claro" : "Tema escuro"}><Icon name={theme === "dark" ? "sun" : "moon"} /></button>
     </div>
   );
-
+  /** Menu do celular (gaveta da esquerda): só conta, plataforma e atalhos. Os módulos ficam na tela Módulos; o dia a dia, na barra de baixo. */
+  const mobileMenu = (
+    <div className="nav-scroll">
+      {navUser}
+      <div className="menu-sec">
+        <span className="menu-label">Explorar</span>
+        <button className="nav-item" aria-current={view === "modulos" ? "page" : undefined} onClick={() => setTab("modulos")}><Icon name="grid" size={19} /><span>Todos os módulos</span></button>
+        <button className="nav-item" onClick={() => { setMenu(false); setDrawer(true); }}><Icon name="history" size={19} /><span>Conversas anteriores</span></button>
+      </div>
+      <div className="menu-sec">
+        <span className="menu-label">Conta e plataforma</span>
+        {moduleById("plataforma").views.filter((v) => !v.adminOnly || props.admin).map((v) => navItem(v))}
+      </div>
+      <div className="menu-sec">
+        <a className="nav-item" href="/app/guia"><Icon name="book" size={19} /><span>Guia e como funciona</span></a>
+      </div>
+    </div>
+  );
   return (
-    <div className={`app ${showAssist ? "with-assist" : ""} ${showAssist && assistWide ? "assist-wide" : ""}`}>
+    <div className={`app ${showAssist ? "with-assist" : ""} ${navMini ? "nav-mini" : ""}`} style={{ ["--assist-w" as string]: `${assistW}px` }}>
       <a className="skip" href="#conteudo">Pular para o conteúdo</a>
 
       <aside className="nav on-dark" aria-label="Módulos">
-        <a className="nav-brand" href="/app" aria-label="GaDu, início">
-          <span className="brand">GaDu</span>
-        </a>
-        <button className="btn btn-pri" onClick={() => { newConversation(); setTab("conversa"); }}><Icon name="plus" size={18} />Nova conversa</button>
-        {navGroups(false)}
+        <div className="nav-top">
+          <a className="nav-brand" href="/app" aria-label="GaDu, início"><span className="brand">GaDu</span></a>
+          <button className="icon-btn nav-collapse" onClick={toggleNavMini} aria-label={navMini ? "Expandir o menu" : "Recolher o menu"} aria-pressed={navMini} title={navMini ? "Expandir o menu" : "Recolher o menu"}><Icon name="panel" /></button>
+        </div>
+        <button className="btn btn-pri nav-new" onClick={() => { newConversation(); setTab("conversa"); }} aria-label="Nova conversa" title={navMini ? "Nova conversa" : undefined}><Icon name="plus" size={18} /><span>Nova conversa</span></button>
+        {navGroups()}
         <div className="nav-foot">{navUser}</div>
       </aside>
 
       <div className="frame">
         <header className="bar">
+          <button className="icon-btn bar-menu" onClick={() => setMenu(true)} aria-label="Abrir o menu" aria-expanded={menu} aria-controls="menu-cel"><Icon name="menu" /></button>
           <a className="bar-brand" href="/app" aria-label="GaDu, início">
             <span className="brand">GaDu</span>
           </a>
@@ -518,12 +601,13 @@ export function GaduApp(props: {
             <h1>{title}</h1>
           </div>
           <div className="bar-actions">
-            <span className={`mono state ${mode === "thinking" ? "hot" : ""}`}><i />{stateLabel}</span>
-            <button className="icon-btn" onClick={() => toggleTheme()} aria-label={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"}><Icon name={theme === "dark" ? "sun" : "moon"} /></button>
+            {/* Estado só quando há algo acontecendo (escutando, pensando, respondendo). */}
+            {active && <span className={`mono state ${mode === "thinking" ? "hot" : ""}`} role="status"><i />{stateLabel}</span>}
+            <button className="icon-btn desk-only" onClick={() => toggleTheme()} aria-label={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"}><Icon name={theme === "dark" ? "sun" : "moon"} /></button>
             {view !== "conversa" && (
               <button className="icon-btn" onClick={() => openAssist(!assist)} aria-label={assist ? "Fechar o assistente" : "Abrir o assistente"} aria-pressed={assist}><Icon name="panel" /></button>
             )}
-            <a className="icon-btn" href="/app/guia" aria-label="Guia do GaDu" title="Guia do GaDu"><b aria-hidden="true">?</b></a>
+            <a className="icon-btn desk-only" href="/app/guia" aria-label="Guia do GaDu" title="Guia do GaDu"><b aria-hidden="true">?</b></a>
           </div>
         </header>
         {!online && <div className="banner" role="status">Sem internet. O app continua aberto e as mensagens ficam no rascunho.</div>}
@@ -600,7 +684,8 @@ export function GaduApp(props: {
             onAsk={(q) => { speaker?.unlock(); openAssist(true); void send(q); }} />
         )}
         {(view === "tarefas" || view === "projetos") && <ProjectsPage key={`pp-${view}`} initialView={view} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
-        {view === "agenda" && <main className="page" id="conteudo"><div className="wrap"><AgendaView onBack={() => setTab("hoje")} /></div></main>}
+        {view === "agenda" && <AgendaView onBack={() => setTab("hoje")} />}
+        {view === "modulos" && <ModulesHub onOpen={setTab} pending={pending} />}
         {view === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
         {view && isOverview(view) && <ModulePage id={moduleOf(view).id} onOpen={setTab} />}
         {view === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
@@ -613,10 +698,10 @@ export function GaduApp(props: {
       </div>
 
       <Assistant
-        open={showAssist} full={assistFull} wide={assistWide} onToggleWide={() => setAssistWide((v) => !v)} context={contextOf(tab)} messages={messages} draft={draft} mode={mode} listening={listening} busy={busy} voiceOk={voiceOk}
+        open={showAssist} width={assistW} onResizeStart={startResize} onResizeStep={stepAssistW} context={contextOf(tab)} messages={messages} draft={draft} mode={mode} listening={listening} busy={busy} voiceOk={voiceOk}
         onDraft={setDraft} onSend={(t) => { speaker?.unlock(); void send(t); }} onMic={micClick} onStop={stop}
-        onClose={() => openAssist(false)} onToggleFull={() => setAssistFull((v) => !v)}
-        onOpenConversation={() => { setAssistFull(false); setTab("conversa"); }} onNew={() => newConversation()}
+        onClose={() => openAssist(false)}
+        onOpenConversation={() => { openAssist(false); setTab("conversa"); }} onNew={() => newConversation()}
       />
       {!showAssist && view !== "conversa" && (
         <button className={`orb-fab ${active ? "on" : ""}`} onClick={() => openAssist(true)} aria-label="Abrir o assistente GaDu">
@@ -636,22 +721,22 @@ export function GaduApp(props: {
           {active && <span className="orb-badge" aria-hidden="true"><Icon name={listening ? "mic" : mode === "speaking" ? "chat" : "spark"} size={12} /></span>}
         </button>
         <button className="dock-item" aria-current={view === "tarefas" ? "page" : undefined} onClick={() => setTab("tarefas")}><Icon name="check" size={20} /><span>Tarefas</span></button>
-        <button className="dock-item" aria-current={sheet || (view && !inDock.includes(view)) ? "page" : undefined} onClick={() => setSheet(true)} aria-expanded={sheet}>
+        <button className="dock-item" aria-current={view && !inDock.slice(0, 3).includes(view) && !accountViews.includes(view) ? "page" : undefined} onClick={() => setTab("modulos")}>
           <Icon name="grid" size={20} /><span>Módulos</span>{pending > 0 && <b className="badge">{pending}</b>}
         </button>
       </nav>
 
-      {sheet && (
-        <div className="sheet-wrap" onClick={() => setSheet(false)}>
-          <aside className="sheet" role="dialog" aria-modal="true" aria-label="Módulos" onClick={(e) => e.stopPropagation()}>
-            <div className="sheet-head">
-              <span className="brand">GaDu</span>
-              <button className="icon-btn" onClick={() => setSheet(false)} aria-label="Fechar"><Icon name="x" /></button>
-            </div>
-            {navGroups(true)}
-          </aside>
-        </div>
-      )}
+      {/* Menu do celular: sempre montado para animar a entrada e a saída. Fecha ao tocar fora, ao escolher, com Esc ou com o Voltar. */}
+      <div className={`menu-wrap ${menu ? "open" : ""}`} aria-hidden={!menu} inert={!menu}>
+        <button className="menu-scrim" tabIndex={-1} aria-label="Fechar o menu" onClick={() => setMenu(false)} />
+        <aside className="menu-panel on-dark" id="menu-cel" role="dialog" aria-modal="true" aria-label="Menu">
+          <div className="sheet-head">
+            <span className="brand">GaDu</span>
+            <button className="icon-btn" onClick={() => setMenu(false)} aria-label="Fechar o menu"><Icon name="x" /></button>
+          </div>
+          {mobileMenu}
+        </aside>
+      </div>
 
       {drawer && (
         <ConversationsDrawer currentId={conversationId} onClose={() => setDrawer(false)} onOpen={openConversation}

@@ -150,9 +150,22 @@ export function TodayPage(props: {
             ) : (
               <button className="btn" onClick={() => props.onOpen("agenda")}><Icon name="calendar" size={18} />Ver agenda</button>
             )}
-            <button className="btn btn-ghost" onClick={props.onDock}><Icon name="mic" size={18} />Falar</button>
+            <button className="btn btn-ghost desk-only" onClick={props.onDock}><Icon name="mic" size={18} />Falar</button>
           </div>
         </section>
+
+        {/* Agora: o próximo compromisso real, antes de qualquer outra coisa. Sem agenda conectada, não aparece. */}
+        {today?.connected && (
+          <section className="now-card" aria-label="Agora">
+            <span className="now-ico" aria-hidden="true"><Icon name="calendar" size={18} /></span>
+            {nextEv ? (
+              <p><small>{new Date(nextEv.start) <= now ? "Acontecendo agora" : `Próximo, às ${hm(nextEv.start)}`}</small><b>{nextEv.title}</b></p>
+            ) : (
+              <p><small>Agora</small><b>{upcoming.length ? "Só compromissos de dia inteiro hoje" : "Agenda livre pelo resto do dia"}</b></p>
+            )}
+            <button className="btn btn-sm" onClick={() => props.onOpen("agenda")}>Agenda</button>
+          </section>
+        )}
 
         <section className="stats" aria-label="Visão rápida">
           <button className="stat" onClick={props.onOpenTasks}><Icon name="check" size={18} /><b>{progress.open}</b><span>tarefas hoje</span></button>

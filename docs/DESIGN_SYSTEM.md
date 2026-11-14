@@ -1,6 +1,6 @@
 # GaDu · Design System
 
-Versão 2.1, de 14/11/2026 (Sprint UX/UI v2.1). Este documento descreve **o que está no código**. Os tokens ficam em `src/app/v2.css`; o estilo das telas de conteúdo, em `src/app/v2-pages.css`. A especificação inicial do PR #1 (identidade e cobertura) foi incorporada aqui.
+Versão 2.2, de 14/11/2026 (Sprint UX/UI v2.2). Este documento descreve **o que está no código**. Os tokens ficam em `src/app/v2.css`; o estilo das telas de conteúdo, em `src/app/v2-pages.css`. A especificação inicial do PR #1 (identidade e cobertura) foi incorporada aqui.
 
 ## Identidade (decisão oficial, não muda sem aprovação)
 - Nome **GaDu**, com G e D maiúsculos.
@@ -55,6 +55,15 @@ Seis módulos: Pessoal, Financeiro, Agent Office, Agent Office Studio, 3D Studio
 - **Base (globals.css):** `.btn`, `.btn-pri`, `.btn-sm`, `.icon-btn`, `.chip`, `.field`, `.card`, `.banner`, `.seg`, `.drawer`.
 - **Erros:** `ErrorScreen`; mensagens em `src/lib/errors.ts`.
 
+## Navegação (v2.2)
+- **Celular, híbrida e sem repetição:**
+  - **Barra de baixo:** Hoje, Conversas, GaDu (assistente), Tarefas e Módulos.
+  - **Tela Módulos** (`ModulesHub`): todo o resto, por área; planejados em pílulas tracejadas (`.hub-soon-i`).
+  - **Menu ☰** (`.menu-wrap`): gaveta pela esquerda, só com conta, plataforma, histórico e guia. Fica sempre montada (anima a entrada e a saída) e é `inert` quando fechada.
+  - Fecha ao tocar fora, ao escolher, com Esc e com o Voltar (histórico do navegador).
+- **Computador:** menu lateral por área (`AREAS`), com grupos recolhíveis; o botão do topo recolhe o menu só para ícones (`.app.nav-mini`, 76 px).
+- **Assistente:** compacto (orbe), rápido (painel; no celular, alça e últimas 4 trocas) e completo (tela Conversa). No computador, borda arrastável (`.assist-resize`) e setas do teclado.
+
 ## Navegação e layout
 | Largura | Navegação | Layout |
 |---|---|---|
@@ -78,13 +87,14 @@ Seis módulos: Pessoal, Financeiro, Agent Office, Agent Office Studio, 3D Studio
 ## Acessibilidade
 - Foco visível em tudo (`:focus-visible` ciano).
 - Atalho "Pular para o conteúdo" no primeiro Tab.
-- Alvos de toque com no mínimo 44 px (`--touch`), auditados em 360 a 1920 px.
+- Alvos de toque com no mínimo 44 px (`--touch`), incluindo `.btn-sm`, chips, grupos do menu e abas; verificados automaticamente em 360, 390, 412, 768, 1024, 1440 e 1920 px (`e2e/ui.e2e.cjs`). Exceção: links dentro de texto corrido (WCAG 2.5.8).
+- Interruptores: `<label class="switch">` com `input[role=switch].sr` e `.tgl` visual; a linha inteira é clicável.
 - Contraste medido (WCAG): texto principal 15:1 ou mais nos dois temas; texto de apoio 6,8:1 (escuro) e 5,3:1 (claro); ciano de ação 10,8:1 (escuro) e 4,7:1 (claro); botão principal claro 5,2:1.
 - `aria-current` na aba ativa; diálogos com `aria-modal`; textos de estado com `role="status"`.
 - Respeita "reduzir movimento".
 
 ## Como verificar uma mudança visual
-1. `npm run build && npm start` e abrir as telas em **360, 390, 412, 768, 1024, 1440 e 1920 px**. Para as telas do app sem login, use uma prévia local com dados fictícios, fora do commit.
+1. `npm run build && npm start`; rode `E2E_BASE=… E2E_STATE=… npm run test:e2e` (usuário de teste) e abra as telas em **360, 390, 412, 768, 1024, 1440 e 1920 px**. Para as telas do app sem login, use uma prévia local com dados fictícios, fora do commit.
 2. Conferir: sem rolagem horizontal, nada escondido atrás do menu de baixo ou da voz flutuante, foco visível, alvos de toque.
 3. Conferir o console: nenhum erro de hidratação. O que depende do aparelho (voz, microfone) é detectado em `useEffect`, nunca durante a renderização.
 
