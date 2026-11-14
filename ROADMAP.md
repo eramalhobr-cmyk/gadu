@@ -261,6 +261,13 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [ ] 6.5 Métricas: painel por área e metas do trimestre
 - [ ] Convidar o Luiz Cláudio depois da 6.2
 
+## Finanças pessoais (proposta, ver docs/FEATURE-FINANCAS.md)
+- [x] Especificação de referência: telas, modelo de dados, regras de cálculo, entrada pela conversa e deduplicação
+- [ ] Base: tabelas `fin_*` com RLS, abas Contas e Dia a dia
+- [ ] Conversa: lançar e classificar por texto e voz, pendências "a confirmar", regras de classificação
+- [ ] Arquivos: print e PDF de extrato com deduplicação e saldo do banco
+- [ ] Caixa, Plano, Simulador e Ano
+
 ## Por último (combinado em 10/11)
 - [ ] Testes automáticos de ponta a ponta antes de publicar e alerta de erro (tela de erro própria: feita no PR #9)
 - [ ] Ações com aprovação no Gmail (rascunhos) e foco na agenda
