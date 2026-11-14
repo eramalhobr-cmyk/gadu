@@ -34,8 +34,12 @@ const PATHS: Record<string, string> = {
   panel: "M4 5h16v14H4zM14.5 5v14",
   stop: "M7 7h10v10H7z",
   lock: "M7 11V8a5 5 0 0 1 10 0v3M5.5 11h13v9.5h-13z",
+  calendar: "M4.5 6.5h15v13h-15zM4.5 10.5h15M8.5 4v4M15.5 4v4",
+  link: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
+  chevron: "M9 6l6 6-6 6",
+  bell: "M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15zM10 20.5a2 2 0 0 0 4 0",
 };
-export const ICONS = Object.keys(PATHS).filter((k) => !["folder", "check", "chat", "sun", "grid", "user", "agents", "mic", "cube", "gear", "moon", "menu", "x", "send", "history", "plus", "expand", "panel", "stop", "lock"].includes(k));
+export const ICONS = Object.keys(PATHS).filter((k) => !["folder", "check", "chat", "sun", "grid", "user", "agents", "mic", "cube", "gear", "moon", "menu", "x", "send", "history", "plus", "expand", "panel", "stop", "lock", "calendar", "link", "chevron", "bell"].includes(k));
 
 export function Icon({ name, size = 20 }: { name: string; size?: number }) {
   return (

@@ -13,6 +13,7 @@ import { SettingsPage, type Prefs } from "./SettingsPage";
 import { dueLabel, TodayPage } from "./TodayPage";
 import { AgentsPage } from "./AgentsPage";
 import { ProjectsPage } from "./ProjectsPage";
+import { AgendaView } from "./AgendaView";
 import { Icon } from "./ui";
 import { TipCard } from "./TipCard";
 import { TIP_IDS, type TipId } from "@/lib/tips";
@@ -35,13 +36,13 @@ const FLASH: Record<string, string> = {
   erro: "Não consegui concluir a conexão com o Google. Tente de novo em Ajustes, Conexões.",
 };
 /** Dica da primeira visita de cada tela. */
-const TIP_OF: Partial<Record<ViewId, TipId>> = { hoje: "hoje", conversa: "conversa", projetos: "projetos", agentes: "agentes", memoria: "perfil", ajustes: "perfil" };
+const TIP_OF: Partial<Record<ViewId, TipId>> = { hoje: "hoje", conversa: "conversa", tarefas: "projetos", projetos: "projetos", agentes: "agentes", memoria: "perfil", ajustes: "perfil" };
 const LS_ASSIST = "gadu.assist";
 type Target = { kind: "project" | "agent"; id: number; name: string } | null;
 
 const LS_DRAFT = "gadu.draft";
 const LS_PREFS = "gadu.prefs";
-const DEFAULT_PREFS: Prefs = { voice: true, handsFree: false, voiceURI: "", rate: 1 };
+const DEFAULT_PREFS: Prefs = { voice: true, handsFree: false, voiceURI: "", rate: 1, autoSend: true };
 
 function readPrefs(): Prefs {
   try {
@@ -52,6 +53,7 @@ function readPrefs(): Prefs {
       handsFree: Boolean(p.handsFree),
       voiceURI: typeof p.voiceURI === "string" ? p.voiceURI : "",
       rate: Number.isFinite(rate) && rate >= 0.7 && rate <= 1.6 ? rate : 1,
+      autoSend: p.autoSend !== false,
     };
   } catch {
     return DEFAULT_PREFS;
@@ -78,7 +80,21 @@ export function GaduApp(props: {
   const [tab, setTabState] = useState<ViewId>(props.initialView);
   const [assist, setAssist] = useState(false);
   const [assistFull, setAssistFull] = useState(false);
+  const [assistWide, setAssistWide] = useState(false);
   const [sheet, setSheet] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set([moduleOf(props.initialView).id]));
+  useEffect(() => {
+    try { const saved = JSON.parse(localStorage.getItem("gadu.nav") || "null"); if (Array.isArray(saved)) setOpenGroups(new Set(saved.map(String))); } catch {}
+  }, []);
+  // O grupo da tela atual sempre fica aberto.
+  useEffect(() => {
+    const m = moduleOf(tab);
+    const id = m.status === "planejado" ? "soon" : m.id;
+    setOpenGroups((g) => (g.has(id) ? g : new Set(g).add(id)));
+  }, [tab]);
+  function toggleGroup(id: string) {
+    setOpenGroups((g) => { const n = new Set(g); if (n.has(id)) n.delete(id); else n.add(id); try { localStorage.setItem("gadu.nav", JSON.stringify([...n])); } catch {} return n; });
+  }
   const [theme, setTheme] = useState<Theme>(props.initialTheme);
   const [pageOpen, setPageOpen] = useState(Boolean(props.page));
   // Com uma página de conteúdo aberta, nenhuma aba aparece; tocar numa aba volta ao app.
@@ -104,7 +120,6 @@ export function GaduApp(props: {
   const [seen, setSeen] = useState<Set<string>>(() => new Set(props.seenTips));
   const [review, setReview] = useState(false);
   const [target, setTarget] = useState<Target>(null);
-  const [projView, setProjView] = useState<"tarefas" | "projetos">("tarefas");
   const [messages, setMessages] = useState<Msg[]>(props.initialMessages);
   const [conversationId, setConversationId] = useState<number | null>(props.initialConversationId);
   const [draft, setDraft] = useState("");
@@ -174,7 +189,7 @@ export function GaduApp(props: {
       onText: (text, final) => {
         if (!mine()) return;
         setDraft(text);
-        if (final && text) void sendRef.current(text);
+        if (final && text && prefsRef.current.autoSend) void sendRef.current(text);
       },
       onEnd: () => { if (!mine()) return; setListening(false); setMode((m) => (m === "listening" ? "idle" : m)); },
       onError: (code) => {
@@ -187,6 +202,8 @@ export function GaduApp(props: {
     });
     if (!rec) return;
     recRef.current = rec;
+    // Nunca deixa o microfone aberto indefinidamente: para sozinho depois de 20 s.
+    setTimeout(() => { if (recRef.current === rec) { try { rec.stop(); } catch {} } }, 20_000);
     try {
       rec.start();
       setListening(true);
@@ -305,6 +322,8 @@ export function GaduApp(props: {
     }
   }, [busy, conversationId, prefs.voice, refreshPending, speaker, props.morningLink, target]);
 
+  const prefsRef = useRef(prefs);
+  useEffect(() => { prefsRef.current = prefs; }, [prefs]);
   const tabRef = useRef(tab);
   useEffect(() => { tabRef.current = tab; }, [tab]);
   const sendRef = useRef(send);
@@ -414,67 +433,85 @@ export function GaduApp(props: {
   const tip = view ? TIP_OF[view] : undefined;
   const showAssist = assist && view !== "conversa";
   const stop = () => { if (listening) recRef.current?.stop(); else { abortRef.current?.abort(); speaker?.cancel(); setMode("idle"); } };
+  /** Botão central: abre/fecha o assistente; na Conversa, leva ao campo de mensagem (a voz fica no próprio campo). */
+  function orbClick() {
+    if (view === "conversa") { document.getElementById("msg")?.focus(); return; }
+    if (active) { stop(); return; }
+    openAssist(!assist);
+  }
   const initial = (props.name || props.email || "G").trim().charAt(0).toUpperCase();
 
-  /** Menu de módulos: o mesmo no computador (lateral) e no celular (folha). */
-  const moduleNav = (
-    <div className="nav-scroll">
-      {MODULES.filter((m) => m.status !== "planejado").map((m) => (
-        <div className="nav-mod" key={m.id} style={{ ["--c" as string]: colorVar(m.color) }}>
-          <div className="nav-mod-head"><i className="dot" aria-hidden="true" /><span className="name">{m.name}</span>{m.status !== "disponivel" && <StatusPill status={m.status} />}</div>
-          {m.views.filter((v) => !v.adminOnly || props.admin).map((v) => (
-            <button key={v.id} className="nav-item" aria-current={view === v.id ? "page" : undefined} onClick={() => setTab(v.id)}>
-              <Icon name={v.icon} size={19} />
-              <span>{v.label}</span>
-              {v.id === "memoria" && pending > 0 && <b className="nav-badge" aria-label={`${pending} memórias para revisar`}>{pending}</b>}
-            </button>
-          ))}
-        </div>
-      ))}
-      <div className="nav-mod">
-        <div className="nav-mod-head"><span className="name">No plano</span></div>
-        {MODULES.filter((m) => m.status === "planejado").map((m) => (
-          <button key={m.id} className="nav-item soon" aria-current={view === m.views[0].id ? "page" : undefined} onClick={() => setTab(m.views[0].id)} style={{ ["--c" as string]: colorVar(m.color) }}>
-            <Icon name={m.icon} size={19} />
-            <span>{m.id === "studio" ? "Studio" : m.name}</span>
-            <StatusPill status={m.status} />
+  /** Menu de módulos: o mesmo no computador (lateral) e no celular (folha). Grupos recolhíveis; o do lugar atual abre sozinho.
+   * No celular (`mobile`), as telas que já estão na barra de baixo não se repetem. */
+  const inDock: ViewId[] = ["hoje", "conversa", "tarefas"];
+  const navGroups = (mobile: boolean) => {
+    const live = MODULES.filter((m) => m.status !== "planejado");
+    const soon = MODULES.filter((m) => m.status === "planejado");
+    const home = MODULES[0].views.find((v) => v.home);
+    const item = (v: { id: ViewId; label: string; icon: string }, extra?: React.ReactNode) => (
+      <button key={v.id} className="nav-item" aria-current={view === v.id ? "page" : undefined} onClick={() => setTab(v.id)}>
+        <Icon name={v.icon} size={19} /><span>{v.label}</span>
+        {v.id === "memoria" && pending > 0 && <b className="nav-badge" aria-label={`${pending} memórias para revisar`}>{pending}</b>}
+        {extra}
+      </button>
+    );
+    const group = (id: string, title: string, color: string, children: React.ReactNode, pill?: React.ReactNode) => {
+      const isOpen = openGroups.has(id);
+      return (
+        <div className={`nav-grp ${isOpen ? "open" : ""}`} key={id} style={{ ["--c" as string]: colorVar(color) }}>
+          <button className="nav-grp-head" aria-expanded={isOpen} aria-controls={`grp-${id}-${mobile ? "m" : "d"}`} onClick={() => toggleGroup(id)}>
+            <i className="dot" aria-hidden="true" /><span className="name">{title}</span>{pill}<span className="chev" aria-hidden="true"><Icon name="chevron" size={16} /></span>
           </button>
-        ))}
+          <div className="nav-grp-body" id={`grp-${id}-${mobile ? "m" : "d"}`} hidden={!isOpen}>{children}</div>
+        </div>
+      );
+    };
+    return (
+      <div className="nav-scroll">
+        {!mobile && home && <div className="nav-home">{item(home)}</div>}
+        {live.map((m) => {
+          const views = m.views.filter((v) => !v.home && (!v.adminOnly || props.admin) && !(mobile && inDock.includes(v.id)));
+          if (!views.length) return null;
+          return group(m.id, m.name, m.color, views.map((v) => item(v)), m.status !== "disponivel" ? <StatusPill status={m.status} /> : undefined);
+        })}
+        {group("soon", "Em breve", "blue", soon.map((m) => (
+          <button key={m.id} className="nav-item soon" aria-current={view === m.views[0].id ? "page" : undefined} onClick={() => setTab(m.views[0].id)} style={{ ["--c" as string]: colorVar(m.color) }}>
+            <Icon name={m.icon} size={19} /><span>{m.name}</span>
+          </button>
+        )), <span className="nav-count">{soon.length}</span>)}
+        <div className="nav-extra">
+          <button className="nav-item" onClick={() => { setSheet(false); setDrawer(true); }} aria-expanded={drawer}><Icon name="history" size={19} /><span>Conversas anteriores</span></button>
+          <a className="nav-item" href="/app/guia"><Icon name="book" size={19} /><span>Guia e como funciona</span></a>
+        </div>
+        {mobile && navUser}
       </div>
-    </div>
-  );
-  const navFoot = (
-    <div className="nav-foot">
-      <button className="nav-item" onClick={() => { setSheet(false); setDrawer(true); }} aria-expanded={drawer}><Icon name="history" size={19} /><span>Conversas anteriores</span></button>
-      <a className="nav-item" href="/app/guia"><Icon name="book" size={19} /><span>Guia e como funciona</span></a>
-      <div className="nav-user">
-        <span className="initial" aria-hidden="true">{initial}</span>
-        <span className="who"><b>{props.name || "Você"}</b><small>{props.email}</small></span>
-        <button className="icon-btn" onClick={() => toggleTheme()} aria-label={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"} title={theme === "dark" ? "Tema claro" : "Tema escuro"}><Icon name={theme === "dark" ? "sun" : "moon"} /></button>
-      </div>
+    );
+  };
+  const navUser = (
+    <div className="nav-user">
+      <span className="initial" aria-hidden="true">{initial}</span>
+      <button className="who" onClick={() => setTab("perfil")}><b>{props.name || "Você"}</b><small>{props.email}</small></button>
+      <button className="icon-btn" onClick={() => toggleTheme()} aria-label={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"} title={theme === "dark" ? "Tema claro" : "Tema escuro"}><Icon name={theme === "dark" ? "sun" : "moon"} /></button>
     </div>
   );
 
   return (
-    <div className={`app ${showAssist ? "with-assist" : ""}`}>
+    <div className={`app ${showAssist ? "with-assist" : ""} ${showAssist && assistWide ? "assist-wide" : ""}`}>
       <a className="skip" href="#conteudo">Pular para o conteúdo</a>
 
       <aside className="nav on-dark" aria-label="Módulos">
         <a className="nav-brand" href="/app" aria-label="GaDu, início">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/avatar/logo-96.webp" alt="" width={40} height={40} />
           <span className="brand">GaDu</span>
         </a>
         <button className="btn btn-pri" onClick={() => { newConversation(); setTab("conversa"); }}><Icon name="plus" size={18} />Nova conversa</button>
-        {moduleNav}
-        {navFoot}
+        {navGroups(false)}
+        <div className="nav-foot">{navUser}</div>
       </aside>
 
       <div className="frame">
         <header className="bar">
           <a className="bar-brand" href="/app" aria-label="GaDu, início">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/avatar/logo-96.webp" alt="" width={32} height={32} />
+            <span className="brand">GaDu</span>
           </a>
           <div className="bar-title">
             {mod && <span className="crumb">{mod.name}</span>}
@@ -490,7 +527,7 @@ export function GaduApp(props: {
           </div>
         </header>
         {!online && <div className="banner" role="status">Sem internet. O app continua aberto e as mensagens ficam no rascunho.</div>}
-        {tip && !seen.has(tip) && <TipCard key={tip} id={tip} onDone={() => markTip(tip)} />}
+        {tip && !seen.has(tip) && <TipCard key={`tip-${tip}`} id={tip} onDone={() => markTip(tip)} />}
         {pageOpen && <main className="page doc-page" id="conteudo">{props.page}</main>}
 
         {view === "conversa" && (
@@ -498,8 +535,8 @@ export function GaduApp(props: {
             <aside className="chat-stage on-dark" aria-label="GaDu">
               <div className="chat-ava"><Avatar mode={mode} label={`GaDu: ${stateLabel}`} /></div>
               <div className="meta">
-                <b>GaDu</b>
-                <span className={`mono state ${mode === "thinking" ? "hot" : ""}`} style={{ display: "inline-flex" }}><i />{stateLabel}</span>
+                <b className="who">GaDu</b>
+                <span className={`state ${mode === "thinking" ? "hot" : ""}`}><i />{stateLabel}</span>
                 {target && (
                   <div className="target-pill">
                     <span className="mono">{target.kind === "agent" ? "Agente" : "Projeto"}</span>
@@ -507,24 +544,27 @@ export function GaduApp(props: {
                     {!conversationId && <button className="link-btn" onClick={() => setTarget(null)} aria-label="Conversar sem agente ou projeto">×</button>}
                   </div>
                 )}
-                <div className="acts">
-                  <button className="btn btn-sm" onClick={() => newConversation()}><Icon name="plus" size={16} />Nova</button>
-                  <button className="btn btn-sm" onClick={() => setDrawer(true)}><Icon name="history" size={16} />Histórico</button>
-                </div>
               </div>
-              <div className="sugs" aria-label="Atalhos">
-                {QUICK.map((q) => <button key={q} className="chip" disabled={busy} onClick={() => { speaker?.unlock(); void send(q); }}>{q}</button>)}
+              <div className="acts">
+                <button className="btn btn-sm" onClick={() => newConversation()} aria-label="Nova conversa"><Icon name="plus" size={16} /><span>Nova</span></button>
+                <button className="btn btn-sm" onClick={() => setDrawer(true)} aria-label="Histórico de conversas"><Icon name="history" size={16} /><span>Histórico</span></button>
               </div>
             </aside>
             <section className="chat-col">
               <div className="chat-log" ref={logRef} aria-live="polite">
                 {!messages.some((m) => m.role !== "notice") && (
-                  <>
-                    <div className="bub b"><span className="via">GaDu</span>Oi{props.name ? `, ${props.name}` : ""}. Toque no microfone e fale, ou escreva. Tudo o que eu aprender sobre você passa pela sua aprovação antes de virar memória.</div>
-                    <div className="row quick" aria-label="Atalhos">
-                      {QUICK.map((q) => <button key={q} className="chip" disabled={busy} onClick={() => { speaker?.unlock(); void send(q); }}>{q}</button>)}
+                  <div className="chat-empty">
+                    <h2>Oi{props.name ? `, ${props.name}` : ""}. Como posso ajudar?</h2>
+                    <p>Escreva ou toque no microfone do campo abaixo. Tudo o que eu aprender sobre você passa pela sua aprovação antes de virar memória.</p>
+                    <div className="sug-grid" aria-label="Sugestões">
+                      {[...QUICK, "Anota aí: "].map((q) => (
+                        <button key={q} className="sug" disabled={busy} onClick={() => { speaker?.unlock(); if (q.endsWith(" ")) { setDraft(q); document.getElementById("msg")?.focus(); } else void send(q); }}>
+                          <Icon name={q.startsWith("Começar") ? "sun" : q.includes("agenda") ? "calendar" : q.includes("e-mail") ? "chat" : "check"} size={18} />
+                          <span>{q.endsWith(" ") ? "Anotar uma tarefa" : q}</span>
+                        </button>
+                      ))}
                     </div>
-                  </>
+                  </div>
                 )}
                 {messages.map((m) =>
                   m.role === "user" ? <div key={m.id} className="bub u">{m.content}</div>
@@ -538,12 +578,13 @@ export function GaduApp(props: {
                 )}
               </div>
               <form className="chat-form" onSubmit={(e) => { e.preventDefault(); void send(draft); }}>
+                {listening && <div className="listening-bar" role="status"><span className="dot-rec" aria-hidden="true" />Escutando… fale e eu escrevo aqui.<button type="button" className="link-btn" onClick={micClick}>Parar</button></div>}
                 <div className="chat-box">
-                  <button type="button" className={`round ${listening ? "on" : ""}`} onClick={micClick} aria-label={listening ? "Parar de ouvir" : busy ? "Parar resposta" : "Falar"}>
-                    <Icon name={busy && !listening ? "stop" : "mic"} />
+                  <button type="button" className={`round ${listening ? "on" : ""}`} onClick={micClick} aria-label={listening ? "Parar de ouvir" : busy || mode === "speaking" ? "Parar resposta" : "Falar"} aria-pressed={listening}>
+                    <Icon name={(busy || mode === "speaking") && !listening ? "stop" : "mic"} />
                   </button>
                   <label className="sr" htmlFor="msg">Mensagem</label>
-                  <textarea id="msg" rows={1} value={draft} placeholder={listening ? "Escutando…" : "Fale ou escreva"} maxLength={4000}
+                  <textarea id="msg" rows={1} value={draft} placeholder={listening ? "Escutando…" : "Escreva ou fale com o GaDu"} maxLength={4000}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && window.innerWidth > 900) { e.preventDefault(); void send(draft); } }} />
                   <button type="submit" className="round pri" aria-label="Enviar" disabled={busy || !draft.trim()}><Icon name="send" /></button>
@@ -555,23 +596,24 @@ export function GaduApp(props: {
 
         {view === "hoje" && (
           <TodayPage review={review} onReviewDone={() => setReview(false)} onDock={dockTalk} onWrite={() => openAssist(true)} name={props.name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk}
-            onOpenMemory={() => setTab("memoria")} onOpenTasks={() => { setProjView("tarefas"); setTab("projetos"); }} onOpen={setTab}
+            onOpenMemory={() => setTab("memoria")} onOpenTasks={() => setTab("tarefas")} onOpen={setTab}
             onAsk={(q) => { speaker?.unlock(); openAssist(true); void send(q); }} />
         )}
-        {view === "projetos" && <ProjectsPage key={projView} initialView={projView} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
+        {(view === "tarefas" || view === "projetos") && <ProjectsPage key={`pp-${view}`} initialView={view} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
+        {view === "agenda" && <main className="page" id="conteudo"><div className="wrap"><AgendaView onBack={() => setTab("hoje")} /></div></main>}
         {view === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
         {view && isOverview(view) && <ModulePage id={moduleOf(view).id} onOpen={setTab} />}
         {view === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
         {view === "admin" && props.admin && <AdminPage />}
-        {view === "ajustes" && (
+        {(view === "ajustes" || view === "perfil" || view === "integracoes") && (
           <SettingsPage name={props.name} email={props.email} version={props.version} prefs={prefs} setPrefs={setPrefs} voiceOk={voiceOk} speaker={speaker}
-            theme={theme} onTheme={toggleTheme} admin={props.admin} onOpen={setTab}
+            section={view} theme={theme} onTheme={toggleTheme} admin={props.admin} onOpen={setTab}
             onNew={() => { newConversation(); setTab("conversa"); }} initialBlocked={props.initialBlocked} morningLink={props.morningLink} onResetTips={resetTips} />
         )}
       </div>
 
       <Assistant
-        open={showAssist} full={assistFull} context={contextOf(tab)} messages={messages} draft={draft} mode={mode} listening={listening} busy={busy} voiceOk={voiceOk}
+        open={showAssist} full={assistFull} wide={assistWide} onToggleWide={() => setAssistWide((v) => !v)} context={contextOf(tab)} messages={messages} draft={draft} mode={mode} listening={listening} busy={busy} voiceOk={voiceOk}
         onDraft={setDraft} onSend={(t) => { speaker?.unlock(); void send(t); }} onMic={micClick} onStop={stop}
         onClose={() => openAssist(false)} onToggleFull={() => setAssistFull((v) => !v)}
         onOpenConversation={() => { setAssistFull(false); setTab("conversa"); }} onNew={() => newConversation()}
@@ -579,34 +621,34 @@ export function GaduApp(props: {
       {!showAssist && view !== "conversa" && (
         <button className={`orb-fab ${active ? "on" : ""}`} onClick={() => openAssist(true)} aria-label="Abrir o assistente GaDu">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/avatar/logo-96.webp" alt="" />
+          <img src="/avatar/gadu-480.webp" alt="" />
         </button>
       )}
 
       <nav className="dockbar" aria-label="Navegação">
-        <button className="dock-item" aria-current={view === "hoje" ? "page" : undefined} onClick={() => setTab("hoje")}><Icon name="sun" size={20} />Hoje</button>
-        <button className="dock-item" aria-current={view === "conversa" ? "page" : undefined} onClick={() => setTab("conversa")}><Icon name="chat" size={20} />Conversa</button>
-        <button className={`dock-orb ${active ? "on" : ""}`} onClick={() => (view === "conversa" ? micClick() : active ? stop() : openAssist(!assist))} aria-label={view === "conversa" ? "Falar" : active ? "Parar" : assist ? "Fechar o assistente" : "Abrir o assistente GaDu"} aria-pressed={showAssist}>
-          {active ? <Icon name={listening ? "mic" : "stop"} size={24} /> : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src="/avatar/logo-96.webp" alt="" />
-          )}
+        <button className="dock-item" aria-current={view === "hoje" ? "page" : undefined} onClick={() => setTab("hoje")}><Icon name="sun" size={20} /><span>Hoje</span></button>
+        <button className="dock-item" aria-current={view === "conversa" ? "page" : undefined} onClick={() => setTab("conversa")}><Icon name="chat" size={20} /><span>Conversas</span></button>
+        {/* Botão central: sempre o GaDu. Só muda o anel quando há um estado real (escutando, pensando, respondendo). */}
+        <button className={`dock-orb s-${listening ? "listening" : mode}`} onClick={orbClick} aria-pressed={view !== "conversa" ? showAssist : undefined}
+          aria-label={view === "conversa" ? "Escrever para o GaDu" : showAssist ? "Fechar o assistente" : "Abrir o assistente GaDu"}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/avatar/gadu-480.webp" alt="" />
+          {active && <span className="orb-badge" aria-hidden="true"><Icon name={listening ? "mic" : mode === "speaking" ? "chat" : "spark"} size={12} /></span>}
         </button>
-        <button className="dock-item" aria-current={view === "projetos" ? "page" : undefined} onClick={() => { setProjView("tarefas"); setTab("projetos"); }}><Icon name="check" size={20} />Tarefas</button>
-        <button className="dock-item" aria-current={sheet || (view && !["hoje", "conversa", "projetos"].includes(view)) ? "page" : undefined} onClick={() => setSheet(true)} aria-expanded={sheet}>
-          <Icon name="grid" size={20} />Módulos{pending > 0 && <b className="badge">{pending}</b>}
+        <button className="dock-item" aria-current={view === "tarefas" ? "page" : undefined} onClick={() => setTab("tarefas")}><Icon name="check" size={20} /><span>Tarefas</span></button>
+        <button className="dock-item" aria-current={sheet || (view && !inDock.includes(view)) ? "page" : undefined} onClick={() => setSheet(true)} aria-expanded={sheet}>
+          <Icon name="grid" size={20} /><span>Módulos</span>{pending > 0 && <b className="badge">{pending}</b>}
         </button>
       </nav>
 
       {sheet && (
         <div className="sheet-wrap" onClick={() => setSheet(false)}>
-          <aside className="sheet on-dark" role="dialog" aria-modal="true" aria-label="Módulos" onClick={(e) => e.stopPropagation()}>
-            <div className="drawer-head">
+          <aside className="sheet" role="dialog" aria-modal="true" aria-label="Módulos" onClick={(e) => e.stopPropagation()}>
+            <div className="sheet-head">
               <span className="brand">GaDu</span>
               <button className="icon-btn" onClick={() => setSheet(false)} aria-label="Fechar"><Icon name="x" /></button>
             </div>
-            {moduleNav}
-            {navFoot}
+            {navGroups(true)}
           </aside>
         </div>
       )}

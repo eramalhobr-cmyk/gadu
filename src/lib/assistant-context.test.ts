@@ -14,7 +14,9 @@ test("módulos: seis módulos, telas únicas e status coerente", () => {
 });
 
 test("endereços antigos continuam abrindo a tela certa", () => {
-  assert.equal(parseView("perfil", false), "memoria");
+  assert.equal(parseView("perfil", false), "perfil");
+  assert.equal(parseView("memorias", false), "memoria");
+  assert.equal(parseView("agenda", false), "agenda");
   assert.equal(parseView("ajustes", false), "ajustes");
   assert.equal(parseView("admin", false), "ajustes");
   assert.equal(parseView("admin", true), "admin");

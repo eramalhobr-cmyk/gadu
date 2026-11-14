@@ -1,6 +1,6 @@
 # GaDu · Situação do projeto
 
-Atualizado em 13/11/2026, depois da UX/UI v2 (Claude Code). Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
+Atualizado em 14/11/2026, depois da Sprint UX/UI v2.1 (Claude Code). Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
 
 ## Ambiente de produção (verificado em 13/11/2026)
 | Item | Estado | Evidência |
@@ -31,6 +31,15 @@ Atualizado em 13/11/2026, depois da UX/UI v2 (Claude Code). Fonte de verdade: o 
   - temas claro e escuro;
   - painel Hoje, Conversa, Perfil e ajustes e home pública redesenhados;
   - avatar animado, marca e arquivos de `public/avatar` preservados.
+- PR #14, Sprint UX/UI v2.1:
+  - paleta azul-marinho e grafite, com contraste AA medido;
+  - menu com grupos recolhíveis;
+  - Hoje por horário;
+  - Conversa compacta com voz mais segura (limite de 20 s, transcrição revisável);
+  - assistente alargável e compatível com o teclado;
+  - todas as telas restantes redesenhadas;
+  - home com a visão completa;
+  - arquitetura do Core Contextual documentada.
 - Modelo de trabalho Fast Track (PR #4) e documentação central (PRs #7 e #8).
 
 ## Em andamento
@@ -40,11 +49,11 @@ Atualizado em 13/11/2026, depois da UX/UI v2 (Claude Code). Fonte de verdade: o 
 | Especificação de Finanças pessoais | Pronta para revisão, não integrada | PR #5 |
 
 ## Pendente
-- Levar as telas Projetos, Agentes, Memória, Admin, Guia e Agenda para os componentes da v2 (hoje usam os tokens e os temas, mas mantêm o desenho anterior).
-- Auditoria de contraste do tema claro em todas as telas; migrar estilos inline restantes.
-- Validar a voz e o assistente no celular de verdade (iPhone e Android).
+- Logo novo (três movimentos): aguardando o arquivo. Hoje a marca é o texto GaDu.
+- Validar a voz e o assistente no celular de verdade (iPhone e Android), incluindo o painel com teclado aberto.
+- Ver Administração e as telas com dados reais (o usuário de teste não é admin e está vazio).
 - Etapa 2 da cota (remover `consume_quota(integer)`) e apagar os backups lógicos: alto risco, pede aprovação.
-- Decidir o destino do usuário de teste (manter para capturas ou remover).
+- Decidir o destino do usuário de teste e da liberação do host do Supabase no ambiente "Gadu".
 - Auditoria completa de RLS e isolamento; administração de créditos por pessoa.
 - Monitoramento e alerta de erro; testes de ponta a ponta automatizados.
 - Módulos planejados, sem código: Financeiro, 3D Studio, Agent Office (além dos agentes), Agent Office Studio.
@@ -58,15 +67,15 @@ Atualizado em 13/11/2026, depois da UX/UI v2 (Claude Code). Fonte de verdade: o 
 6. A estabilidade da voz foi testada com uma síntese de voz simulada; falta confirmar nos aparelhos.
 
 ## Próximas prioridades (em ordem)
-1. **Feedback do Eduardo sobre a v2** no computador e no celular; corrigir o que aparecer no uso.
-2. **Completar a v2** nas telas que ainda têm o desenho anterior (Projetos, Agentes, Memória, Admin, Agenda).
-3. **Voz no aparelho**: validar e ajustar.
-4. **Financeiro**: revisar a especificação (PR #5) e começar a base (alto risco: banco).
-5. **Etapa 2 da cota e limpeza dos backups** (alto risco: banco).
+1. Auditoria de RLS e isolamento multiusuário e multiempresa.
+2. Core Contextual ([docs/CORE_CONTEXTUAL.md](docs/CORE_CONTEXTUAL.md)), depois do item 1.
+3. Financeiro: revisar o PR #5 e começar a base (alto risco: banco).
+4. Agent Office; depois Agent Office Studio e 3D Studio.
+5. Observabilidade e créditos por pessoa; testes de ponta a ponta e voz nos aparelhos.
 
 ## Ponto de retomada (para qualquer agente)
 1. Leia `CLAUDE.md`, este arquivo, [docs/FAST_TRACK.md](docs/FAST_TRACK.md) e [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md). O handoff técnico está em `docs/CLAUDE_HANDOFF_2026-11-12.md`.
 2. Confira o estado real: `git log origin/main -5`, PRs abertos no GitHub, o último deploy de produção na Vercel e `list_migrations` no Supabase.
 3. Classifique o que vai fazer: baixo risco (UI, docs) segue o processo simplificado; alto risco (banco, auth, custo, permissões) exige aprovação explícita do Eduardo a cada passo.
-4. Antes de subir: `npm run typecheck && npm test && npm run build`, mais `npm run test:db` quando houver SQL. Para mudança visual, siga o roteiro de verificação do Design System (390, 768, 1024 e 1440 px).
+4. Antes de subir: `npm run typecheck && npm test && npm run build`, mais `npm run test:db` quando houver SQL. Para mudança visual, siga o roteiro de verificação do Design System (360, 390, 412, 768, 1024, 1440 e 1920 px).
 5. Ao terminar: atualize este arquivo, o [CHANGELOG.md](CHANGELOG.md), o [ROADMAP.md](ROADMAP.md) e a [matriz](docs/FEATURE_MATRIX.md), e gere o "GaDu — Resumo para ChatGPT".

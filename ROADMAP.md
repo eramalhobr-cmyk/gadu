@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 13/11/2026 (UX/UI v2). Produção: https://gadu-agent.vercel.app (commit `883ea23`).
+Atualizado a cada entrega. Última atualização: 14/11/2026 (Sprint UX/UI v2.1). Produção: https://gadu-agent.vercel.app (commit `883ea23`).
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 Documentos relacionados:
@@ -30,7 +30,7 @@ Prioridade: P0 agora · P1 próximo ciclo · P2 depois · P3 longo prazo.
 | Agent Office Studio | Agentes que criam sites, aplicações web e PWAs (sem app nativo nesta fase) | planejado | P3 | Agent Office; execução isolada | especificar depois do Office |
 | 3D Studio e impressão 3D | Buscar, organizar e gerar modelos imprimíveis; exportar para fatiador | planejado | P2 | — | especificar depois do GaDu Personal, antes do Agent Office |
 | Integrações, segurança e permissões | Isolamento por pessoa, custos sob controle, integrações autorizadas | implementado (RLS, fail closed, cota atômica, orçamento com reserva, CI); auditoria completa pendente | P0 | — | etapa 2 da cota; auditoria de RLS; créditos por pessoa; alerta de erro |
-| Home pública, dashboard e desktop/mobile | Primeira impressão e uso diário em qualquer tela | implementado: home, Hoje em painel, PWA, avatar oficial, UX/UI v2 com módulos, temas claro e escuro, novo painel, conversa, ajustes e home (PR #12) | P1 | — | levar Projetos, Agentes, Memória, Admin e Agenda ao desenho da v2 |
+| Home pública, dashboard e desktop/mobile | Primeira impressão e uso diário em qualquer tela | implementado: home, Hoje em painel, PWA, avatar oficial, UX/UI v2 com módulos, temas claro e escuro, novo painel, conversa, ajustes e home (PR #12) | P1 | — | v2.1 (PR #14) concluída; logo novo pendente; testes de ponta a ponta |
 
 Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis, voz, erros) → Finanças → 3D Studio → Agent Office → Agent Office Studio.
 
@@ -243,9 +243,31 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [x] Contrato de contexto do assistente (módulo e tela), validado no servidor, sem ampliar o acesso
 - [x] Temas claro e escuro
 - [x] Painel Hoje, Conversa, Perfil e ajustes e home pública redesenhados
-- [ ] Projetos, Agentes, Memória, Admin, Guia e Agenda no desenho da v2
-- [ ] Auditoria de contraste do tema claro
+- [x] Projetos, Agentes, Memória, Admin, Guia e Agenda no desenho da v2 (v2.1, PR #14)
+- [x] Auditoria de contraste do tema claro (v2.1: todos os pares AA)
 - [ ] Relacionar informações entre módulos (depende de permissões, isolamento e auditoria de segurança)
+
+## Sprint UX/UI v2.1 (14/11, PR #14)
+- [x] Paleta azul-marinho e grafite, menos neon, tipografia contemporânea
+- [ ] Logo novo (três movimentos): aguardando o arquivo
+- [x] Menu com grupos recolhíveis, sem repetir a barra de baixo; barra de baixo menor
+- [x] Hoje: saudação por horário, atenção, recomendações reais
+- [x] Conversa: palco compacto, microfone no campo, escuta com limite, transcrição revisável
+- [x] Assistente: painel alargável no computador; painel de baixo com teclado no celular
+- [x] Telas restantes redesenhadas com componentes compartilhados
+- [x] Home pública com a visão completa e status reais
+- [x] Arquitetura futura do Core Contextual documentada
+- [ ] Validação de voz em iPhone e Android (humana)
+
+## Próximo ciclo (prioridades, em ordem)
+1. Auditoria de RLS e isolamento multiusuário e multiempresa.
+2. Core Contextual (depende do item 1).
+3. Financeiro: revisar a especificação do PR #5 e começar a base.
+4. Agent Office: organizações, clientes, membros e papéis.
+5. Agent Office Studio.
+6. 3D Studio.
+7. Observabilidade, alertas de erro e créditos por pessoa.
+8. Testes de ponta a ponta automatizados e validação de voz nos aparelhos.
 
 ## Módulos futuros (planejados, sem código)
 - [ ] Financeiro: ver a seção "Finanças pessoais" no PR #5 (`docs/FEATURE-FINANCAS.md`)

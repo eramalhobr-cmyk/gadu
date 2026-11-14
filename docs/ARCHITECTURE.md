@@ -58,11 +58,12 @@ Migrações versionadas em `supabase/migrations/AAAAMMDDHHMMSS_nome.sql`, nunca 
 2. O logo original aprovado e o avatar holográfico animado são preservados.
 3. Experiências desktop e mobile modernas e responsivas: mobile first, com desktop próprio, não apenas ampliado.
 4. O assistente universal permite voz e texto em qualquer módulo.
-5. A inteligência conecta informações de diferentes funcionalidades, respeitando contexto e permissões.
+5. A inteligência conecta informações de diferentes funcionalidades, respeitando contexto e permissões. Hoje: só o rótulo de módulo e tela (`src/lib/assistant-context.ts`), escopo sempre pessoal. Etapa futura (Core Contextual, planejada): [CORE_CONTEXTUAL.md](CORE_CONTEXTUAL.md), com tipos em `src/lib/core-context.ts`.
 6. O Agent Office suporta múltiplos usuários, organizações e clientes, com isolamento rigoroso.
 7. O Agent Office Studio prioriza aplicações web, sites e PWAs, sem desenvolvimento nativo Android/iOS nesta fase.
 8. O roadmap distingue claramente funcionalidades atuais e futuras.
 9. Modelo de trabalho: GaDu Fast Track (`docs/FAST_TRACK.md`).
+10. Módulos e status vêm de uma fonte única (`src/lib/modules.ts`): Disponível, Beta (parcial), Em desenvolvimento, Planejado. Nenhuma tela mostra dado inventado para módulo que não existe.
 
 ## Resiliência e contingência
 | Falha | O que acontece |

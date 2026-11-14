@@ -6,6 +6,44 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`). Só documentação, não integrada.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-14 · PR #14 · Sprint UX/UI v2.1
+- **Identidade** (`src/app/v2.css`):
+  - paleta azul-marinho e grafite no lugar do preto puro; ciano, azul e laranja como cores de identidade; menos neon;
+  - Michroma só na marca e no título da home; rótulos sem caixa alta espaçada;
+  - marca em texto nos cabeçalhos (`.brand`); avatar só no assistente;
+  - logo novo de três movimentos: **asset pendente**, não está no repositório.
+- **Navegação** (`GaduApp.tsx`):
+  - menu com grupos recolhíveis (estado salvo no aparelho), rolagem própria, "Em breve" para módulos planejados e Administração só para admin;
+  - no celular, a folha não repete o que está na barra;
+  - barra de baixo de 58 px, com orbe de 50 px que muda só em estado real.
+- **Módulos** (`src/lib/modules.ts`): status Disponível, Beta, Em desenvolvimento e Planejado; telas novas Tarefas, Agenda, Integrações e Perfil.
+- **Hoje** (`TodayPage.tsx`): saudação compacta por horário (de noite: Revisar o dia e Planejar amanhã), indicadores, "Precisa de atenção", recomendações a partir dos dados reais.
+- **Conversa:**
+  - palco compacto no celular, com Nova e Histórico em botões de ícone;
+  - estado vazio com sugestões;
+  - microfone dentro do campo;
+  - a escuta para sozinha em 20 s;
+  - "Enviar sozinho o que eu falar" pode ser desligado para revisar a transcrição.
+- **Assistente Universal** (`Assistant.tsx`): painel que pode ser alargado no computador (520 a 600 px); no celular, acompanha o teclado (`visualViewport`).
+- **Telas** (`v2-pages.css`, `kit.tsx`):
+  - Tarefas e Projetos separados;
+  - Agenda (estado vazio com Conectar o Google), Agentes, Memórias, Administração, Guia e Como funciona, páginas de módulo, cartão de evento e gaveta de conversas;
+  - componentes `PageHeader`, `Panel` e `EmptyState`.
+- **Home pública** (`src/app/page.tsx`): visão completa e bloco "Inteligência contextual" marcado como Beta.
+- **Core Contextual:** arquitetura futura em `docs/CORE_CONTEXTUAL.md`; tipos em `src/lib/core-context.ts`, sem uso em produção.
+- Corrigido:
+  - dica duplicada em Projetos (chave do React repetida);
+  - rótulo de duração "1h30h" na Agenda.
+- Testado:
+  - typecheck, 45 testes unitários e 16 de integração, build;
+  - auditoria autenticada local em 360, 412, 768, 1024 e 1920 px, em 7 telas: sem rolagem horizontal; alvos de 44 px (exceto links dentro do texto e caixinhas dentro de linhas clicáveis de 48 px);
+  - contraste AA medido nos dois temas;
+  - capturas em 390 e 1440 px, nos temas escuro e claro.
+- Não verificado:
+  - voz em iPhone e Android (validação humana);
+  - Administração e telas com dados reais (o usuário de teste não é admin e não tem dados).
+- **Publicado**: PUBLICACAO_PENDENTE
+
 ## 2026-11-13 · `883ea23` · UX/UI v2 (PR #12)
 - **Módulos** (`src/lib/modules.ts`, `ModulePage.tsx`): seis módulos com status real; módulo planejado abre uma página que diz que ele ainda não existe.
 - **Navegação** (`GaduApp.tsx`, `src/app/v2.css`): menu lateral por módulos no computador; no celular, barra de baixo com o assistente no centro e folha de módulos.

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FaceMode } from "./robot-engine";
 import { EventCard } from "./EventCard";
 import { Icon } from "./ui";
@@ -21,6 +21,7 @@ const SUGGEST: Partial<Record<AssistantContext["view"], string[]>> = {
 export function Assistant(props: {
   open: boolean;
   full: boolean;
+  wide: boolean;
   context: AssistantContext;
   messages: Msg[];
   draft: string;
@@ -34,12 +35,27 @@ export function Assistant(props: {
   onStop: () => void;
   onClose: () => void;
   onToggleFull: () => void;
+  onToggleWide: () => void;
   onOpenConversation: () => void;
   onNew: () => void;
 }) {
   const log = useRef<HTMLDivElement>(null);
   const shown = props.messages.slice(-14);
   useEffect(() => { log.current?.scrollTo({ top: log.current.scrollHeight }); }, [props.messages, props.open, props.full]);
+  // Celular com teclado aberto: o painel sobe junto e cabe na área visível (visualViewport).
+  const [kb, setKb] = useState<{ inset: number; height: number } | null>(null);
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!vv || !props.open) return;
+    const on = () => {
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKb(inset > 80 && window.innerWidth < 1024 ? { inset, height: vv.height } : null);
+    };
+    on();
+    vv.addEventListener("resize", on);
+    vv.addEventListener("scroll", on);
+    return () => { vv.removeEventListener("resize", on); vv.removeEventListener("scroll", on); };
+  }, [props.open]);
 
   const mod = moduleOf(props.context.view);
   const state = props.listening ? "Escutando" : props.mode === "thinking" ? "Pensando" : props.mode === "speaking" ? "Respondendo" : "Pronto";
@@ -47,17 +63,19 @@ export function Assistant(props: {
   const sugs = SUGGEST[props.context.view] ?? [];
 
   return (
-    <aside className={`assist ${props.open ? "open" : ""} ${props.full ? "full" : ""}`} aria-label="Assistente GaDu" aria-hidden={!props.open}>
+    <aside className={`assist ${props.open ? "open" : ""} ${props.full ? "full" : ""} ${kb ? "kb" : ""}`} aria-label="Assistente GaDu" aria-hidden={!props.open}
+      style={kb ? { bottom: kb.inset + 8, height: Math.min(kb.height - 16, 520) } : undefined}>
       <header className="assist-head">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/avatar/logo-96.webp" alt="" width={36} height={36} />
+        <img src="/avatar/gadu-480.webp" alt="" width={36} height={36} style={{ borderRadius: "50%", objectFit: "cover" }} />
         <div className="t">
           <b>GaDu <span className={`mono assist-state ${props.mode === "thinking" ? "hot" : ""}`}>· {state}</span></b>
-          <small title="O assistente sabe em que tela você está">Em {contextLabel(props.context)}</small>
+          <small title="Pista de contexto: o GaDu sabe em que tela você está, mas pode falar de qualquer assunto">Em {contextLabel(props.context)}</small>
         </div>
         <button className="icon-btn only-mobile" onClick={props.onToggleFull} aria-label={props.full ? "Reduzir painel" : "Expandir painel"} aria-expanded={props.full}>
           <span style={{ display: "grid", transform: props.full ? "rotate(180deg)" : undefined }}><Icon name="expand" /></span>
         </button>
+        <button className="icon-btn only-desktop" onClick={props.onToggleWide} aria-label={props.wide ? "Estreitar painel" : "Alargar painel"} aria-pressed={props.wide} title={props.wide ? "Estreitar painel" : "Alargar painel"}><Icon name="panel" /></button>
         <button className="icon-btn" onClick={props.onNew} aria-label="Nova conversa" title="Nova conversa"><Icon name="plus" /></button>
         <button className="icon-btn" onClick={props.onOpenConversation} aria-label="Abrir a conversa em tela cheia" title="Abrir a conversa em tela cheia"><Icon name="chat" /></button>
         <button className="icon-btn" onClick={props.onClose} aria-label="Fechar o assistente"><Icon name="x" /></button>
