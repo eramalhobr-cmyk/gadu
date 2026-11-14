@@ -64,6 +64,8 @@ Migrações versionadas em `supabase/migrations/AAAAMMDDHHMMSS_nome.sql`, nunca 
 8. O roadmap distingue claramente funcionalidades atuais e futuras.
 9. Modelo de trabalho: GaDu Fast Track (`docs/FAST_TRACK.md`).
 10. Módulos e status vêm de uma fonte única (`src/lib/modules.ts`): Disponível, Beta (parcial), Em desenvolvimento, Planejado. Nenhuma tela mostra dado inventado para módulo que não existe.
+11. Visão oficial ampliada (14/11/2026): **Metas & Conquistas** e **Casa Inteligente (GaDu Casa)** fazem parte do produto, hoje como planejados. Áreas: Produtividade pessoal, Vida pessoal, Agentes e criação, Plataforma (`AREAS` em `modules.ts`). Especificações: `docs/METAS_CONQUISTAS.md`, `docs/CASA_INTELIGENTE.md`, `docs/INTEGRACOES_SAUDE.md`.
+12. Navegação: no celular, barra de baixo para o frequente, tela Módulos para explorar e menu da conta pela esquerda; no computador, menu lateral por área e recolhível. Assistente em três estados com uma única conversa.
 
 ## Resiliência e contingência
 | Falha | O que acontece |

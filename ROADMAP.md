@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 14/11/2026 (Sprint UX/UI v2.1). Produção: https://gadu-agent.vercel.app (commit `9733685`).
+Atualizado a cada entrega. Última atualização: 14/11/2026 (Sprint UX/UI v2.2). Produção: https://gadu-agent.vercel.app (commit `9733685`).
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 Documentos relacionados:
@@ -259,6 +259,19 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [x] Arquitetura futura do Core Contextual documentada
 - [ ] Validação de voz em iPhone e Android (humana)
 
+## Sprint UX/UI v2.2 (14/11, PR #16)
+- [x] Busca e avaliação do protótipo "GADU Visual Refresh" no Lovable (docs/LOVABLE_VISUAL_REFRESH.md)
+- [x] Navegação híbrida no celular: barra de baixo, tela Módulos e menu da conta pela esquerda, com Voltar do Android
+- [x] Menu lateral do computador por área e recolhível
+- [x] Assistente em três estados (compacto, rápido, completo) com a mesma conversa; painel com largura ajustável
+- [x] Voz: interromper sem reabrir o microfone; mãos-livres protegido; envio automático desligado por padrão
+- [x] Pendências da v2.1: alvos de 44 px, cor do tema e manifest, abas e interruptores de Configurações, Agenda, textos, Hoje compacto
+- [x] Metas & Conquistas e Casa Inteligente no catálogo como planejados, com especificação
+- [x] Planejamento da integração com Samsung Health e Health Connect (docs/INTEGRACOES_SAUDE.md)
+- [x] Testes de interface com Playwright (16 cenários)
+- [ ] Validar voz, teclado e Voltar em iPhone e Android (humano)
+- [ ] Logo novo (aguardando o arquivo)
+
 ## Próximo ciclo (prioridades, em ordem)
 1. Auditoria de RLS e isolamento multiusuário e multiempresa.
 2. Core Contextual (depende do item 1).
@@ -271,6 +284,9 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 
 ## Módulos futuros (planejados, sem código)
 - [ ] Financeiro: ver a seção "Finanças pessoais" no PR #5 (`docs/FEATURE-FINANCAS.md`)
+- [ ] Metas & Conquistas: ver docs/METAS_CONQUISTAS.md (banco com RLS, metas ligadas a tarefas, agenda e financeiro pelo Core Contextual)
+- [ ] Casa Inteligente (GaDu Casa): ver docs/CASA_INTELIGENTE.md (Home Assistant como camada recomendada; Alexa via Home Assistant; Tuya direto como opção; confirmação e regras para dispositivos críticos)
+- [ ] Saúde: Samsung Health e Health Connect por conector Android desacoplado, depois de importação manual (docs/INTEGRACOES_SAUDE.md). App nativo exige aprovação específica
 - [ ] 3D Studio: busca de modelos gratuitos respeitando licenças, biblioteca, geração de modelos imprimíveis, exportação para fatiador
 - [ ] Agent Office Studio: agentes que criam sites, aplicações web e PWAs, com execução isolada e aprovação; sem app nativo Android/iOS nesta fase
 - [ ] Voz e texto em todos os módulos novos (decisão oficial)

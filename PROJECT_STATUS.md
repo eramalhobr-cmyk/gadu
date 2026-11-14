@@ -1,6 +1,6 @@
 # GaDu · Situação do projeto
 
-Atualizado em 14/11/2026, depois da Sprint UX/UI v2.1 (Claude Code). Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
+Atualizado em 14/11/2026, depois da Sprint UX/UI v2.2 (Claude Code). Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
 
 ## Ambiente de produção (verificado em 14/11/2026)
 | Item | Estado | Evidência |
@@ -40,6 +40,16 @@ Atualizado em 14/11/2026, depois da Sprint UX/UI v2.1 (Claude Code). Fonte de ve
   - todas as telas restantes redesenhadas;
   - home com a visão completa;
   - arquitetura do Core Contextual documentada.
+- PR #16, Sprint UX/UI v2.2:
+  - navegação híbrida no celular (barra de baixo, tela Módulos, menu da conta com o Voltar do Android);
+  - menu do computador por área e recolhível;
+  - assistente em três estados com largura ajustável;
+  - voz mais segura (envio automático desligado por padrão, interrupção sem reabrir o microfone);
+  - pendências da v2.1 fechadas;
+  - Metas & Conquistas e Casa Inteligente como planejados, com especificação;
+  - planejamento de saúde;
+  - protótipo do Lovable avaliado;
+  - 16 testes de interface com Playwright.
 - Modelo de trabalho Fast Track (PR #4) e documentação central (PRs #7 e #8).
 
 ## Em andamento
@@ -50,7 +60,8 @@ Atualizado em 14/11/2026, depois da Sprint UX/UI v2.1 (Claude Code). Fonte de ve
 
 ## Pendente
 - Logo novo (três movimentos): aguardando o arquivo. Hoje a marca é o texto GaDu.
-- Validar a voz e o assistente no celular de verdade (iPhone e Android), incluindo o painel com teclado aberto.
+- Validar a voz, o assistente com o teclado aberto e o Voltar do Android em aparelhos de verdade (iPhone e Android).
+- Levar os testes de interface (`npm run test:e2e`) para o CI, com um usuário de teste dedicado (pede segredo no GitHub: aprovação).
 - Ver Administração e as telas com dados reais (o usuário de teste não é admin e está vazio).
 - Etapa 2 da cota (remover `consume_quota(integer)`) e apagar os backups lógicos: alto risco, pede aprovação.
 - Decidir o destino do usuário de teste e da liberação do host do Supabase no ambiente "Gadu".
