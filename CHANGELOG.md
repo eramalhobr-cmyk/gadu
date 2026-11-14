@@ -6,7 +6,7 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`). Só documentação, não integrada.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
-## 2026-11-14 · PR #14 · Sprint UX/UI v2.1
+## 2026-11-14 · `9733685` · Sprint UX/UI v2.1 (PR #14)
 - **Identidade** (`src/app/v2.css`):
   - paleta azul-marinho e grafite no lugar do preto puro; ciano, azul e laranja como cores de identidade; menos neon;
   - Michroma só na marca e no título da home; rótulos sem caixa alta espaçada;
@@ -42,7 +42,7 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - Não verificado:
   - voz em iPhone e Android (validação humana);
   - Administração e telas com dados reais (o usuário de teste não é admin e não tem dados).
-- **Publicado**: PUBLICACAO_PENDENTE
+- **Publicado**: deploy `dpl_BSXyR5vex6zNB5F1Z9f9M6SCZAxJ` `READY`. Capturas em produção com sessão autenticada, sem rolagem horizontal: Hoje (escuro e claro), Conversa, Projetos, Agenda, menu do celular, assistente aberto (computador e celular) e home, em 1440 e 390 px. Rollback: promover `dpl_HT87wCvBrfSDQjkJ7ANsfkuFAAPF` (PR #13).
 
 ## 2026-11-13 · `883ea23` · UX/UI v2 (PR #12)
 - **Módulos** (`src/lib/modules.ts`, `ModulePage.tsx`): seis módulos com status real; módulo planejado abre uma página que diz que ele ainda não existe.
