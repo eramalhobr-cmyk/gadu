@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { canSpeak, listVoices, voiceLabel, type Speaker } from "@/lib/speech";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
-export type Prefs = { voice: boolean; handsFree: boolean; voiceURI: string; rate: number };
+export type Prefs = { voice: boolean; handsFree: boolean; voiceURI: string; rate: number ; autoSend: boolean };
 type Usage = {
   budgets: { anthropic: number; gateway: number };
   spent: { anthropic: number; gateway: number; gemini: number };
@@ -303,6 +303,7 @@ function VoiceCard(props: { prefs: Prefs; setPrefs: (p: Prefs) => void; voiceOk:
     <section className="card">
       <h2>Voz</h2>
       <label className="switch"><span>GaDu responde falando</span><input type="checkbox" checked={p.voice} onChange={(e) => set({ voice: e.target.checked })} /></label>
+      <label className="switch"><span>Enviar sozinho o que eu falar (desligado: o texto fica no campo para você corrigir)</span><input type="checkbox" checked={p.autoSend} onChange={(e) => set({ autoSend: e.target.checked })} /></label>
       <label className="switch"><span>Modo conversa (volta a ouvir depois de responder)</span><input type="checkbox" checked={p.handsFree} disabled={!props.voiceOk} onChange={(e) => set({ handsFree: e.target.checked })} /></label>
       {!props.voiceOk && <p className="muted" style={{ margin: 0 }}>Este navegador não reconhece voz. No celular, use o Chrome (Android) ou o Safari (iPhone), ou o ditado do teclado.</p>}
       {speakOk && (

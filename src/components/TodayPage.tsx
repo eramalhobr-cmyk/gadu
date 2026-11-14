@@ -1,11 +1,11 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { AgendaView } from "./AgendaView";
 import { Avatar } from "./RobotFace";
 import { TasksPanel } from "./TasksPanel";
-import { Icon, Ring, todayKey } from "./ui";
+import { Icon, todayKey } from "./ui";
 import { ModuleCards } from "./ModulePage";
+import { EmptyState, Panel } from "./kit";
 import type { ViewId } from "@/lib/modules";
 
 const HELP = [
@@ -65,7 +65,8 @@ export function TodayPage(props: {
   const [when, setWhen] = useState("");
   const [msg, setMsg] = useState("");
   const [now, setNow] = useState(() => new Date());
-  const [agenda, setAgenda] = useState(false);
+  const [review, setReview] = useState(false);
+  const [projects, setProjects] = useState<number | null>(null);
   const [tasked, setTasked] = useState<Set<string>>(new Set());
   const [tasksKey, setTasksKey] = useState(0);
   const db = supabaseBrowser();
@@ -85,6 +86,9 @@ export function TodayPage(props: {
   }, [db]);
 
   useEffect(() => { void loadToday(); void loadRems(); }, [loadToday, loadRems]);
+  useEffect(() => {
+    void db.from("projects").select("id", { count: "exact", head: true }).then(({ count }: { count: number | null }) => setProjects(count ?? 0));
+  }, [db]);
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 60_000); return () => clearInterval(id); }, []);
 
   async function setStatus(id: number, status: "done" | "cancelled") {
@@ -110,158 +114,171 @@ export function TodayPage(props: {
     if (!error) { setTasked((s) => new Set(s).add(key)); setTasksKey((k) => k + 1); }
   }
 
-  if (agenda) return <AgendaView onBack={() => { setAgenda(false); void loadToday(); }} />;
-
   const date = now.toLocaleDateString("pt-BR", { timeZone: TZ, weekday: "long", day: "numeric", month: "long" });
   const events = today?.events ?? [];
   const mails = [...(today?.emails ?? [])].sort((a, b) => Number(b.important) - Number(a.important));
-  const nextIdx = events.findIndex((e) => !e.allDay && new Date(e.end) > now);
+  const upcoming = events.filter((e) => e.allDay || new Date(e.end) > now);
   const tips = today?.insights ?? [];
+  const moment = momentOf(now);
+  const nextEv = upcoming.find((e) => !e.allDay);
+  const summary = [
+    today?.connected ? (upcoming.length ? `${upcoming.length} ${upcoming.length === 1 ? "compromisso" : "compromissos"} pela frente` : "agenda livre") : null,
+    `${progress.open} ${progress.open === 1 ? "tarefa" : "tarefas"} para hoje`,
+  ].filter(Boolean).join(" · ");
+  const showReview = props.review || review;
 
   return (
     <main className="page" id="conteudo">
       <div className="wrap dash">
-        <section className="dash-hero on-dark">
-          <div className="txt">
-            <span className="mono muted">{date}</span>
+        <section className="greet" aria-label="Saudação">
+          <div className="greet-ava on-dark" aria-hidden="true"><Avatar mode={props.busy ? "thinking" : "idle"} compact /></div>
+          <div className="greet-txt">
+            <span className="greet-date">{date}</span>
             <h1>{greeting()}{props.name ? `, ${props.name}` : ""}.</h1>
-            <span className="muted">{today?.connected ? `${events.length} ${events.length === 1 ? "compromisso" : "compromissos"} hoje · ` : ""}{progress.open} {progress.open === 1 ? "tarefa pendente" : "tarefas pendentes"}</span>
-            <div className="cta">
+            <p>{moment.lead} {summary ? `Agora: ${summary}.` : ""}</p>
+          </div>
+          <div className="greet-acts">
+            {moment.id === "manha" ? (
               <button className="btn btn-pri" disabled={props.busy} onClick={props.onStartDay}><Icon name="sun" size={18} />Começar o dia</button>
-              <button className="btn" onClick={props.onDock}><Icon name="mic" size={18} />Falar com o GaDu</button>
-            </div>
-          </div>
-          <div className="ava" aria-hidden="true"><Avatar mode={props.busy ? "thinking" : "idle"} compact /></div>
-        </section>
-
-        <div className="kpis">
-          <button className="kpi sig" onClick={props.onOpenTasks}><span className="n">{progress.open}</span><span className="l">tarefas para hoje</span></button>
-          <div className="kpi"><span className="n">{today?.connected ? events.length : "–"}</span><span className="l">{today?.connected ? "compromissos hoje" : "agenda não conectada"}</span></div>
-          <div className="kpi"><span className="n">{rems?.length ?? "–"}</span><span className="l">lembretes ativos</span></div>
-          <button className={`kpi ${props.pendingMemories > 0 ? "hot" : ""}`} onClick={props.onOpenMemory}><span className="n">{props.pendingMemories}</span><span className="l">memórias para revisar</span></button>
-        </div>
-
-        <div className="quick-row" aria-label="Peça ao GaDu">
-          {HELP.map((h) => (
-            <button key={h.text} className="chip" disabled={props.busy} onClick={() => props.onAsk(h.text)}><Icon name={h.icon} size={16} />{h.text}</button>
-          ))}
-          <button className="chip" onClick={props.onWrite}><Icon name="chat" size={16} />Escrever para o GaDu</button>
-        </div>
-
-        {props.review && <ReviewCard onDone={() => { props.onReviewDone(); setTasksKey((k) => k + 1); }} />}
-
-        <div className="dash-grid">
-      <div className="col">
-        {tips.length > 0 && (
-          <section className="card insights">
-            <h2>Insights do GaDu</h2>
-            {tips.map((t, i) => (
-              <div key={i} className="insight"><Icon name={t.kind === "livre" ? "sun" : t.kind === "email" ? "chat" : t.kind === "atrasadas" ? "check" : "spark"} size={16} /><span>{t.text}</span></div>
-            ))}
-          </section>
-        )}
-        <section className="card">
-          <div className="row" style={{ justifyContent: "space-between" }}>
-            <h2>Agenda de hoje</h2>
-            {today?.connected && <button className="link-btn mono" style={{ color: "var(--sig)", textDecoration: "none" }} onClick={() => setAgenda(true)}>Ver semana ›</button>}
-          </div>
-          {today === null ? <p className="muted">Carregando…</p>
-            : !today.connected ? <ConnectHint />
-            : today.error ? <p className="muted">Não consegui ler a agenda agora. <button className="link-btn" onClick={loadToday}>Tentar de novo</button></p>
-            : events.length === 0 ? <p className="muted">Nada marcado hoje. Bom dia para foco.</p>
-            : (
-              <ol className="timeline">
-                {events.map((e, i) => {
-                  const past = !e.allDay && new Date(e.end) <= now;
-                  const live = !e.allDay && new Date(e.start) <= now && new Date(e.end) > now;
-                  return (
-                    <li key={i} className={`${past ? "past" : ""} ${live ? "live" : ""} ${i === nextIdx && !live ? "next" : ""}`}>
-                      <span className="mono t">{e.allDay ? "dia todo" : hm(e.start)}</span>
-                      <span className="ev">{e.title}{e.meet && <span className="mono muted"> · online</span>}{live && <span className="mono" style={{ color: "var(--sig)" }}> · agora</span>}</span>
-                    </li>
-                  );
-                })}
-              </ol>
+            ) : moment.id === "tarde" ? (
+              <button className="btn btn-pri" disabled={props.busy} onClick={() => props.onAsk("O que ainda falta fazer hoje?")}><Icon name="check" size={18} />O que falta hoje?</button>
+            ) : (
+              <button className="btn btn-pri" onClick={() => setReview(true)}><Icon name="check" size={18} />Revisar o dia</button>
             )}
+            {moment.id === "noite" ? (
+              <button className="btn" disabled={props.busy} onClick={() => props.onAsk("Me ajude a planejar amanhã.")}><Icon name="calendar" size={18} />Planejar amanhã</button>
+            ) : (
+              <button className="btn" onClick={() => props.onOpen("agenda")}><Icon name="calendar" size={18} />Ver agenda</button>
+            )}
+            <button className="btn btn-ghost" onClick={props.onDock}><Icon name="mic" size={18} />Falar</button>
+          </div>
         </section>
-        <section className="card">
-          <h2>Lembretes</h2>
-          {rems === null ? <p className="muted">Carregando…</p> : rems.length === 0 ? (
-            <p className="muted" style={{ margin: 0 }}>Nenhum lembrete. Diga “me lembra amanhã às 9h de…” ou crie aqui.</p>
-          ) : rems.map((r) => (
-            <div className="item rem" key={r.id}>
-              <div style={{ minWidth: 0 }}>
-                <div>{r.text}</div>
-                <div className="mono" style={{ color: r.status === "sent" ? "var(--hot)" : "var(--ink-3)" }}>{r.status === "sent" ? `avisado · ${dueLabel(r.due_at, now)}` : dueLabel(r.due_at, now)}</div>
-              </div>
-              <div className="row" style={{ flexWrap: "nowrap" }}>
-                <button className="btn btn-sm" onClick={() => setStatus(r.id, "done")} aria-label={`Concluir ${r.text}`}>Feito</button>
-                {r.status === "pending" && <button className="link-btn" onClick={() => setStatus(r.id, "cancelled")} aria-label={`Cancelar ${r.text}`}>Cancelar</button>}
-              </div>
-            </div>
-          ))}
-          <form onSubmit={addReminder} className="rem-form">
-            <label className="sr" htmlFor="rem-text">Novo lembrete</label>
-            <input id="rem-text" className="field" placeholder="Lembrar de…" value={text} maxLength={300} onChange={(e) => setText(e.target.value)} />
-            {text.trim() && (
-              <div className="row" style={{ flexWrap: "nowrap" }}>
-                <label className="sr" htmlFor="rem-when">Quando</label>
-                <input id="rem-when" className="field" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
-                <button className="btn" type="submit" disabled={!when}>Criar</button>
+
+        <section className="stats" aria-label="Visão rápida">
+          <button className="stat" onClick={props.onOpenTasks}><Icon name="check" size={18} /><b>{progress.open}</b><span>tarefas hoje</span></button>
+          <button className="stat" onClick={() => props.onOpen("agenda")}><Icon name="calendar" size={18} /><b>{today?.connected ? upcoming.length : "–"}</b><span>{today?.connected ? "compromissos" : "agenda desligada"}</span></button>
+          <div className="stat"><Icon name="bell" size={18} /><b>{rems?.length ?? "–"}</b><span>lembretes</span></div>
+          <button className="stat" onClick={() => props.onOpen("projetos")}><Icon name="folder" size={18} /><b>{projects ?? "–"}</b><span>projetos</span></button>
+          {props.pendingMemories > 0 && <button className="stat hot" onClick={props.onOpenMemory}><Icon name="book" size={18} /><b>{props.pendingMemories}</b><span>memórias para revisar</span></button>}
+        </section>
+
+        {showReview && <ReviewCard onDone={() => { props.onReviewDone(); setReview(false); setTasksKey((k) => k + 1); }} />}
+
+        <div className="sec-head"><h2>Precisa de atenção</h2></div>
+        <div className="attn">
+          <TasksPanel key={tasksKey} mode="today" title="Tarefas prioritárias" onSeeAll={props.onOpenTasks} onChange={(open, done) => setProgress({ open, done })} />
+
+          <Panel title="Próximos compromissos" icon="calendar" action={today?.connected ? <button className="link" onClick={() => props.onOpen("agenda")}>Semana</button> : undefined}>
+            {today === null ? <p className="muted">Carregando…</p>
+              : !today.connected ? <EmptyState icon="calendar" title="Agenda não conectada" text="Conecte o Google para ver seus compromissos aqui." action={<a className="btn btn-sm btn-pri" href="/api/google/connect">Conectar</a>} />
+              : today.error ? <p className="muted">Não consegui ler a agenda agora. <button className="link-btn" onClick={loadToday}>Tentar de novo</button></p>
+              : upcoming.length === 0 ? <EmptyState icon="sun" title="Nada mais na agenda hoje" text="Bom momento para foco." />
+              : (
+                <ol className="timeline">
+                  {upcoming.slice(0, 6).map((e, i) => {
+                    const live = !e.allDay && new Date(e.start) <= now && new Date(e.end) > now;
+                    return (
+                      <li key={i} className={`${live ? "live" : ""} ${e === nextEv && !live ? "next" : ""}`}>
+                        <span className="mono t">{e.allDay ? "dia todo" : hm(e.start)}</span>
+                        <span className="ev">{e.title}{e.meet && <span className="mono muted"> · online</span>}{live && <span className="mono" style={{ color: "var(--sig)" }}> · agora</span>}</span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+          </Panel>
+
+          <Panel title="Lembretes" icon="bell">
+            {rems === null ? <p className="muted">Carregando…</p> : rems.length === 0 ? (
+              <EmptyState icon="bell" title="Nenhum lembrete" text="Diga “me lembra amanhã às 9h de…” ou crie aqui." />
+            ) : (
+              <div className="rows">
+                {rems.map((r) => (
+                  <div className="row-i" key={r.id}>
+                    <div className="grow">
+                      <span className="t">{r.text}</span>
+                      <span className="s" style={{ color: r.status === "sent" ? "var(--hot)" : undefined }}>{r.status === "sent" ? `avisado · ${dueLabel(r.due_at, now)}` : dueLabel(r.due_at, now)}</span>
+                    </div>
+                    <button className="btn btn-sm" onClick={() => setStatus(r.id, "done")} aria-label={`Concluir ${r.text}`}>Feito</button>
+                    {r.status === "pending" && <button className="link-btn" onClick={() => setStatus(r.id, "cancelled")} aria-label={`Cancelar ${r.text}`}>Cancelar</button>}
+                  </div>
+                ))}
               </div>
             )}
-            {msg && <span className="muted" role="status">{msg}</span>}
-          </form>
-        </section>
-      </div>
-
-      <div className="col">
-        <TasksPanel key={tasksKey} mode="today" title="Tarefas prioritárias" onSeeAll={props.onOpenTasks} onChange={(open, done) => setProgress({ open, done })} />
-        <section className="card progress">
-          <Ring value={progress.done} total={progress.done + progress.open} label="Progresso do dia" />
-          <div>
-            <h2>Progresso do dia</h2>
-            <div className="mono" style={{ color: "var(--sig)" }}>{progress.done} concluídas</div>
-            <div className="mono muted">{progress.open} pendentes para hoje</div>
-          </div>
-        </section>
-      </div>
-
-      <div className="col wide">
-        <section className="card">
-          <div className="row" style={{ justifyContent: "space-between" }}>
-            <h2>E-mails não lidos</h2>
-            {today?.connected && <a className="mono" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener noreferrer">Abrir Gmail ›</a>}
-          </div>
-          {today === null ? <p className="muted">Carregando…</p>
-            : !today.connected ? <p className="muted" style={{ margin: 0 }}>Conecte o Google para ver aqui.</p>
-            : today.error ? <p className="muted">Não consegui ler os e-mails agora.</p>
-            : mails.length === 0 ? <p className="muted">Caixa de entrada em dia nos últimos 2 dias.</p>
-            : mails.slice(0, 8).map((m, i) => {
-              const done = tasked.has(m.thread ?? m.subject);
-              return (
-                <div key={i} className="item mail-row">
-                  <a className="mail" href={mailLink(m)} target="_blank" rel="noopener noreferrer">
-                    <span className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
-                      <span className="conv-title">{m.from}</span>
-                      {m.important && <span className="mono" style={{ color: "var(--hot)" }}>importante</span>}
-                    </span>
-                    <span>{m.subject}</span>
-                    {m.snippet && <span className="conv-sum">{m.snippet}</span>}
-                  </a>
-                  <button className="link-btn" disabled={done} onClick={() => mailToTask(m)}>{done ? "✓ Virou tarefa" : "Virar tarefa"}</button>
+            <form onSubmit={addReminder} className="rem-form">
+              <label className="sr" htmlFor="rem-text">Novo lembrete</label>
+              <input id="rem-text" className="field" placeholder="Lembrar de…" value={text} maxLength={300} onChange={(e) => setText(e.target.value)} />
+              {text.trim() && (
+                <div className="row" style={{ flexWrap: "nowrap" }}>
+                  <label className="sr" htmlFor="rem-when">Quando</label>
+                  <input id="rem-when" className="field" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
+                  <button className="btn" type="submit" disabled={!when}>Criar</button>
                 </div>
-              );
-            })}
-        </section>
-      </div>
+              )}
+              {msg && <span className="muted" role="status">{msg}</span>}
+            </form>
+          </Panel>
+
+          {today?.connected && !today.error && (
+            <Panel title="E-mails não lidos" icon="chat" action={<a className="link" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener noreferrer">Gmail</a>}>
+              {mails.length === 0 ? <EmptyState icon="check" title="Caixa em dia" text="Nada novo nos últimos 2 dias." /> : (
+                <div className="rows">
+                  {mails.slice(0, 5).map((m, i) => {
+                    const done = tasked.has(m.thread ?? m.subject);
+                    return (
+                      <div key={i} className="row-i">
+                        <a className="grow mail" href={mailLink(m)} target="_blank" rel="noopener noreferrer">
+                          <span className="t">{m.from}{m.important && <span className="mono" style={{ color: "var(--hot)" }}> · importante</span>}</span>
+                          <span className="s">{m.subject}</span>
+                        </a>
+                        <button className="link-btn" disabled={done} onClick={() => mailToTask(m)}>{done ? "✓ Tarefa" : "Virar tarefa"}</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Panel>
+          )}
         </div>
+
+        <div className="sec-head"><h2>Recomendações do GaDu</h2></div>
+        <Panel className="recs">
+          {tips.length > 0 ? (
+            <div className="rows">
+              {tips.map((t, i) => (
+                <div key={i} className="row-i">
+                  <span className="rec-ico" aria-hidden="true"><Icon name={t.kind === "livre" ? "sun" : t.kind === "email" ? "chat" : t.kind === "atrasadas" ? "check" : "spark"} size={18} /></span>
+                  <span className="grow">{t.text}</span>
+                  <button className="btn btn-sm" disabled={props.busy} onClick={() => props.onAsk(`Me ajude com isto: ${t.text}`)}>Resolver</button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rows">
+              {!today?.connected && today !== null && (
+                <div className="row-i"><span className="rec-ico" aria-hidden="true"><Icon name="link" size={18} /></span><span className="grow">Conecte o Google para o GaDu avisar conflitos de agenda, janelas livres e e-mails parados.</span><a className="btn btn-sm" href="/api/google/connect">Conectar</a></div>
+              )}
+              <div className="row-i"><span className="rec-ico" aria-hidden="true"><Icon name="spark" size={18} /></span><span className="grow">{moment.id === "noite" ? "Antes de dormir, vale passar o que ficou pendente para amanhã." : "Peça ao GaDu para priorizar o seu dia a partir das tarefas e da agenda."}</span><button className="btn btn-sm" disabled={props.busy} onClick={() => props.onAsk(moment.id === "noite" ? "Me ajude a revisar o dia." : "Priorizar meu dia")}>{moment.id === "noite" ? "Revisar" : "Priorizar"}</button></div>
+            </div>
+          )}
+          <div className="quick-wrap" aria-label="Peça ao GaDu">
+            {HELP.map((h) => <button key={h.text} className="chip" disabled={props.busy} onClick={() => props.onAsk(h.text)}><Icon name={h.icon} size={16} />{h.text}</button>)}
+          </div>
+        </Panel>
 
         <div className="sec-head"><h2>Módulos do GaDu</h2><span className="muted">O que já funciona e o que está no plano</span></div>
         <ModuleCards onOpen={props.onOpen} />
       </div>
     </main>
   );
+}
+
+/** Momento do dia (Brasília): muda o tom da saudação e a ação principal. */
+function momentOf(d: Date): { id: "manha" | "tarde" | "noite"; lead: string } {
+  const h = Number(d.toLocaleTimeString("pt-BR", { timeZone: TZ, hour: "2-digit", hour12: false }));
+  if (h >= 5 && h < 12) return { id: "manha", lead: "Vamos organizar o dia." };
+  if (h >= 12 && h < 18) return { id: "tarde", lead: "Acompanhe o que falta e o que vem a seguir." };
+  return { id: "noite", lead: "Hora de revisar o dia e preparar amanhã." };
 }
 
 /** Revisão da noite: o que ficou para hoje vai para amanhã, vira feito ou fica sem prazo. */
