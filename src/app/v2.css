@@ -3,36 +3,39 @@
 
 /* ---------- Tokens · tema escuro (padrão e identidade da marca) ---------- */
 :root, .on-dark {
-  --bg-rgb: 5 8 11; --panel-rgb: 10 18 22; --raise-rgb: 20 34 40; --deep-rgb: 2 4 6;
-  --sig-rgb: 95 240 220; --line-rgb: 130 235 222; --hot-rgb: 255 180 84; --violet-rgb: 182 156 255;
-  --hi-rgb: 255 255 255; --shadow-rgb: 0 0 0;
-  --bg: #05080b; --panel: #0a1216; --deep: #020406; --surface: #0d171c; --surface-2: #122027;
-  --ink: #e6f2ef; --ink-2: #c9dad7; --ink-3: #93a8a6;
-  --sig: #5ff0dc; --sig-ink: #04110f; --hot: #ffb454; --bad: #ff8a7a; --ok: #6fe39a;
-  --line: rgb(var(--line-rgb) / 0.14); --line-2: rgb(var(--line-rgb) / 0.28); --wash: rgb(var(--line-rgb) / 0.06);
-  --c-sig: #5ff0dc; --c-hot: #ffb454; --c-violet: #b69cff; --c-blue: #6cb6ff; --c-green: #6fe39a; --c-pink: #ff8fc8;
-  --holo: linear-gradient(135deg, #5ff0dc, #6cb6ff 55%, #b69cff);
-  --glow: 0 0 0 1px rgb(var(--sig-rgb) / 0.2), 0 8px 28px rgb(var(--sig-rgb) / 0.18);
-  --elev: 0 1px 0 rgb(var(--hi-rgb) / 0.04) inset, 0 10px 30px rgb(var(--shadow-rgb) / 0.35);
+  /* Escuro: azul-marinho e grafite (sem preto absoluto). Ciano, azul e laranja são a identidade. */
+  --bg-rgb: 10 17 30; --panel-rgb: 16 26 42; --raise-rgb: 22 35 55; --deep-rgb: 7 12 22;
+  --sig-rgb: 62 214 232; --line-rgb: 148 178 214; --hot-rgb: 255 154 72; --violet-rgb: 160 140 250;
+  --hi-rgb: 255 255 255; --shadow-rgb: 2 6 14;
+  --bg: #0a111e; --panel: #101a2a; --deep: #070c16; --surface: #142133; --surface-2: #19283d;
+  --ink: #e9eff7; --ink-2: #c4d0de; --ink-3: #8d9db3;
+  --sig: #3ed6e8; --sig-ink: #04121a; --hot: #ff9a48; --bad: #ff8577; --ok: #5fdc9a;
+  --line: rgb(var(--line-rgb) / 0.13); --line-2: rgb(var(--line-rgb) / 0.24); --wash: rgb(var(--line-rgb) / 0.06);
+  --c-sig: #3ed6e8; --c-hot: #ff9a48; --c-violet: #a08cfa; --c-blue: #5b9dff; --c-green: #5fdc9a; --c-pink: #f28cc4;
+  --holo: linear-gradient(135deg, #3ed6e8, #5b9dff 60%, #ff9a48 140%);
+  --glow: 0 0 0 1px rgb(var(--sig-rgb) / 0.18), 0 6px 18px rgb(var(--sig-rgb) / 0.12);
+  --elev: 0 1px 0 rgb(var(--hi-rgb) / 0.04) inset, 0 8px 24px rgb(var(--shadow-rgb) / 0.35);
   color-scheme: dark;
 }
 /* ---------- Tokens · tema claro ---------- */
 :root[data-theme="light"] {
-  --bg-rgb: 242 246 248; --panel-rgb: 255 255 255; --raise-rgb: 255 255 255; --deep-rgb: 226 234 238;
-  --sig-rgb: 0 122 112; --line-rgb: 14 62 70; --hot-rgb: 184 96 0; --violet-rgb: 104 76 200;
-  --hi-rgb: 255 255 255; --shadow-rgb: 16 40 52;
-  --bg: #f2f6f8; --panel: #ffffff; --deep: #e2eaee; --surface: #ffffff; --surface-2: #f6f9fa;
-  --ink: #0b1c22; --ink-2: #2a4048; --ink-3: #566b73;
-  --sig: #00756b; --sig-ink: #ffffff; --hot: #a85500; --bad: #b3261e; --ok: #1d7a43;
-  --line: rgb(var(--line-rgb) / 0.13); --line-2: rgb(var(--line-rgb) / 0.26); --wash: rgb(var(--line-rgb) / 0.05);
-  --c-sig: #00756b; --c-hot: #a85500; --c-violet: #684cc8; --c-blue: #1766c2; --c-green: #1d7a43; --c-pink: #b8327c;
-  --holo: linear-gradient(135deg, #00a396, #1766c2 55%, #684cc8);
-  --glow: 0 0 0 1px rgb(var(--sig-rgb) / 0.18), 0 8px 24px rgb(var(--shadow-rgb) / 0.12);
-  --elev: 0 1px 2px rgb(var(--shadow-rgb) / 0.06), 0 8px 24px rgb(var(--shadow-rgb) / 0.08);
+  --bg-rgb: 241 245 250; --panel-rgb: 255 255 255; --raise-rgb: 255 255 255; --deep-rgb: 226 233 242;
+  --sig-rgb: 0 120 140; --line-rgb: 30 52 84; --hot-rgb: 176 84 0; --violet-rgb: 96 72 196;
+  --hi-rgb: 255 255 255; --shadow-rgb: 18 34 60;
+  --bg: #f1f5fa; --panel: #ffffff; --deep: #e2e9f2; --surface: #ffffff; --surface-2: #f5f8fc;
+  --ink: #0f1c2e; --ink-2: #2c3d55; --ink-3: #56677e;
+  --sig: #00788c; --sig-ink: #ffffff; --hot: #a65000; --bad: #b3261e; --ok: #1b7a44;
+  --line: rgb(var(--line-rgb) / 0.12); --line-2: rgb(var(--line-rgb) / 0.22); --wash: rgb(var(--line-rgb) / 0.045);
+  --c-sig: #00788c; --c-hot: #a65000; --c-violet: #6048c4; --c-blue: #1f63c8; --c-green: #1b7a44; --c-pink: #b02f76;
+  --holo: linear-gradient(135deg, #0096ad, #1f63c8 60%, #d06a10 140%);
+  --glow: 0 0 0 1px rgb(var(--sig-rgb) / 0.16), 0 6px 18px rgb(var(--shadow-rgb) / 0.08);
+  --elev: 0 1px 2px rgb(var(--shadow-rgb) / 0.06), 0 6px 20px rgb(var(--shadow-rgb) / 0.07);
   color-scheme: light;
 }
 :root {
-  --display: var(--font-display), "Instrument Sans", system-ui, sans-serif;
+  /* Tipografia: texto e títulos em Instrument Sans; Michroma (larga, futurista) só na marca e no destaque da home. */
+  --brand-font: var(--font-display), "Instrument Sans", system-ui, sans-serif;
+  --display: var(--font-body), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --body: var(--font-body), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: var(--font-mono), ui-monospace, Menlo, monospace;
   --safe-b: env(safe-area-inset-bottom, 0px); --safe-t: env(safe-area-inset-top, 0px);
@@ -252,7 +255,7 @@ button.kpi:hover { border-color: var(--line-2); }
 @media (min-width: 1024px) {
   .app { display: grid; grid-template-columns: var(--nav-w) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); padding-top: 0; }
   .app.with-assist { grid-template-columns: var(--nav-w) minmax(0, 1fr) var(--assist-w); }
-  .nav { display: flex; flex-direction: column; gap: var(--s-3); min-height: 0; padding: var(--s-4) var(--s-3); border-right: 1px solid var(--line); background: linear-gradient(180deg, #0a1216, #05080b); }
+  .nav { display: flex; flex-direction: column; gap: var(--s-3); min-height: 0; padding: var(--s-4) var(--s-3); border-right: 1px solid var(--line); background: linear-gradient(180deg, var(--panel), var(--bg)); }
   .frame { padding-bottom: 0; min-height: 0; }
   .dockbar { display: none; }
   .bar { padding: 0 var(--s-6); }
@@ -270,7 +273,7 @@ button.kpi:hover { border-color: var(--line-2); }
   .orb-fab.on { animation: pulse 1.6s ease-out infinite; }
   /* Conversa: palco do avatar à esquerda, conversa com largura de leitura. */
   .chat2 { display: grid; grid-template-columns: minmax(280px, 34%) minmax(0, 1fr); }
-  .chat-stage { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: var(--s-4); padding: var(--s-6); border-bottom: 0; border-right: 1px solid var(--line); background: radial-gradient(circle at 50% 30%, rgb(var(--sig-rgb) / 0.14), transparent 60%), linear-gradient(180deg, #0a1216, #05080b); }
+  .chat-stage { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: var(--s-4); padding: var(--s-6); border-bottom: 0; border-right: 1px solid var(--line); background: radial-gradient(circle at 50% 30%, rgb(var(--sig-rgb) / 0.14), transparent 60%), linear-gradient(180deg, var(--panel), var(--bg)); }
   .chat-ava { width: 100%; height: auto; flex: 1; min-height: 240px; max-height: 52dvh; }
   .chat-stage .meta { flex: none; align-items: center; text-align: center; }
   .chat-stage .acts { justify-content: center; }
@@ -292,7 +295,7 @@ button.kpi:hover { border-color: var(--line-2); }
 .lp-nav { display: none; gap: var(--s-5); }
 .lp-nav a { color: var(--ink-2); text-decoration: none; font-size: var(--fs-sm); }
 .lp-nav a:hover { color: var(--sig); }
-.lp-stage { border-radius: 32px; background: radial-gradient(circle at 50% 45%, rgb(95 240 220 / 0.14), transparent 62%), linear-gradient(180deg, #0a1216, #05080b); border: 1px solid var(--line); box-shadow: var(--elev); display: grid; place-items: center; padding: var(--s-2); }
+.lp-stage { border-radius: 32px; background: radial-gradient(circle at 50% 45%, rgb(var(--sig-rgb) / 0.12), transparent 62%), linear-gradient(180deg, var(--panel), var(--bg)); border: 1px solid var(--line); box-shadow: var(--elev); display: grid; place-items: center; padding: var(--s-2); }
 .lp-now { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin: var(--s-2) 0 0; font-size: var(--fs-sm); color: var(--ink-2); }
 .lp-section > .lp-kicker { display: block; margin-bottom: 6px; }
 .lp-section .mods { margin-top: var(--s-4); }
@@ -322,3 +325,46 @@ button.kpi:hover { border-color: var(--line-2); }
 @media (min-width: 1024px) { .chat-log .quick { display: none; } .nav-item { min-height: 40px; } }
 @media (max-width: 1023px) { .bar-actions [aria-label$="o assistente"] { display: none; } }
 @media (max-width: 699px) { .assist-head [aria-label="Nova conversa"] { display: none; } .assist-head { gap: var(--s-2); padding-left: var(--s-3); } }
+
+
+/* ===================== UX/UI v2.1 · base ===================== */
+body { background: var(--bg); }
+.brand { font-family: var(--brand-font); letter-spacing: 0.01em; }
+.mono { letter-spacing: 0.03em; text-transform: none; }
+h1, h2, h3 { letter-spacing: -0.01em; }
+.card { background: var(--panel); backdrop-filter: none; -webkit-backdrop-filter: none; border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--elev); }
+.card h2 { font: 600 var(--fs-sm)/1.3 var(--body); letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+.dots { background-image: none; }
+.btn { border-radius: var(--r-md); }
+.btn-pri { box-shadow: none; }
+.chip { background: var(--surface); }
+.notice { border-color: rgb(var(--hot-rgb) / 0.45); background: rgb(var(--hot-rgb) / 0.07); }
+.h-eyebrow, .pill { letter-spacing: 0.04em; }
+.pill { text-transform: none; font-size: 11px; height: 22px; }
+.state { letter-spacing: 0.03em; text-transform: none; }
+.tip { border-radius: var(--r-lg); }
+
+/* Componentes compartilhados (kit.tsx) */
+.ph { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--s-3); }
+.ph-text { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.ph-eyebrow { font: 500 var(--fs-xs)/1.2 var(--body); color: var(--sig); }
+.ph h1 { margin: 0; font: 600 clamp(22px, 4.6vw, 28px)/1.2 var(--display); }
+.ph p { margin: 0; color: var(--ink-3); max-width: 640px; }
+.ph-actions { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+.panel { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-4); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--elev); min-width: 0; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); min-height: 28px; }
+.panel-head h2 { margin: 0; font: 600 var(--fs-md)/1.3 var(--display); color: var(--ink); display: flex; align-items: center; gap: var(--s-2); }
+.panel-head h2 svg { color: var(--sig); }
+.panel-head .link { font-size: var(--fs-sm); color: var(--sig); background: none; border: 0; min-height: var(--touch); padding: 0 4px; text-decoration: none; display: inline-flex; align-items: center; }
+.empty { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); padding: var(--s-3) 0; color: var(--ink-3); }
+.empty .ico { width: 40px; height: 40px; border-radius: var(--r-md); display: grid; place-items: center; background: var(--wash); color: var(--sig); }
+.empty b { color: var(--ink); font-weight: 600; }
+.empty p { margin: 0; }
+.rows { display: flex; flex-direction: column; }
+.row-i { display: flex; align-items: center; gap: var(--s-3); min-height: 48px; padding: var(--s-2) 0; border-bottom: 1px solid var(--line); }
+.row-i:last-child { border-bottom: 0; }
+.row-i .grow { flex: 1; min-width: 0; }
+.row-i .t { display: block; overflow: hidden; text-overflow: ellipsis; }
+.row-i .s { display: block; color: var(--ink-3); font-size: var(--fs-sm); }
+.grid-2 { display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 900px) { .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

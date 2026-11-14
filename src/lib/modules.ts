@@ -2,10 +2,10 @@
 // Regra: um módulo só aparece como "disponível" quando existe e funciona; o resto mostra o status real.
 
 export type ModuleId = "pessoal" | "financeiro" | "office" | "studio" | "studio3d" | "plataforma";
-export type ModuleStatus = "disponivel" | "parcial" | "planejado";
-export type ViewId = "hoje" | "conversa" | "projetos" | "memoria" | "financeiro" | "agentes" | "office" | "studio" | "studio3d" | "ajustes" | "admin";
+export type ModuleStatus = "disponivel" | "parcial" | "desenvolvimento" | "planejado";
+export type ViewId = "hoje" | "conversa" | "tarefas" | "agenda" | "projetos" | "memoria" | "financeiro" | "agentes" | "office" | "studio" | "studio3d" | "integracoes" | "ajustes" | "perfil" | "admin";
 
-export type ViewDef = { id: ViewId; label: string; icon: string; adminOnly?: boolean };
+export type ViewDef = { id: ViewId; label: string; icon: string; adminOnly?: boolean; /** Aparece no topo do menu, fora dos grupos ("Início"). */ home?: boolean };
 export type ModuleDef = {
   id: ModuleId;
   name: string;
@@ -22,16 +22,18 @@ export type ModuleDef = {
   needs: string[];
 };
 
-export const STATUS_LABEL: Record<ModuleStatus, string> = { disponivel: "Disponível", parcial: "Parcial", planejado: "Planejado" };
+export const STATUS_LABEL: Record<ModuleStatus, string> = { disponivel: "Disponível", parcial: "Beta", desenvolvimento: "Em desenvolvimento", planejado: "Planejado" };
 
 export const MODULES: ModuleDef[] = [
   {
     id: "pessoal", name: "Pessoal", tagline: "Seu dia, sua agenda, suas tarefas e a sua memória.", icon: "sun", color: "sig", status: "disponivel",
     views: [
-      { id: "hoje", label: "Hoje", icon: "sun" },
-      { id: "conversa", label: "Conversa", icon: "chat" },
-      { id: "projetos", label: "Tarefas e projetos", icon: "check" },
-      { id: "memoria", label: "Memória", icon: "book" },
+      { id: "hoje", label: "Hoje", icon: "sun", home: true },
+      { id: "conversa", label: "Conversas", icon: "chat" },
+      { id: "tarefas", label: "Tarefas", icon: "check" },
+      { id: "agenda", label: "Agenda", icon: "calendar" },
+      { id: "projetos", label: "Projetos", icon: "folder" },
+      { id: "memoria", label: "Memórias", icon: "book" },
     ],
     available: ["Conversa por voz e texto", "Agenda e e-mails do Google (leitura)", "Tarefas, projetos e lembretes", "Memória com a sua aprovação", "Briefing da manhã e revisão da noite"],
     planned: ["Rascunhos de e-mail com aprovação", "Voz natural e conversa contínua"],
@@ -48,7 +50,7 @@ export const MODULES: ModuleDef[] = [
     id: "office", name: "Agent Office", tagline: "Agentes especializados trabalhando para você, com aprovação.", icon: "agents", color: "violet", status: "parcial",
     views: [
       { id: "agentes", label: "Agentes", icon: "agents" },
-      { id: "office", label: "Roteiro do módulo", icon: "grid" },
+      { id: "office", label: "Equipes e delegações", icon: "grid" },
     ],
     available: ["Agentes por área, com instruções e memória própria", "Conversar com um agente"],
     planned: ["Espaços Pessoal e Trabalho", "Organizações e clientes, com isolamento rigoroso", "Delegação entre agentes e caixa de aprovações", "Teto de gasto por agente"],
@@ -71,8 +73,10 @@ export const MODULES: ModuleDef[] = [
   {
     id: "plataforma", name: "Plataforma", tagline: "Perfil, aparência, conexões, custos e segurança.", icon: "gear", color: "pink", status: "disponivel",
     views: [
-      { id: "ajustes", label: "Perfil e ajustes", icon: "gear" },
-      { id: "admin", label: "Pessoas e convites", icon: "user", adminOnly: true },
+      { id: "integracoes", label: "Integrações", icon: "link" },
+      { id: "ajustes", label: "Configurações", icon: "gear" },
+      { id: "perfil", label: "Perfil", icon: "user" },
+      { id: "admin", label: "Administração", icon: "lock", adminOnly: true },
     ],
     available: ["Perfil e aparência (tema claro e escuro)", "Conexões (Google) e notificações", "Gasto de IA, teto e reservas", "Privacidade: termos bloqueados"],
     planned: ["Créditos e consumo por pessoa", "Alertas de erro"],
@@ -92,10 +96,10 @@ export function viewDef(view: ViewId): ViewDef {
 export function isOverview(view: ViewId): boolean {
   return view === "financeiro" || view === "office" || view === "studio" || view === "studio3d";
 }
-/** Aceita os endereços antigos (?tab=perfil, memoria, ajustes, admin). */
+/** Converte ?tab= em tela. Endereços antigos continuam válidos; admin só para quem pode. */
 export function parseView(tab: string | undefined, admin: boolean): ViewId | null {
   if (!tab) return null;
-  if (tab === "perfil") return "memoria";
+  if (tab === "memorias") return "memoria";
   if (tab === "admin") return admin ? "admin" : "ajustes";
   return (VIEW_IDS as string[]).includes(tab) ? (tab as ViewId) : null;
 }

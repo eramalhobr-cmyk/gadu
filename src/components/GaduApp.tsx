@@ -13,6 +13,7 @@ import { SettingsPage, type Prefs } from "./SettingsPage";
 import { dueLabel, TodayPage } from "./TodayPage";
 import { AgentsPage } from "./AgentsPage";
 import { ProjectsPage } from "./ProjectsPage";
+import { AgendaView } from "./AgendaView";
 import { Icon } from "./ui";
 import { TipCard } from "./TipCard";
 import { TIP_IDS, type TipId } from "@/lib/tips";
@@ -35,7 +36,7 @@ const FLASH: Record<string, string> = {
   erro: "Não consegui concluir a conexão com o Google. Tente de novo em Ajustes, Conexões.",
 };
 /** Dica da primeira visita de cada tela. */
-const TIP_OF: Partial<Record<ViewId, TipId>> = { hoje: "hoje", conversa: "conversa", projetos: "projetos", agentes: "agentes", memoria: "perfil", ajustes: "perfil" };
+const TIP_OF: Partial<Record<ViewId, TipId>> = { hoje: "hoje", conversa: "conversa", tarefas: "projetos", projetos: "projetos", agentes: "agentes", memoria: "perfil", ajustes: "perfil" };
 const LS_ASSIST = "gadu.assist";
 type Target = { kind: "project" | "agent"; id: number; name: string } | null;
 
@@ -104,7 +105,6 @@ export function GaduApp(props: {
   const [seen, setSeen] = useState<Set<string>>(() => new Set(props.seenTips));
   const [review, setReview] = useState(false);
   const [target, setTarget] = useState<Target>(null);
-  const [projView, setProjView] = useState<"tarefas" | "projetos">("tarefas");
   const [messages, setMessages] = useState<Msg[]>(props.initialMessages);
   const [conversationId, setConversationId] = useState<number | null>(props.initialConversationId);
   const [draft, setDraft] = useState("");
@@ -555,17 +555,18 @@ export function GaduApp(props: {
 
         {view === "hoje" && (
           <TodayPage review={review} onReviewDone={() => setReview(false)} onDock={dockTalk} onWrite={() => openAssist(true)} name={props.name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk}
-            onOpenMemory={() => setTab("memoria")} onOpenTasks={() => { setProjView("tarefas"); setTab("projetos"); }} onOpen={setTab}
+            onOpenMemory={() => setTab("memoria")} onOpenTasks={() => setTab("tarefas")} onOpen={setTab}
             onAsk={(q) => { speaker?.unlock(); openAssist(true); void send(q); }} />
         )}
-        {view === "projetos" && <ProjectsPage key={projView} initialView={projView} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
+        {(view === "tarefas" || view === "projetos") && <ProjectsPage key={view} initialView={view} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
+        {view === "agenda" && <main className="page" id="conteudo"><div className="wrap"><AgendaView onBack={() => setTab("hoje")} /></div></main>}
         {view === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
         {view && isOverview(view) && <ModulePage id={moduleOf(view).id} onOpen={setTab} />}
         {view === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
         {view === "admin" && props.admin && <AdminPage />}
-        {view === "ajustes" && (
+        {(view === "ajustes" || view === "perfil" || view === "integracoes") && (
           <SettingsPage name={props.name} email={props.email} version={props.version} prefs={prefs} setPrefs={setPrefs} voiceOk={voiceOk} speaker={speaker}
-            theme={theme} onTheme={toggleTheme} admin={props.admin} onOpen={setTab}
+            section={view} theme={theme} onTheme={toggleTheme} admin={props.admin} onOpen={setTab}
             onNew={() => { newConversation(); setTab("conversa"); }} initialBlocked={props.initialBlocked} morningLink={props.morningLink} onResetTips={resetTips} />
         )}
       </div>
@@ -592,7 +593,7 @@ export function GaduApp(props: {
             <img src="/avatar/logo-96.webp" alt="" />
           )}
         </button>
-        <button className="dock-item" aria-current={view === "projetos" ? "page" : undefined} onClick={() => { setProjView("tarefas"); setTab("projetos"); }}><Icon name="check" size={20} />Tarefas</button>
+        <button className="dock-item" aria-current={view === "tarefas" ? "page" : undefined} onClick={() => setTab("tarefas")}><Icon name="check" size={20} />Tarefas</button>
         <button className="dock-item" aria-current={sheet || (view && !["hoje", "conversa", "projetos"].includes(view)) ? "page" : undefined} onClick={() => setSheet(true)} aria-expanded={sheet}>
           <Icon name="grid" size={20} />Módulos{pending > 0 && <b className="badge">{pending}</b>}
         </button>
