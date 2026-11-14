@@ -103,7 +103,16 @@ export default async function Sobre() {
             ["Agentes", "Versões do GaDu com instruções próprias: saúde, finanças, estudos, negócio."],
             ["Configurações", "Perfil, aparência, conexões, notificações e gastos."],
           ].map(([t, d]) => <div key={t} className="nm"><b>{t}</b><span>{d}</span></div>)}
-          <div className="nm hl"><b>Assistente</b><span>Em qualquer tela: toque, fale e veja a resposta sem sair de onde está.</span></div>
+          <div className="nm hl"><b>Assistente</b><span>Em qualquer tela: toque no GaDu no centro da barra, fale ou escreva e veja a resposta sem sair de onde está. Para o histórico inteiro, abra a conversa completa.</span></div>
+        </div>
+        <p className="muted small">No celular: a barra de baixo tem Hoje, Conversas, o GaDu, Tarefas e Módulos. Módulos mostra todo o resto, por área. O menu (☰) guarda conta, configurações e o histórico.</p>
+        <div className="navmap2">
+          {[
+            ["Metas & Conquistas · Planejado", "Objetivos de vida com marcos, indicadores e plano. Ainda não existe."],
+            ["Financeiro · Planejado", "Controle do mês pela conversa. Ainda não existe."],
+            ["Casa Inteligente · Planejado", "GaDu Casa: luzes, tomadas, climatização e cenas, com confirmação. Ainda não existe."],
+            ["Inteligência integrada · Planejado", "Relacionar dados entre módulos com permissões e auditoria. Hoje o GaDu usa só o contexto da tela (Beta)."],
+          ].map(([t, d]) => <div key={t} className="nm soon"><b>{t}</b><span>{d}</span></div>)}
         </div>
       </section>
 

@@ -59,12 +59,12 @@ export default async function Home() {
           <div className="lp-hero-text">
             <span className="lp-kicker">Assistente inteligente e plataforma integrada</span>
             <h1>Seu assistente para <em>agentes</em>, <em>produtividade</em> e <em>criação</em>.</h1>
-            <p className="muted">O GaDu conversa por voz e texto em qualquer tela. Hoje ele já cuida do seu dia: agenda, e-mails, tarefas, projetos e memória, sempre com a sua aprovação. Financeiro, agentes de trabalho, criação de sites e impressão 3D chegam por módulos, cada um com o status real.</p>
+            <p className="muted">O GaDu conversa por voz e texto em qualquer tela. Hoje ele já cuida do seu dia: agenda, e-mails, tarefas, projetos e memória, sempre com a sua aprovação. Metas e conquistas, financeiro, casa inteligente, agentes de trabalho, criação de sites e impressão 3D chegam por módulos, cada um com o status real.</p>
             <div className="row">
               <a className="btn btn-pri lp-cta" href={cta.href}>{cta.label}</a>
               <a className="btn" href="#como">Como funciona</a>
             </div>
-            <p className="lp-now"><span className="pill disponivel">Disponível</span> Módulo Pessoal <span className="pill parcial">Parcial</span> Agent Office <span className="pill planejado">Planejado</span> outros módulos</p>
+            <p className="lp-now"><span className="pill disponivel">Disponível</span> Módulo Pessoal <span className="pill parcial">Beta</span> Agent Office <span className="pill planejado">Planejado</span> outros módulos</p>
             <p className="mono muted lp-origin">GaDu = Gael + Eduardo</p>
           </div>
         </section>
@@ -80,15 +80,17 @@ export default async function Home() {
         </section>
 
         <section className="lp-section" id="modulos">
-          <span className="mono lp-kicker">Uma plataforma, seis módulos</span>
+          <span className="mono lp-kicker">Uma plataforma, oito módulos em quatro áreas</span>
           <h2>O que já funciona e o que está no plano</h2>
-          <p className="muted">O GaDu cresce por módulos. Cada um mostra o status real: nada aparece como pronto antes de estar.</p>
+          <p className="muted">Produtividade pessoal, vida pessoal (metas, financeiro e casa), agentes e criação, e a plataforma. Cada módulo mostra o status real: nada aparece como pronto antes de estar.</p>
           <ModuleCards />
           <div className="lp-ctx">
             <span className="lp-ctx-ico" aria-hidden="true"><Icon name="spark" size={22} /></span>
             <div>
-              <b>Inteligência contextual <span className="pill parcial">Beta</span></b>
-              <p className="muted">O assistente já sabe em que módulo e tela você está e usa só os seus dados. Conectar informações entre tarefas, agenda, financeiro, projetos e agentes é a próxima etapa, com permissões e auditoria.</p>
+              <b>Contexto da tela <span className="pill parcial">Beta</span></b>
+              <p className="muted">O assistente já sabe em que módulo e tela você está e usa só os seus dados. É uma pista, não um acesso novo.</p>
+              <b className="lp-ctx-2">Inteligência integrada entre módulos <span className="pill planejado">Planejado</span></b>
+              <p className="muted">Relacionar metas, tarefas, agenda, financeiro, casa e agentes numa mesma resposta. Ainda não existe: depende de permissões, isolamento e auditoria.</p>
             </div>
           </div>
         </section>

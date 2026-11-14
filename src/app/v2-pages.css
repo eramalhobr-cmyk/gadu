@@ -347,3 +347,4 @@ button.pj-card:hover { border-color: color-mix(in srgb, var(--c) 55%, transparen
   button.pj-card:hover { transform: none; }
   .pj-bar > span, .gp-bar span, .tl-tick > span, .tl-done summary svg { transition: none; }
 }
+.navmap2 .nm.soon { border-style: dashed; } .navmap2 .nm.soon b { color: var(--ink-2); }

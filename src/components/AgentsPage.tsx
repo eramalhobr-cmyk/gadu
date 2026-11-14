@@ -147,7 +147,7 @@ function AgentForm({ agent, onDone }: { agent: Agent | null; onDone: (saved: boo
                   {COLORS.map((c) => <button type="button" key={c} className="sw" aria-pressed={d.color === c} aria-label={`Cor ${COLOR_NAME[c] ?? c}`} style={{ ["--c" as string]: colorVar(c) }} onClick={() => set({ color: c })} />)}
                 </div>
               </div>
-              {agent && <label className="switch"><span>Ativo<small className="muted"> · pausado não aparece para conversar</small></span><input type="checkbox" checked={d.active} onChange={(e) => set({ active: e.target.checked })} /></label>}
+              {agent && <label className="switch"><span>Ativo<small className="muted"> · pausado não aparece para conversar</small></span><input type="checkbox" role="switch" className="sr" checked={d.active} onChange={(e) => set({ active: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>}
             </Panel>
             <Panel title="Instruções" icon="book">
               <label className="fld">

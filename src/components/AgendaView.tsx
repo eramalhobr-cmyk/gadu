@@ -25,6 +25,7 @@ const fmt = (k: string, o: Intl.DateTimeFormatOptions) => fromKey(k).toLocaleDat
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** Tela Agenda (Pessoal › Agenda): a semana do Google Agenda, com criação de eventos. */
+/** Agenda da semana. Dona da própria página (main + wrap): o app só a renderiza. */
 export function AgendaView({ onBack }: { onBack: () => void }) {
   const today = key(new Date());
   const [sel, setSel] = useState(today);
@@ -71,7 +72,7 @@ export function AgendaView({ onBack }: { onBack: () => void }) {
   const connected = conn === "ok";
 
   return (
-    <div className="agenda-v">
+    <main className="page" id="conteudo"><div className="wrap agenda-v">
       <button className="back" onClick={onBack}><Icon name="chevron" size={16} />Hoje</button>
       <PageHeader eyebrow="Pessoal" title="Agenda" text={connected ? `${month} · sua semana no Google Agenda.` : "Sua semana do Google Agenda, dentro do GaDu."}
         actions={connected && <>
@@ -161,7 +162,7 @@ export function AgendaView({ onBack }: { onBack: () => void }) {
           <p className="hint"><Icon name="mic" size={16} />Toque num horário vazio para criar um evento. Ou diga: “marca dentista quinta às 9”.</p>
         </>
       )}
-    </div>
+    </div></main>
   );
 }
 
