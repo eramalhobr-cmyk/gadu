@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 14/11/2026 (Sprint UX/UI v2.1). Produção: https://gadu-agent.vercel.app (commit `883ea23`).
+Atualizado a cada entrega. Última atualização: 14/11/2026 (Sprint UX/UI v2.1). Produção: https://gadu-agent.vercel.app (commit `9733685`).
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 Documentos relacionados:

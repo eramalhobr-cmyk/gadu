@@ -2,15 +2,15 @@
 
 Atualizado em 14/11/2026, depois da Sprint UX/UI v2.1 (Claude Code). Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
 
-## Ambiente de produção (verificado em 13/11/2026)
+## Ambiente de produção (verificado em 14/11/2026)
 | Item | Estado | Evidência |
 |---|---|---|
 | App | https://gadu-agent.vercel.app | Vercel, projeto `gadu-agent`, região `iad1` |
-| Última publicação | commit `883ea23` (merge do PR #12, UX/UI v2) | deploy `dpl_ENVExSFmz4Wq1BLn6drKSreuQc5j`, `READY`; telas reais capturadas com sessão autenticada em 1440 e 390 px; assistente respondeu em produção com o contexto da tela |
+| Última publicação | commit `9733685` (merge do PR #14, Sprint UX/UI v2.1) | deploy `dpl_BSXyR5vex6zNB5F1Z9f9M6SCZAxJ`, `READY`; telas reais capturadas com sessão autenticada em 1440 e 390 px, nos dois temas |
 | Banco | Supabase `sa-east-1`, Postgres 17 | 9 migrações registradas; as últimas são `daily_quota_atomic` e `ai_budget_reservations` |
 | Cota diária | `consume_daily_quota()`, limite 150 em `private.quota_policy` | teste com usuário temporário e rollback; **uso real**: 4 mensagens contadas em 12/11 (dia de Brasília) |
 | Orçamento mensal | `reserve/settle/release_ai_budget`, teto US$ 20 em `private.budget_policy` | teste com usuário temporário e rollback (teto, idempotência, isolamento, permissões); **uso real**: 1 reserva liquidada pelo custo real e ligada ao consumo |
-| Rollback do app | deploys `dpl_DFKuhDx6…` (antes da v2, PR #11), `dpl_ELAhLL3G…` (PR #9), `dpl_CBrNxW8e…` (PR #6) | promover na Vercel |
+| Rollback do app | deploys `dpl_HT87wCvBrfSDQjkJ7ANsfkuFAAPF` (PR #13, antes da v2.1), `dpl_DFKuhDx6…` (antes da v2, PR #11), `dpl_ELAhLL3G…` (PR #9), `dpl_CBrNxW8e…` (PR #6) | promover na Vercel |
 | Usuário de teste | conta `teste-ui@example.com`, criada pelo fluxo de convite, com teto de US$ 2 por mês; sem dados pessoais | usada só para capturas e testes de tela; a senha não fica no repositório |
 | Rollback do banco | orçamento: drop das funções novas, `public.ai_reservations`, `private.budget_policy`, `private.user_budget`; cota: drop de `consume_daily_quota()`, `private.user_quota`, `private.quota_policy` | as funções antigas (`month_spend`, `consume_quota`) continuam lá |
 | Backups lógicos | `private.backup_usage_daily_20261113` (2 linhas), `private.backup_usage_events_20261113` (44 linhas) | apagar depois de estabilizar |
