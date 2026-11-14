@@ -6,7 +6,7 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`). Só documentação, não integrada.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
-## 2026-11-14 · PR #16 · Sprint UX/UI v2.2
+## 2026-11-14 · `18f1071` · Sprint UX/UI v2.2 (PR #16)
 - **Navegação híbrida no celular** (`GaduApp.tsx`, `src/app/v2.css`):
   - a barra de baixo fica com o uso frequente: Hoje, Conversas, GaDu, Tarefas e Módulos;
   - nova tela **Módulos** (`ModulesHub`) para explorar o produto por área, com os planejados discretos;
@@ -50,7 +50,7 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
   - os testes cobrem: 7 larguras sem rolagem lateral e com alvos de 44 px; menu (toque fora, Esc, Voltar, escolha); tela Módulos; barra de baixo sem esconder conteúdo; temas; assistente (orbe, Voltar, alça, histórico compartilhado); voz simulada (microfone negado, revisão da transcrição, limite de 20 s, interrupção, troca de tela); interruptores; Tarefas e Projetos com fixtures, estado vazio e erro; menu recolhível e largura do painel no computador;
   - chat e voz simulados, sem chamada à IA paga.
 - Não verificado: voz e teclado em aparelhos físicos; prévia navegável do protótipo do Lovable (bloqueada pela rede do ambiente).
-- **Publicado**: PUBLICACAO_PENDENTE
+- **Publicado**: deploy `dpl_DEQDkX2dCyP9tbdaHSit6HzniL6U` `READY`. Os 16 testes de interface também passaram **em produção** (usuário de teste; chat e voz simulados). Capturas reais em produção: Hoje, menu, assistente, Módulos, Casa, Metas, Conversa e home, em 390 e 1440 px, nos dois temas. Rollback: promover `dpl_BSXyR5vex6zNB5F1Z9f9M6SCZAxJ` (PR #14).
 
 ## 2026-11-14 · `9733685` · Sprint UX/UI v2.1 (PR #14)
 - **Identidade** (`src/app/v2.css`):
