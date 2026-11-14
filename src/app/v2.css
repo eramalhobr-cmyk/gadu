@@ -515,3 +515,28 @@ button.stat:hover { border-color: var(--line-2); }
 @media (min-width: 1500px) { .app.assist-wide { --assist-w: 600px; } }
 .orb-fab { width: 56px; height: 56px; border: 2px solid rgb(var(--sig-rgb) / 0.55); background: var(--panel); box-shadow: 0 6px 18px rgb(var(--shadow-rgb) / 0.35); }
 .orb-fab img { width: 100%; height: 100%; object-fit: cover; }
+
+/* v2.1 · ajustes da primeira revisão */
+.greet-date { text-transform: none; }
+.greet-date::first-letter { text-transform: uppercase; }
+.nav-item { width: 100%; }
+@media (min-width: 700px) {
+  .greet { grid-template-columns: 88px minmax(0, 1fr); grid-template-areas: "ava txt" "ava acts"; }
+  .greet-acts { justify-content: flex-start; max-width: none; }
+}
+
+/* v2.1 · home */
+.lp-kicker { font: 600 var(--fs-sm)/1.3 var(--body); letter-spacing: 0; text-transform: none; color: var(--sig); }
+.lp-hero h1 { font-family: var(--brand-font); font-size: clamp(28px, 6.4vw, 46px); line-height: 1.15; }
+.lp-hero h1 em { text-shadow: none; color: var(--sig); }
+.lp-brand .brand { font-size: 22px; }
+.lp-ctx { display: flex; gap: var(--s-3); align-items: flex-start; margin-top: var(--s-4); padding: var(--s-4); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--panel); }
+.lp-ctx b { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+.lp-ctx p { margin: 6px 0 0; }
+.lp-ctx-ico { flex: none; width: 44px; height: 44px; border-radius: var(--r-md); display: grid; place-items: center; background: rgb(var(--sig-rgb) / 0.12); color: var(--sig); }
+.lp-feature, .lp-pillar, .lp-badge { background: var(--panel); border-color: var(--line); }
+.lp-top { background: rgb(var(--bg-rgb) / 0.9); }
+.bar-brand { min-height: var(--touch); padding: 0 4px; }
+.chat-stage .acts .btn { min-height: var(--touch); min-width: var(--touch); justify-content: center; }
+input[type="range"] { min-height: var(--touch); }
+.set-nav { scroll-snap-type: x proximity; }

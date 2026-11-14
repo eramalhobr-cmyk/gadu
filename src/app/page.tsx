@@ -39,8 +39,6 @@ export default async function Home() {
     <div className="lp dots">
       <header className="lp-top">
         <a href="/" className="lp-brand" aria-label="GaDu, início">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/avatar/logo-96.webp" alt="" width={36} height={36} />
           <span className="brand">GaDu</span>
         </a>
         <nav className="lp-nav" aria-label="Seções">
@@ -59,9 +57,9 @@ export default async function Home() {
         <section className="lp-hero">
           <div className="lp-stage on-dark"><div className="lp-avatar"><Avatar mode="speaking" label="O rosto do GaDu" /></div></div>
           <div className="lp-hero-text">
-            <span className="mono lp-kicker">Sua plataforma de inteligência pessoal</span>
-            <h1>Fale com o GaDu. Ele <em>escuta</em>, <em>lembra</em> e <em>organiza</em>.</h1>
-            <p className="muted">Um assistente por voz e texto que acompanha você em qualquer tela. Hoje ele cuida do seu dia: agenda, e-mails, tarefas e memória. Sempre com a sua aprovação.</p>
+            <span className="lp-kicker">Assistente inteligente e plataforma integrada</span>
+            <h1>Seu assistente para <em>agentes</em>, <em>produtividade</em> e <em>criação</em>.</h1>
+            <p className="muted">O GaDu conversa por voz e texto em qualquer tela. Hoje ele já cuida do seu dia: agenda, e-mails, tarefas, projetos e memória, sempre com a sua aprovação. Financeiro, agentes de trabalho, criação de sites e impressão 3D chegam por módulos, cada um com o status real.</p>
             <div className="row">
               <a className="btn btn-pri lp-cta" href={cta.href}>{cta.label}</a>
               <a className="btn" href="#como">Como funciona</a>
@@ -86,6 +84,13 @@ export default async function Home() {
           <h2>O que já funciona e o que está no plano</h2>
           <p className="muted">O GaDu cresce por módulos. Cada um mostra o status real: nada aparece como pronto antes de estar.</p>
           <ModuleCards />
+          <div className="lp-ctx">
+            <span className="lp-ctx-ico" aria-hidden="true"><Icon name="spark" size={22} /></span>
+            <div>
+              <b>Inteligência contextual <span className="pill parcial">Beta</span></b>
+              <p className="muted">O assistente já sabe em que módulo e tela você está e usa só os seus dados. Conectar informações entre tarefas, agenda, financeiro, projetos e agentes é a próxima etapa, com permissões e auditoria.</p>
+            </div>
+          </div>
         </section>
 
         <section className="lp-section lp-assist" id="assistente">
