@@ -6,6 +6,23 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`). Só documentação, não integrada.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-15 · PR #18 · Qualidade e Segurança
+- **Testes de interface:**
+  - Playwright 1.63.0 como dependência oficial (versão fixa, lockfile atualizado);
+  - suíte dividida em `e2e/public.e2e.cjs` (6 testes, sem login e sem segredos) e `e2e/auth.e2e.cjs` (14 testes, usuário de teste), com funções comuns em `e2e/helpers.cjs` e login por variável de ambiente em `e2e/login.cjs`;
+  - **nada é pulado:** faltando variável, a suíte falha;
+  - scripts novos: `test:e2e:public`, `test:e2e:auth`, `test:e2e`, `e2e:browsers`.
+- **CI:** novo job `e2e-public` no `pr-checks.yml`. Ele sobe o app com um Supabase fictício e roda os testes públicos (home e login em 7 larguras, 401 nas APIs sem login, CSP, tema claro).
+- **Corrigido** (achado pelos testes novos): links do topo e do rodapé da home e a marca agora têm 44 px.
+- **Auditoria de segurança somente leitura:** `docs/SECURITY_AUDIT_2026-11-15.md`, com matriz S-01 a S-15, evidências do banco e do código e ordem de correção. Nada foi mudado no banco, RLS, autenticação, permissões ou custo.
+- **Comentários corrigidos** (sem mudança de comportamento): cliente admin e cookies de sessão.
+- **Docs novos:** `docs/TESTES_E2E.md` (inclui a proposta de testes com login no CI), `docs/VALIDACAO_APARELHOS.md` e `docs/CORE_CONTEXTUAL_MVP.md`.
+- Testado:
+  - typecheck, 46 testes unitários e 16 de integração, build;
+  - os 6 testes públicos num **clone limpo depois de `npm ci`**, sem `.env`, com Supabase fictício (como no CI);
+  - os 6 + 14 testes contra o servidor local com o usuário de teste: 20 aprovados, 0 pulados.
+- **Publicado**: PUBLICACAO_PENDENTE
+
 ## 2026-11-14 · `18f1071` · Sprint UX/UI v2.2 (PR #16)
 - **Navegação híbrida no celular** (`GaduApp.tsx`, `src/app/v2.css`):
   - a barra de baixo fica com o uso frequente: Hoje, Conversas, GaDu, Tarefas e Módulos;

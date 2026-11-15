@@ -87,14 +87,14 @@ Seis módulos: Pessoal, Financeiro, Agent Office, Agent Office Studio, 3D Studio
 ## Acessibilidade
 - Foco visível em tudo (`:focus-visible` ciano).
 - Atalho "Pular para o conteúdo" no primeiro Tab.
-- Alvos de toque com no mínimo 44 px (`--touch`), incluindo `.btn-sm`, chips, grupos do menu e abas; verificados automaticamente em 360, 390, 412, 768, 1024, 1440 e 1920 px (`e2e/ui.e2e.cjs`). Exceção: links dentro de texto corrido (WCAG 2.5.8).
+- Alvos de toque com no mínimo 44 px (`--touch`), incluindo `.btn-sm`, chips, grupos do menu e abas; verificados automaticamente em 360, 390, 412, 768, 1024, 1440 e 1920 px (`e2e/public.e2e.cjs` e `e2e/auth.e2e.cjs`). Exceção: links dentro de texto corrido (WCAG 2.5.8).
 - Interruptores: `<label class="switch">` com `input[role=switch].sr` e `.tgl` visual; a linha inteira é clicável.
 - Contraste medido (WCAG): texto principal 15:1 ou mais nos dois temas; texto de apoio 6,8:1 (escuro) e 5,3:1 (claro); ciano de ação 10,8:1 (escuro) e 4,7:1 (claro); botão principal claro 5,2:1.
 - `aria-current` na aba ativa; diálogos com `aria-modal`; textos de estado com `role="status"`.
 - Respeita "reduzir movimento".
 
 ## Como verificar uma mudança visual
-1. `npm run build && npm start`; rode `E2E_BASE=… E2E_STATE=… npm run test:e2e` (usuário de teste) e abra as telas em **360, 390, 412, 768, 1024, 1440 e 1920 px**. Para as telas do app sem login, use uma prévia local com dados fictícios, fora do commit.
+1. `npm run build && npm start`; rode `npm run test:e2e:public` e `npm run test:e2e:auth` (usuário de teste; ver docs/TESTES_E2E.md) e abra as telas em **360, 390, 412, 768, 1024, 1440 e 1920 px**. Para as telas do app sem login, use uma prévia local com dados fictícios, fora do commit.
 2. Conferir: sem rolagem horizontal, nada escondido atrás do menu de baixo ou da voz flutuante, foco visível, alvos de toque.
 3. Conferir o console: nenhum erro de hidratação. O que depende do aparelho (voz, microfone) é detectado em `useEffect`, nunca durante a renderização.
 
