@@ -40,16 +40,19 @@ describe("telas públicas", () => {
     assert.deepEqual(problems, []);
   });
   test("API protegida recusa sem login, antes de qualquer custo", async () => {
+    // Pelo próprio navegador (mesma rede e proxy da página), sem sessão.
     const p = await page(PHONE, { auth: false });
-    const r = await p.request.post(`${BASE}/api/chat`, { data: { message: "oi" } });
-    assert.equal(r.status(), 401);
-    const u = await p.request.get(`${BASE}/api/usage`);
-    assert.equal(u.status(), 401);
+    await p.goto(`${BASE}/`);
+    const st = await p.evaluate(async () => ({
+      chat: (await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: "oi" }) })).status,
+      usage: (await fetch("/api/usage")).status,
+    }));
+    assert.deepEqual(st, { chat: 401, usage: 401 });
     await p.context().close();
   });
   test("cabeçalhos de segurança: CSP com nonce e sem iframe", async () => {
     const p = await page(PHONE, { auth: false });
-    const r = await p.request.get(`${BASE}/`);
+    const r = await p.goto(`${BASE}/`);
     const csp = r.headers()["content-security-policy"] ?? "";
     assert.match(csp, /script-src 'self' 'nonce-/);
     assert.match(csp, /frame-ancestors 'none'/);
