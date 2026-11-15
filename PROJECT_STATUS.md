@@ -1,6 +1,6 @@
 # GaDu · Situação do projeto
 
-Atualizado em 14/11/2026, depois da Sprint UX/UI v2.2 (Claude Code). Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
+Atualizado em 15/11/2026, depois do ciclo de Qualidade e Segurança (Claude Code). Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
 
 ## Ambiente de produção (verificado em 14/11/2026)
 | Item | Estado | Evidência |
@@ -40,6 +40,12 @@ Atualizado em 14/11/2026, depois da Sprint UX/UI v2.2 (Claude Code). Fonte de ve
   - todas as telas restantes redesenhadas;
   - home com a visão completa;
   - arquitetura do Core Contextual documentada.
+- PR #18, Qualidade e Segurança (15/11):
+  - Playwright como dependência oficial (versão fixa);
+  - testes de interface separados em público (no CI, sem segredos) e com login (falham se faltar credencial, nunca são pulados);
+  - regressão completa aprovada;
+  - auditoria de segurança somente leitura com matriz de riscos;
+  - plano do Core Contextual MVP.
 - PR #16, Sprint UX/UI v2.2:
   - navegação híbrida no celular (barra de baixo, tela Módulos, menu da conta com o Voltar do Android);
   - menu do computador por área e recolhível;
@@ -70,7 +76,10 @@ Atualizado em 14/11/2026, depois da Sprint UX/UI v2.2 (Claude Code). Fonte de ve
 - Módulos planejados, sem código: Financeiro, 3D Studio, Agent Office (além dos agentes), Agent Office Studio.
 
 ## Problemas conhecidos e riscos
-1. A função antiga `consume_quota` ainda pode ser chamada por usuários logados (transição; sai na etapa 2).
+Matriz completa, com evidências: [docs/SECURITY_AUDIT_2026-11-15.md](docs/SECURITY_AUDIT_2026-11-15.md).
+- **S-01 (P1, custo):** uma pessoa logada pode liquidar a própria reserva com custo 0 pela API do Supabase e escapar do teto mensal (a cota diária continua valendo). Correção de alto risco, aguarda aprovação.
+- **S-02 a S-09 (P2):** custo de resposta interrompida; limite de tentativas de login e senhas vazadas; bloqueio que não para o agendador nem o acesso direto ao banco; sem hierarquia de admin; função antiga `consume_quota` (ainda usada como contingência no chat); preparação para organizações; backup não confirmado.
+1. A função antiga `consume_quota` ainda pode ser chamada por usuários logados e o chat ainda a usa como contingência (sai na etapa 2, S-07).
 2. App em `iad1` (EUA) e banco em `sa-east-1` (São Paulo): latência extra a cada consulta. Avaliar `gru1`.
 3. A proteção contra senhas vazadas está desligada no Supabase Auth.
 4. O backup automático do plano Supabase não foi confirmado no painel.
@@ -78,15 +87,18 @@ Atualizado em 14/11/2026, depois da Sprint UX/UI v2.2 (Claude Code). Fonte de ve
 6. A estabilidade da voz foi testada com uma síntese de voz simulada; falta confirmar nos aparelhos.
 
 ## Próximas prioridades (em ordem)
-1. Auditoria de RLS e isolamento multiusuário e multiempresa.
-2. Core Contextual ([docs/CORE_CONTEXTUAL.md](docs/CORE_CONTEXTUAL.md)), depois do item 1.
-3. Financeiro: revisar o PR #5 e começar a base (alto risco: banco).
-4. Agent Office; depois Agent Office Studio e 3D Studio.
-5. Observabilidade e créditos por pessoa; testes de ponta a ponta e voz nos aparelhos.
+1. **Correções de segurança com aprovação** (fase 0 do Core): S-01 e S-02 (custo), S-03 (senhas vazadas e limite de tentativas), etapa 2 da cota (S-07), confirmação de backups (S-09).
+2. **Core Contextual MVP, fase 1** (escopo pessoal, sem banco novo): [docs/CORE_CONTEXTUAL_MVP.md](docs/CORE_CONTEXTUAL_MVP.md).
+3. Testes com login no CI, conforme a proposta em [docs/TESTES_E2E.md](docs/TESTES_E2E.md) (precisa de segredo no GitHub: aprovação).
+4. Validação em aparelhos: [docs/VALIDACAO_APARELHOS.md](docs/VALIDACAO_APARELHOS.md).
+5. Modelo de organizações e testes de isolamento entre organizações (S-08), antes do Agent Office.
+6. Financeiro: revisar o PR #5 e começar a base (alto risco: banco).
+7. Agent Office; depois Agent Office Studio e 3D Studio.
+8. Observabilidade e créditos por pessoa.
 
 ## Ponto de retomada (para qualquer agente)
 1. Leia `CLAUDE.md`, este arquivo, [docs/FAST_TRACK.md](docs/FAST_TRACK.md) e [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md). O handoff técnico está em `docs/CLAUDE_HANDOFF_2026-11-12.md`.
 2. Confira o estado real: `git log origin/main -5`, PRs abertos no GitHub, o último deploy de produção na Vercel e `list_migrations` no Supabase.
 3. Classifique o que vai fazer: baixo risco (UI, docs) segue o processo simplificado; alto risco (banco, auth, custo, permissões) exige aprovação explícita do Eduardo a cada passo.
-4. Antes de subir: `npm run typecheck && npm test && npm run build`, mais `npm run test:db` quando houver SQL. Para mudança visual, siga o roteiro de verificação do Design System (360, 390, 412, 768, 1024, 1440 e 1920 px).
+4. Antes de subir: `npm run typecheck && npm test && npm run build`, mais `npm run test:db` quando houver SQL. Testes de interface: `npm run test:e2e:public` (vai no CI) e `npm run test:e2e:auth` com o usuário de teste ([docs/TESTES_E2E.md](docs/TESTES_E2E.md)). Para mudança visual, siga o roteiro de verificação do Design System (360, 390, 412, 768, 1024, 1440 e 1920 px).
 5. Ao terminar: atualize este arquivo, o [CHANGELOG.md](CHANGELOG.md), o [ROADMAP.md](ROADMAP.md) e a [matriz](docs/FEATURE_MATRIX.md), e gere o "GaDu — Resumo para ChatGPT".

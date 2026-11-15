@@ -1,6 +1,6 @@
 # Core Contextual do GaDu: arquitetura futura
 
-Estado em 14/11/2026: **planejado**. Na interface, isto aparece como "Inteligência integrada entre módulos · Planejado"; o que existe hoje aparece como "Contexto da tela · Beta". Hoje existe só o contrato de contexto do Assistente Universal (`src/lib/assistant-context.ts`). Os tipos da etapa futura ficam em `src/lib/core-context.ts`, sem uso em produção. Nada aqui amplia o acesso atual.
+Estado em 14/11/2026: **planejado**. Na interface, isto aparece como "Inteligência integrada entre módulos · Planejado"; o que existe hoje aparece como "Contexto da tela · Beta". Hoje existe só o contrato de contexto do Assistente Universal (`src/lib/assistant-context.ts`). Os tipos da etapa futura ficam em `src/lib/core-context.ts`, sem uso em produção. Nada aqui amplia o acesso atual. Plano da primeira entrega (escopo pessoal): [CORE_CONTEXTUAL_MVP.md](CORE_CONTEXTUAL_MVP.md).
 
 ## Objetivo
 Permitir que o GaDu relacione informações entre módulos (tarefas, agenda, memória, projetos, financeiro, agentes, Studio, 3D Studio) para responder melhor. Exemplo: "tenho dinheiro para a viagem do projeto X na semana que vem?". O acesso deve continuar sempre limitado ao que a pessoa pode ver.

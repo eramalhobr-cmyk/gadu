@@ -663,3 +663,7 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 /* Alvos de toque: 44 px também nos botões pequenos, chips, grupos do menu, marca e abas. */
 .btn-sm, .chip, .nav-grp-head, .nav-brand, .set-nav a, .tip .btn { min-height: var(--touch); }
 .btn-sm, .tip .btn { min-width: var(--touch); }
+/* Home pública: links do topo, marca e rodapé com área de toque de 44 px. */
+.lp-top a, .lp-nav a, .lp-foot a { display: inline-flex; align-items: center; min-height: var(--touch); }
+.lp-nav { align-items: center; }
+.lp-foot a { padding: 0 var(--s-1); }

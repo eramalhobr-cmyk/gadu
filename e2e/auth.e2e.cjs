@@ -1,107 +1,22 @@
-// Testes de interface (Playwright) do GaDu. Rodam contra um servidor já ligado.
-//   E2E_BASE=http://localhost:3000 npm run test:e2e                 → só as telas públicas
-//   E2E_BASE=... E2E_STATE=/caminho/sessao.json npm run test:e2e   → também as telas com login
-// E2E_STATE é um storageState do Playwright de um usuário de TESTE (nunca dados reais).
-// Nada aqui chama a IA paga: /api/chat é simulado. Voz é simulada (não substitui o teste no aparelho).
-// Dados de Tarefas e Projetos vêm de fixtures; escritas no banco são bloqueadas nesses testes.
+// Testes de interface com login, contra um servidor ligado e um usuário de TESTE isolado (nunca dados reais).
+//   E2E_BASE=... E2E_STATE=/caminho/sessao.json npm run test:e2e:auth
+//   ou E2E_BASE=... E2E_EMAIL=... E2E_PASSWORD=... (a sessão é criada pelo login de senha do próprio app)
+// Faltando variável, a execução FALHA: teste pulado não conta como aprovado.
 const { test, describe, before, after } = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const { chromium } = require("playwright");
-
-const BASE = process.env.E2E_BASE;
-const STATE = process.env.E2E_STATE && fs.existsSync(process.env.E2E_STATE) ? process.env.E2E_STATE : null;
-const WIDTHS = [360, 390, 412, 768, 1024, 1440, 1920];
-const PHONE = { width: 390, height: 844 };
-const DESK = { width: 1440, height: 900 };
-
-let browser;
-before(async () => { if (BASE) browser = await chromium.launch(); });
-after(async () => { await browser?.close(); });
-
-/** Voz simulada: modo "final" (entende "teste de voz"), "deny" (microfone negado) ou "hang" (nunca termina). */
-function fakeVoice(mode) {
-  return `(() => {
-    window.__rec = { starts: 0, stops: 0 };
-    class FakeRec {
-      start() {
-        window.__rec.starts++;
-        const m = ${JSON.stringify(mode)};
-        if (m === "deny") setTimeout(() => this.onerror && this.onerror({ error: "not-allowed" }), 50);
-        if (m === "final") setTimeout(() => {
-          const r = [{ transcript: "teste de voz" }]; r.isFinal = true;
-          this.onresult && this.onresult({ resultIndex: 0, results: [r] });
-          this.onend && this.onend();
-        }, 120);
-      }
-      stop() { window.__rec.stops++; setTimeout(() => this.onend && this.onend(), 10); }
-      abort() { this.stop(); }
-    }
-    window.SpeechRecognition = FakeRec; window.webkitSpeechRecognition = FakeRec;
-  })();`;
-}
-/** Preferências no aparelho: voz da resposta desligada nos testes (determinístico). */
-const quietPrefs = `try { localStorage.setItem("gadu.prefs", JSON.stringify({ voice: false, handsFree: false, voiceURI: "", rate: 1, autoSend: false })); localStorage.setItem("gadu.assist", "0"); } catch {}`;
-
-async function page(viewport, opts = {}) {
-  const ctx = await browser.newContext({ viewport, storageState: opts.auth === false ? undefined : STATE ?? undefined });
-  if (opts.init !== false) await ctx.addInitScript(quietPrefs);
-  if (opts.voice) await ctx.addInitScript(fakeVoice(opts.voice));
-  const p = await ctx.newPage();
-  p.on("pageerror", (e) => { p.__errors = (p.__errors || []).concat(String(e)); });
-  return p;
-}
-/** Chat simulado: conta os pedidos e devolve uma resposta curta, sem IA. */
-async function mockChat(p, { delay = 0, text = "Resposta de teste." } = {}) {
-  const calls = { n: 0 };
-  await p.route("**/api/chat", async (route) => {
-    calls.n++;
-    if (delay) await new Promise((r) => setTimeout(r, delay));
-    const body = [{ t: "start", conversationId: null }, { t: "provider", name: "teste" }, { t: "delta", text }, { t: "done", memories: 0 }].map((x) => JSON.stringify(x)).join("\n") + "\n";
-    await route.fulfill({ status: 200, contentType: "application/x-ndjson", body }).catch(() => {});
-  });
-  return calls;
-}
-/** Fixtures de Tarefas e Projetos; qualquer escrita no banco é bloqueada. */
-async function fixtures(p, { tasks = [], projects = [], tasksStatus = 200 } = {}) {
-  await p.route("**/rest/v1/**", async (route) => {
-    const req = route.request();
-    const url = req.url();
-    if (req.method() !== "GET" && req.method() !== "HEAD") return route.abort();
-    if (url.includes("/rest/v1/tasks")) return tasksStatus !== 200 ? route.fulfill({ status: tasksStatus, body: "{}" }) : route.fulfill({ status: 200, contentType: "application/json", headers: { "content-range": `0-${tasks.length}/${tasks.length}` }, body: JSON.stringify(tasks) });
-    if (url.includes("/rest/v1/projects")) return route.fulfill({ status: 200, contentType: "application/json", headers: { "content-range": `0-${projects.length}/${projects.length}` }, body: JSON.stringify(projects) });
-    return route.continue();
-  });
-}
-async function overflowX(p) { return p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); }
-/** Alvos de toque visíveis menores que 44 px (links dentro de texto corrido são exceção do WCAG 2.5.8). */
-async function smallTargets(p) {
-  return p.evaluate(() => [...document.querySelectorAll("button, a, input, select, textarea, [role=switch]")].filter((e) => {
-    const r = e.getBoundingClientRect(); const cs = getComputedStyle(e);
-    if (!r.width || !r.height || r.bottom <= 0 || cs.visibility === "hidden" || e.closest(".sr, [inert], [aria-hidden=true]")) return false;
-    if (e.tagName === "A" && e.closest("p, li, small, figcaption")) return false;
-    return r.height < 44 || r.width < 44;
-  }).map((e) => `${(e.getAttribute("aria-label") || e.textContent || e.className).trim().slice(0, 30)} ${Math.round(e.getBoundingClientRect().width)}x${Math.round(e.getBoundingClientRect().height)}`));
-}
-
-describe("telas públicas", { skip: !BASE && "defina E2E_BASE" }, () => {
-  test("home mostra os módulos com status real, incluindo Casa e Metas", async () => {
-    const p = await page(DESK, { auth: false });
-    await p.goto(`${BASE}/`);
-    const html = await p.content();
-    for (const t of ["Casa Inteligente", "Metas &amp; Conquistas", "Contexto da tela", "Inteligência integrada entre módulos"]) assert.ok(html.includes(t), t);
-    assert.equal(await overflowX(p), 0);
-    await p.context().close();
-  });
-  test("app sem login vai para o login", async () => {
-    const p = await page(PHONE, { auth: false });
-    await p.goto(`${BASE}/app`);
-    assert.match(p.url(), /\/login/);
-    await p.context().close();
-  });
+const h = require("./helpers.cjs");
+const { login } = require("./login.cjs");
+const { WIDTHS, PHONE, DESK, page: rawPage, mockChat, fixtures, overflowX, smallTargets } = h;
+let BASE, STATE;
+before(async () => {
+  BASE = h.need("E2E_BASE");
+  STATE = h.STATE ?? (process.env.E2E_EMAIL ? await login(BASE, h.need("E2E_EMAIL"), h.need("E2E_PASSWORD")) : h.need("E2E_STATE"));
+  await h.launch();
 });
+after(h.close);
+const page = (vp, opts = {}) => rawPage(vp, { ...opts, state: STATE });
 
-describe("app com login", { skip: (!BASE || !STATE) && "defina E2E_BASE e E2E_STATE (usuário de teste)" }, () => {
+describe("app com login", () => {
   test("sem rolagem lateral e com alvos de 44 px em 7 larguras", async () => {
     const problems = [];
     for (const w of WIDTHS) {

@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 14/11/2026 (Sprint UX/UI v2.2). Produção: https://gadu-agent.vercel.app (commit `18f1071`).
+Atualizado a cada entrega. Última atualização: 15/11/2026 (ciclo de Qualidade e Segurança). Produção: https://gadu-agent.vercel.app (commit `18f1071`).
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 Documentos relacionados:
@@ -271,6 +271,18 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [x] Testes de interface com Playwright (16 cenários)
 - [ ] Validar voz, teclado e Voltar em iPhone e Android (humano)
 - [ ] Logo novo (aguardando o arquivo)
+
+## Qualidade e Segurança (15/11, PR #18)
+- [x] Playwright como dependência oficial, com lockfile atualizado
+- [x] Testes reproduzíveis depois de `npm ci` (clone limpo, sem `.env`)
+- [x] Testes públicos no CI (job `e2e-public`), sem segredos
+- [x] Testes com login: falham se faltar credencial (nada é pulado); proposta de execução segura no CI (docs/TESTES_E2E.md)
+- [x] Regressão de navegação, assistente, temas e voz simulada (6 + 14 testes)
+- [x] Validações de aparelho documentadas (docs/VALIDACAO_APARELHOS.md)
+- [x] Auditoria de segurança somente leitura e matriz de riscos (docs/SECURITY_AUDIT_2026-11-15.md)
+- [x] Plano do Core Contextual MVP (docs/CORE_CONTEXTUAL_MVP.md)
+- [ ] Correções de segurança S-01 a S-09 (alto risco: cada uma com aprovação)
+- [ ] Testes com login no CI (segredo em GitHub Environment com revisor: aprovação)
 
 ## Próximo ciclo (prioridades, em ordem)
 1. Auditoria de RLS e isolamento multiusuário e multiempresa.

@@ -108,7 +108,7 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Menu com grupos recolhíveis; barra de baixo sem duplicação | implementado | — | `GaduApp.tsx`, `src/app/v2.css` | PR #14 |
 | Navegação híbrida no celular (barra de baixo, tela Módulos, menu da conta pela esquerda, Voltar do Android) | implementado | — | `GaduApp.tsx`, `ModulePage.tsx` (`ModulesHub`), `src/app/v2.css` | PR #16; validar o Voltar em aparelho Android |
 | Menu lateral do computador por área e recolhível | implementado | — | `GaduApp.tsx`, `src/app/v2.css` | PR #16 |
-| Testes de interface automatizados (Playwright) | implementado | — | `e2e/ui.e2e.cjs` | PR #16; rodam contra servidor com usuário de teste; ainda fora do CI |
+| Testes de interface automatizados (Playwright) | implementado | — | `e2e/public.e2e.cjs`, `e2e/auth.e2e.cjs` | PR #16; públicos no CI desde o PR #18; com login rodam fora dos PRs (proposta em docs/TESTES_E2E.md) |
 | Metas & Conquistas | planejado | P2 | `src/lib/modules.ts` (catálogo), `docs/METAS_CONQUISTAS.md` | sem banco e sem dados; depende do Core Contextual |
 | Casa Inteligente (GaDu Casa) | planejado | P2 | `src/lib/modules.ts` (catálogo), `docs/CASA_INTELIGENTE.md` | sem integração real; Home Assistant recomendado |
 | Integração de saúde (Samsung Health, Health Connect) | planejado | P3 | `docs/INTEGRACOES_SAUDE.md` | PWA não lê esses dados; exige conector Android e aprovação |

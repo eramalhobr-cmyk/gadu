@@ -8,6 +8,8 @@ on:
       - 'scripts/**'
       - 'package.json'
       - 'package-lock.json'
+      - 'e2e/**'
+      - 'public/**'
       - '.github/workflows/pr-checks.yml'
   workflow_dispatch:
 
@@ -30,6 +32,33 @@ jobs:
       - run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+
+  e2e-public:
+    # Testes de interface SEM login e SEM segredos: home, login, rotas protegidas recusando (401) e cabeçalhos.
+    # O Supabase aqui é um endereço fictício: nenhum dado real e nenhuma chamada à IA paga.
+    # Testes com login rodam fora dos PRs (docs/TESTES_E2E.md); nada aqui é pulado.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54321'
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'ci-chave-publica-ficticia'
+      E2E_BASE: 'http://127.0.0.1:3100'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run e2e:browsers
+      - run: npm run build
+      - name: Sobe o app e espera responder
+        run: |
+          npx next start -p 3100 > /tmp/next.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf "$E2E_BASE/api/health" > /dev/null && exit 0; sleep 1; done
+          cat /tmp/next.log; exit 1
+      - run: npm run test:e2e:public
 
   database:
     # Postgres temporário do próprio runner: aplica migrações e roda testes SQL e de concorrência.

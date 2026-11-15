@@ -15,7 +15,10 @@
     "test:unit": "node --test --experimental-strip-types src/lib/*.test.ts",
     "test:integration": "node --test --experimental-strip-types --experimental-test-module-mocks --import ./test/register-alias.mjs test/*.test.ts",
     "test:db": "bash scripts/test-db.sh",
-    "test:e2e": "node --test --test-concurrency=1 e2e/*.e2e.cjs"
+    "test:e2e": "npm run test:e2e:public && npm run test:e2e:auth",
+    "test:e2e:public": "node --test --test-concurrency=1 e2e/public.e2e.cjs",
+    "test:e2e:auth": "node --test --test-concurrency=1 e2e/auth.e2e.cjs",
+    "e2e:browsers": "playwright install --with-deps chromium"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.6.0",
@@ -33,6 +36,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@types/web-push": "3.6.4",
+    "playwright": "1.63.0",
     "typescript": "5.9.3"
   }
 }
