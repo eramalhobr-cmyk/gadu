@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 15/11/2026 (ciclo de Qualidade e Segurança). Produção: https://gadu-agent.vercel.app (commit `18f1071`).
+Atualizado a cada entrega. Última atualização: 15/11/2026 (ciclo de Qualidade e Segurança). Produção: https://gadu-agent.vercel.app (commit `4669181`).
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 Documentos relacionados:
@@ -272,7 +272,7 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [ ] Validar voz, teclado e Voltar em iPhone e Android (humano)
 - [ ] Logo novo (aguardando o arquivo)
 
-## Qualidade e Segurança (15/11, PR #18)
+## Qualidade e Segurança (15/11, PRs #18 e #19)
 - [x] Playwright como dependência oficial, com lockfile atualizado
 - [x] Testes reproduzíveis depois de `npm ci` (clone limpo, sem `.env`)
 - [x] Testes públicos no CI (job `e2e-public`), sem segredos

@@ -6,7 +6,7 @@ Atualizado em 15/11/2026, depois do ciclo de Qualidade e Segurança (Claude Code
 | Item | Estado | Evidência |
 |---|---|---|
 | App | https://gadu-agent.vercel.app | Vercel, projeto `gadu-agent`, região `iad1` |
-| Última publicação | commit `18f1071` (merge do PR #16, Sprint UX/UI v2.2) | deploy `dpl_DEQDkX2dCyP9tbdaHSit6HzniL6U`, `READY`; 16 testes de interface aprovados em produção; capturas reais com login em 390 e 1440 px, nos dois temas |
+| Última publicação | commit `4669181` (merge do PR #18, Qualidade e Segurança) | deploy `dpl_DkLudEdzoaxcpiAQVN8WohUGjLyj`, `READY`; testes de interface em produção: 6 públicos + 14 com login, 0 pulados; CI com o job `e2e-public` |
 | Banco | Supabase `sa-east-1`, Postgres 17 | 9 migrações registradas; as últimas são `daily_quota_atomic` e `ai_budget_reservations` |
 | Cota diária | `consume_daily_quota()`, limite 150 em `private.quota_policy` | teste com usuário temporário e rollback; **uso real**: 4 mensagens contadas em 12/11 (dia de Brasília) |
 | Orçamento mensal | `reserve/settle/release_ai_budget`, teto US$ 20 em `private.budget_policy` | teste com usuário temporário e rollback (teto, idempotência, isolamento, permissões); **uso real**: 1 reserva liquidada pelo custo real e ligada ao consumo |
@@ -40,7 +40,7 @@ Atualizado em 15/11/2026, depois do ciclo de Qualidade e Segurança (Claude Code
   - todas as telas restantes redesenhadas;
   - home com a visão completa;
   - arquitetura do Core Contextual documentada.
-- PR #18, Qualidade e Segurança (15/11):
+- PRs #18 e #19, Qualidade e Segurança (15/11):
   - Playwright como dependência oficial (versão fixa);
   - testes de interface separados em público (no CI, sem segredos) e com login (falham se faltar credencial, nunca são pulados);
   - regressão completa aprovada;

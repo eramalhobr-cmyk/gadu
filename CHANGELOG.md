@@ -6,7 +6,7 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`). Só documentação, não integrada.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
-## 2026-11-15 · PR #18 · Qualidade e Segurança
+## 2026-11-15 · `4669181` · Qualidade e Segurança (PR #18; ajuste no PR #19)
 - **Testes de interface:**
   - Playwright 1.63.0 como dependência oficial (versão fixa, lockfile atualizado);
   - suíte dividida em `e2e/public.e2e.cjs` (6 testes, sem login e sem segredos) e `e2e/auth.e2e.cjs` (14 testes, usuário de teste), com funções comuns em `e2e/helpers.cjs` e login por variável de ambiente em `e2e/login.cjs`;
@@ -21,7 +21,8 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
   - typecheck, 46 testes unitários e 16 de integração, build;
   - os 6 testes públicos num **clone limpo depois de `npm ci`**, sem `.env`, com Supabase fictício (como no CI);
   - os 6 + 14 testes contra o servidor local com o usuário de teste: 20 aprovados, 0 pulados.
-- **Publicado**: PUBLICACAO_PENDENTE
+- **CI no GitHub:** o job `e2e-public` rodou 6 testes, 6 aprovados e 0 pulados.
+- **Publicado**: deploy `dpl_DkLudEdzoaxcpiAQVN8WohUGjLyj` `READY`. Em produção, com o usuário de teste: 6 + 14 testes aprovados, 0 pulados. No PR #19, os testes de 401 e CSP passaram a medir pelo próprio navegador (o cliente HTTP do Playwright não usa o proxy de algumas redes). Rollback: reverter os PRs #18 e #19 ou promover o deploy do PR #17.
 
 ## 2026-11-14 · `18f1071` · Sprint UX/UI v2.2 (PR #16)
 - **Navegação híbrida no celular** (`GaduApp.tsx`, `src/app/v2.css`):
