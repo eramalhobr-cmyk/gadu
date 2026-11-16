@@ -24,11 +24,13 @@ run() { "${PSQL[@]}" -f "$1" 2>&1 | sed -n 's/^\(psql:[^:]*:[0-9]*: \)\{0,1\}NOT
 
 echo "== aplicando imitação do Supabase e migrações"
 "${PSQL[@]}" -f "$ROOT/supabase/tests/00_supabase_shim.sql" >/dev/null
-# Só as migrações necessárias e que rodam em Postgres puro (as de pgvector ficam de fora).
-MIGRATIONS=(20261108000001_init.sql 20261109000001_usage_costs.sql 20261109000002_memory_v2_usage.sql 20261113120001_daily_quota_atomic.sql 20261113140001_ai_budget_reservations.sql)
-for m in "${MIGRATIONS[@]}"; do
-  "${PSQL[@]}" -f "$ROOT/supabase/migrations/$m" >/dev/null
-  echo "   aplicada $m"
+# Todas as migrações, em ordem (o banco de teste fica igual ao de produção, sem dados).
+# A busca por significado usa pgvector: sem ele, o teste FALHA (nunca pula tabelas em silêncio).
+"${PSQL[@]}" -At -c "select 1 from pg_available_extensions where name = 'vector'" | grep -qx 1 \
+  || { echo "FALHOU: extensão pgvector não instalada (ex.: apt-get install postgresql-\$(pg_config --version | grep -oE '[0-9]+' | head -1)-pgvector)"; exit 1; }
+for f in "$ROOT"/supabase/migrations/*.sql; do
+  "${PSQL[@]}" -f "$f" >/dev/null
+  echo "   aplicada $(basename "$f")"
 done
 
 echo "== testes SQL"
@@ -96,5 +98,10 @@ concurrent g3 00000000-0000-0000-0000-0000000000b2 10 "(public.reserve_ai_budget
 concurrent g4 00000000-0000-0000-0000-0000000000b3 10 "(public.reserve_ai_budget('chat', 0.25) ->> 'allowed')::boolean" > "$WORK/out_g4" &
 wait
 expect "teto global livre: reservas somadas das duas pessoas" "$(sum2 "$(num "$WORK/out_g3")" "$(num "$WORK/out_g4")")" 4
+
+if [ "${GADU_AUDIT:-}" = "1" ]; then
+  echo "== auditoria dos riscos conhecidos (informativo, não aprova nada)"
+  "${PSQL[@]}" -f "$ROOT/supabase/tests/audit/riscos_conhecidos.sql" 2>&1 | sed -n 's/^.*NOTICE:  //p'
+fi
 
 if [ "$FAIL" = "0" ]; then echo "== test:db: todos os testes passaram"; else echo "== test:db: FALHAS encontradas"; exit 1; fi

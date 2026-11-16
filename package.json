@@ -18,7 +18,8 @@
     "test:e2e": "npm run test:e2e:public && npm run test:e2e:auth",
     "test:e2e:public": "node --test --test-concurrency=1 e2e/public.e2e.cjs",
     "test:e2e:auth": "node --test --test-concurrency=1 e2e/auth.e2e.cjs",
-    "e2e:browsers": "playwright install --with-deps chromium"
+    "e2e:browsers": "playwright install --with-deps chromium",
+    "audit:db": "GADU_AUDIT=1 bash scripts/test-db.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.6.0",

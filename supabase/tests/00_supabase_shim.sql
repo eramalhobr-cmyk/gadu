@@ -15,6 +15,10 @@ create function auth.uid() returns uuid language sql stable as $$
   select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
 $$;
 grant usage on schema auth to anon, authenticated, service_role;
+
+-- Schema de extensões do Supabase (pgvector vive aqui).
+create schema if not exists extensions;
+grant usage on schema extensions to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated, service_role;
 
 -- Privilégios padrão que o Supabase dá no schema public (o controle real é a RLS).
