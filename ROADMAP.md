@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 16/11/2026 (ciclo de Isolamento e preparação do Core). Produção: https://gadu-agent.vercel.app (commit `4669181`).
+Atualizado a cada entrega. Última atualização: 16/11/2026 (ciclo de Isolamento e preparação do Core). Produção: https://gadu-agent.vercel.app (commit `b992422`).
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 Documentos relacionados:

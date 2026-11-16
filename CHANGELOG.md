@@ -6,7 +6,7 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`). Só documentação, não integrada.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
-## 2026-11-16 · PR #20 · Isolamento e preparação do Core
+## 2026-11-16 · `b992422` · Isolamento e preparação do Core (PR #20)
 - **Banco de teste completo:** `scripts/test-db.sh` aplica **todas** as 9 migrações, em ordem, inclusive a de pgvector. Antes eram 5. Sem pgvector, o teste falha em vez de pular tabelas. O shim ganhou o schema `extensions`.
 - **Isolamento entre pessoas** (`supabase/tests/30_isolamento.test.sql`, com dados sintéticos):
   - 18 tabelas: leitura própria; sem leitura, alteração, exclusão ou inserção na outra pessoa; nada sem login; linhas intactas;
@@ -22,7 +22,8 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
   - `npm run audit:db`: 5 de 5 riscos confirmados;
   - typecheck, testes unitários e de integração, build;
   - testes de interface públicos (clone limpo) e com login (servidor local).
-- **Publicado**: PUBLICACAO_PENDENTE
+- **CI no GitHub** (run 43865196515): `verify`, `e2e-public` (6 aprovados, 0 pulados) e `database` aprovados. O `database` usou Postgres 18 com pgvector, aplicou as 9 migrações e passou no isolamento das 18 tabelas.
+- **Publicado**: deploy `dpl_93GgJbNyQZH6AVPDyPZp11UUtJEx` `READY`. Sem mudança no app. Depois do deploy, em produção com o usuário de teste: 6 + 14 testes de interface aprovados, 0 pulados.
 
 ## 2026-11-15 · `4669181` · Qualidade e Segurança (PR #18; ajuste no PR #19)
 - **Testes de interface:**

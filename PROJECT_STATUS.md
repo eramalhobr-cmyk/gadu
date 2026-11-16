@@ -6,7 +6,7 @@ Atualizado em 16/11/2026, depois do ciclo de Isolamento e preparação do Core (
 | Item | Estado | Evidência |
 |---|---|---|
 | App | https://gadu-agent.vercel.app | Vercel, projeto `gadu-agent`, região `iad1` |
-| Última publicação | commit `4669181` (merge do PR #18, Qualidade e Segurança) | deploy `dpl_DkLudEdzoaxcpiAQVN8WohUGjLyj`, `READY`; testes de interface em produção: 6 públicos + 14 com login, 0 pulados; CI com o job `e2e-public` |
+| Última publicação | commit `b992422` (merge do PR #20, Isolamento e preparação do Core) | deploy `dpl_93GgJbNyQZH6AVPDyPZp11UUtJEx`, `READY`; testes de interface em produção: 6 públicos + 14 com login, 0 pulados; CI com isolamento nas 18 tabelas |
 | Banco | Supabase `sa-east-1`, Postgres 17 | 9 migrações registradas; as últimas são `daily_quota_atomic` e `ai_budget_reservations` |
 | Cota diária | `consume_daily_quota()`, limite 150 em `private.quota_policy` | teste com usuário temporário e rollback; **uso real**: 4 mensagens contadas em 12/11 (dia de Brasília) |
 | Orçamento mensal | `reserve/settle/release_ai_budget`, teto US$ 20 em `private.budget_policy` | teste com usuário temporário e rollback (teto, idempotência, isolamento, permissões); **uso real**: 1 reserva liquidada pelo custo real e ligada ao consumo |
