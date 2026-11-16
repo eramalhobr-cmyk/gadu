@@ -1,6 +1,6 @@
 # GaDu · Situação do projeto
 
-Atualizado em 15/11/2026, depois do ciclo de Qualidade e Segurança (Claude Code). Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
+Atualizado em 16/11/2026, depois do ciclo de Isolamento e preparação do Core (Claude Code). Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
 
 ## Ambiente de produção (verificado em 14/11/2026)
 | Item | Estado | Evidência |
@@ -40,6 +40,12 @@ Atualizado em 15/11/2026, depois do ciclo de Qualidade e Segurança (Claude Code
   - todas as telas restantes redesenhadas;
   - home com a visão completa;
   - arquitetura do Core Contextual documentada.
+- PR #20, Isolamento e preparação do Core (16/11):
+  - teste de isolamento entre pessoas nas 18 tabelas, no CI;
+  - banco de teste com todas as migrações (pgvector);
+  - riscos S-01, S-05, S-07, S-10 e S-12 confirmados em execução local (`npm run audit:db`);
+  - proposta "O que merece minha atenção hoje?" (docs/CORE_ATENCAO_HOJE.md);
+  - roteiro Android (docs/ROTEIRO_ANDROID.md).
 - PRs #18 e #19, Qualidade e Segurança (15/11):
   - Playwright como dependência oficial (versão fixa);
   - testes de interface separados em público (no CI, sem segredos) e com login (falham se faltar credencial, nunca são pulados);
@@ -88,9 +94,9 @@ Matriz completa, com evidências: [docs/SECURITY_AUDIT_2026-11-15.md](docs/SECUR
 
 ## Próximas prioridades (em ordem)
 1. **Correções de segurança com aprovação** (fase 0 do Core): S-01 e S-02 (custo), S-03 (senhas vazadas e limite de tentativas), etapa 2 da cota (S-07), confirmação de backups (S-09).
-2. **Core Contextual MVP, fase 1** (escopo pessoal, sem banco novo): [docs/CORE_CONTEXTUAL_MVP.md](docs/CORE_CONTEXTUAL_MVP.md).
+2. **Core Contextual MVP, fase 1** (escopo pessoal, sem banco novo): primeira entrega proposta em [docs/CORE_ATENCAO_HOJE.md](docs/CORE_ATENCAO_HOJE.md), aguardando decisão; plano geral em [docs/CORE_CONTEXTUAL_MVP.md](docs/CORE_CONTEXTUAL_MVP.md).
 3. Testes com login no CI, conforme a proposta em [docs/TESTES_E2E.md](docs/TESTES_E2E.md) (precisa de segredo no GitHub: aprovação).
-4. Validação em aparelhos: [docs/VALIDACAO_APARELHOS.md](docs/VALIDACAO_APARELHOS.md).
+4. Validação em aparelhos: roteiro curto em [docs/ROTEIRO_ANDROID.md](docs/ROTEIRO_ANDROID.md); lista completa em [docs/VALIDACAO_APARELHOS.md](docs/VALIDACAO_APARELHOS.md).
 5. Modelo de organizações e testes de isolamento entre organizações (S-08), antes do Agent Office.
 6. Financeiro: revisar o PR #5 e começar a base (alto risco: banco).
 7. Agent Office; depois Agent Office Studio e 3D Studio.

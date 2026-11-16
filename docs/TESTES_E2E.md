@@ -18,6 +18,10 @@ Regras:
 - **Fixtures isoladas:** nos testes de Tarefas e Projetos, toda escrita no banco é bloqueada e as leituras vêm de dados de teste.
 - **Sem dados reais:** só o usuário de teste, sem conteúdo pessoal.
 
+## Banco: isolamento e riscos conhecidos
+- `npm run test:db`: Postgres local descartável com **todas** as migrações (precisa do pgvector; sem ele, falha). Roda cota, orçamento, concorrência e o **isolamento entre pessoas nas 18 tabelas**. Vai no CI (job `database`).
+- `npm run audit:db`: o mesmo, mais `supabase/tests/audit/riscos_conhecidos.sql`, que diz CONFIRMADO ou NÃO REPRODUZIDO para cada risco conhecido. É informativo e não roda no CI.
+
 ## Como rodar
 ```bash
 npm ci

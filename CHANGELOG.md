@@ -6,6 +6,24 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`). Só documentação, não integrada.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-16 · PR #20 · Isolamento e preparação do Core
+- **Banco de teste completo:** `scripts/test-db.sh` aplica **todas** as 9 migrações, em ordem, inclusive a de pgvector. Antes eram 5. Sem pgvector, o teste falha em vez de pular tabelas. O shim ganhou o schema `extensions`.
+- **Isolamento entre pessoas** (`supabase/tests/30_isolamento.test.sql`, com dados sintéticos):
+  - 18 tabelas: leitura própria; sem leitura, alteração, exclusão ou inserção na outra pessoa; nada sem login; linhas intactas;
+  - vínculos cruzados (tarefa, mensagem e conversa com dono diferente);
+  - a pessoa não muda o próprio papel ou acesso;
+  - `search_similar` só com os próprios itens;
+  - funções do agendador recusadas.
+- **Auditoria em execução** (`npm run audit:db`, `supabase/tests/audit/riscos_conhecidos.sql`): S-01, S-05, S-07, S-10 e S-12 confirmados localmente. Nada muda no banco de produção.
+- **CI:** o job `database` instala o pgvector e passa a rodar o isolamento em todo PR.
+- **Docs novos:** `docs/CORE_ATENCAO_HOJE.md` (proposta para decisão) e `docs/ROTEIRO_ANDROID.md`. Atualizados: auditoria (verificação em execução), testes, status e roadmap.
+- Testado:
+  - `npm run test:db`: 218 verificações, todas aprovadas (cota, orçamento, concorrência, isolamento);
+  - `npm run audit:db`: 5 de 5 riscos confirmados;
+  - typecheck, testes unitários e de integração, build;
+  - testes de interface públicos (clone limpo) e com login (servidor local).
+- **Publicado**: PUBLICACAO_PENDENTE
+
 ## 2026-11-15 · `4669181` · Qualidade e Segurança (PR #18; ajuste no PR #19)
 - **Testes de interface:**
   - Playwright 1.63.0 como dependência oficial (versão fixa, lockfile atualizado);

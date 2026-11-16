@@ -61,10 +61,16 @@ jobs:
       - run: npm run test:e2e:public
 
   database:
-    # Postgres temporário do próprio runner: aplica migrações e roda testes SQL e de concorrência.
+    # Postgres temporário do próprio runner: aplica TODAS as migrações e roda testes SQL
+    # (cota, orçamento, isolamento entre pessoas em todas as tabelas) e de concorrência.
     # Não usa nenhum segredo e não conecta no Supabase remoto.
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Instala o pgvector no Postgres do runner (todas as migrações rodam no teste)
+        run: |
+          PGV=$(ls /usr/lib/postgresql | sort -V | tail -1)
+          sudo apt-get update -q
+          sudo apt-get install -y -q "postgresql-$PGV-pgvector"
       - run: bash scripts/test-db.sh

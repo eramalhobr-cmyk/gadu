@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 15/11/2026 (ciclo de Qualidade e Segurança). Produção: https://gadu-agent.vercel.app (commit `4669181`).
+Atualizado a cada entrega. Última atualização: 16/11/2026 (ciclo de Isolamento e preparação do Core). Produção: https://gadu-agent.vercel.app (commit `4669181`).
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 Documentos relacionados:
@@ -283,6 +283,15 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [x] Plano do Core Contextual MVP (docs/CORE_CONTEXTUAL_MVP.md)
 - [ ] Correções de segurança S-01 a S-09 (alto risco: cada uma com aprovação)
 - [ ] Testes com login no CI (segredo em GitHub Environment com revisor: aprovação)
+
+## Isolamento e preparação do Core (16/11, PR #20)
+- [x] Banco de teste com todas as migrações (pgvector no local e no CI)
+- [x] Isolamento entre pessoas testado em execução nas 18 tabelas, vínculos cruzados, papéis e busca por significado (CI)
+- [x] Riscos S-01, S-05, S-07, S-10 e S-12 confirmados em execução (`npm run audit:db`)
+- [x] Proposta "O que merece minha atenção hoje?" para decisão (docs/CORE_ATENCAO_HOJE.md)
+- [x] Roteiro curto de validação no Android (docs/ROTEIRO_ANDROID.md)
+- [ ] Decisão sobre a primeira entrega do Core e sobre a correção do S-01
+- [ ] Logo novo (arquivo ainda não está no repositório nem no Drive)
 
 ## Próximo ciclo (prioridades, em ordem)
 1. Auditoria de RLS e isolamento multiusuário e multiempresa.

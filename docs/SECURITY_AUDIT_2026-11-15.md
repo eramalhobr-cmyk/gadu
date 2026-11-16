@@ -28,6 +28,30 @@ Legenda:
 | Backups lógicos | `private.backup_usage_daily_20261113` (2 linhas) e `private.backup_usage_events_20261113` (44 linhas) |
 | Assessor de segurança do Supabase | 6 avisos de função `SECURITY DEFINER` executável por `authenticated` (os da linha acima); proteção contra senhas vazadas **desligada** |
 
+## Verificação em execução (16/11/2026)
+Postgres 16 local e descartável, com **todas as 9 migrações** aplicadas (inclusive pgvector) sobre uma imitação do Supabase (`supabase/tests/00_supabase_shim.sql`), mais duas pessoas sintéticas e o papel `anon`. Nunca conecta no banco de produção.
+
+**Isolamento** (`supabase/tests/30_isolamento.test.sql`, roda no CI em todo PR):
+- Nas **18 tabelas públicas**, a pessoa A lê as próprias linhas. A pessoa B não lê, não altera, não apaga e não insere em nome de A. Sem login não se lê nada. As linhas de A continuam intactas depois das tentativas.
+- Vínculos cruzados recusados: B não cria tarefa em projeto de A, não move a própria tarefa para projeto de A, não escreve em conversa de A e não liga conversa a projeto ou agente de A.
+- B não muda o próprio papel nem o próprio acesso.
+- `search_similar` devolve só os itens da própria pessoa; sem login, nada.
+- Funções do agendador recusam quem está logado.
+- **Resultado: nenhum vazamento entre pessoas. Todos passaram.**
+
+**Riscos conhecidos** (`npm run audit:db`, informativo, fora do CI):
+| ID | Resultado em execução |
+|---|---|
+| S-01 | **CONFIRMADO:** a pessoa liquidou a própria reserva com custo 0 (`ok: true`). A liquidação real do servidor (US$ 0,30) voltou `already: true` e o custo gravado ficou 0 |
+| S-05 | **CONFIRMADO:** pessoa com `access = 'blocked'` inseriu uma tarefa pela API do banco |
+| S-07 | **CONFIRMADO:** `consume_quota(1000000)` continuou respondendo `true` com a política diária em 5 (a nova `consume_daily_quota` respeita o limite do servidor) |
+| S-10 | **CONFIRMADO:** a pessoa inseriu consumo de US$ 99 em `usage_events` (o teto global está desligado, então só afeta a própria pessoa) |
+| S-12 | **CONFIRMADO:** `anon` tem SELECT nas 18 tabelas, mas a RLS não devolve nenhuma linha |
+
+**Organizações e clientes:** o modelo **não existe** no banco (nenhuma tabela `org*` ou de cliente; `members` e `invites` não têm organização). Não há regra por organização a testar; o risco é de preparação (S-08).
+
+**Origem de cada achado:** S-01, S-05, S-07, S-10 e S-12 foram confirmados em execução (local, dados sintéticos). S-02, S-03, S-04, S-06, S-08, S-09, S-11, S-13, S-14 e S-15 foram identificados por leitura do código ou do painel (S-03 e S-09 dependem de configuração do Supabase não visível por SQL). Na produção, a auditoria foi só leitura (catálogos, políticas, definições de função e contagens agregadas, em 15/11).
+
 ## Matriz de riscos
 | ID | Área | Risco | Evidência | Impacto | Prob. | Prior. | Correção proposta | Risco da correção |
 |---|---|---|---|---|---|---|---|---|
