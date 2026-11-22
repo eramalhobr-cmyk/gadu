@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 22/11/2026 (Finanças, base, **publicada**, PR #26; antes: Core "atenção hoje" publicado, PR #24). Produção: https://gadu-agent.vercel.app (merge `41eb3ed`).
+Atualizado a cada entrega. Última atualização: 22/11/2026 (revisão geral do plano: plano do 3D por fases, novo ciclo de UX com voz primeiro, Casa Inteligente adiada; antes: Metas, base, **publicada**, PR #30; Finanças, base, PR #26; celular, PRs #28 e #29; Core "atenção hoje", PR #24; segurança P1, PR #22). Produção: https://gadu-agent.vercel.app.
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 Documentos relacionados:
@@ -28,11 +28,13 @@ Prioridade: P0 agora · P1 próximo ciclo · P2 depois · P3 longo prazo.
 | Tarefas, agenda e memórias | Organizar o dia com voz | implementado; notificações e criação de eventos em beta | P1 | permissão `calendar.events`; PWA instalado | liberar a permissão; instalar o PWA no iPhone |
 | Agent Office e agentes | Agentes por área, multiusuário, organizações e clientes | agentes simples implementados; Office planejado | P2 | PR #6 (teto por agente); isolamento por organização | 6.1 fundamentos (docs/PLANO-AGENTES.md) |
 | Agent Office Studio | Agentes que criam sites, aplicações web e PWAs (sem app nativo nesta fase) | planejado | P3 | Agent Office; execução isolada | especificar depois do Office |
-| 3D Studio e impressão 3D | Buscar, organizar e gerar modelos imprimíveis; exportar para fatiador | planejado | P2 | — | especificar depois do GaDu Personal, antes do Agent Office |
+| Metas & Conquistas | Objetivos com prazo, ritmo e progresso real | Beta: fase 1 **publicada** (PR #30, merge `901e27d`) | P1 | migração `metas_base` aplicada | validar com pessoa logada, em aparelho; depois fases 2 a 6 (docs/METAS_CONQUISTAS.md) |
+| 3D Studio e impressão 3D | Gerar peças imprimíveis pela conversa e exportar para o Bambu Studio (A1) | planejado; especificação 3D-0 feita ([docs/FEATURE-3D.md](docs/FEATURE-3D.md)) | P1 | AI Gateway, orçamento e cota atuais; modelo de projeto A1 salvo pelo Eduardo | 3D-1 (MVP): conversa → OpenSCAD → STL/3MF; ver "3D Studio · plano por fases" |
+| Casa Inteligente | Controlar a casa por voz e texto, com segurança | **adiado por decisão do Eduardo (22/11/2026)** | — | — | quando retomar: Home Assistant como camada (docs/CASA_INTELIGENTE.md) |
 | Integrações, segurança e permissões | Isolamento por pessoa, custos sob controle, integrações autorizadas | implementado (RLS, fail closed, cota atômica, orçamento com reserva, CI); auditoria completa pendente | P0 | — | etapa 2 da cota; auditoria de RLS; créditos por pessoa; alerta de erro |
 | Home pública, dashboard e desktop/mobile | Primeira impressão e uso diário em qualquer tela | implementado: home, Hoje em painel, PWA, avatar oficial, UX/UI v2 com módulos, temas claro e escuro, novo painel, conversa, ajustes e home (PR #12) | P1 | — | v2.1 (PR #14) concluída; logo novo pendente; testes de ponta a ponta |
 
-Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis, voz, erros) → Finanças → 3D Studio → Agent Office → Agent Office Studio.
+Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis, voz, erros) → Finanças → Metas → **3D Studio (3D-1) e ciclo de UX com voz primeiro** → Agent Office → Agent Office Studio. Casa Inteligente: adiada por decisão do Eduardo (22/11/2026).
 
 ## Histórico detalhado por fase
 `[x]` feito · `[ ]` falta · `[~]` em andamento.
@@ -355,21 +357,96 @@ Estágio: **publicada** (merge `41eb3ed`, 22/11/2026 às 16:44, Brasília). Apro
 - [ ] Rodar o checklist no aparelho de verdade (Chrome, Samsung Internet, iPhone) e registrar
 - [x] Publicar: PR #28 integrado em 22/11/2026 às 17:19 (Brasília), merge `97f4d642ebe695286ceaabc80d83b05cf47b304d`, CI verde, deploy Vercel `success`, e2e público 8/8 e mobile na produção (43/44 antes do ajuste do teste WebKit offline, 44/44 com o ajuste rodando local contra a produção)
 
-## Próximo ciclo (prioridades, em ordem)
-1. Auditoria de RLS e isolamento multiusuário e multiempresa.
-2. Core Contextual (depende do item 1).
-3. Financeiro: base publicada (PR #26); validar com pessoa logada, depois simulador bruto → líquido.
-4. Agent Office: organizações, clientes, membros e papéis.
-5. Agent Office Studio.
-6. 3D Studio.
-7. Observabilidade, alertas de erro e créditos por pessoa.
-8. Testes de ponta a ponta automatizados e validação de voz nos aparelhos.
+## Revisão geral do plano (22/11/2026)
+Feita sem programar: leitura de todos os `.md` do repositório e revisão de experiência pelo código e por capturas de tela a 412 × 915 (celular tipo Galaxy). As telas com login foram capturadas num app local com dados simulados (sem banco real); por isso listas que vêm direto do banco (tarefas, lembretes) aparecem "carregando" nas capturas. Resultado: plano do 3D por fases, novo ciclo de UX e Casa Inteligente adiada.
+
+**Situação em 22/11/2026:**
+- **Feito e publicado:** base do assistente (conversa, voz do aparelho, memória, Hoje, agenda e Gmail só leitura, tarefas, lembretes, projetos, agentes simples, busca por significado, convites e admin, PWA); segurança P1 (PR #22); Core "atenção hoje" (PR #24); Financeiro base (PR #26); correções do celular (PRs #28 e #29); Metas fase 1 (PR #30).
+- **Parcial:** tudo o que foi publicado hoje ainda não foi validado com pessoa logada e em aparelho de verdade; modo conversa e notificações em beta; criação de eventos bloqueada até liberar `calendar.events`; senhas vazadas (painel) e S-09 (backups no plano Free) pendentes; Design System etapa 2 (100 estilos inline nos componentes).
+- **Não começado:** 3D Studio (só a especificação), Agent Office e Studio, Saúde, voz natural paga, simulador bruto → líquido, testes com login no CI, monitoramento de erros, domínio próprio. Casa Inteligente: adiada.
+
+## 3D Studio · plano por fases (22/11/2026, ver [docs/FEATURE-3D.md](docs/FEATURE-3D.md))
+Escolha do Eduardo: usar as IAs que já temos, sem serviço pago por geração (**sem Meshy, sem Tripo**), e sair com um arquivo que o Bambu Studio abre já configurado para a A1. O fatiamento continua no Bambu Studio.
+- [x] **3D-0 · Especificação:** [docs/FEATURE-3D.md](docs/FEATURE-3D.md) (fluxo, verificações, exportação, dados, licenças, critérios de pronto)
+- [ ] **3D-1 · MVP, conversa → OpenSCAD** (P1):
+  - [ ] Um modelo do AI Gateway escreve código `.scad` **paramétrico** (parâmetros no topo, com limites e `assert()`)
+  - [ ] **OpenSCAD WASM num Web Worker**, carregado como componente GPL separado (o código do GaDu fica limpo); sem rede, com tempo-limite
+  - [ ] Visualizador **three.js** e **controles deslizantes** dos parâmetros (sem custo de IA)
+  - [ ] Refinar pela conversa (voz ou texto); o modelo recebe **uma imagem do render** para ver o resultado
+  - [ ] Verificações de impressão: no máximo **256 mm** por eixo, malha fechada (manifold), base plana, parede de pelo menos **1,2 mm**
+  - [ ] Exportar **STL**, **3MF comum** e **3MF "A1 PLA 0.4"** a partir de um projeto-modelo que o Eduardo salva uma vez no Bambu Studio; o GaDu só troca a geometria
+  - [ ] Guardar o `.scad` e o histórico de versões no Supabase (RLS por pessoa; migração com aprovação explícita)
+  - [ ] Custo de cada chamada dentro da cota diária e do teto mensal atuais; interruptor `STUDIO3D_ENABLED=0`
+- [ ] **3D-2 · Figura a partir de foto** (P2): modelos abertos gratuitos (TRELLIS.2 ou Hunyuan3D-2.1) no Hugging Face ZeroGPU com o token do Eduardo, mais reparo de malha (manifold/trimesh). Limite diário de gerações; uso pessoal, conferir as licenças antes de ligar
+- [ ] **3D-3 · Envio direto para a A1** (P3, depois): pela rede local, com uma ponte local; nunca imprime sem confirmação
+- Regras: nada pago por geração; código gerado pela IA só roda isolado (worker no navegador, nunca no servidor); o [CADAM](https://github.com/Adam-CAD/CADAM) (GPL-3.0) é só inspiração, sem copiar código.
+
+## Ciclo UX · voz primeiro e uso simples (proposto em 22/11/2026)
+Objetivo: o GaDu fácil para qualquer pessoa, inclusive quem não é digital, com a voz como caminho principal. Origem: pedido do Eduardo (a home ao rolar, o menu do celular e o menu lateral não estão bons) e a revisão de 22/11. Mudança visual segue o roteiro do Design System (360 a 1920 px) e o processo de baixo risco.
+
+**O que a revisão encontrou (evidências):**
+- **Hoje longo demais:** 9 blocos e cerca de 4,7 telas de rolagem a 412 × 915 (conteúdo de 3.769 px numa área visível de 797 px). Dois blocos quase iguais ("Merece sua atenção" e "Precisa de atenção") repetem tarefas, lembretes e e-mails. O último terço da tela é o catálogo "Módulos do GaDu", com cartões grandes de módulos "Planejado". Dos 4 números do topo, "lembretes" não é tocável.
+- **Falar exige 3 toques no celular:** botão central abre o painel → microfone pequeno → depois de falar, o texto fica no campo e precisa tocar em Enviar (envio automático e mãos-livres desligados por padrão, escondidos em Configurações). O botão "Falar" do Hoje só aparece no computador (`desk-only`).
+- **Navegação espalhada:** barra de baixo (Hoje, Conversas, GaDu, Tarefas, Módulos) + menu sanfona pela esquerda (Todos os módulos, Conversas anteriores, Integrações, Configurações, Perfil, Administração, Guia) + tela Módulos. Financeiro e Metas ficam a 2 toques, dentro de "Módulos". No computador, o menu lateral agrupa por áreas recolhíveis ("Produtividade pessoal", "Vida pessoal", "Agentes e criação", "Plataforma") e mostra módulos planejados.
+- **Nomes que confundem:** "Conversas" (abre a conversa atual) e "Conversas anteriores"; "Memórias" e "Memória"; "Configurações", "Ajustes", "Perfil" e "Integrações" para a conta; jargão na tela ("Beta", "Planejado", "Plataforma", "Fontes [T1]", "via claude").
+- **Texto pequeno:** no Hoje, 15 textos com 11 px e 34 com 14 px.
+- **Ações sem desfazer:** concluir tarefa, passar para amanhã e outras ações gravam na hora, sem "Desfazer".
+- **Inconsistência:** 100 estilos inline nos componentes e regras repetidas no CSS (ex.: `.dockbar` definido duas vezes em `src/app/v2.css`); cada módulo monta o topo e as ações de um jeito.
+
+### UX-1 · Navegação (P0)
+- [ ] Barra de baixo com 5 itens fixos: **Hoje · Conversa · [Falar] · Tarefas · Mais**. O botão central vira **microfone grande** (um toque fala; tocar e segurar abre o painel)
+- [ ] "Módulos" vira **"Mais"**: blocos grandes só com o que funciona (Agenda, Financeiro, Metas, Projetos, Memória, Agentes, Configurações, Ajuda); planejados numa linha "Em breve" no fim
+- [ ] Tirar o menu sanfona do celular: conta, integrações e administração entram em "Mais › Configurações" (um lugar só para a conta)
+- [ ] Menu lateral do computador: lista simples na mesma ordem do celular, sem grupos recolhíveis e sem módulos planejados (ficam em "Em breve")
+- [ ] Nomes únicos: **Conversa** (com "Conversas anteriores" dentro dela), **Memória**, **Configurações**; tirar o botão duplicado de abrir o assistente no topo do celular
+
+### UX-2 · Hoje e rolagem (P0)
+- [ ] No máximo 5 blocos e cerca de 2 telas: (1) saudação com **botão grande "Falar com o GaDu"** e a ação do momento; (2) "Agora" (próximo compromisso); (3) **uma lista única "Merece sua atenção"** com Feito/Adiar no próprio item (junta tarefas, lembretes, e-mails e metas); (4) 3 atalhos de voz; (5) "Ver tudo"
+- [ ] Tirar o catálogo de módulos e o bloco duplicado "Precisa de atenção" do Hoje; números do topo todos tocáveis ou removidos
+- [ ] Ao rolar, cabeçalho compacto com o botão Falar sempre à mão; voltar ao topo tocando no título
+- [ ] Criar lembrete pela voz ou pelo botão "+", em vez do formulário fixo no meio da tela
+
+### UX-3 · Voz primeiro (P0/P1)
+- [ ] Um toque para falar em qualquer tela; tela de escuta com **texto grande** ("Estou ouvindo…", transcrição ao vivo) e botão grande "Parar"
+- [ ] Envio automático depois do silêncio, com 3 s de "Enviando… Cancelar" (em vez de revisar e tocar em Enviar); revisar continua como opção
+- [ ] **Modo mãos-livres** ligável na própria tela de escuta (não só em Configurações), com aviso visível de que está ligado
+- [ ] **Confirmações faladas** para ações (gasto, meta, lembrete, evento): o GaDu lê o que vai gravar e aceita "sim", "não" ou "muda para…" por voz; o cartão continua para quem prefere tocar
+- [ ] Respostas por voz mais curtas (resumo falado, detalhe na tela)
+- [ ] **Texto grande**: opção em Configurações (115% a 130%) e corpo mínimo de 16 px
+
+### UX-4 · Acessibilidade para quem não é digital (P1)
+- [ ] Linguagem simples: sem "Beta", "Planejado", "Plataforma", "Core", "via modelo" e etiquetas [T1] na tela principal (ficam em "Detalhes")
+- [ ] Alvos de toque de pelo menos 48 px e mais espaço entre botões (hoje a base é 44 px; "Virar tarefa" tem 40 px de altura)
+- [ ] Menos escolhas por tela: 1 ação principal e no máximo 2 secundárias
+- [ ] **Primeiro uso guiado** em 3 passos, falado: nome, testar microfone e voz, conectar o Google (no lugar das dicas soltas por tela)
+- [ ] **Desfazer** em toda ação que grava (concluir, adiar, apagar, marcar pago): aviso "Feito · Desfazer" por alguns segundos
+- [ ] Erros claros com o que fazer agora ("Sem internet. Sua mensagem ficou guardada. Tentar de novo"), falados quando a pessoa estiver usando voz
+
+### UX-5 · Consistência entre módulos (P1)
+- [ ] Um padrão de tela de módulo: título e uma frase, ação principal ("Falar" ou "Adicionar"), lista, estado vazio com um exemplo de frase para falar
+- [ ] Mesmo cartão de confirmação para Evento, Gasto e Meta (mesmo layout, mesmos botões, mesma fala)
+- [ ] Design System etapa 2: componentes compartilhados (lista, cartão, confirmação, aviso de desfazer), migrar os estilos inline e juntar as regras repetidas de `v2.css`
+
+### UX-6 · Validação (P1)
+- [ ] Teste no aparelho com o Eduardo e com uma pessoa não digital, com 5 tarefas: ver o dia, lançar um gasto por voz, criar um lembrete, concluir uma tarefa, achar o Financeiro. Medir toques até falar (hoje 3, meta 1) e onde a pessoa travou
+- [ ] Rodar junto o checklist do celular (docs/CHECKLIST_CELULAR.md)
+
+## Próximo ciclo (prioridades, em ordem; revisado em 22/11/2026)
+1. Validar com pessoa logada, em aparelho, o que foi publicado em 22/11 (Hoje e Fontes, Financeiro, Metas, voz, notificações) e fechar os passos manuais da segurança (senhas vazadas, S-09).
+2. **UX-1 a UX-3** (navegação, Hoje, voz primeiro): baixo risco, só interface.
+3. **3D-1** (MVP conversa → OpenSCAD), conforme [docs/FEATURE-3D.md](docs/FEATURE-3D.md).
+4. UX-4 a UX-6 (acessibilidade, consistência, teste com pessoa não digital).
+5. Financeiro: simulador bruto → líquido, tetos por categoria, fase Conversa.
+6. Auditoria de RLS por acesso (S-05) e organizações (S-08), antes do Agent Office.
+7. 3D-2 (figura a partir de foto); Agent Office; Agent Office Studio.
+8. Observabilidade, alertas de erro, créditos por pessoa e testes com login no CI.
+- Adiado por decisão do Eduardo: Casa Inteligente (quando retomar: Home Assistant). Depois: 3D-3 (envio direto para a A1).
 
 ## Módulos futuros (planejados, sem código)
 - [~] Financeiro: base publicada (ver "Finanças · Base" abaixo); o restante da especificação (`docs/FEATURE-FINANCAS.md`) segue planejado
-- [ ] Metas & Conquistas: fase 1 em desenvolvimento (abaixo); fases 2 a 6 em docs/METAS_CONQUISTAS.md (projetos e agenda, recomendações, indicadores do Financeiro e de saúde, metas compartilhadas)
+- [~] Metas & Conquistas: fase 1 publicada (PR #30, abaixo); fases 2 a 6 em docs/METAS_CONQUISTAS.md (projetos e agenda, recomendações, indicadores do Financeiro e de saúde, metas compartilhadas)
 
-## Metas · Base (fase 1 da especificação; branch `feat/metas-base`)
+## Metas · Base (fase 1 da especificação; PR #30, 22/11/2026)
 Estágio: **publicada** em 22/11/2026 às 18:33 (Brasília), PR #30, merge `901e27d`. CI verde (verify, e2e-public, database). Migração `metas_base` aplicada na produção antes do merge (só aditiva); conferido: `goals`, `goal_progress`, `goal_milestones` e `goal_tasks` com RLS, 4 políticas cada, `anon` sem SELECT. Deploy de produção da Vercel concluído; home 200, `/api/goals` sem sessão 401, `/api/health` ok; e2e público contra a produção 9/9. `GOALS_ENABLED` não definida na Vercel (ligado por padrão). **Não verificado:** tela Metas, resumo do Hoje e propostas no chat com pessoa logada e em aparelho. Aprovada pelo Eduardo, inclusive as tabelas novas. Detalhe e decisões em [docs/METAS_CONQUISTAS.md](docs/METAS_CONQUISTAS.md).
 - [x] Migração `20261122210001_metas_base.sql`: `goals`, `goal_progress`, `goal_milestones`, `goal_tasks` (RLS com `(select auth.uid())`, só `authenticated`, chaves compostas `(id, user_id)`, CHECKs, rollback no topo); só aditiva (uma restrição de unicidade em `tasks`)
 - [x] Cálculos puros em `src/lib/goals/` (progresso, ritmo necessário, no ritmo/atrasada/vencida, por tarefas concluídas, metas que pedem atenção) com testes unitários
@@ -378,11 +455,12 @@ Estágio: **publicada** em 22/11/2026 às 18:33 (Brasília), PR #30, merge `901e
 - [x] Assistente: fonte `goals` do Core ([M1]…, Fontes) e atualização ("corri 5 km hoje", "conclui a meta X") como proposta com confirmação, sem IA extra
 - [x] Interruptor `GOALS_ENABLED=0`; `CORE_MVP=0` desliga a fonte e as propostas
 - [x] Testes: isolamento A×B nas 4 tabelas, CHECKs, integração (401, user_id, proposta sem gravar, interruptores), e2e público 9/9 e mobile 44/44
-- [ ] Revisão do Eduardo, PR, aplicar a migração na produção (aprovação explícita), publicar, validar com pessoa logada em aparelho
+- [x] Revisão do Eduardo, PR #30, migração aplicada na produção (aprovação explícita) e publicação
+- [ ] Validar com pessoa logada, em aparelho
 - [ ] Depois: conquistas, recomendações, hábito simples, vínculo com projetos e agenda, indicadores do Financeiro, metas compartilhadas
-- [ ] Casa Inteligente (GaDu Casa): ver docs/CASA_INTELIGENTE.md (Home Assistant como camada recomendada; Alexa via Home Assistant; Tuya direto como opção; confirmação e regras para dispositivos críticos)
+- [ ] Casa Inteligente (GaDu Casa): **adiada por decisão do Eduardo (22/11/2026)**. Quando retomar, o caminho recomendado é o Home Assistant como camada (Tuya pelo Smart Life; Alexa continua por cima), ver docs/CASA_INTELIGENTE.md
 - [ ] Saúde: Samsung Health e Health Connect por conector Android desacoplado, depois de importação manual (docs/INTEGRACOES_SAUDE.md). App nativo exige aprovação específica
-- [ ] 3D Studio: busca de modelos gratuitos respeitando licenças, biblioteca, geração de modelos imprimíveis, exportação para fatiador
+- [ ] 3D Studio: ver "3D Studio · plano por fases" acima e [docs/FEATURE-3D.md](docs/FEATURE-3D.md)
 - [ ] Agent Office Studio: agentes que criam sites, aplicações web e PWAs, com execução isolada e aprovação; sem app nativo Android/iOS nesta fase
 - [ ] Voz e texto em todos os módulos novos (decisão oficial)
 
@@ -396,7 +474,7 @@ Estágio: **publicada** em 22/11/2026 às 18:33 (Brasília), PR #30, merge `901e
 
 ## Finanças pessoais (proposta, ver docs/FEATURE-FINANCAS.md)
 - [x] Especificação de referência: telas, modelo de dados, regras de cálculo, entrada pela conversa e deduplicação
-- [ ] Base: tabelas `fin_*` com RLS, abas Contas e Dia a dia
+- [x] Base: tabelas `fin_*` com RLS, abas Contas e Dia a dia (PR #26, publicada em 22/11/2026)
 - [ ] Conversa: lançar e classificar por texto e voz, pendências "a confirmar", regras de classificação
 - [ ] Arquivos: print e PDF de extrato com deduplicação e saldo do banco
 - [ ] Caixa, Plano, Simulador e Ano

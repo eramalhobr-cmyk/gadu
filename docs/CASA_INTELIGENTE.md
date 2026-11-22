@@ -1,6 +1,6 @@
 # GaDu Casa: módulo Casa Inteligente
 
-Estado em 14/11/2026: **Planejado**. Nada deste documento existe no app. Não há integração, tabela nem tela funcional. Fontes consultadas em 14/11/2026.
+Estado em 22/11/2026: **Adiado por decisão do Eduardo** (o 3D e o ciclo de UX vêm antes). Quando retomar, o caminho recomendado é o Home Assistant como camada (Tuya pelo app Smart Life; a Alexa continua funcionando por cima). Estado anterior (14/11/2026): **Planejado**. Nada deste documento existe no app. Não há integração, tabela nem tela funcional. Fontes consultadas em 14/11/2026.
 
 Legenda: **[Fato]** = verificado em fonte citada. **[Proposta]** = decisão a aprovar. **[A confirmar]** = fonte parcial ou de comunidade; validar antes de implementar.
 
