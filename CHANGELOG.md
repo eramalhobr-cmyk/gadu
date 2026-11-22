@@ -6,6 +6,14 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`). Só documentação, não integrada.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-22 · Core Contextual: "O que merece minha atenção hoje?" (branch `feat/core-atencao-hoje`) · desenvolvido e testado localmente, NÃO publicado
+- **Desenvolvido.** Primeira entrega do Core, aprovada pelo Eduardo: escopo pessoal, só leitura, sem banco novo e sem migração. Sem push e sem PR até aqui.
+- **Código:** `src/lib/core/` (`scopes`, `plan`, `collect`, `format`, `flag`, `privacy`, `google-adapter`, fontes `tasks`, `reminders`, `agenda`, `email`); `/api/chat` injeta o bloco do Core quando a intenção é "atencao_hoje" e envia o evento `sources`; rota nova `/api/attention` (zod, sessão obrigatória); `AttentionCard` na tela Hoje; `SourcesDetail` ("Fontes") no assistente e na Conversa.
+- **Comportamento:** nenhuma chamada de IA nova; custo continua pela reserva, cota diária e liquidação já existentes (fail closed). Core usa só o cliente da sessão (RLS); termos bloqueados e dado sensível viram "(omitido pela regra de privacidade)". Gmail: até 5 não lidos das últimas 48 h, só remetente e assunto, e só com o escopo `gmail.readonly` já concedido; senão vai para "indisponível". Com o Core ligado e a intenção, o chat não lê o Google duas vezes (o caminho antigo só roda se pedir a semana).
+- **Flag:** `CORE_MVP=0` desliga (chat e Hoje voltam ao comportamento anterior). Ligado por padrão porque não há acesso às variáveis da Vercel agora; para desligar em produção será preciso criar a variável lá.
+- **Testes executados localmente:** `npm run typecheck` ok; `npm test` (unitários 76, integração 67, 0 falhas); `npm run build` ok; `bash scripts/test-db.sh` todos passaram (inclui `50_core_atencao.test.sql`: consulta do Core como B só devolve itens de B); e2e público 7 de 7 contra `next start` local (inclui `/api/attention` 401 sem sessão).
+- **Não verificado:** tela Hoje e "Fontes" em celular (390 px) com pessoa logada e dados reais; Gmail e Calendar reais; comportamento em produção.
+
 ## 2026-11-22 · `cc85040` · Segurança P1 / fase 0 do Core (PR #22) · publicada
 - **Publicado.** PR #22 integrado em 22/11/2026 às 14:54 (Brasília), merge commit `cc850400ff982d2463cf750de539fa194b04b5b6`. CI do PR verde: `verify`, `e2e-public`, `database`.
 - **Migrações aplicadas no Supabase de produção:** aditiva antes do deploy (versão `20261122175405`, `seguranca_p1_aditiva`); restritiva depois do deploy (versão `20261122175542`, `seguranca_p1_restritiva`).
