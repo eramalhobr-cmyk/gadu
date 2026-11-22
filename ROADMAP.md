@@ -217,7 +217,7 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 ## Marco Zero · segurança (auditoria de 12/11, ver docs/SECURITY_AUDIT_2026-11-12.md no PR #1)
 - [x] PR #2: chat bloqueia quando cota, teto mensal ou limites por provedor não podem ser validados (fail closed), com testes de integração. Em produção desde 13/11
 - [x] PR #3: cota diária atômica (limite no servidor, dia de Brasília, sem passar do teto), testes SQL e de concorrência. Migração aplicada no Supabase e app em produção desde 13/11
-- [ ] Remover `consume_quota(integer)` antiga (etapa 2, depois de 24h estável)
+- [x] Remover `consume_quota(integer)` antiga (etapa 2): **desenvolvido e testado localmente** na branch `fix/seguranca-p1` (migração restritiva); **a publicar**
 - [x] PR #6: orçamento mensal com reserva e reconciliação (concorrência). Migração aplicada e em produção desde 13/11; validado no uso real
 - [ ] Auditoria de RLS, autenticação, permissões e isolamento entre usuários
 - [ ] Administração de créditos e consumo por pessoa
@@ -281,7 +281,7 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [x] Validações de aparelho documentadas (docs/VALIDACAO_APARELHOS.md)
 - [x] Auditoria de segurança somente leitura e matriz de riscos (docs/SECURITY_AUDIT_2026-11-15.md)
 - [x] Plano do Core Contextual MVP (docs/CORE_CONTEXTUAL_MVP.md)
-- [ ] Correções de segurança S-01 a S-09 (alto risco: cada uma com aprovação)
+- [ ] Correções de segurança S-01 a S-09 (alto risco: cada uma com aprovação): ver "Segurança P1" abaixo; S-08 e S-09 seguem abertos
 - [ ] Testes com login no CI (segredo em GitHub Environment com revisor: aprovação)
 
 ## Isolamento e preparação do Core (16/11, PR #20)
@@ -292,6 +292,25 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [x] Roteiro curto de validação no Android (docs/ROTEIRO_ANDROID.md)
 - [ ] Decisão sobre a primeira entrega do Core e sobre a correção do S-01
 - [ ] Logo novo (arquivo ainda não está no repositório nem no Drive)
+
+## Segurança P1 / fase 0 do Core (22/11, branch `fix/seguranca-p1`)
+Estágio: **desenvolvido e testado localmente; não publicado** (migrações não aplicadas, painel do Supabase não alterado). Detalhe por S-xx em docs/SECURITY_AUDIT_2026-11-15.md; passos manuais em docs/SEGURANCA_P1_MANUAL.md.
+- [x] S-01: orçamento (reserva, liquidação, liberação) só pelo servidor, com `service_role` e o id da sessão; custo real gravado mesmo com `already`
+- [x] S-02: resposta cortada com texto já enviado é liquidada por estimativa; libera só se nada saiu
+- [x] S-07 (etapa 2 da cota): chat fail closed sem `consume_quota`; função revogada e removida
+- [x] S-10: pessoa não escreve em `usage_events`
+- [x] S-12: `anon` sem acesso ao schema `public`; `authenticated` sem TRUNCATE, REFERENCES e TRIGGER
+- [x] S-03 (código): limite de tentativas por IP e por e-mail (hash) em login, código e convite, com 429 em português
+- [ ] S-03 (painel): ligar a proteção contra senhas vazadas (manual, seção 2)
+- [x] S-04: agendador e `index_backlog` ignoram quem não está ativo
+- [x] S-05 (parcial): bloquear encerra sessões; custo e cota recusam quem não está ativo
+- [ ] S-05 (resto): RLS de escrita por acesso
+- [x] S-06: admin não bloqueia admin, `ADMIN_EMAILS` nem a si mesmo
+- [x] S-11: proxy responde 503 nas rotas protegidas sem a configuração do Supabase
+- [x] Testes: SQL (`test:db`, com compatibilidade da migração aditiva e corrida de liquidação), integração (chat, limite de tentativas, bloqueio de admin, agendador, proxy) e unitários
+- [ ] **Publicar:** migração aditiva → deploy → migração restritiva (aprovação do Eduardo em cada passo)
+- [ ] Passos manuais: senhas vazadas, confirmar plano, backups, RPO e RTO, ensaiar restauração (S-09), Vercel Firewall (opcional)
+- [ ] S-08 (organizações), S-13, S-14, S-15: fora desta entrega
 
 ## Próximo ciclo (prioridades, em ordem)
 1. Auditoria de RLS e isolamento multiusuário e multiempresa.

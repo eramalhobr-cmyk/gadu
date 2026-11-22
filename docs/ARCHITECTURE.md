@@ -26,11 +26,11 @@ Vercel · projeto gadu-agent · região iad1 · funções sem estado (Next.js 16
 2. Regra de privacidade (`src/lib/privacy.ts`): dado sensível não é enviado nem gravado.
 3. Limites, todos **fail closed** (`src/lib/chat-budget-guard.ts`). Se o valor não puder ser lido, a IA não é chamada e nada é gravado.
    - Gasto por motor (`month_spend_by_provider`): motor acima do limite fica de fora desta resposta.
-   - Teto mensal (`month_spend`). No PR #6, troca por **reserva** (`reserve_ai_budget`), liquidada pelo custo real (`settle_ai_budget`) ou liberada (`release_ai_budget`).
-4. Cota diária (`consume_daily_quota()`), a última verificação: mensagem bloqueada antes não gasta cota. Na transição, se a função não existir, usa `consume_quota(limite do servidor)`.
+   - Teto mensal por **reserva** só pelo servidor (`server_reserve_ai_budget`), liquidada pelo custo real (`server_settle_ai_budget`) ou liberada (`server_release_ai_budget`), com o id da sessão e o cliente com a chave secreta (`src/lib/ai-budget.ts`). Sem caminho de transição: função ausente ou erro bloqueia.
+4. Cota diária (`consume_daily_quota()`), a última verificação: mensagem bloqueada antes não gasta cota. Sem contingência: se a função falhar, o chat bloqueia (a antiga `consume_quota` foi removida).
 5. Conversa, memórias aprovadas, busca por significado e Google quando o assunto pede.
 6. Roteador de motores (`src/lib/llm/router.ts`) com streaming NDJSON.
-7. Gravação do consumo (`usage_events`) e resumo em segundo plano.
+7. Gravação do consumo (`usage_events`) só pelo servidor, na liquidação. Se a resposta for cortada depois de sair texto, liquida por estimativa (entrada + caracteres ÷ 4, limitada ao reservado); se nada saiu, libera a reserva. Resumo em segundo plano.
 
 ## Banco
 Tabelas públicas, todas com `user_id` e RLS:
