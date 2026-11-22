@@ -2,8 +2,8 @@
 import type { CoreFact } from "../core-context.ts";
 import type { ViewId } from "../modules.ts";
 
-export type FactKind = "atrasada" | "tarefa_hoje" | "prioridade" | "lembrete" | "evento" | "email" | "financa";
-export type FactTag = "T" | "L" | "A" | "E" | "F";
+export type FactKind = "atrasada" | "tarefa_hoje" | "prioridade" | "lembrete" | "evento" | "email" | "financa" | "meta";
+export type FactTag = "T" | "L" | "A" | "E" | "F" | "M";
 
 /** Fato do "atenção hoje": CoreFact (com origem) + etiqueta, tipo, prioridade e tela de origem. */
 export type AttentionFact = CoreFact & {

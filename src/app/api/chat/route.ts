@@ -23,7 +23,10 @@ import { collectAttention } from "@/lib/core/collect";
 import { coreEnabled } from "@/lib/core/flag";
 import { formatCoreBlock, toItem, type SourceItem } from "@/lib/core/format";
 import { googleReader } from "@/lib/core/google-adapter";
-import { detectFinanceIntent, detectIntent } from "@/lib/core/plan";
+import { detectFinanceIntent, detectGoalsIntent, detectIntent } from "@/lib/core/plan";
+import { collectGoals, formatGoalsBlock, goalsProposalRules, type GoalRef } from "@/lib/core/goals";
+import { goalsEnabled } from "@/lib/goals/flag";
+import type { MetaDraft } from "@/lib/goals/types";
 import { collectFinance, financeProposalRules, formatFinanceBlock } from "@/lib/core/finance";
 import { financeEnabled } from "@/lib/finance/flag";
 import { hojeSP, isoDia } from "@/lib/finance/datas";
@@ -53,6 +56,7 @@ type Out =
   | { t: "tasks"; items: { id: number; title: string; due: string | null }[] }
   | { t: "events"; items: { title: string; start: string; end: string; location: string | null }[] }
   | { t: "gastos"; items: GastoProposta[] }
+  | { t: "metas"; items: MetaDraft[] }
   | { t: "sources"; items: SourceItem[]; unavailable: string[] }
   | { t: "notice"; text: string; kind: "privacy" | "quota" | "engine" | "error" };
 
@@ -239,6 +243,31 @@ export async function POST(request: Request) {
             }
           }
         }
+        // Metas (GOALS_ENABLED, padrão ligado). Intenção simples, sem IA extra; depende da fonte do Core (CORE_MVP ligado) porque precisa ler as metas:
+        //  - perguntar ("como estão minhas metas", "minha meta de leitura"): injeta o bloco [M1]…;
+        //  - atualizar ("corri 5 km hoje", "conclui a meta X"): o modelo só PROPÕE; a pessoa confirma e quem grava é /api/goals/*, com a sessão dela.
+        // Prioridade: atenção do dia > finanças > metas. Falha na leitura vira aviso ao modelo (nunca inventar progresso).
+        const goalsIntent = !coreBlock && !finIntent && goalsEnabled() ? detectGoalsIntent(message) : null;
+        let goalsBlock = "";
+        let goalRefs: GoalRef[] = [];
+        if (goalsIntent && coreEnabled()) {
+          const falha = "Não consegui ler suas metas agora.";
+          if (profile.error) {
+            goalsBlock = `\n\nMetas: ${falha} Diga isso com franqueza e não invente progresso.`;
+            coreSources = { items: [], unavailable: [falha] };
+          } else {
+            try {
+              const g = await collectGoals({ userId: user.id, db: supabase, blocked, intent: goalsIntent });
+              goalsBlock = formatGoalsBlock(g) + (goalsIntent.kind === "atualizar" ? goalsProposalRules(isoDia(hojeSP())) : "");
+              goalRefs = g.refs;
+              coreSources = { items: g.facts.map(toItem), unavailable: g.unavailable };
+            } catch (e) {
+              console.error("goals core falhou", e instanceof Error ? e.message.slice(0, 80) : "erro");
+              goalsBlock = `\n\nMetas: ${falha} Diga isso com franqueza e não invente progresso.`;
+              coreSources = { items: [], unavailable: [falha] };
+            }
+          }
+        }
         // O Core já traz agenda e e-mails de hoje: não lê o Google duas vezes (exceto se pediu a semana).
         const google = coreBlock && !googleIntent(message).week ? "" : await googleContext(supabase, user.id, message, blocked, taskList);
         const lastTurn = turns[turns.length - 1];
@@ -249,7 +278,7 @@ export async function POST(request: Request) {
         let provider = "";
         let sent = 0;
         const system = systemPrompt();
-        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + financeBlock + (parsed.data.context ? contextLine(parsed.data.context) : "");
+        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + financeBlock + goalsBlock + (parsed.data.context ? contextLine(parsed.data.context) : "");
         inputChars = system.length + context.length + turns.reduce((n, t) => n + t.content.length, 0);
         for await (const ev of routeChat({
           system,
@@ -281,7 +310,7 @@ export async function POST(request: Request) {
         }
 
         // 6. Grava a conversa e as memórias propostas (sempre pendentes).
-        const { body: answer, memories: proposals, reminders, tasks: taskProposals, events: eventProposals, gastos: gastoProposals } = splitMeta(full);
+        const { body: answer, memories: proposals, reminders, tasks: taskProposals, events: eventProposals, gastos: gastoProposals, metas: metaProposals } = splitMeta(full);
         await supabase.from("messages").insert([
           { conversation_id: conversationId, role: "user", content: message },
           {
@@ -345,6 +374,17 @@ export async function POST(request: Request) {
         // Descrição com termo bloqueado ou dado sensível é descartada; o valor e a categoria seguem.
         if (finIntent?.kind === "gasto" && gastoProposals.length) {
           send({ t: "gastos", items: gastoProposals.map((g) => (isSensitive(g.descricao) || blockedTerm(g.descricao, blocked) ? { ...g, descricao: "" } : g)) });
+        }
+        // Metas: só propostas (nada é gravado aqui). A etiqueta vira o id real NO SERVIDOR, só entre as metas que a pessoa pode atualizar por aqui.
+        if (goalsIntent?.kind === "atualizar" && goalRefs.length && metaProposals.length) {
+          const drafts = metaProposals.flatMap((p) => {
+            const ref = goalRefs.find((r) => r.tag === p.meta);
+            if (!ref) return [];
+            if (p.acao === "registrar" && ref.medicao !== "numerica" && ref.medicao !== "percentual") return [];
+            if (p.acao === "registrar" && ref.medicao === "percentual" && (p.valor ?? 0) > 100) return [];
+            return [{ goalId: ref.id, titulo: ref.titulo, unidade: ref.medicao === "percentual" ? "%" : ref.unidade, acao: p.acao, valor: p.valor, data: p.acao === "registrar" ? (p.data ?? isoDia(hojeSP())) : null, agregacao: ref.agregacao } satisfies MetaDraft];
+          });
+          if (drafts.length) send({ t: "metas", items: drafts });
         }
         if (coreSources) send({ t: "sources", ...coreSources });
         send({ t: "done", memories: added });

@@ -7,6 +7,7 @@ import { Icon, todayKey } from "./ui";
 import { ModuleCards } from "./ModulePage";
 import { EmptyState, Panel } from "./kit";
 import { AttentionCard } from "./AttentionCard";
+import { MetasHoje } from "./MetasHoje";
 import type { ViewId } from "@/lib/modules";
 
 const HELP = [
@@ -58,6 +59,7 @@ export function TodayPage(props: {
   onOpenTasks: () => void;
   onAsk: (q: string) => void;
   onOpen: (view: ViewId) => void;
+  goalsEnabled: boolean;
 }) {
   const [progress, setProgress] = useState({ open: 0, done: 0 });
   const [today, setToday] = useState<Today | null>(null);
@@ -179,6 +181,7 @@ export function TodayPage(props: {
         {showReview && <ReviewCard onDone={() => { props.onReviewDone(); setReview(false); setTasksKey((k) => k + 1); }} />}
 
         <AttentionCard busy={props.busy} onOpen={props.onOpen} onAsk={props.onAsk} />
+        {props.goalsEnabled && <MetasHoje onOpen={() => props.onOpen("metas")} />}
 
         <div className="sec-head"><h2>Precisa de atenção</h2></div>
         <div className="attn">

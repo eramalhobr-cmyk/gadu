@@ -108,7 +108,7 @@ export default async function Sobre() {
         <p className="muted small">No celular: a barra de baixo tem Hoje, Conversas, o GaDu, Tarefas e Módulos. Módulos mostra todo o resto, por área. O menu (☰) guarda conta, configurações e o histórico.</p>
         <div className="navmap2">
           {[
-            ["Metas & Conquistas · Planejado", "Objetivos de vida com marcos, indicadores e plano. Ainda não existe."],
+            ["Metas · Beta", "Metas por número, percentual, marcos ou tarefas, com prazo, ritmo e progresso só com registros; perguntas e registros pela conversa, com a sua confirmação. Conquistas, recomendações e metas compartilhadas ainda não existem."],
             ["Financeiro · Beta", "Contas do mês e gastos do dia a dia, com perguntas e lançamentos pela conversa. Print, extrato e caixa ainda não existem."],
             ["Casa Inteligente · Planejado", "GaDu Casa: luzes, tomadas, climatização e cenas, com confirmação. Ainda não existe."],
             ["Inteligência integrada · Planejado", "Relacionar dados entre módulos com permissões e auditoria. Hoje o GaDu usa só o contexto da tela (Beta)."],

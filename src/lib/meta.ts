@@ -2,7 +2,9 @@
 // <<<META>>> {"memorias":[{"texto":"...","area":"..."}]}
 // Esse bloco nunca aparece para a pessoa.
 
+import { lerData, hojeSP, isoDia, ordinal } from "./finance/datas.ts";
 import { validGasto, type GastoProposta } from "./finance/lancamento.ts";
+import { parseNumero } from "./goals/numero.ts";
 
 export const META = "<<<META>>>";
 export const AREAS = ["Pessoal", "Preferências", "Saúde", "Finanças", "Estudos", "Família", "Projetos", "Trabalho"] as const;
@@ -64,16 +66,35 @@ export function validEvent(o: { titulo?: unknown; inicio?: unknown; fim?: unknow
   return { title, start: start.toISOString(), end: end.toISOString(), location };
 }
 
-export function splitMeta(text: string, now = Date.now()): { body: string; memories: MemoryProposal[]; reminders: ReminderProposal[]; tasks: TaskProposal[]; events: EventProposal[]; gastos: GastoProposta[] } {
+/** Proposta de atualização de meta. `meta` é a ETIQUETA ("M1") da lista que o servidor mostrou ao modelo; o servidor a resolve para o id real. */
+export type MetaProposta = { meta: string; acao: "registrar" | "concluir"; valor: number | null; data: string | null };
+
+/** Proposta válida: etiqueta M1..M99; "registrar" exige valor positivo; data AAAA-MM-DD existente, de até 1 ano atrás até hoje. */
+export function validMetaProposta(o: { meta?: unknown; acao?: unknown; valor?: unknown; data?: unknown }, now = Date.now()): MetaProposta | null {
+  const meta = typeof o.meta === "string" ? o.meta.trim().toUpperCase() : "";
+  if (!/^M\d{1,2}$/.test(meta)) return null;
+  if (o.acao === "concluir") return { meta, acao: "concluir", valor: null, data: null };
+  if (o.acao !== "registrar") return null;
+  const valor = parseNumero(o.valor);
+  if (valor === null || valor <= 0) return null;
+  let data: string | null = null;
+  if (typeof o.data === "string") {
+    const d = lerData(o.data), hoje = hojeSP(now);
+    if (d && ordinal(d) <= ordinal(hoje) && ordinal(d) >= ordinal(hoje) - 366) data = isoDia(d);
+  }
+  return { meta, acao: "registrar", valor, data };
+}
+
+export function splitMeta(text: string, now = Date.now()): { body: string; memories: MemoryProposal[]; reminders: ReminderProposal[]; tasks: TaskProposal[]; events: EventProposal[]; gastos: GastoProposta[]; metas: MetaProposta[] } {
   const i = text.indexOf(META);
-  if (i < 0) return { body: visiblePart(text), memories: [], reminders: [], tasks: [], events: [], gastos: [] };
+  if (i < 0) return { body: visiblePart(text), memories: [], reminders: [], tasks: [], events: [], gastos: [], metas: [] };
   const body = text.slice(0, i).trim();
   const raw = text.slice(i + META.length);
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
-  if (start < 0 || end <= start) return { body, memories: [], reminders: [], tasks: [], events: [], gastos: [] };
+  if (start < 0 || end <= start) return { body, memories: [], reminders: [], tasks: [], events: [], gastos: [], metas: [] };
   try {
-    const parsed = JSON.parse(raw.slice(start, end + 1)) as { memorias?: unknown; lembretes?: unknown; tarefas?: unknown; eventos?: unknown; gastos?: unknown };
+    const parsed = JSON.parse(raw.slice(start, end + 1)) as { memorias?: unknown; lembretes?: unknown; tarefas?: unknown; eventos?: unknown; gastos?: unknown; metas?: unknown };
     const list = Array.isArray(parsed.memorias) ? parsed.memorias : [];
     const memories = list
       .map((m) => {
@@ -101,8 +122,13 @@ export function splitMeta(text: string, now = Date.now()): { body: string; memor
       .map((g) => validGasto((g ?? {}) as Record<string, unknown>, now))
       .filter((g): g is GastoProposta => Boolean(g))
       .slice(0, 5);
-    return { body, memories, reminders, tasks, events, gastos };
+    // Metas: só propostas. O servidor só as repassa quando a mensagem tem intenção de atualizar meta e Metas está ligado.
+    const metas = (Array.isArray(parsed.metas) ? parsed.metas : [])
+      .map((m) => validMetaProposta((m ?? {}) as Record<string, unknown>, now))
+      .filter((m): m is MetaProposta => Boolean(m))
+      .slice(0, 1);
+    return { body, memories, reminders, tasks, events, gastos, metas };
   } catch {
-    return { body, memories: [], reminders: [], tasks: [], events: [], gastos: [] };
+    return { body, memories: [], reminders: [], tasks: [], events: [], gastos: [], metas: [] };
   }
 }

@@ -4,7 +4,7 @@ import type { ViewId } from "@/lib/modules";
 
 export type SourcesData = { items: SourceItem[]; unavailable: string[] };
 
-const VIEW_NAME: Partial<Record<ViewId, string>> = { tarefas: "Tarefas", agenda: "Agenda", hoje: "Hoje", financeiro: "Financeiro" };
+const VIEW_NAME: Partial<Record<ViewId, string>> = { tarefas: "Tarefas", agenda: "Agenda", hoje: "Hoje", financeiro: "Financeiro", metas: "Metas" };
 
 /** "Fontes" sob a resposta do assistente: detalhe recolhível com o que o Core consultou e link para a tela de origem. */
 export function SourcesDetail({ data, onOpen }: { data: SourcesData; onOpen: (view: ViewId) => void }) {

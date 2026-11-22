@@ -85,6 +85,31 @@ describe("telas públicas", () => {
     assert.deepEqual(Object.values(st), Array(12).fill(401), JSON.stringify(st));
     await p.context().close();
   });
+  test("Metas: as rotas /api/goals/* recusam sem login (401), com qualquer método ou parâmetro", async () => {
+    const p = await page(PHONE, { auth: false });
+    await p.goto(`${BASE}/`);
+    const id = "00000000-0000-4000-8000-000000000001";
+    const st = await p.evaluate(async (id) => {
+      const call = async (path, method = "GET", body) => (await fetch(path, { method, headers: { "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined })).status;
+      return {
+        lista: await call("/api/goals"),
+        listaStatus: await call("/api/goals?status=ativa"),
+        criar: await call("/api/goals", "POST", { titulo: "x", valor_alvo: 5, user_id: id }),
+        resumo: await call("/api/goals/resumo"),
+        detalhe: await call(`/api/goals/${id}`),
+        editar: await call(`/api/goals/${id}`, "PATCH", { titulo: "y" }),
+        progresso: await call(`/api/goals/${id}/progresso`, "POST", { valor: 1 }),
+        progressoApagar: await call(`/api/goals/${id}/progresso/${id}`, "DELETE"),
+        marcoCriar: await call(`/api/goals/${id}/marcos`, "POST", { titulo: "x" }),
+        marcoEditar: await call(`/api/goals/${id}/marcos/${id}`, "PATCH", { concluido: true }),
+        marcoApagar: await call(`/api/goals/${id}/marcos/${id}`, "DELETE"),
+        tarefaVincular: await call(`/api/goals/${id}/tarefas`, "POST", { task_id: 1 }),
+        tarefaDesvincular: await call(`/api/goals/${id}/tarefas/1`, "DELETE"),
+      };
+    }, id);
+    assert.deepEqual(Object.values(st), Array(13).fill(401), JSON.stringify(st));
+    await p.context().close();
+  });
   test("cabeçalhos de segurança: CSP com nonce e sem iframe", async () => {
     const p = await page(PHONE, { auth: false });
     const r = await p.goto(`${BASE}/`);

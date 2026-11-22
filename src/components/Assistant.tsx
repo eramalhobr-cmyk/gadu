@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FaceMode } from "./robot-engine";
 import { EventCard } from "./EventCard";
 import { GastoCard } from "./GastoCard";
+import { MetaCard } from "./MetaCard";
 import { SourcesDetail } from "./SourcesDetail";
 import type { ViewId } from "@/lib/modules";
 import { Icon } from "./ui";
@@ -18,6 +19,7 @@ const SUGGEST: Partial<Record<AssistantContext["view"], string[]>> = {
   agentes: ["Que agentes combinam com a minha rotina?"],
   ajustes: ["Quanto já gastei com IA neste mês?"],
   financeiro: ["Quanto gastei este mês?", "Como estão minhas contas?", "Gastei "],
+  metas: ["Como estão minhas metas?", "Quais metas estão atrasadas?", "Registrar progresso: "],
 };
 
 /** Assistente Universal: voz e texto em qualquer tela. Três estados, uma conversa só (mesmo histórico, sessão e regras):
@@ -125,6 +127,7 @@ export function Assistant(props: {
           m.role === "user" ? <div key={m.id} className="bub u">{m.content}</div>
           : m.role === "event" && m.event ? <EventCard key={m.id} ev={m.event} />
           : m.role === "gasto" && m.gasto ? <GastoCard key={m.id} g={m.gasto} onOpen={() => props.onOpenView("financeiro")} />
+          : m.role === "meta" && m.meta ? <MetaCard key={m.id} d={m.meta} onOpen={() => props.onOpenView("metas")} />
           : m.role === "notice" ? (
             <div key={m.id} className="notice" role="status">
               {m.content}

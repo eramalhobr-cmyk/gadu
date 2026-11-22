@@ -85,3 +85,37 @@ export function detectFinanceIntent(message: string): FinanceIntent | null {
   if (RESUMO.some((r) => r.test(t))) return { kind: "resumo" };
   return null;
 }
+
+// ---- Metas: intenções simples, sem IA ----
+export type GoalsKind = "resumo" | "meta" | "atualizar";
+/** `meta`: pergunta sobre uma meta pelo nome (`termo`). `atualizar`: a pessoa informa progresso ou quer concluir (vira PROPOSTA, nunca grava). */
+export type GoalsIntent = { kind: GoalsKind; termo?: string };
+
+const META_ATUALIZAR: RegExp[] = [
+  /\b(conclui|concluir|conclua|concluimos|finalizei|finalizar|encerrei|bati|atingi|cumpri|completei)\b.*\bmeta\b/,
+  /\b(registra|registre|registrar|anota|anote|anotar|adiciona|adicione|adicionar|lanca|lance|lancar|soma|some|somar|marca|marque)\b.*\d.*\bmeta\b/,
+  /\b(corri|caminhei|pedalei|nadei|li|estudei|meditei|treinei|economizei|poupei|guardei|juntei|emagreci)\b.*\d/,
+];
+const META_RESUMO: RegExp[] = [
+  /\bcomo (estao|esta|ta|anda|andam|vao|vai) (as |minhas |meus |o |a )*metas\b/,
+  /\bcomo (eu )?estou (nas|nos|com as|com minhas) (minhas )?metas\b/,
+  /\b(minhas|nossas) metas\b/,
+  /\bquais (sao )?(as )?(minhas )?metas\b/,
+  /\bmetas (atrasadas|em atraso|ativas|abertas|em andamento|do ano|do mes)\b/,
+];
+const META_TERMO = /\bmeta (?:de|do|da|dos|das|para|pra)\s+(.+)$/;
+const META_TERMO_FIM = /\b(como|qual|quanto|quantos|quantas|falta|faltam|e|mas|esta|ta|anda|vai|hoje|agora|este|esse|neste|nesse|ate|desde)\b.*$/;
+
+/** Intenção de Metas da mensagem, ou null. Só o texto; nenhuma chamada de IA. */
+export function detectGoalsIntent(message: string): GoalsIntent | null {
+  const t = norm(message.slice(0, 400));
+  if (!t) return null;
+  if (META_ATUALIZAR.some((r) => r.test(t))) return { kind: "atualizar" };
+  const m = META_TERMO.exec(t);
+  if (m && /\b(como|qual|quanto|quantos|falta|faltam|esta|ta|anda|vai|andamento|progresso)\b/.test(t)) {
+    const termo = m[1].replace(META_TERMO_FIM, "").trim().split(" ").filter(Boolean).slice(0, 3).join(" ").slice(0, 40);
+    if (termo.length >= 3) return { kind: "meta", termo };
+  }
+  if (META_RESUMO.some((r) => r.test(t))) return { kind: "resumo" };
+  return null;
+}

@@ -1,6 +1,6 @@
 # GaDu · Situação do projeto
 
-Atualizado em 22/11/2026 (Finanças, base, **publicada**, PR #26, merge `41eb3ed`, migração aplicada e deploy no ar; evidências em "Finanças base: publicação" abaixo; antes: Core "atenção hoje" **publicado**, PR #24, merge `215edab`; evidências em "Core atenção hoje: publicação" abaixo), com a segurança P1 **publicada** (PR #22, merge `cc85040`, migrações aplicadas e deploy no ar; evidências em "Segurança P1: publicação" abaixo). A tabela de produção abaixo é de 16/11 e não foi reescrita. Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
+Atualizado em 22/11/2026 (Metas, base, **desenvolvida e testada localmente, não publicada**, branch `feat/metas-base`; antes: Finanças, base, **publicada**, PR #26, merge `41eb3ed`, migração aplicada e deploy no ar; evidências em "Finanças base: publicação" abaixo; antes: Core "atenção hoje" **publicado**, PR #24, merge `215edab`; evidências em "Core atenção hoje: publicação" abaixo), com a segurança P1 **publicada** (PR #22, merge `cc85040`, migrações aplicadas e deploy no ar; evidências em "Segurança P1: publicação" abaixo). A tabela de produção abaixo é de 16/11 e não foi reescrita. Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
 
 ## Ambiente de produção (verificado em 14/11/2026)
 | Item | Estado | Evidência |
@@ -72,6 +72,12 @@ Atualizado em 22/11/2026 (Finanças, base, **publicada**, PR #26, merge `41eb3ed
 | Documentação Marco Zero (contexto mestre, auditoria, governança) | Rascunho, não integrado. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` | PR #1 |
 | **Finanças, base: Contas e Dia a dia** (alto risco: banco novo) | **Publicada em 22/11/2026** (PR #26, merge `41eb3ed`). Migração `financas_base` aplicada na produção (versão `20261122194404`). No ar e ligado por padrão (`FINANCE_ENABLED` não existe na Vercel). Pendente: validar a tela Financeiro e o lançamento pela conversa com pessoa logada, em aparelho | [docs/FEATURE-FINANCAS.md](docs/FEATURE-FINANCAS.md) |
 | Especificação de Finanças pessoais | Integrada (PR #5, em 22/11/2026 às 15:49, Brasília, merge `ff8fff0`) | `docs/FEATURE-FINANCAS.md` |
+
+## Metas, base (22/11/2026): desenvolvida e testada localmente, **não publicada**
+- Branch `feat/metas-base`, sem push e sem PR. Migração `20261122210001_metas_base` **não aplicada** na produção. Aprovada pelo Eduardo (inclusive banco).
+- Entrega: 4 tabelas com RLS e chaves compostas, cálculo de progresso e ritmo, API `/api/goals/*`, tela Metas (Beta), resumo no Hoje, fonte `goals` do Core e atualização por proposta com confirmação, `GOALS_ENABLED=0`. Detalhe em [docs/METAS_CONQUISTAS.md](docs/METAS_CONQUISTAS.md).
+- Testes locais: typecheck, `npm test` (165 + 126), build, `test-db`, e2e público 9/9 e mobile 44/44 contra `next start` local. Nada validado com pessoa logada nem em aparelho.
+- **Ponto de retomada:** revisão do Eduardo, PR (alto risco: banco), aprovação explícita para aplicar a migração, publicar e validar com login.
 
 ## Validação no celular (22/11/2026, PR #28): **publicada**, validada só em celular emulado; aparelho real pendente
 - Correções: Voltar do Android por camada, voz em trechos curtos, push com reinscrição e selo, CSP da tela offline, alvos de toque, atributos de teclado. Detalhes e evidências no CHANGELOG.

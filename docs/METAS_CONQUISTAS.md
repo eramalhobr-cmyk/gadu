@@ -1,6 +1,6 @@
 # Metas & Conquistas
 
-Estado em 14/11/2026: **Planejado**. Nada deste documento existe no app. Não há tabela, tela funcional nem meta de exemplo. Tudo aqui é **[Proposta]**, salvo quando indicado.
+Estado em 22/11/2026: **Beta, fase 1 desenvolvida e testada localmente (branch `feat/metas-base`), não publicada**; a migração não foi aplicada na produção. O que existe está em "Fase 1: o que foi implementado" no fim deste documento. O resto é **[Proposta]**. Não há meta, conquista ou medalha de exemplo na interface.
 
 ## Objetivo
 Um espaço para definir, organizar e acompanhar objetivos de vida.
@@ -113,5 +113,38 @@ Regras:
 | 5 | Indicadores de saúde por conector | [INTEGRACOES_SAUDE.md](INTEGRACOES_SAUDE.md); consentimento específico |
 | 6 | Metas compartilhadas na família | Modelo de grupos e membros com RLS |
 
-## Fora desta sprint
-Banco, migrações, rotas e metas simuladas. Só documentação.
+## Fase 1: o que foi implementado (22/11/2026)
+Aprovada pelo Eduardo (inclusive banco). Nomes de tabela seguem a proposta em inglês (`goals`, `goal_*`), coerentes com o modelo acima.
+
+**Banco** (`supabase/migrations/20261122210001_metas_base.sql`, só aditiva, rollback no topo):
+| Tabela | Conteúdo |
+|---|---|
+| `goals` | título, descrição (o porquê), categoria (as 6 da especificação + personalizada com nome), medição (`numerica`, `percentual`, `marcos`, `tarefas`), unidade, agregação (`soma` ou `ultimo`), valor inicial e alvo, início, prazo, situação (`ativa`, `pausada`, `concluida`, `arquivada`) |
+| `goal_progress` | um registro por linha: valor, data e **origem** (`manual`, `conversa`, `tarefa`), nota |
+| `goal_milestones` | marcos (checklist) com data de conclusão |
+| `goal_tasks` | vínculo meta ↔ tarefa; chave composta `(id, user_id)` nos dois lados (e `unique (id, user_id)` em `tasks`) |
+- RLS `(select auth.uid()) = user_id` em 4 políticas por tabela, só `authenticated`, nada para `anon`; sem função nem trigger.
+- Meta de uma pessoa não referencia tarefa, marco ou registro de outra, nem pelo banco.
+- Sem tabelas de conquistas, recomendações, categorias ou compartilhamento (fases futuras).
+
+**Decisões:**
+- **O valor atual não é coluna.** É calculado dos registros (`soma`: início + registros; `ultimo`: medida mais recente). Sem registro, a interface diz "Sem registros", nunca "0%" como medição (regra 1 e 2).
+- Meta que diminui (82 kg para 75 kg) é aceita; percentual é sempre 0 a 100 com `ultimo`.
+- Metas por marcos e por tarefas não recebem valor: o progresso vem dos marcos concluídos ou das tarefas concluídas (canceladas não contam).
+- **Ritmo:** compara a fração feita com a fração do tempo passado entre início e prazo, com tolerância de 5 pontos: "no ritmo" ou "atrasada"; prazo passado é "prazo vencido"; meta atingida pede conclusão manual. O que precisa por dia e por semana é **projeção** e aparece como tal.
+- Origem `tarefa` existe no banco, mas nenhum código a grava ainda; o cliente só envia `manual` ou `conversa`.
+- Hábito simples não entrou nesta fatia.
+- Arquivar não apaga; apagar só registros (para corrigir engano) e marcos.
+
+**Código:** `src/lib/goals/` (cálculo, números pt-BR, zod, leitura, interruptor), `src/app/api/goals/*`, tela `MetasPage.tsx`, resumo no Hoje `MetasHoje.tsx` (1 a 3 metas atrasadas, vencidas ou com prazo em até 7 dias; sem IA), cartão `MetaCard.tsx`.
+
+**Assistente:** fonte `goals` do Core (`src/lib/core/goals.ts`) por intenção simples, sem IA extra: "como estão minhas metas", "minha meta de leitura" (fatos [M1]…, data do último registro, Fontes com link para Metas). Atualizações ("corri 5 km hoje", "registra 2 livros na meta de leitura", "conclui a meta X") são **propostas**: o modelo escolhe a meta pela etiqueta, o servidor resolve o id real, e só grava quando a pessoa toca em Confirmar (rota com a sessão). Meta com termo bloqueado ou dado sensível aparece omitida e não pode ser atualizada pela conversa. Tudo continua sob limites, reserva, cota e liquidação (fail closed).
+
+**Interruptores (servidor, ligados por padrão):** `GOALS_ENABLED=0` esconde a tela e o resumo do Hoje e desliga rotas, fonte do Core e propostas; `CORE_MVP=0` desliga a fonte do Core e, por depender dela, as propostas de atualização.
+
+**Testes:** `supabase/tests/70_metas.test.sql` e o isolamento (30) nas 4 tabelas; unitários em `src/lib/goals` e `src/lib/core/goals.test.ts`; integração `test/goals.integration.test.ts` e `test/goals-chat.integration.test.ts`; e2e público (13 rotas 401).
+
+**Limitações:** nada publicado nem validado com pessoa logada ou em aparelho; Android Voltar não trata o detalhe da meta como camada própria (há botão Voltar na página); sem conquistas, recomendações, hábito, projetos e agenda, indicadores de outros módulos nem metas compartilhadas.
+
+## Fora desta fatia
+Fases 2 a 6 da tabela acima.
