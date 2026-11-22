@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "./RobotFace";
 import { EventCard, type EventDraft } from "./EventCard";
+import { SourcesDetail, type SourcesData } from "./SourcesDetail";
 import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
 import { canListen, canSpeak, createRecognizer, Speaker } from "@/lib/speech";
@@ -24,7 +25,7 @@ import { contextOf } from "@/lib/assistant-context";
 import { AREAS, isOverview, moduleById, moduleOf, parseView, viewDef, type ViewId } from "@/lib/modules";
 import { applyTheme, readTheme, type Theme } from "@/lib/theme";
 
-export type Msg = { id: string; role: "user" | "assistant" | "notice" | "event"; content: string; via?: string; link?: { href: string; label: string }; event?: EventDraft };
+export type Msg = { id: string; role: "user" | "assistant" | "notice" | "event"; content: string; via?: string; link?: { href: string; label: string }; event?: EventDraft; sources?: SourcesData };
 
 const DEFAULT_MORNING = "https://open.spotify.com/search/Update%20Di%C3%A1rio/podcasts";
 const QUICK = ["Começar o dia", "Como está minha agenda hoje?", "Tenho e-mails importantes?"];
@@ -278,6 +279,8 @@ export function GaduApp(props: {
             if (!answerStarted) { answerStarted = true; if (!(prefs.voice && canSpeak())) setMode("speaking"); }
             setMessages((ms) => ms.map((m) => (m.id === botId ? { ...m, content: answer } : m)));
             if (prefs.voice && speaker) { speaker.push(ev.text); spoke = true; }
+          } else if (ev.t === "sources") {
+            setMessages((ms) => ms.map((m) => (m.id === botId ? { ...m, sources: { items: ev.items, unavailable: ev.unavailable } } : m)));
           } else if (ev.t === "events") {
             const items = ev.items as EventDraft[];
             setMessages((ms) => [...ms, ...items.map((e) => ({ id: crypto.randomUUID(), role: "event" as const, content: e.title, event: e }))]);
@@ -658,7 +661,7 @@ export function GaduApp(props: {
                       {m.content}
                       {m.link && <div style={{ marginTop: 8 }}><a className="btn btn-sm" href={m.link.href} target="_blank" rel="noopener noreferrer">{m.link.label}</a></div>}
                     </div>
-                  ) : <div key={m.id} className="bub b"><span className="via">GaDu{m.via ? ` · via ${m.via}` : ""}</span>{m.content || "…"}</div>,
+                  ) : <div key={m.id} className="bub b"><span className="via">GaDu{m.via ? ` · via ${m.via}` : ""}</span>{m.content || "…"}{m.sources && <SourcesDetail data={m.sources} onOpen={setTab} />}</div>,
                 )}
               </div>
               <form className="chat-form" onSubmit={(e) => { e.preventDefault(); void send(draft); }}>
@@ -701,7 +704,7 @@ export function GaduApp(props: {
         open={showAssist} width={assistW} onResizeStart={startResize} onResizeStep={stepAssistW} context={contextOf(tab)} messages={messages} draft={draft} mode={mode} listening={listening} busy={busy} voiceOk={voiceOk}
         onDraft={setDraft} onSend={(t) => { speaker?.unlock(); void send(t); }} onMic={micClick} onStop={stop}
         onClose={() => openAssist(false)}
-        onOpenConversation={() => { openAssist(false); setTab("conversa"); }} onNew={() => newConversation()}
+        onOpenView={(v) => { openAssist(false); setTab(v); }} onOpenConversation={() => { openAssist(false); setTab("conversa"); }} onNew={() => newConversation()}
       />
       {!showAssist && view !== "conversa" && (
         <button className={`orb-fab ${active ? "on" : ""}`} onClick={() => openAssist(true)} aria-label="Abrir o assistente GaDu">

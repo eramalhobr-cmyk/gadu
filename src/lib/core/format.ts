@@ -40,3 +40,17 @@ export function toItem(f: AttentionFact): SourceItem {
 }
 
 export const DEFAULT_LIMITS = { maxFacts: ATENCAO_HOJE.maxFacts, maxChars: ATENCAO_HOJE.maxChars };
+
+/** "2 tarefas, 1 lembrete, 1 compromisso" para o resumo de "Fontes". */
+export function summarizeSources(items: Pick<SourceItem, "kind">[]): string {
+  const groups: [string, string, (k: SourceItem["kind"]) => boolean][] = [
+    ["tarefa", "tarefas", (k) => k === "atrasada" || k === "tarefa_hoje" || k === "prioridade"],
+    ["lembrete", "lembretes", (k) => k === "lembrete"],
+    ["compromisso", "compromissos", (k) => k === "evento"],
+    ["e-mail", "e-mails", (k) => k === "email"],
+  ];
+  return groups
+    .map(([one, many, is]) => { const n = items.filter((i) => is(i.kind)).length; return n ? `${n} ${n === 1 ? one : many}` : ""; })
+    .filter(Boolean)
+    .join(", ");
+}

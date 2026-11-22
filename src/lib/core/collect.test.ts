@@ -208,3 +208,9 @@ test("o bloco instrui a citar etiquetas e a dizer o que está indisponível", as
   assert.match(block, /Cite a etiqueta/);
   assert.match(block, /Diga explicitamente o que está indisponível/);
 });
+
+test("resumo de Fontes: contagem por tipo, em pt-BR", async () => {
+  const { summarizeSources } = await import("./format.ts");
+  assert.equal(summarizeSources([{ kind: "atrasada" }, { kind: "tarefa_hoje" }, { kind: "lembrete" }, { kind: "evento" }, { kind: "email" }]), "2 tarefas, 1 lembrete, 1 compromisso, 1 e-mail");
+  assert.equal(summarizeSources([]), "");
+});
