@@ -4,6 +4,13 @@
 type Row = Record<string, unknown>;
 export type FinStore = Record<string, Row[]>;
 
+// Padrões que o banco aplicaria (colunas com default). Só para as tabelas de Metas.
+const DEFAULTS: Record<string, () => Row> = {
+  goals: () => ({ status: "ativa", concluida_em: null, created_at: new Date().toISOString() }),
+  goal_progress: () => ({ created_at: new Date().toISOString() }),
+  goal_milestones: () => ({ ordem: 0, concluido_em: null }),
+};
+const UNIQUE: Record<string, string[]> = { goal_tasks: ["goal_id", "task_id"] };
 const KEYS: Record<string, string[]> = { fin_item_meses: ["item_id", "ano", "mes"], fin_config: ["user_id"] };
 
 export function makeFinDb(store: FinStore, user: () => string | null, log: { tables: string[]; writes: { table: string; op: string; rows: Row[] }[] }) {
@@ -31,8 +38,10 @@ export function makeFinDb(store: FinStore, user: () => string | null, log: { tab
         if (op === "insert" || op === "upsert") {
           const out: Row[] = [];
           for (const p of [payload].flat() as Row[]) {
-            const row: Row = { id: crypto.randomUUID(), user_id: uid, ...p };
+            const row: Row = { id: crypto.randomUUID(), user_id: uid, ...(DEFAULTS[table]?.() ?? {}), ...p };
             if (row.user_id !== uid) return { data: null, error: { code: "42501", message: "RLS" } };
+            const uniq = UNIQUE[table];
+            if (op === "insert" && uniq && tbl.some((r) => uniq.every((k) => r[k] === row[k]))) return { data: null, error: { code: "23505", message: "duplicado" } };
             const key = op === "upsert" ? conflict : [];
             const existing = key.length ? tbl.find((r) => r.user_id === uid && key.every((k) => r[k] === row[k])) : undefined;
             if (existing) { Object.assign(existing, p); out.push(existing); }
@@ -55,6 +64,10 @@ export function makeFinDb(store: FinStore, user: () => string | null, log: { tab
           const ids = new Set(hit.map((r) => r.id));
           store.fin_item_meses = (store.fin_item_meses ?? []).filter((m) => !ids.has(m.item_id));
           for (const r of store.fin_itens) for (const c of ["cartao_id", "segue_id"]) if (ids.has(r[c])) r[c] = null;
+        }
+        if (table === "goals") {
+          const ids = new Set(hit.map((r) => r.id));
+          for (const t of ["goal_progress", "goal_milestones", "goal_tasks"]) store[t] = (store[t] ?? []).filter((r) => !ids.has(r.goal_id));
         }
         log.writes.push({ table, op, rows: hit.map((r) => ({ ...r })) });
         return { data: hit.map((r) => ({ ...r })), error: null };

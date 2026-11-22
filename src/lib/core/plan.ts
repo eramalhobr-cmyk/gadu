@@ -104,7 +104,7 @@ const META_RESUMO: RegExp[] = [
   /\bmetas (atrasadas|em atraso|ativas|abertas|em andamento|do ano|do mes)\b/,
 ];
 const META_TERMO = /\bmeta (?:de|do|da|dos|das|para|pra)\s+(.+)$/;
-const META_TERMO_FIM = /\b(como|esta|ta|anda|vai|hoje|agora|este|esse|neste|nesse|ate|desde)\b.*$/;
+const META_TERMO_FIM = /\b(como|qual|quanto|quantos|quantas|falta|faltam|e|mas|esta|ta|anda|vai|hoje|agora|este|esse|neste|nesse|ate|desde)\b.*$/;
 
 /** Intenção de Metas da mensagem, ou null. Só o texto; nenhuma chamada de IA. */
 export function detectGoalsIntent(message: string): GoalsIntent | null {
