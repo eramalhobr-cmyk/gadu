@@ -1,6 +1,6 @@
 # Metas & Conquistas
 
-Estado em 22/11/2026: **Beta, fase 1 desenvolvida e testada localmente (branch `feat/metas-base`), não publicada**; a migração não foi aplicada na produção. O que existe está em "Fase 1: o que foi implementado" no fim deste documento. O resto é **[Proposta]**. Não há meta, conquista ou medalha de exemplo na interface.
+Estado em 22/11/2026: **Beta, fase 1 **publicada** em 22/11/2026 às 18:33 (Brasília), PR #30, merge `901e27d`. CI verde (verify, e2e-public, database). Migração `metas_base` aplicada na produção antes do merge (só aditiva); conferido: `goals`, `goal_progress`, `goal_milestones` e `goal_tasks` com RLS, 4 políticas cada, `anon` sem SELECT. Deploy de produção da Vercel concluído; home 200, `/api/goals` sem sessão 401, `/api/health` ok; e2e público contra a produção 9/9. `GOALS_ENABLED` não definida na Vercel (ligado por padrão). **Não verificado:** tela Metas, resumo do Hoje e propostas no chat com pessoa logada e em aparelho.** O que existe está em "Fase 1: o que foi implementado" no fim deste documento. O resto é **[Proposta]**. Não há meta, conquista ou medalha de exemplo na interface.
 
 ## Objetivo
 Um espaço para definir, organizar e acompanhar objetivos de vida.

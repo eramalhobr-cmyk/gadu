@@ -6,7 +6,9 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
-## 2026-11-22 · Metas, base (branch `feat/metas-base`) · desenvolvido e testado localmente · **NÃO publicado**
+## 2026-11-22 · Metas, base (PR #30, merge `901e27d`) · **publicado**
+
+- Publicação: **publicada** em 22/11/2026 às 18:33 (Brasília), PR #30, merge `901e27d`. CI verde (verify, e2e-public, database). Migração `metas_base` aplicada na produção antes do merge (só aditiva); conferido: `goals`, `goal_progress`, `goal_milestones` e `goal_tasks` com RLS, 4 políticas cada, `anon` sem SELECT. Deploy de produção da Vercel concluído; home 200, `/api/goals` sem sessão 401, `/api/health` ok; e2e público contra a produção 9/9. `GOALS_ENABLED` não definida na Vercel (ligado por padrão). **Não verificado:** tela Metas, resumo do Hoje e propostas no chat com pessoa logada e em aparelho.
 - **Estágio:** desenvolvido e testado localmente. Sem push, sem PR, sem migração aplicada em serviço remoto. Aprovado pelo Eduardo (inclusive tabelas novas).
 - **Banco:** migração `20261122210001_metas_base.sql` (`goals`, `goal_progress`, `goal_milestones`, `goal_tasks`; RLS, chaves compostas, CHECKs; só aditiva, com uma restrição `unique (id, user_id)` em `tasks`; rollback no topo).
 - **App:** cálculo de progresso e ritmo (`src/lib/goals/`), API `/api/goals/*`, tela Metas (Beta, mobile first), resumo no Hoje, fonte `goals` do Core e atualização como proposta com confirmação, `GOALS_ENABLED=0`.
