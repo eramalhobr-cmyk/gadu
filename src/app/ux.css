@@ -2,7 +2,7 @@
 
 /* UX-1 · Barra de baixo: microfone grande no centro. Um toque fala; tocar e segurar abre o painel. */
 .dockbar { grid-template-columns: 1fr 1fr 84px 1fr 1fr; }
-.dock-item { min-height: 56px; font-size: 12px; font-weight: 600; }
+.dock-item { min-height: 56px; font-size: calc(12px * var(--ts, 1)); font-weight: 600; }
 .dock-mic { justify-self: center; position: relative; width: 68px; height: 68px; margin-top: -26px; border-radius: 50%; border: 3px solid var(--panel); background: var(--sig); color: var(--sig-ink); display: grid; place-items: center; box-shadow: 0 6px 18px rgb(var(--shadow-rgb) / 0.4), 0 0 0 1px rgb(var(--sig-rgb) / 0.5); touch-action: manipulation; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; cursor: pointer; }
 .dock-mic:active { transform: scale(0.96); }
 .dock-mic:focus-visible { outline: 3px solid var(--sig); outline-offset: 3px; }
@@ -68,7 +68,7 @@
 @media (min-width: 720px) { .listen-wrap { place-items: center; } .listen { border-radius: 24px; } }
 .listen-x { position: absolute; top: var(--s-3); right: var(--s-3); width: 48px; height: 48px; }
 .listen-status { margin: var(--s-2) 0 0; color: var(--sig); font: 700 var(--fs-xl)/1.2 var(--display); }
-.listen-text { margin: 0; min-height: 3.6em; max-width: 100%; color: var(--ink); font-size: 26px; line-height: 1.35; font-weight: 500; overflow-wrap: anywhere; }
+.listen-text { margin: 0; min-height: 3.6em; max-width: 100%; color: var(--ink); font-size: calc(26px * var(--ts, 1)); line-height: 1.35; font-weight: 500; overflow-wrap: anywhere; }
 .listen-text.hint { color: var(--ink-2); font-size: var(--fs-lg); font-weight: 400; }
 .listen-acts { display: flex; flex-direction: column; align-items: center; gap: var(--s-3); width: 100%; }
 .listen-mic { width: 104px; height: 104px; border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--sig); color: var(--sig-ink); box-shadow: 0 8px 24px rgb(var(--shadow-rgb) / 0.4); cursor: pointer; touch-action: manipulation; }
@@ -82,3 +82,17 @@
 .listen-hf { width: 100%; text-align: left; font-size: var(--fs-md); }
 .listen-hf small { display: block; font-size: var(--fs-sm); margin-top: 2px; }
 .today2 .now-card b { white-space: normal; }
+
+/* ===== UX-3 · Texto grande =====
+   Todas as fontes são calc(Npx * var(--ts, 1)). A escolha em Configurações vira data-texto no <html>.
+   Corpo do texto: 16 px no normal; no grande e no maior, também os textos secundários (14 px) passam de 16 px. */
+html[data-texto="115"] { --ts: 1.15; }
+html[data-texto="130"] { --ts: 1.3; }
+.text-opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }
+.text-opt { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 72px; padding: var(--s-2); border-radius: var(--r-md, 14px); border: 1px solid var(--line-2); background: transparent; color: var(--ink); }
+.text-opt[aria-pressed="true"] { border-color: var(--sig); background: var(--wash); box-shadow: 0 0 0 1px var(--sig) inset; }
+.text-opt .aa { font-family: var(--display); line-height: 1; }
+.text-opt b { font-size: var(--fs-sm); font-weight: 600; }
+.text-sample { margin: var(--s-3) 0 0; color: var(--ink-2); }
+/* Com texto grande, os atalhos das Configurações viram uma linha só, de rolar para o lado (em vez de 3 linhas fixas no topo). */
+@media (max-width: 699px) { html[data-texto="115"] .set-nav, html[data-texto="130"] .set-nav { flex-wrap: nowrap; overflow-x: auto; } }

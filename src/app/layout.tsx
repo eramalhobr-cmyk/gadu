@@ -6,6 +6,7 @@ import "./v2-pages.css";
 import "./ux.css";
 import { cookies } from "next/headers";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
+import { parseTextSize, TEXT_COOKIE } from "@/lib/text-size";
 
 const display = Michroma({ subsets: ["latin"], weight: "400", variable: "--font-display", display: "swap" });
 const body = Instrument_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
@@ -30,9 +31,12 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Tema escolhido pela pessoa (cookie). Sem cookie, vale o escuro, que é a identidade do GaDu.
-  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+  const jar = await cookies();
+  const theme = parseTheme(jar.get(THEME_COOKIE)?.value);
+  // Tamanho do texto escolhido em Configurações (UX-3): 100, 115 ou 130%.
+  const texto = parseTextSize(jar.get(TEXT_COOKIE)?.value);
   return (
-    <html lang="pt-BR" data-theme={theme} className={`${display.variable} ${body.variable} ${mono.variable}`}>
+    <html lang="pt-BR" data-theme={theme} data-texto={texto} className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );
