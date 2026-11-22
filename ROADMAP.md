@@ -400,11 +400,11 @@ Objetivo: o GaDu fácil para qualquer pessoa, inclusive quem não é digital, co
 - [x] Menu lateral do computador: lista simples na mesma ordem do celular, sem grupos recolhíveis e sem módulos planejados (ficam em "Em breve")
 - [x] Nomes únicos: **Conversa** (com "Conversas anteriores" dentro dela), **Memória**, **Configurações**; tirar o botão duplicado de abrir o assistente no topo do celular
 
-### UX-2 · Hoje e rolagem (P0)
-- [ ] No máximo 5 blocos e cerca de 2 telas: (1) saudação com **botão grande "Falar com o GaDu"** e a ação do momento; (2) "Agora" (próximo compromisso); (3) **uma lista única "Merece sua atenção"** com Feito/Adiar no próprio item (junta tarefas, lembretes, e-mails e metas); (4) 3 atalhos de voz; (5) "Ver tudo"
-- [ ] Tirar o catálogo de módulos e o bloco duplicado "Precisa de atenção" do Hoje; números do topo todos tocáveis ou removidos
-- [ ] Ao rolar, cabeçalho compacto com o botão Falar sempre à mão; voltar ao topo tocando no título
-- [ ] Criar lembrete pela voz ou pelo botão "+", em vez do formulário fixo no meio da tela
+### UX-2 · Hoje e rolagem (P0) · feito em 22/11/2026 pelo Cursor (Grok Bot), PR `feat/ux-hoje`
+- [x] No máximo 5 blocos e cerca de 2 telas: (1) saudação com **botão grande "Falar com o GaDu"** e a ação do momento; (2) "Agora" (próximo compromisso); (3) **uma lista única "Merece sua atenção"** com Feito/Adiar no próprio item (junta tarefas, lembretes, e-mails e metas); (4) 3 atalhos de voz; (5) "Ver tudo"
+- [x] Tirar o catálogo de módulos e o bloco duplicado "Precisa de atenção" do Hoje; números do topo todos tocáveis ou removidos
+- [x] Ao rolar, o botão Falar fica sempre à mão (microfone da barra de baixo, UX-1); voltar ao topo tocando no título
+- [x] Criar lembrete pela voz ou pelo botão "+", em vez do formulário fixo no meio da tela
 
 ### UX-3 · Voz primeiro (P0/P1)
 - [ ] Um toque para falar em qualquer tela; tela de escuta com **texto grande** ("Estou ouvindo…", transcrição ao vivo) e botão grande "Parar"
