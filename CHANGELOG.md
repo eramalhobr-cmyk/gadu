@@ -3,12 +3,21 @@
 Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em branch), **testado** (testes automáticos ou verificação executada, descrita na entrada), **publicado** (na `main` e em produção na Vercel, com migrações aplicadas quando houver). Datas são as do commit. Antes de 12/11 o histórico foi reconstruído a partir do `git log` e do ROADMAP; o que não tem evidência registrada aparece como "verificação não registrada".
 
 ## Em aberto (não publicado)
-- **Finanças · base** (branch `feat/financas-base`): desenvolvida e testada localmente, **não publicada**; migração `20261122190001_financas_base.sql` **não aplicada**. Detalhes na entrada abaixo.
-- **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): já integrada (merge `ff8fff0`).
+- **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
-## 2026-11-22 · Finanças, base: Contas e Dia a dia (branch `feat/financas-base`) · desenvolvido e testado localmente, NÃO publicado
-- **Desenvolvido.** Primeira fatia da especificação (aprovada pelo Eduardo, inclusive as tabelas novas com RLS). **Não está na `main`, não houve push, PR, migração no Supabase nem deploy.**
+## 2026-11-22 · `41eb3ed` · Finanças, base: Contas e Dia a dia (PR #26) · publicado
+- **Publicado.** PR #26 integrado em 22/11/2026 às 16:44 (Brasília), merge commit `41eb3edd7caaf640675f970f2dd2457dd942c8bf`. CI do PR verde: `verify`, `e2e-public`, `database`. Antes, o PR #5 (especificação) foi atualizado com a `main` e integrado às 15:49 (Brasília), merge `ff8fff0`.
+- **Migração aplicada na produção antes do merge** (só aditiva): `financas_base`, versão `20261122194404`. Conferido: as 4 tabelas `fin_*` com RLS ligada, 4 políticas cada, `anon` sem SELECT. Assessor de segurança do Supabase sem avisos novos.
+- **Deploy de produção da Vercel:** `success`.
+- **Produção:** home 200; `/api/finance/resumo` sem sessão 401; `/api/health` ok.
+- **e2e público** (8 testes) contra a produção: 8 passaram.
+- **Flags:** `FINANCE_ENABLED` e `CORE_MVP` não estão definidas na Vercel, então o recurso está ligado por padrão.
+- **Não verificado em produção:** tela Financeiro e lançamento pela conversa com pessoa logada, em aparelho.
+- Detalhes do desenvolvimento e dos testes locais na entrada a seguir.
+
+## 2026-11-22 · Finanças, base: desenvolvimento (branch `feat/financas-base`) · desenvolvido e testado localmente
+- **Desenvolvido.** Primeira fatia da especificação (aprovada pelo Eduardo, inclusive as tabelas novas com RLS). Publicada na entrada acima (PR #26). Nome do arquivo na época: `20261122190001_financas_base.sql`; na produção a migração está registrada como `20261122194404`.
 - **Banco (aditiva):** `supabase/migrations/20261122190001_financas_base.sql` cria `fin_itens`, `fin_item_meses`, `fin_gastos` e `fin_config`; `user_id` da sessão, RLS ligado, 16 políticas só para `authenticated` com `(select auth.uid()) = user_id`, `anon` sem nenhum privilégio, `authenticated` sem TRUNCATE/REFERENCES/TRIGGER, CHECKs (valor > 0, mês 1-12, dia 1-31, data existente, `meio`, `tipo`, `origem`), índices por `(user_id, ano, mes)`, vínculos por chave composta, sem função nem trigger. Rollback comentado no topo.
 - **Código:** `src/lib/finance/` (resumo, vínculos, previsão, lançamento, schemas, flag); `src/app/api/finance/*` (resumo, itens, valor/pago por mês, gastos, config); `src/lib/core/finance.ts` (fonte `finance` do Core); `FinanceiroPage.tsx` e `GastoCard.tsx`; módulo Financeiro de "planejado" para Beta; `/api/chat` entende perguntas financeiras e propõe lançamentos.
 - **Comportamento:** perguntas sobre gastos e contas injetam o bloco `[F1]…` com "Fontes" para o Financeiro, sem IA extra; "gastei 45 no mercado no pix" só gera uma proposta, que a pessoa confirma antes de gravar (a gravação é pela rota, com a sessão dela). Custo continua pelos limites, reserva, cota diária e liquidação (fail closed). Termos bloqueados e dado sensível viram "(omitido pela regra de privacidade)".
