@@ -2,6 +2,8 @@
 // <<<META>>> {"memorias":[{"texto":"...","area":"..."}]}
 // Esse bloco nunca aparece para a pessoa.
 
+import { validGasto, type GastoProposta } from "./finance/lancamento.ts";
+
 export const META = "<<<META>>>";
 export const AREAS = ["Pessoal", "Preferências", "Saúde", "Finanças", "Estudos", "Família", "Projetos", "Trabalho"] as const;
 
@@ -62,16 +64,16 @@ export function validEvent(o: { titulo?: unknown; inicio?: unknown; fim?: unknow
   return { title, start: start.toISOString(), end: end.toISOString(), location };
 }
 
-export function splitMeta(text: string, now = Date.now()): { body: string; memories: MemoryProposal[]; reminders: ReminderProposal[]; tasks: TaskProposal[]; events: EventProposal[] } {
+export function splitMeta(text: string, now = Date.now()): { body: string; memories: MemoryProposal[]; reminders: ReminderProposal[]; tasks: TaskProposal[]; events: EventProposal[]; gastos: GastoProposta[] } {
   const i = text.indexOf(META);
-  if (i < 0) return { body: visiblePart(text), memories: [], reminders: [], tasks: [], events: [] };
+  if (i < 0) return { body: visiblePart(text), memories: [], reminders: [], tasks: [], events: [], gastos: [] };
   const body = text.slice(0, i).trim();
   const raw = text.slice(i + META.length);
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
-  if (start < 0 || end <= start) return { body, memories: [], reminders: [], tasks: [], events: [] };
+  if (start < 0 || end <= start) return { body, memories: [], reminders: [], tasks: [], events: [], gastos: [] };
   try {
-    const parsed = JSON.parse(raw.slice(start, end + 1)) as { memorias?: unknown; lembretes?: unknown; tarefas?: unknown; eventos?: unknown };
+    const parsed = JSON.parse(raw.slice(start, end + 1)) as { memorias?: unknown; lembretes?: unknown; tarefas?: unknown; eventos?: unknown; gastos?: unknown };
     const list = Array.isArray(parsed.memorias) ? parsed.memorias : [];
     const memories = list
       .map((m) => {
@@ -94,8 +96,13 @@ export function splitMeta(text: string, now = Date.now()): { body: string; memor
       .map((e) => validEvent((e ?? {}) as Record<string, unknown>, now))
       .filter((e): e is EventProposal => Boolean(e))
       .slice(0, 3);
-    return { body, memories, reminders, tasks, events };
+    // Gastos (Finanças): só propostas. O servidor só as repassa à pessoa quando a conversa tem intenção de lançar gasto e Finanças está ligado.
+    const gastos = (Array.isArray(parsed.gastos) ? parsed.gastos : [])
+      .map((g) => validGasto((g ?? {}) as Record<string, unknown>, now))
+      .filter((g): g is GastoProposta => Boolean(g))
+      .slice(0, 5);
+    return { body, memories, reminders, tasks, events, gastos };
   } catch {
-    return { body, memories: [], reminders: [], tasks: [], events: [] };
+    return { body, memories: [], reminders: [], tasks: [], events: [], gastos: [] };
   }
 }
