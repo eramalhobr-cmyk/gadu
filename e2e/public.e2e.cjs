@@ -50,6 +50,17 @@ describe("telas públicas", () => {
     assert.deepEqual(st, { chat: 401, usage: 401 });
     await p.context().close();
   });
+  test("Core: /api/attention (cartão Merece sua atenção) recusa sem login, mesmo com parâmetros", async () => {
+    const p = await page(PHONE, { auth: false });
+    await p.goto(`${BASE}/`);
+    const st = await p.evaluate(async () => ({
+      plain: (await fetch("/api/attention")).status,
+      limit: (await fetch("/api/attention?limit=3")).status,
+      forged: (await fetch("/api/attention?user_id=00000000-0000-0000-0000-000000000001")).status,
+    }));
+    assert.deepEqual(st, { plain: 401, limit: 401, forged: 401 });
+    await p.context().close();
+  });
   test("cabeçalhos de segurança: CSP com nonce e sem iframe", async () => {
     const p = await page(PHONE, { auth: false });
     const r = await p.goto(`${BASE}/`);
