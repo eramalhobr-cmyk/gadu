@@ -98,7 +98,7 @@ update private.quota_policy set daily_limit = 4;
 select pg_temp.check(pg_temp.consume('00000000-0000-0000-0000-00000000000a') = '{"allowed": true, "used": 4, "limit": 4}', 'limite aumentado no mesmo dia libera a diferença');
 update private.quota_policy set daily_limit = 3;
 
--- 9. Compatibilidade da etapa 1: a função antiga continua existindo para a versão em produção.
-select pg_temp.check(exists (select 1 from pg_proc where proname = 'consume_quota'), 'consume_quota(integer) mantida até a etapa 2');
+-- 9. Etapa 2 da cota (S-07): a função antiga, que aceitava o limite enviado por quem chama, não existe mais.
+select pg_temp.check(not exists (select 1 from pg_proc where proname = 'consume_quota'), 'consume_quota(integer) removida (etapa 2)');
 
 \echo 'daily quota: todos os testes SQL passaram'

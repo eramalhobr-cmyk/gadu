@@ -53,3 +53,6 @@ alter default privileges for role postgres in schema public revoke all on tables
 alter default privileges for role postgres in schema public revoke all on sequences from anon;
 alter default privileges for role postgres in schema public revoke all on functions from anon;
 alter default privileges for role postgres in schema public revoke truncate, references, trigger on tables from authenticated;
+-- Funções novas: o Postgres dá EXECUTE a PUBLIC por padrão e isso não se desfaz por schema. A regra do projeto é
+-- `revoke execute ... from public, anon` em toda função nova, e o teste 40_seguranca_p1 (CI) falha se alguma função
+-- do schema public ficar executável por PUBLIC ou anon.
