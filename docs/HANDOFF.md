@@ -20,10 +20,11 @@ Este é o caderno de passagem de bastão entre as IAs que programam o GaDu (Clau
 | Frente | IA | Branch | Situação |
 |---|---|---|---|
 | Ciclo UX (UX-1, UX-2, UX-3 parte 1) | Cursor (Grok Bot) | — | **concluído e publicado** em 22/11 às 19:54 (PRs #34, #35, #36). Próximo de UX: resto do UX-3 e UX-4 |
-| 3D-1 (conversa → OpenSCAD) | Claude Code | a definir pela sessão | começa em 22/11 por volta das 20:25 |
+| 3D-1 (conversa → OpenSCAD) | Claude Code | `feat/3d-1-openscad` (worktree `/workspace/gadu-3d`) | **desenvolvido e testado localmente**, sem push nem PR (22/11, noite). Falta: revisão por outra IA, PR, ligar o interruptor e testar com a IA real |
 
 ## A revisar por outra IA
 Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
+- [ ] **3D-1, 3D Studio Beta** (Claude Code, branch `feat/3d-1-openscad`, 4 commits `feat(3d)`): (a) `src/app/api/3d/generate/route.ts`: ordem limites → reserva → cota → IA → liquidação, fail closed, e que nenhum valor de custo ou `user_id` vem do cliente; (b) CSP: `src/lib/3d/csp.ts` e `next.config.ts` (CSP própria em `/vendor/openscad/*`) e a exclusão de `vendor/` no matcher de `src/proxy.ts`; confirmar que as páginas não ganharam `wasm-unsafe-eval`; (c) licença GPL do `public/vendor/openscad/openscad.js` (componente separado; ver README ao lado); (d) heurísticas de `src/lib/3d/checks.ts` (parede por raios é estimativa); (e) abrir `/app/3d` com `MODELING_3D_ENABLED=1` no aparelho (Chrome Android e Safari: o worker module e o WebGL não foram testados em WebKit); (f) o e2e com login (`E2E_3D=1`) foi escrito sem rodar.
 - [ ] **PR #22, segurança P1** (Claude Code): orçamento só no servidor, etapa 2 da cota, limite de tentativas no login. Conferir se as rotas novas não aceitam valor de custo vindo do cliente.
 - [ ] **PR #24, Core "atenção hoje"** (Claude Code): conferir a deduplicação entre fontes e o interruptor `CORE_MVP`.
 - [ ] **PR #26, Financeiro base** (Claude Code): migração, RLS e isolamento entre pessoas; conferir os arredondamentos de valores e o interruptor `FINANCE_ENABLED`.
@@ -37,6 +38,14 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - [ ] **Validação com login no aparelho** de tudo o que foi publicado em 22/11 (pendência humana, com o Eduardo).
 
 ## Diário (mais recente no topo)
+
+### 22/11/2026 · noite · Claude Code, 3D-1 (3D Studio Beta)
+- **Fez (local, 4 commits `feat(3d)` em `feat/3d-1-openscad`, sem push e sem PR):** o 3D-1 inteiro conforme [docs/FEATURE-3D.md](FEATURE-3D.md): rota `/api/3d/generate` (pipeline de custo do chat, fail closed), OpenSCAD WASM em Web Worker como componente GPL separado (`public/vendor/openscad/`), visualizador three.js, controles dos parâmetros, verificações da A1, STL e 3MF, interruptor `MODELING_3D_ENABLED` (desligado por padrão; entrada "3D" Beta no Mais; `/app/3d` e `/api/3d/*` 404 desligado), CSP própria só para o worker (páginas inalteradas). Sem migração.
+- **Verificado de fato:** typecheck; unit 198/198 (com o OpenSCAD real em Node); integração 143/143; build; `scripts/test-db.sh`; e2e público 10/10 e mobile 44/44 contra `next start`; render real em Chromium a 412 × 915 e 1440 × 1000 (IA simulada); capturas em `/workspace/gadu-review/3d/` (fora do repositório).
+- **Ambiente:** o Cursor trocou o checkout compartilhado `/workspace/gadu` para `feat/ux-texto-grande` com arquivos modificados. Para não colidir, o 3D foi feito num **git worktree** `/workspace/gadu-3d` (mesma repositório, branch `feat/3d-1-openscad`). Para publicar: `git push` dessa branch a partir de qualquer um dos dois. `src/app/review3d/` (página só para capturas) está em `.git/info/exclude` e não vai para o repositório.
+- **Não mexeu** em voz/escuta/fala, Configurações, Hoje, Assistente. Tocou o mínimo em `GaduApp.tsx` (uma prop opcional `modeling3dEnabled` repassada ao Mais), `ModulePage.tsx` (tile "3D"), `load.ts` e `modules.ts`. Possível conflito de merge em `GaduApp.tsx` com o Cursor (2 linhas).
+- **Não fez:** a revisão dos itens "A revisar por outra IA" anteriores (o Eduardo pediu foco no 3D); o item novo do 3D está na lista.
+- **Falta para 3D-1b/3D-2:** (1) ligar `MODELING_3D_ENABLED=1` num preview e rodar as 10 peças de referência com a IA real, medindo o custo por ajuste; (2) o Eduardo enviar o modelo de projeto A1 PLA 0.4 do Bambu Studio e ligar o botão (docs/FEATURE-3D.md); (3) refino por voz e imagem do render para a IA; (4) salvar versões no Supabase (migração, aprovação do Eduardo); (5) rodar o e2e com login (`E2E_3D=1`); (6) 3D-2 (foto → 3D).
 
 ### 22/11/2026 · 19:30–20:00 · Cursor (Grok Bot), ciclo UX
 - **Fez e publicou:**

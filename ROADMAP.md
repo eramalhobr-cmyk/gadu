@@ -368,15 +368,18 @@ Feita sem programar: leitura de todos os `.md` do repositório e revisão de exp
 ## 3D Studio · plano por fases (22/11/2026, ver [docs/FEATURE-3D.md](docs/FEATURE-3D.md))
 Escolha do Eduardo: usar as IAs que já temos, sem serviço pago por geração (**sem Meshy, sem Tripo**), e sair com um arquivo que o Bambu Studio abre já configurado para a A1. O fatiamento continua no Bambu Studio.
 - [x] **3D-0 · Especificação:** [docs/FEATURE-3D.md](docs/FEATURE-3D.md) (fluxo, verificações, exportação, dados, licenças, critérios de pronto)
-- [ ] **3D-1 · MVP, conversa → OpenSCAD** (P1):
-  - [ ] Um modelo do AI Gateway escreve código `.scad` **paramétrico** (parâmetros no topo, com limites e `assert()`)
-  - [ ] **OpenSCAD WASM num Web Worker**, carregado como componente GPL separado (o código do GaDu fica limpo); sem rede, com tempo-limite
-  - [ ] Visualizador **three.js** e **controles deslizantes** dos parâmetros (sem custo de IA)
-  - [ ] Refinar pela conversa (voz ou texto); o modelo recebe **uma imagem do render** para ver o resultado
-  - [ ] Verificações de impressão: no máximo **256 mm** por eixo, malha fechada (manifold), base plana, parede de pelo menos **1,2 mm**
-  - [ ] Exportar **STL**, **3MF comum** e **3MF "A1 PLA 0.4"** a partir de um projeto-modelo que o Eduardo salva uma vez no Bambu Studio; o GaDu só troca a geometria
-  - [ ] Guardar o `.scad` e o histórico de versões no Supabase (RLS por pessoa; migração com aprovação explícita)
-  - [ ] Custo de cada chamada dentro da cota diária e do teto mensal atuais; interruptor `STUDIO3D_ENABLED=0`
+- [ ] **3D-1 · MVP, conversa → OpenSCAD** (P1). **Desenvolvido e testado localmente em 22/11/2026 (Beta, `MODELING_3D_ENABLED`, desligado por padrão); não publicado.** Pendências abaixo:
+  - [x] Um modelo barato do AI Gateway escreve código `.scad` **paramétrico** (parâmetros no topo no formato do Customizer, com limites); `assert()` fica a cargo do prompt
+  - [x] **OpenSCAD WASM num Web Worker**, componente GPL separado em `public/vendor/openscad/` (código do GaDu limpo, licença e fonte ao lado); sem rede (CSP própria), tempo-limite de 30 s, worker recriado se travar
+  - [x] Visualizador **three.js** (giro, mesa 256 × 256 mm, medidas) e **controles deslizantes** dos parâmetros (sem custo de IA)
+  - [x] Refinar por texto (campo "Pedir uma mudança") e pedir correção à IA quando o OpenSCAD dá erro
+  - [ ] Refinar por voz e **imagem do render** enviada ao modelo (fica para 3D-1b)
+  - [x] Verificações de impressão: no máximo **256 mm** por eixo, malha fechada (manifold), base plana, parede de pelo menos **1,2 mm** (estimativa) e aviso de balanço
+  - [x] Exportar **STL** e **3MF comum**
+  - [ ] **3MF "A1 PLA 0.4"**: função de injeção pronta e testada com modelo fictício; botão desativado até o Eduardo enviar o projeto (docs/FEATURE-3D.md, "Como enviar o modelo de projeto")
+  - [ ] Guardar o `.scad` e o histórico de versões no Supabase (RLS por pessoa; migração com aprovação explícita). Não feito de propósito: o 3D-1 não tem banco
+  - [x] Custo de cada chamada dentro da cota diária e do teto mensal atuais (reserva e liquidação no servidor, fail closed); interruptor `MODELING_3D_ENABLED=1` (desligado por padrão; substitui o `STUDIO3D_ENABLED` previsto)
+  - [ ] Critério de pronto: 10 peças de referência com a IA real e custo médio por ajuste medido (exige ligar o interruptor e gastar IA)
 - [ ] **3D-2 · Figura a partir de foto** (P2): modelos abertos gratuitos (TRELLIS.2 ou Hunyuan3D-2.1) no Hugging Face ZeroGPU com o token do Eduardo, mais reparo de malha (manifold/trimesh). Limite diário de gerações; uso pessoal, conferir as licenças antes de ligar
 - [ ] **3D-3 · Envio direto para a A1** (P3, depois): pela rede local, com uma ponte local; nunca imprime sem confirmação
 - Regras: nada pago por geração; código gerado pela IA só roda isolado (worker no navegador, nunca no servidor); o [CADAM](https://github.com/Adam-CAD/CADAM) (GPL-3.0) é só inspiração, sem copiar código.
