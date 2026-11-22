@@ -6,6 +6,13 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-22 · Revisão geral do plano: 3D por fases, ciclo de UX com voz primeiro, Casa adiada · só documentação
+- **Estágio:** só documentação, sem mudança de código nem de banco.
+- **3D Studio:** especificação 3D-0 em [docs/FEATURE-3D.md](docs/FEATURE-3D.md) e fases no ROADMAP: 3D-1 (conversa → OpenSCAD WASM em Web Worker → three.js, controles deslizantes, verificações para a A1, STL, 3MF comum e 3MF "A1 PLA 0.4" a partir de um projeto-modelo do Bambu Studio), 3D-2 (figura a partir de foto com TRELLIS.2 ou Hunyuan3D-2.1 no Hugging Face ZeroGPU, reparo de malha) e 3D-3 (envio direto para a A1, depois). Sem serviço pago por geração.
+- **UX:** novo ciclo "voz primeiro e uso simples" (UX-1 a UX-6) no ROADMAP, a partir de revisão do código e de capturas a 412 × 915 (telas com login num app local com dados simulados).
+- **Casa Inteligente:** adiada por decisão do Eduardo; quando retomar, Home Assistant.
+- **Correções de documentação:** PROJECT_STATUS e prioridades revisados; na matriz, itens dos PRs #22, #24, #26, #28 e #30 que ainda apareciam como "em desenvolvimento" ou "não publicado" agora estão como publicados; seção de Metas do ROADMAP sem a branch antiga.
+
 ## 2026-11-22 · Metas, base (PR #30, merge `901e27d`) · **publicado**
 
 - Publicação: **publicada** em 22/11/2026 às 18:33 (Brasília), PR #30, merge `901e27d`. CI verde (verify, e2e-public, database). Migração `metas_base` aplicada na produção antes do merge (só aditiva); conferido: `goals`, `goal_progress`, `goal_milestones` e `goal_tasks` com RLS, 4 políticas cada, `anon` sem SELECT. Deploy de produção da Vercel concluído; home 200, `/api/goals` sem sessão 401, `/api/health` ok; e2e público contra a produção 9/9. `GOALS_ENABLED` não definida na Vercel (ligado por padrão). **Não verificado:** tela Metas, resumo do Hoje e propostas no chat com pessoa logada e em aparelho.

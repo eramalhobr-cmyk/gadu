@@ -1,6 +1,6 @@
 # GaDu · Situação do projeto
 
-Atualizado em 22/11/2026 (Metas, base, **publicada**, PR #30, merge `901e27d`, migração aplicada e deploy no ar; evidências em "Metas, base" abaixo; antes: Finanças, base, **publicada**, PR #26, merge `41eb3ed`, migração aplicada e deploy no ar; evidências em "Finanças base: publicação" abaixo; antes: Core "atenção hoje" **publicado**, PR #24, merge `215edab`; evidências em "Core atenção hoje: publicação" abaixo), com a segurança P1 **publicada** (PR #22, merge `cc85040`, migrações aplicadas e deploy no ar; evidências em "Segurança P1: publicação" abaixo). A tabela de produção abaixo é de 16/11 e não foi reescrita. Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
+Atualizado em 22/11/2026 (revisão geral do plano, só documentação: plano do 3D por fases em [docs/FEATURE-3D.md](docs/FEATURE-3D.md), novo ciclo de UX com voz primeiro e Casa Inteligente adiada; ver "Revisão geral (22/11/2026)" abaixo; antes: Metas, base, **publicada**, PR #30, merge `901e27d`, migração aplicada e deploy no ar; evidências em "Metas, base" abaixo; antes: Finanças, base, **publicada**, PR #26, merge `41eb3ed`, migração aplicada e deploy no ar; evidências em "Finanças base: publicação" abaixo; antes: Core "atenção hoje" **publicado**, PR #24, merge `215edab`; evidências em "Core atenção hoje: publicação" abaixo), com a segurança P1 **publicada** (PR #22, merge `cc85040`, migrações aplicadas e deploy no ar; evidências em "Segurança P1: publicação" abaixo). A tabela de produção abaixo é de 16/11 e não foi reescrita. Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
 
 ## Ambiente de produção (verificado em 14/11/2026)
 | Item | Estado | Evidência |
@@ -152,17 +152,29 @@ Matriz completa, com evidências e o **status de cada S-xx**: [docs/SECURITY_AUD
 - **Flag:** `CORE_MVP` não está definida na Vercel, então o recurso está ligado por padrão.
 - **Não verificado:** tela Hoje e Fontes com pessoa logada; Gmail e agenda reais; voz no aparelho; custo por mensagem medido.
 
-## Próximas prioridades (em ordem)
-1. **Fechar o que sobrou da segurança P1** (já publicada): senhas vazadas (painel), S-09 (decidir plano Pro ou dump lógico agendado), verificar chat logado e encerramento de sessões em produção, S-05 (RLS de escrita por acesso).
-2. **Core Contextual MVP, fase 1** já publicada (PR #24): validar com pessoa logada e medir o custo por mensagem; depois fase 2 (prioridade pela tela aberta) e fase 3 (auditoria sem conteúdo, alto risco). Detalhe em [docs/CORE_ATENCAO_HOJE.md](docs/CORE_ATENCAO_HOJE.md); plano geral em [docs/CORE_CONTEXTUAL_MVP.md](docs/CORE_CONTEXTUAL_MVP.md).
-3. Testes com login no CI, conforme a proposta em [docs/TESTES_E2E.md](docs/TESTES_E2E.md) (precisa de segredo no GitHub: aprovação).
-4. Validação em aparelhos: roteiro curto em [docs/ROTEIRO_ANDROID.md](docs/ROTEIRO_ANDROID.md); lista completa em [docs/VALIDACAO_APARELHOS.md](docs/VALIDACAO_APARELHOS.md).
-5. Modelo de organizações e testes de isolamento entre organizações (S-08), antes do Agent Office.
-6. Financeiro: base publicada (PR #26); validar a tela e o lançamento pela conversa com pessoa logada, em aparelho; depois simulador bruto → líquido.
-7. Agent Office; depois Agent Office Studio e 3D Studio.
-8. Observabilidade e créditos por pessoa.
+## Revisão geral (22/11/2026)
+Só documentação, sem mudança de código. Leitura de todos os `.md` e revisão de experiência pelo código e por capturas a 412 × 915 (telas com login num app local com dados simulados, sem banco real).
+- **Feito e publicado:** base do assistente; segurança P1 (PR #22); Core "atenção hoje" (PR #24); Financeiro base (PR #26); celular (PRs #28 e #29); Metas fase 1 (PR #30).
+- **Parcial:** nada do que foi publicado em 22/11 foi validado com pessoa logada em aparelho; modo conversa e notificações em beta; eventos pela voz bloqueados até `calendar.events`; senhas vazadas e S-09 pendentes; Design System etapa 2.
+- **Não começado:** 3D Studio (só especificação), Agent Office e Studio, Saúde, voz natural paga, simulador bruto → líquido, testes com login no CI, monitoramento de erros.
+- **3D Studio:** especificação 3D-0 feita ([docs/FEATURE-3D.md](docs/FEATURE-3D.md)); fases 3D-1 (conversa → OpenSCAD → STL/3MF para a A1), 3D-2 (figura a partir de foto, modelos abertos gratuitos) e 3D-3 (envio direto, depois) no [ROADMAP](ROADMAP.md). Sem serviço pago por geração.
+- **UX:** novo ciclo "voz primeiro e uso simples" (UX-1 a UX-6) no [ROADMAP](ROADMAP.md), com as evidências: Hoje com 9 blocos e cerca de 4,7 telas de rolagem; falar exige 3 toques no celular; navegação dividida entre barra de baixo, menu sanfona e tela Módulos; nomes repetidos; textos de 11 px; nenhuma ação com "Desfazer".
+- **Casa Inteligente:** adiada por decisão do Eduardo; quando retomar, Home Assistant como camada ([docs/CASA_INTELIGENTE.md](docs/CASA_INTELIGENTE.md)).
+- **Documentação corrigida:** a [matriz](docs/FEATURE_MATRIX.md) ainda marcava como "em desenvolvimento" ou "não publicado" itens dos PRs #22, #24, #26 e #30; agora estão como publicados.
+
+## Próximas prioridades (em ordem; revisadas em 22/11/2026)
+1. **Validar com pessoa logada, em aparelho,** o que foi publicado em 22/11 (Hoje e Fontes, Financeiro, Metas, voz, notificações) e fechar os passos manuais da segurança P1: senhas vazadas (painel), S-09 (plano Pro ou dump lógico agendado), chat logado e encerramento de sessões.
+2. **UX-1 a UX-3:** navegação (barra de baixo com microfone central e "Mais"), Hoje mais curto e voz primeiro. Baixo risco, só interface.
+3. **3D-1:** MVP conversa → OpenSCAD → STL e 3MF "A1 PLA 0.4" ([docs/FEATURE-3D.md](docs/FEATURE-3D.md)). A migração das tabelas do 3D precisa de aprovação explícita.
+4. UX-4 a UX-6: acessibilidade para quem não é digital, consistência entre módulos e teste com uma pessoa não digital.
+5. Financeiro: simulador bruto → líquido, tetos por categoria, fase Conversa.
+6. Testes com login no CI ([docs/TESTES_E2E.md](docs/TESTES_E2E.md); precisa de segredo no GitHub: aprovação).
+7. S-05 (RLS de escrita por acesso) e organizações (S-08), antes do Agent Office.
+8. 3D-2; Agent Office; Agent Office Studio; observabilidade e créditos por pessoa.
+- Adiado por decisão do Eduardo: Casa Inteligente. Depois: 3D-3.
 
 ## Ponto de retomada (para qualquer agente)
+0. **Revisão geral (22/11/2026):** plano atualizado (3D por fases, ciclo UX voz primeiro, Casa adiada). Próximo passo de código: UX-1 a UX-3 e, em paralelo, 3D-1 conforme [docs/FEATURE-3D.md](docs/FEATURE-3D.md). Antes do 3D-1 exportar o 3MF da A1, o Eduardo precisa salvar no Bambu Studio um projeto vazio com A1, bico 0.4 e PLA.
 0. **Finanças (22/11/2026):** a base está **publicada** (PR #26, merge `41eb3ed`; migração `financas_base` aplicada, versão `20261122194404`). Próximo passo: validar a tela Financeiro e o lançamento pela conversa com pessoa logada, em aparelho. Depois: simulador bruto → líquido (INSS/IRRF por ano).
 0. **Ponto de retomada anterior (22/11/2026):** a segurança P1 está publicada (PR #22). Próximos passos: decisão do Eduardo sobre S-09, ligar senhas vazadas no painel, verificar em produção o chat logado e o encerramento de sessões, depois S-05. Alto risco: aprovação explícita a cada passo. O Core "atenção hoje" também está publicado (PR #24); falta validá-lo com pessoa logada (tela Hoje e Fontes, Gmail e agenda reais, voz) e medir o custo por mensagem.
 1. Leia `CLAUDE.md`, este arquivo, [docs/FAST_TRACK.md](docs/FAST_TRACK.md) e [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md). O handoff técnico está em `docs/CLAUDE_HANDOFF_2026-11-12.md`.
