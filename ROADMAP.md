@@ -406,10 +406,10 @@ Objetivo: o GaDu fácil para qualquer pessoa, inclusive quem não é digital, co
 - [x] Ao rolar, o botão Falar fica sempre à mão (microfone da barra de baixo, UX-1); voltar ao topo tocando no título
 - [x] Criar lembrete pela voz ou pelo botão "+", em vez do formulário fixo no meio da tela
 
-### UX-3 · Voz primeiro (P0/P1)
-- [ ] Um toque para falar em qualquer tela; tela de escuta com **texto grande** ("Estou ouvindo…", transcrição ao vivo) e botão grande "Parar"
-- [ ] Envio automático depois do silêncio, com 3 s de "Enviando… Cancelar" (em vez de revisar e tocar em Enviar); revisar continua como opção
-- [ ] **Modo mãos-livres** ligável na própria tela de escuta (não só em Configurações), com aviso visível de que está ligado
+### UX-3 · Voz primeiro (P0/P1) · primeira parte feita em 22/11/2026 pelo Cursor (Grok Bot), PR `feat/ux-voz`; faltam confirmações faladas, respostas faladas mais curtas e a opção de texto grande
+- [x] Um toque para falar em qualquer tela; tela de escuta com **texto grande** ("Estou ouvindo…", transcrição ao vivo) e botão grande "Parar"
+- [x] Envio automático depois do silêncio, com 3 s de "Enviando… Cancelar" (em vez de revisar e tocar em Enviar); revisar continua como opção
+- [x] **Modo mãos-livres** ligável na própria tela de escuta (não só em Configurações), com aviso visível de que está ligado
 - [ ] **Confirmações faladas** para ações (gasto, meta, lembrete, evento): o GaDu lê o que vai gravar e aceita "sim", "não" ou "muda para…" por voz; o cartão continua para quem prefere tocar
 - [ ] Respostas por voz mais curtas (resumo falado, detalhe na tela)
 - [ ] **Texto grande**: opção em Configurações (115% a 130%) e corpo mínimo de 16 px

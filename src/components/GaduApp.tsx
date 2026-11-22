@@ -25,6 +25,7 @@ import { Icon } from "./ui";
 import { TipCard } from "./TipCard";
 import { TIP_IDS, type TipId } from "@/lib/tips";
 import { Assistant } from "./Assistant";
+import { ListenSheet } from "./ListenSheet";
 import { ModulePage, ModulesHub, StatusPill } from "./ModulePage";
 import { contextOf } from "@/lib/assistant-context";
 import { canonicalView, isOverview, MAIN_VIEWS, MODULES, moduleOf, parseView, viewDef, type ViewId } from "@/lib/modules";
@@ -127,6 +128,11 @@ export function GaduApp(props: {
   const [online, setOnline] = useState(true);
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [drawer, setDrawer] = useState(false);
+  /** Tela de escuta (UX-3): aberta pelo microfone central e pelo "Falar com o GaDu". `heard` = fala final esperando o envio. */
+  const [voiceSheet, setVoiceSheet] = useState(false);
+  const [heard, setHeard] = useState<string | null>(null);
+  const voiceSheetRef = useRef(false);
+  useEffect(() => { voiceSheetRef.current = voiceSheet; }, [voiceSheet]);
   const [pending, setPending] = useState(0);
   const logRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -191,6 +197,8 @@ export function GaduApp(props: {
       onText: (text, final) => {
         if (!mine()) return;
         setDraft(text);
+        // Tela de escuta aberta: a fala final vai para a contagem de 3 s (dá para cancelar ou corrigir).
+        if (final && text && voiceSheetRef.current) { setHeard(text); return; }
         // Envio automático só se a pessoa escolheu (ou no modo mãos-livres, que depende disso).
         if (final && text && (prefsRef.current.autoSend || prefsRef.current.handsFree)) void sendRef.current(text);
       },
@@ -376,10 +384,27 @@ export function GaduApp(props: {
     void saveTips([]);
   }
 
-  // Voz flutuante: fala com o GaDu de qualquer tela, sem sair dela.
+  // Voz em um toque (UX-3): abre a tela de escuta, de qualquer tela. Sem reconhecimento de voz, abre o lugar de escrever.
   function dockTalk() {
-    openAssist(true);
-    micClick();
+    speaker?.unlock();
+    if (!voiceOk) { if (tabRef.current === "conversa") document.getElementById("msg")?.focus(); else openAssist(true); return; }
+    if (busy || mode === "speaking") { abortRef.current?.abort(); speaker?.cancel(); setMode("idle"); }
+    setHeard(null);
+    setDraft("");
+    setVoiceSheet(true);
+    listen();
+  }
+  /** Envia o que foi falado: fecha a tela de escuta e mostra a resposta no painel (ou na Conversa). */
+  function sendHeard(text: string) {
+    setVoiceSheet(false);
+    setHeard(null);
+    if (tabRef.current !== "conversa") openAssist(true);
+    void send(text);
+  }
+  function closeVoice() {
+    try { recRef.current?.stop(); } catch {}
+    setVoiceSheet(false);
+    setHeard(null);
   }
 
   function startDay() {
@@ -455,9 +480,9 @@ export function GaduApp(props: {
   // Botão Voltar (Android e navegador): fecha primeiro o que estiver aberto por cima (conversas, assistente no celular);
   // sem nada aberto, volta para a tela anterior.
   const isPhone = () => typeof window !== "undefined" && window.innerWidth < 1024;
-  const layers = (drawer ? 1 : 0) + (showAssist && isPhone() ? 1 : 0);
-  const overlayRef = useRef({ drawer, assist: showAssist });
-  overlayRef.current = { drawer, assist: showAssist && isPhone() };
+  const layers = (voiceSheet ? 1 : 0) + (drawer ? 1 : 0) + (showAssist && isPhone() ? 1 : 0);
+  const overlayRef = useRef({ voice: voiceSheet, drawer, assist: showAssist });
+  overlayRef.current = { voice: voiceSheet, drawer, assist: showAssist && isPhone() };
   // Uma entrada de histórico por camada aberta (src/lib/overlay-history.ts).
   const ohRef = useRef<OverlayHistory | null>(null);
   useEffect(() => {
@@ -465,7 +490,8 @@ export function GaduApp(props: {
       history: window.history,
       onBack: () => {
         const o = overlayRef.current;
-        if (o.drawer) setDrawer(false);
+        if (o.voice) { try { recRef.current?.stop(); } catch {} setVoiceSheet(false); setHeard(null); }
+        else if (o.drawer) setDrawer(false);
         else if (o.assist) openAssist(false);
         else {
           const t = parseView(new URLSearchParams(window.location.search).get("tab") ?? undefined, props.admin);
@@ -487,7 +513,7 @@ export function GaduApp(props: {
   useEffect(() => { ohRef.current?.sync(layers); }, [layers]);
   // Mudou de tela com o microfone aberto e sem nenhum controle de voz à vista: para de ouvir.
   useEffect(() => {
-    if (listeningRef.current && !(tab === "conversa" || showAssist)) recRef.current?.stop();
+    if (listeningRef.current && !(tab === "conversa" || showAssist || voiceSheetRef.current)) recRef.current?.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
   // Teclado abriu (Android/iPhone): o campo em foco continua à vista, sem ficar atrás do teclado.
@@ -586,9 +612,7 @@ export function GaduApp(props: {
     if (pressRef.current.long) { pressRef.current.long = false; return; }
     if (active) { stop(); return; }
     // Sem reconhecimento de voz no navegador: abre o lugar de escrever, em vez de um aviso.
-    if (!voiceOk) { if (view === "conversa") document.getElementById("msg")?.focus(); else openAssist(true); return; }
-    if (view === "conversa") micClick();
-    else dockTalk();
+    dockTalk();
   }
   return (
     <div className={`app ${showAssist ? "with-assist" : ""} ${navMini ? "nav-mini" : ""}`} style={{ ["--assist-w" as string]: `${assistW}px` }}>
@@ -744,6 +768,14 @@ export function GaduApp(props: {
         </button>
       </nav>
 
+      {voiceSheet && (
+        <ListenSheet listening={listening} text={draft} pending={heard} handsFree={prefs.handsFree}
+          onHandsFree={(on) => setPrefs({ ...prefs, handsFree: on })}
+          onListen={() => { setHeard(null); setDraft(""); listen(); }} onStop={() => recRef.current?.stop()}
+          onSend={sendHeard} onCancel={() => setHeard(null)}
+          onEdit={() => { closeVoice(); if (tabRef.current === "conversa") document.getElementById("msg")?.focus(); else openAssist(true); }}
+          onClose={closeVoice} />
+      )}
       {drawer && (
         <ConversationsDrawer currentId={conversationId} onClose={() => setDrawer(false)} onOpen={openConversation}
           onNew={() => { newConversation(); setTab("conversa"); setDrawer(false); }} onDeleted={(id) => { if (id === conversationId) newConversation(); }} />

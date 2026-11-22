@@ -61,3 +61,24 @@
 .see-i[aria-expanded="true"] { border-color: var(--sig); }
 .see-all .panel { margin-top: var(--s-3); }
 @media (max-width: 559px) { .see-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .see-i { flex-direction: row; justify-content: flex-start; gap: var(--s-2); min-height: 64px; padding: 0 var(--s-3); text-align: left; } }
+
+/* UX-3 · Tela de escuta: letra grande, um botão principal, fácil para quem não é digital. */
+.listen-wrap { position: fixed; inset: 0; z-index: calc(var(--z-sheet) + 1); display: grid; place-items: end center; background: rgb(var(--shadow-rgb) / 0.55); }
+.listen { position: relative; width: 100%; max-width: 560px; max-height: 100dvh; overflow-y: auto; display: flex; flex-direction: column; align-items: center; gap: var(--s-4); padding: calc(var(--s-6) + var(--safe-t)) var(--s-5) calc(var(--s-6) + var(--safe-b)); background: var(--panel); border: 1px solid var(--line-2); border-radius: 24px 24px 0 0; box-shadow: 0 -20px 60px rgb(var(--shadow-rgb) / 0.45); text-align: center; }
+@media (min-width: 720px) { .listen-wrap { place-items: center; } .listen { border-radius: 24px; } }
+.listen-x { position: absolute; top: var(--s-3); right: var(--s-3); width: 48px; height: 48px; }
+.listen-status { margin: var(--s-2) 0 0; color: var(--sig); font: 700 var(--fs-xl)/1.2 var(--display); }
+.listen-text { margin: 0; min-height: 3.6em; max-width: 100%; color: var(--ink); font-size: 26px; line-height: 1.35; font-weight: 500; overflow-wrap: anywhere; }
+.listen-text.hint { color: var(--ink-2); font-size: var(--fs-lg); font-weight: 400; }
+.listen-acts { display: flex; flex-direction: column; align-items: center; gap: var(--s-3); width: 100%; }
+.listen-mic { width: 104px; height: 104px; border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--sig); color: var(--sig-ink); box-shadow: 0 8px 24px rgb(var(--shadow-rgb) / 0.4); cursor: pointer; touch-action: manipulation; }
+.listen-mic.on { background: var(--hot); }
+@media (prefers-reduced-motion: no-preference) { .listen-mic.on { animation: pulse 1.6s ease-out infinite; } }
+.listen-cap { color: var(--ink-2); font-size: var(--fs-md); }
+.listen-main { width: 100%; min-height: 64px; justify-content: center; gap: var(--s-2); font-size: var(--fs-lg); font-weight: 700; }
+.listen-row { display: flex; gap: var(--s-2); width: 100%; }
+.listen-row .btn { flex: 1; min-height: 56px; justify-content: center; font-size: var(--fs-md); }
+.listen-acts > .btn { min-height: 56px; font-size: var(--fs-md); }
+.listen-hf { width: 100%; text-align: left; font-size: var(--fs-md); }
+.listen-hf small { display: block; font-size: var(--fs-sm); margin-top: 2px; }
+.today2 .now-card b { white-space: normal; }

@@ -6,6 +6,26 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-22 · UX-3 (primeira parte) · Voz em um toque: tela de escuta com letra grande e envio sozinho em 3 s (branch `feat/ux-voz`)
+- **Feito por:** Cursor (Grok Bot).
+- **Estágio:** desenvolvido e testado localmente. A publicação é registrada em docs/HANDOFF.md e no PROJECT_STATUS depois do merge.
+- **Um toque para falar:** o microfone central e o botão "Falar com o GaDu" abrem a **tela de escuta**:
+  - "Estou ouvindo…" e a transcrição ao vivo em letra grande (26 px);
+  - botão grande de parar;
+  - quando a pessoa termina de falar, aparece "Enviando em 3…", com **Enviar agora**, **Cancelar** e **Corrigir o texto**;
+  - depois do envio, a resposta aparece no painel do assistente (ou na Conversa).
+  - Antes eram 3 toques: abrir o painel, tocar no microfone pequeno e tocar em Enviar.
+- **Conversa contínua** (mãos-livres) liga e desliga na própria tela de escuta. É a mesma preferência de Configurações.
+- **Voltar do Android e Esc** fecham a tela de escuta e param o microfone. Tocar e segurar o microfone continua abrindo o painel para escrever. Sem reconhecimento de voz no navegador, o toque abre o lugar de escrever.
+- O microfone dentro da Conversa e do painel continua como antes: o texto fica no campo para revisar, a menos que "Enviar sozinho" esteja ligado.
+- **Testes executados (22/11/2026):**
+  - `npm run typecheck` ok;
+  - `npm test`: 165 unitários e 126 de integração, 0 falhas;
+  - `npm run build` ok;
+  - Playwright local com reconhecimento de voz simulado: fala final, contagem e envio sozinho com a resposta no painel; Cancelar não envia; Voltar e Esc fecham; Parar para o microfone; o interruptor de conversa contínua grava a preferência.
+  - Novo teste no `e2e/auth.e2e.cjs` (não rodado: exige credenciais).
+- **Falta no UX-3:** confirmações faladas ("sim", "não", "muda para…"), respostas faladas mais curtas e a opção de texto grande (115% a 130%) em Configurações.
+
 ## 2026-11-22 · UX-2 · Tela Hoje curta: 5 blocos, "Falar com o GaDu" e uma lista só com Feito/Adiar (branch `feat/ux-hoje`)
 - **Feito por:** Cursor (Grok Bot).
 - **Estágio:** desenvolvido e testado localmente. A publicação é registrada em docs/HANDOFF.md e no PROJECT_STATUS depois do merge.
