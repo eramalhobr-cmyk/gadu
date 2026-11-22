@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { checkDailyQuota, checkLegacyQuota, checkMonthlyBudget, checkProviderSpend, isMissingFunction, safeRpc } from "@/lib/chat-budget-guard";
+import { checkDailyQuota, checkProviderSpend, safeRpc } from "@/lib/chat-budget-guard";
 import { readBudgets, serverConfig } from "@/lib/config";
 import { accessOf } from "@/lib/access";
 import { after } from "next/server";
@@ -9,6 +9,7 @@ import type { ProviderId } from "@/lib/llm/types";
 import type { ChatTurn } from "@/lib/llm/types";
 import { splitMeta, visiblePart } from "@/lib/meta";
 import { costUsd, estimateMaxCost } from "@/lib/pricing";
+import { estimatePartialUsage } from "@/lib/partial-cost";
 import { releaseBudget, reserveBudget, settleBudget } from "@/lib/ai-budget";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
 import { accessToken, events, formatEvents, formatMails, GoogleError, googleIntent, inbox } from "@/lib/google";
@@ -61,7 +62,15 @@ export async function POST(request: Request) {
       const send = (o: Out) => controller.enqueue(encoder.encode(JSON.stringify(o) + "\n"));
       // Reserva de orçamento desta resposta: liquidada pelo custo real ou liberada no finally.
       let reservationId: string | null = null;
+      let reservedUsd = 0;
       let settled = false;
+      // Já houve tentativa de gravar o custo desta resposta (com sucesso ou não): não grava de novo.
+      let recorded = false;
+      // Para estimar o custo se a resposta for interrompida (S-02).
+      let full = "";
+      let inputChars = 0;
+      let streamProvider: ProviderId | null = null;
+      let usage: { input: number; output: number; cost: number; provider: ProviderId; model: string } | null = null;
       try {
         // 1. Privacidade: dado sensível não sai daqui e nem é gravado.
         if (isSensitive(message)) {
@@ -78,22 +87,12 @@ export async function POST(request: Request) {
         }
         // 2b. Teto mensal com RESERVA atômica: o banco soma gasto + reservas abertas + estimativa desta resposta.
         //     Pedidos simultâneos não ultrapassam o teto. Estimativa: contexto típico (~60 mil caracteres) e saída máxima.
-        const reservation = await reserveBudget(supabase, "chat", estimateMaxCost(cfg.model, message.length + 60_000, 8000));
+        const reserved = estimateMaxCost(cfg.model, message.length + 60_000, 8000);
+        // S-01: reserva e liquidação só pelo servidor, com o id da sessão (nunca do corpo da requisição).
+        const reservation = await reserveBudget(user.id, "chat", reserved);
         if (reservation.ok) {
           reservationId = reservation.id;
-        } else if (reservation.legacy) {
-          // Transição: banco sem a migração de orçamento. Mantém a verificação de leitura de hoje.
-          console.warn("reserve_ai_budget ausente no banco; usando month_spend (transição)");
-          const monthly = checkMonthlyBudget(await safeRpc<number | string>(() => supabase.rpc("month_spend")), cfg.monthlyBudgetUsd);
-          if (!monthly.allowed) {
-            if (monthly.reason === "unavailable") {
-              console.error("chat monthly budget validation unavailable");
-              send({ t: "notice", kind: "error", text: "Não consegui verificar seu orçamento de IA agora. Tente novamente em instantes." });
-            } else {
-              send({ t: "notice", kind: "quota", text: `O teto de gasto do mês (US$ ${cfg.monthlyBudgetUsd.toFixed(2)}) foi atingido. O GaDu volta a responder no próximo mês, ou quando o teto for aumentado.` });
-            }
-            return;
-          }
+          reservedUsd = reservation.amount;
         } else if (reservation.reason === "unavailable") {
           console.error("chat budget reservation unavailable");
           send({ t: "notice", kind: "error", text: "Não consegui verificar seu orçamento de IA agora. Tente novamente em instantes." });
@@ -107,14 +106,8 @@ export async function POST(request: Request) {
         }
         // 2c. Cota diária por último, logo antes de gravar: atômica no banco, limite definido pelo servidor
         //     (nunca enviado pelo app) e dia de Brasília. Mensagem bloqueada acima não gasta cota.
-        const quotaRes = await safeRpc<unknown>(() => supabase.rpc("consume_daily_quota"));
-        let daily = checkDailyQuota(quotaRes);
-        if (!daily.allowed && daily.reason === "unavailable" && isMissingFunction(quotaRes.error)) {
-          // Transição: app novo publicado antes da migração. Usa a função antiga com o limite do servidor
-          // (comportamento de hoje) em vez de bloquear todo mundo. Remover junto com consume_quota (etapa 2).
-          console.warn("consume_daily_quota ausente no banco; usando consume_quota (transição)");
-          daily = checkLegacyQuota(await safeRpc<unknown>(() => supabase.rpc("consume_quota", { p_limit: cfg.dailyLimit })), cfg.dailyLimit);
-        }
+        // S-07: sem contingência. Se a função falhar ou não existir, bloqueia (fail closed).
+        const daily = checkDailyQuota(await safeRpc<unknown>(() => supabase.rpc("consume_daily_quota")));
         if (!daily.allowed) {
           if (daily.reason === "unavailable") {
             console.error("chat quota validation unavailable");
@@ -203,13 +196,14 @@ export async function POST(request: Request) {
         else turns.push({ role: "user", content: message });
 
         // 5. Resposta em streaming, com troca de provedor se o principal cair.
-        let full = "";
         let provider = "";
-        let usage: { input: number; output: number; cost: number; provider: ProviderId; model: string } | null = null;
         let sent = 0;
+        const system = systemPrompt();
+        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + (parsed.data.context ? contextLine(parsed.data.context) : "");
+        inputChars = system.length + context.length + turns.reduce((n, t) => n + t.content.length, 0);
         for await (const ev of routeChat({
-          system: systemPrompt(),
-          context: contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + (parsed.data.context ? contextLine(parsed.data.context) : ""),
+          system,
+          context,
           turns,
           signal: request.signal,
           onUsage: (u) => {
@@ -223,6 +217,7 @@ export async function POST(request: Request) {
           },
         }, skip)) {
           if (ev.type === "provider") {
+            streamProvider = ev.id;
             provider = `${ev.name} · ${ev.id === "gateway" ? "Vercel" : ev.id === "anthropic" ? "Anthropic" : "Google"}`;
             send({ t: "provider", name: provider });
           } else {
@@ -248,13 +243,16 @@ export async function POST(request: Request) {
         ]);
         const u = usage as { input: number; output: number; cost: number; provider: ProviderId; model: string } | null;
         // Liquida a reserva pelo custo real (consumo gravado na mesma transação).
-        if (u) settled = await settleBudget(supabase, reservationId, "chat", u);
+        if (u) {
+          recorded = true;
+          settled = await settleBudget(user.id, reservationId, "chat", u);
+        }
         const newCount = msgCount + 2;
         await supabase.from("conversations").update({ updated_at: new Date().toISOString(), message_count: newCount }).eq("id", conversationId);
         // Memória v2: resume a conversa em segundo plano (depois de responder), a cada 6 mensagens.
         if (newCount >= 4 && (!hasSummary || newCount % 6 === 0)) {
           const convId = conversationId;
-          after(() => summarize(supabase, convId, skip));
+          after(() => summarize(supabase, user.id, convId, skip));
         }
         let added = 0;
         if (proposals.length) {
@@ -313,9 +311,30 @@ export async function POST(request: Request) {
           send({ t: "notice", kind: "error", text: "Não consegui responder agora. Tente de novo em instantes." });
         }
       } finally {
-        // Reserva não liquidada (bloqueio, erro do provedor, cancelamento): libera para não prender o orçamento.
-        if (reservationId && !settled) await releaseBudget(supabase, reservationId);
-        controller.close();
+        // Reserva ainda aberta (bloqueio, erro do provedor, cancelamento):
+        //  - já saiu texto: o provedor cobrou, então liquida (pelo uso real se chegou, senão pela estimativa; S-02);
+        //  - nada saiu: libera para não prender o orçamento.
+        try {
+          if (reservationId && !settled && !recorded) {
+            const real = usage as { input: number; output: number; cost: number; provider: ProviderId; model: string } | null;
+            if (real) {
+              recorded = true;
+              settled = await settleBudget(user.id, reservationId, "chat", real);
+            } else if (streamProvider) {
+              const model = streamProvider === "anthropic" ? cfg.model : streamProvider === "gateway" ? cfg.gatewayModel : cfg.geminiModel;
+              const est = estimatePartialUsage(model, inputChars, full.length, reservedUsd);
+              if (est) {
+                recorded = true;
+                settled = await settleBudget(user.id, reservationId, "chat", { provider: streamProvider, model: est.model, input: est.input, output: est.output, cost: est.cost });
+              }
+            }
+          }
+          if (reservationId && !settled) await releaseBudget(user.id, reservationId);
+        } catch (e) {
+          console.error("encerramento do orçamento falhou", e instanceof Error ? e.message.slice(0, 120) : "erro");
+        } finally {
+          controller.close();
+        }
       }
     },
   });
@@ -340,7 +359,7 @@ function relatedQuery(message: string): string {
 type Db = Awaited<ReturnType<typeof supabaseServer>>;
 
 /** Gera ou atualiza o resumo da conversa com o modelo mais barato. Falhas não afetam a conversa. */
-async function summarize(supabase: Db, conversationId: number, skip: Set<ProviderId>) {
+async function summarize(supabase: Db, userId: string, conversationId: number, skip: Set<ProviderId>) {
   try {
     const [{ data: conv }, { data: msgs }] = await Promise.all([
       supabase.from("conversations").select("summary").eq("id", conversationId).maybeSingle(),
@@ -350,9 +369,9 @@ async function summarize(supabase: Db, conversationId: number, skip: Set<Provide
     if (!transcript) return;
     // Resumo também passa pelo orçamento: reserva antes, liquida depois; sem orçamento, não resume.
     const prompt = transcript.length + 800;
-    const resv = await reserveBudget(supabase, "summary", estimateMaxCost(serverConfig().cheapModel, prompt, 600));
-    if (!resv.ok && !resv.legacy) return;
-    const rid = resv.ok ? resv.id : null;
+    const resv = await reserveBudget(userId, "summary", estimateMaxCost(serverConfig().cheapModel, prompt, 600));
+    if (!resv.ok) return;
+    const rid = resv.id;
     let done = false;
     try {
     const r = await complete(
@@ -360,9 +379,9 @@ async function summarize(supabase: Db, conversationId: number, skip: Set<Provide
       { maxTokens: 600, skip },
     );
     await supabase.from("conversations").update({ summary: r.text.slice(0, 2000), summary_at: new Date().toISOString() }).eq("id", conversationId);
-    done = await settleBudget(supabase, rid, "summary", r);
+    done = await settleBudget(userId, rid, "summary", r);
     } finally {
-      if (rid && !done) await releaseBudget(supabase, rid);
+      if (rid && !done) await releaseBudget(userId, rid);
     }
   } catch (e) {
     console.error("resumo falhou", e instanceof Error ? e.message.slice(0, 200) : "erro");

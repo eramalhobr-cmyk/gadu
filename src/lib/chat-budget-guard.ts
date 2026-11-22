@@ -1,10 +1,6 @@
 /** Fail closed when a required quota or budget RPC cannot be verified. */
 export type RpcResult<T> = { data: T | null; error: { message?: string } | null };
 
-export type GuardResult =
-  | { allowed: true }
-  | { allowed: false; reason: "unavailable" | "monthly" };
-
 export type DailyResult =
   | { allowed: true; used: number | null; limit: number }
   | { allowed: false; reason: "daily"; used: number; limit: number }
@@ -50,13 +46,6 @@ export function checkDailyQuota(result: RpcResult<unknown>): DailyResult {
   return d.allowed ? { allowed: true, used, limit } : { allowed: false, reason: "daily", used, limit };
 }
 
-export function checkMonthlyBudget(result: RpcResult<number | string>, budgetUsd: number): GuardResult {
-  if (result.error || result.data === null || result.data === undefined) return { allowed: false, reason: "unavailable" };
-  const spent = money(result.data);
-  if (spent === null || !Number.isFinite(budgetUsd) || budgetUsd < 0) return { allowed: false, reason: "unavailable" };
-  return spent >= budgetUsd ? { allowed: false, reason: "monthly" } : { allowed: true };
-}
-
 export type ProviderSpend = { ok: true; spentBy: Record<string, number> } | { ok: false };
 
 /**
@@ -75,19 +64,10 @@ export function checkProviderSpend(result: RpcResult<unknown>): ProviderSpend {
   return { ok: true, spentBy };
 }
 
-/** O banco ainda não tem a função nova (migração não aplicada): PostgREST PGRST202 ou Postgres 42883. */
+/** O banco não tem a função (migração não aplicada): PostgREST PGRST202 ou Postgres 42883. Só o agendador tolera isso. */
 export function isMissingFunction(error: unknown): boolean {
   const code = (error as { code?: unknown } | null)?.code;
   return code === "PGRST202" || code === "42883";
-}
-
-/**
- * Transição (só enquanto a migração 20261113120001 não estiver aplicada): resposta booleana da função
- * antiga consume_quota(limite do servidor). Mantém o comportamento de hoje em vez de bloquear todos.
- */
-export function checkLegacyQuota(result: RpcResult<unknown>, limit: number): DailyResult {
-  if (result.error || typeof result.data !== "boolean" || !Number.isInteger(limit) || limit < 0) return { allowed: false, reason: "unavailable" };
-  return result.data ? { allowed: true, used: null, limit } : { allowed: false, reason: "daily", used: limit, limit };
 }
 
 export type Reservation =
