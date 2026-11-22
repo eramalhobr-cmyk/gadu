@@ -19,6 +19,11 @@ import { agentAreas } from "@/lib/presets";
 import { contextBlock, extrasBlock, systemPrompt } from "@/lib/prompt";
 import { AssistantContextSchema, contextLine } from "@/lib/assistant-context";
 import { supabaseServer } from "@/lib/supabase/server";
+import { collectAttention } from "@/lib/core/collect";
+import { coreEnabled } from "@/lib/core/flag";
+import { formatCoreBlock, toItem, type SourceItem } from "@/lib/core/format";
+import { googleReader } from "@/lib/core/google-adapter";
+import { detectIntent } from "@/lib/core/plan";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,6 +48,7 @@ type Out =
   | { t: "reminders"; items: { id: number; text: string; dueAt: string }[] }
   | { t: "tasks"; items: { id: number; title: string; due: string | null }[] }
   | { t: "events"; items: { title: string; start: string; end: string; location: string | null }[] }
+  | { t: "sources"; items: SourceItem[]; unavailable: string[] }
   | { t: "notice"; text: string; kind: "privacy" | "quota" | "engine" | "error" };
 
 export async function POST(request: Request) {
@@ -190,7 +196,21 @@ export async function POST(request: Request) {
         }
         // Fase 2: agenda e e-mails do Google entram no contexto só quando o assunto pede.
         const taskList = ((openTasks.data ?? []) as unknown as { title: string; priority: number; due_date: string | null }[]);
-        const google = await googleContext(supabase, user.id, message, blocked, taskList);
+        // Core "O que merece minha atenção hoje?": regra simples (sem IA), só com CORE_MVP ligado. Escopo = a sessão.
+        // Falha do Core nunca derruba o chat: volta ao caminho anterior.
+        let coreBlock = "";
+        let coreSources: { items: SourceItem[]; unavailable: string[] } | null = null;
+        if (coreEnabled() && detectIntent(message) === "atencao_hoje" && !profile.error) {
+          try {
+            const core = await collectAttention({ userId: user.id, db: supabase, google: googleReader(supabase, user.id), blocked });
+            coreBlock = formatCoreBlock(core);
+            coreSources = { items: core.facts.map(toItem), unavailable: core.unavailable.map((u) => u.text) };
+          } catch (e) {
+            console.error("core falhou", e instanceof Error ? e.message.slice(0, 120) : "erro");
+          }
+        }
+        // O Core já traz agenda e e-mails de hoje: não lê o Google duas vezes (exceto se pediu a semana).
+        const google = coreBlock && !googleIntent(message).week ? "" : await googleContext(supabase, user.id, message, blocked, taskList);
         const lastTurn = turns[turns.length - 1];
         if (lastTurn && lastTurn.role === "user") lastTurn.content += "\n\n" + message;
         else turns.push({ role: "user", content: message });
@@ -199,7 +219,7 @@ export async function POST(request: Request) {
         let provider = "";
         let sent = 0;
         const system = systemPrompt();
-        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + (parsed.data.context ? contextLine(parsed.data.context) : "");
+        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + (parsed.data.context ? contextLine(parsed.data.context) : "");
         inputChars = system.length + context.length + turns.reduce((n, t) => n + t.content.length, 0);
         for await (const ev of routeChat({
           system,
@@ -291,6 +311,7 @@ export async function POST(request: Request) {
         // Eventos: só propostas. O app mostra e a pessoa confirma antes de criar na agenda.
         const okEvents = eventProposals.filter((e) => !isSensitive(e.title) && !blockedTerm(e.title, blocked));
         if (okEvents.length) send({ t: "events", items: okEvents });
+        if (coreSources) send({ t: "sources", ...coreSources });
         send({ t: "done", memories: added });
       } catch (e) {
         if (e instanceof BudgetReached) {
