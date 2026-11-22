@@ -6,8 +6,13 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
-## 2026-11-22 · Validação de uso diário no celular (branch `fix/mobile-validacao`) · desenvolvido e testado localmente / emulado, **não publicado**
-- **Estágio:** desenvolvido e testado localmente, com celular **emulado**. Não publicado: sem push, sem PR, sem deploy, sem migração. Nenhum teste em aparelho de verdade foi feito; o que falta está em [docs/CHECKLIST_CELULAR.md](docs/CHECKLIST_CELULAR.md).
+## 2026-11-22 · Publicação do PR #28 (validação de uso diário no celular) · **publicado**
+- PR #28 integrado em 22/11/2026 às 17:19 (Brasília), merge `97f4d642ebe695286ceaabc80d83b05cf47b304d`. CI verde: `verify`, `e2e-public` (com a suíte mobile) e `database`. Deploy de produção na Vercel: `success`.
+- **Verificado em produção (só leitura):** `sw.js` com cache `gadu-v5`; `/icons/badge-96.png` 200; e2e público 8/8; suíte mobile 43/44 antes do ajuste do teste (falha só a navegação offline no WebKit, limitação do Playwright, investigada na entrada seguinte do ajuste, commit `89ec767`) e 44/44 com o ajuste rodando localmente contra a produção.
+- **Não testado em aparelho real.** Os itens de [docs/CHECKLIST_CELULAR.md](docs/CHECKLIST_CELULAR.md) seguem pendentes com o Eduardo. O commit `89ec767` (ajuste do teste e docs) está só na branch `fix/mobile-offline-webkit`, sem push.
+
+## 2026-11-22 · Validação de uso diário no celular (branch `fix/mobile-validacao`) · desenvolvido e testado localmente / emulado (publicado no PR #28, ver acima)
+- **Estágio na época:** desenvolvido e testado localmente, com celular **emulado** (depois publicado no PR #28). Sem migração. Nenhum teste em aparelho de verdade foi feito; o que falta está em [docs/CHECKLIST_CELULAR.md](docs/CHECKLIST_CELULAR.md).
 - **Bugs corrigidos (commits `76701d9` e `f741e6c` + docs):**
   - **Voltar do Android:** havia uma só entrada de histórico para qualquer número de camadas. Com assistente e menu abertos, o 1º Voltar fechava o menu e o 2º saía da tela. Agora há uma entrada por camada (`src/lib/overlay-history.ts`, usada em `GaduApp.tsx`), sem corrida entre fechar pela interface e o `popstate`, e o endereço da tela é reacertado depois.
   - **Voz falada:** frase longa sem pontuação era falada de uma vez (o Chrome do Android corta falas longas): agora o texto vira trechos de até 170 caracteres (`splitForSpeech`). O "despertador" pause/resume rodava também no Android, onde `pause()` cancela a fala: agora só no Chrome do computador. Vozes são consultadas no primeiro toque (`voiceschanged`), e voltar do segundo plano retoma a fala pausada.
