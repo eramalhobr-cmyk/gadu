@@ -6,8 +6,18 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`). Só documentação, não integrada.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
-## 2026-11-22 · Core Contextual: "O que merece minha atenção hoje?" (branch `feat/core-atencao-hoje`) · desenvolvido e testado localmente, NÃO publicado
-- **Desenvolvido.** Primeira entrega do Core, aprovada pelo Eduardo: escopo pessoal, só leitura, sem banco novo e sem migração. Sem push e sem PR até aqui.
+## 2026-11-22 · `215edab` · Core Contextual: "O que merece minha atenção hoje?" (PR #24) · publicado
+- **Publicado.** PR #24 integrado em 22/11/2026 às 15:42 (Brasília), merge commit `215edab0d7d879e3483d0a6d77539609ce95f39c`. CI do PR verde: `verify`, `e2e-public`, `database`.
+- **Deploy de produção da Vercel:** `success`.
+- **Produção:** home 200; `/api/attention` sem sessão 401 (rota nova no ar); `/api/health` ok.
+- **e2e público** (7 testes) contra a produção: 7 passaram.
+- **Migrações:** nenhuma.
+- **Flag:** `CORE_MVP` não está definida na Vercel, então o recurso está ligado por padrão.
+- **Não verificado:** tela Hoje e Fontes com pessoa logada; Gmail e agenda reais; voz no aparelho; custo por mensagem medido.
+- Detalhes do desenvolvimento e dos testes locais na entrada a seguir.
+
+## 2026-11-22 · Core Contextual: desenvolvimento (branch `feat/core-atencao-hoje`) · desenvolvido e testado localmente
+- **Desenvolvido.** Primeira entrega do Core, aprovada pelo Eduardo: escopo pessoal, só leitura, sem banco novo e sem migração. Publicada na entrada acima (PR #24).
 - **Código:** `src/lib/core/` (`scopes`, `plan`, `collect`, `format`, `flag`, `privacy`, `google-adapter`, fontes `tasks`, `reminders`, `agenda`, `email`); `/api/chat` injeta o bloco do Core quando a intenção é "atencao_hoje" e envia o evento `sources`; rota nova `/api/attention` (zod, sessão obrigatória); `AttentionCard` na tela Hoje; `SourcesDetail` ("Fontes") no assistente e na Conversa.
 - **Comportamento:** nenhuma chamada de IA nova; custo continua pela reserva, cota diária e liquidação já existentes (fail closed). Core usa só o cliente da sessão (RLS); termos bloqueados e dado sensível viram "(omitido pela regra de privacidade)". Gmail: até 5 não lidos das últimas 48 h, só remetente e assunto, e só com o escopo `gmail.readonly` já concedido; senão vai para "indisponível". Com o Core ligado e a intenção, o chat não lê o Google duas vezes (o caminho antigo só roda se pedir a semana).
 - **Flag:** `CORE_MVP=0` desliga (chat e Hoje voltam ao comportamento anterior). Ligado por padrão porque não há acesso às variáveis da Vercel agora; para desligar em produção será preciso criar a variável lá.

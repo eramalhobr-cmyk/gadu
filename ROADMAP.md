@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 22/11/2026 (Core Contextual: "O que merece minha atenção hoje?", desenvolvido e testado localmente, não publicado). Produção: https://gadu-agent.vercel.app (commit `b992422`).
+Atualizado a cada entrega. Última atualização: 22/11/2026 (Core Contextual: "O que merece minha atenção hoje?", publicado, PR #24). Produção: https://gadu-agent.vercel.app (merge `215edab`).
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 Documentos relacionados:
@@ -316,8 +316,8 @@ Estágio: **publicado em 22/11/2026** (merge `cc85040`, migrações aditiva `202
 - [ ] S-08 (organizações), S-13, S-14, S-15: fora desta entrega
 
 
-## Core Contextual · fase 1: "O que merece minha atenção hoje?" (22/11, branch `feat/core-atencao-hoje`)
-Estágio: **desenvolvido e testado localmente; não publicado** (sem push, sem PR). Aprovado pelo Eduardo. Detalhe em docs/CORE_ATENCAO_HOJE.md e docs/CORE_CONTEXTUAL_MVP.md.
+## Core Contextual · fase 1: "O que merece minha atenção hoje?" (22/11, PR #24)
+Estágio: **publicado em 22/11/2026 às 15:42 (Brasília)**, merge `215edab`, CI verde, deploy `success`, e2e público 7 de 7 em produção, sem migração. Aprovado pelo Eduardo. Detalhe em docs/CORE_ATENCAO_HOJE.md e docs/CORE_CONTEXTUAL_MVP.md.
 - [x] `src/lib/core/` (escopos, plano por regra, fontes de tarefas, lembretes, agenda e e-mail, coleta, formato, limites, privacidade)
 - [x] Chat: intenção "atencao_hoje" injeta o bloco do Core (etiquetas T/L/A/E, indisponíveis explícitos), sem IA extra e com a reserva/cota de sempre
 - [x] "Fontes" recolhível sob a resposta, com link para a tela de origem
@@ -327,7 +327,8 @@ Estágio: **desenvolvido e testado localmente; não publicado** (sem push, sem P
 - [x] Testes: unitários, integração (com e sem flag, A x B, Google desconectado), `test:db` (consulta do Core como B), e2e público (401)
 - [x] Nenhuma migração nova
 - [ ] Validar em celular de verdade (390 px) com uma pessoa logada e dados reais (os testes de interface com login não rodaram aqui)
-- [ ] Publicar (PR, CI, merge pelo Eduardo, validação em produção)
+- [x] Publicar (PR #24, CI verde, merge, deploy; produção: home 200, `/api/attention` 401 sem sessão, `/api/health` ok, e2e público 7 de 7; `CORE_MVP` não definida na Vercel, ligado por padrão)
+- [ ] Validar em produção com pessoa logada: tela Hoje e Fontes, Gmail e agenda reais, voz no aparelho; medir o custo por mensagem
 - [ ] Próximo: auditoria sem conteúdo (`core_audit`, fase 3, alto risco) e priorização pela tela aberta (fase 2)
 
 ## Próximo ciclo (prioridades, em ordem)
