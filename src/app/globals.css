@@ -4,6 +4,9 @@
 html, body { height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.5 var(--body); -webkit-font-smoothing: antialiased; overscroll-behavior: none; }
 button, input, textarea { font: inherit; color: inherit; }
+/* Celular: sem atraso de duplo toque, sem o retângulo cinza do toque, texto não reescala ao girar. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+a, button, summary, label, select, [role="button"], [role="switch"], input[type="checkbox"], input[type="range"] { touch-action: manipulation; }
 button { cursor: pointer; }
 a { color: var(--sig); }
 :focus-visible { outline: 2px solid var(--sig); outline-offset: 2px; }
@@ -99,6 +102,7 @@ input[type="checkbox"] { accent-color: var(--sig); width: 22px; height: 22px; }
 .quick .chip { min-height: 40px; }
 
 /* Páginas de texto (privacidade, termos) */
+.doc-back { display: inline-flex; align-items: center; min-height: 48px; min-width: 48px; }
 .doc { max-width: 720px; margin: 0 auto; padding: calc(24px + var(--safe-t)) 16px 48px; line-height: 1.6; }
 .doc h1 { font-family: var(--display); font-size: 28px; margin: 16px 0 4px; }
 .doc h2 { font-size: 18px; margin: 28px 0 8px; color: var(--sig); }

@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "Termos · GaDu" };
 export default function Termos() {
   return (
     <main className="doc">
-      <a href="/login" className="mono">← GaDu</a>
+      <a href="/login" className="mono doc-back">← GaDu</a>
       <h1>Termos de uso</h1>
       <p className="muted">Atualizados em 9 de novembro de 2026.</p>
       <p>O GaDu é um assistente pessoal, de uso particular e por convite. Ao usar, você concorda com estes termos.</p>

@@ -15,8 +15,10 @@ export function chatErrorMessage(status: number): string {
 /** Erro do reconhecimento de voz do navegador. Vazio quando não vale avisar (a pessoa cancelou). */
 export function micErrorMessage(code: string): string {
   switch (code) {
-    case "not-allowed":
     case "service-not-allowed":
+      // Samsung Internet e navegadores embutidos: o serviço de voz do Google não está liberado.
+      return "O reconhecimento de voz não está disponível neste navegador. Use o Chrome ou o microfone do teclado.";
+    case "not-allowed":
       return "O microfone está bloqueado. Libere o microfone para este site nas configurações do navegador.";
     case "audio-capture":
       return "Não encontrei um microfone neste aparelho.";

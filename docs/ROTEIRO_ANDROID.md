@@ -1,6 +1,6 @@
 # Roteiro curto · validação no Android físico
 
-Cerca de 15 minutos. Use o GaDu instalado na tela de início (Chrome › Instalar app). Anote, para cada cenário: aparelho, versão do Android, ok ou falhou e o que aconteceu. A lista completa (iPhone, PWA, notificações) está em [VALIDACAO_APARELHOS.md](VALIDACAO_APARELHOS.md).
+Cerca de 15 minutos. Use o GaDu instalado na tela de início (Chrome › Instalar app). Anote, para cada cenário: aparelho, versão do Android, ok ou falhou e o que aconteceu. Versão para o Galaxy S26 Ultra (Chrome e Samsung Internet) e iPhone, com os itens novos: [CHECKLIST_CELULAR.md](CHECKLIST_CELULAR.md). A lista completa (iPhone, PWA, notificações) está em [VALIDACAO_APARELHOS.md](VALIDACAO_APARELHOS.md).
 
 | # | O que fazer | Resultado esperado |
 |---|---|---|
@@ -16,5 +16,8 @@ Cerca de 15 minutos. Use o GaDu instalado na tela de início (Chrome › Instala
 | 10 | Abra o assistente e use o **Voltar** | o painel fecha, sem sair do app |
 | 11 | Vá de Hoje para **Módulos › Projetos** e use o **Voltar** | volta para a tela anterior |
 | 12 | Abra o microfone na Conversa e toque em **Hoje** na barra de baixo | a escuta para |
+| 13 | Abra o assistente e depois o **menu ☰**; use o **Voltar** duas vezes | o 1º fecha o menu, o 2º fecha o assistente; o app não sai da tela |
+| 14 | Com a resposta falada longa (peça "explique em um parágrafo grande"), ouça até o fim | a fala **não corta** no meio (no Android a resposta é falada em trechos curtos) |
+| 15 | No **Samsung Internet**, toque no microfone | ou reconhece, ou mostra "reconhecimento de voz não está disponível…"; nunca trava |
 
 Se algo falhar, mande o número do cenário, o que apareceu na tela e, se possível, uma gravação de tela.

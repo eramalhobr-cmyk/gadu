@@ -70,7 +70,7 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Aba Hoje (painel em 3 colunas no desktop) | implementado | — | `src/components/TodayPage.tsx`, `src/app/api/today` | — |
 | Tarefas (voz ou manual, prazo, prioridade, e-mail vira tarefa) | implementado | — | `src/components/TasksPanel.tsx`, tabela `tasks` | — |
 | Projetos pessoais | implementado | — | `src/components/ProjectsPage.tsx` | — |
-| Lembretes por voz e notificações (Web Push e Cron) | beta | P1 | `src/lib/push.ts`, `src/app/api/cron/tick` | falta o Eduardo instalar o PWA no iPhone e ligar as notificações |
+| Lembretes por voz e notificações (Web Push e Cron) | beta | P1 | `src/lib/push.ts`, `src/lib/push-client.ts`, `public/sw.js`, `src/app/api/cron/tick` | reinscrição, clique na rota e selo corrigidos na branch `fix/mobile-validacao` (testado com service worker simulado, não publicado); falta o Eduardo ligar as notificações no aparelho (docs/CHECKLIST_CELULAR.md) |
 | Briefing da manhã e revisão da noite | beta | P1 | `src/lib/briefing.ts`, `src/app/api/cron/tick` | depende das notificações |
 | Google: agenda e Gmail (só leitura) | implementado | — | `src/lib/google.ts`, `src/app/api/google/*` | — |
 | Agenda visual semanal | implementado | — | `src/components/AgendaView.tsx` | — |
@@ -111,7 +111,7 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 |---|---|---|---|---|
 | Home pública em `/` com botão Entrar | implementado | — | `src/app/page.tsx` | — |
 | Avatar holográfico animado e ícone oficiais | implementado | — | `src/components/avatar-engine.ts`, `RobotFace.tsx`, `public/avatar`, `public/icons` | preservar (decisão oficial) |
-| PWA instalável, tela offline, rascunho local | implementado | — | `public/manifest.webmanifest`, `public/sw.js`, `src/app/offline` | — |
+| PWA instalável, tela offline, rascunho local | implementado | — | `public/manifest.webmanifest`, `public/sw.js`, `src/app/offline` | instalável verificado pelo CDP (emulado); falta instalar no aparelho |
 | Guia, dicas e "Como funciona" | implementado | — | `src/app/app/guia`, `src/app/app/sobre`, `src/lib/tips.ts` | — |
 | Design System com tokens centralizados | implementado (v1) | P1 | `src/app/globals.css`, `docs/DESIGN_SYSTEM.md` | PR #10; etapa 2: migrar estilos inline e criar componentes compartilhados |
 | Arquitetura de módulos com status real | implementado | — | `src/lib/modules.ts`, `src/components/ModulePage.tsx` | PR #12; os módulos planejados só têm página de visão geral |

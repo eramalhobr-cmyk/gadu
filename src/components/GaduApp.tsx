@@ -9,6 +9,7 @@ import { canListen, canSpeak, createRecognizer, Speaker } from "@/lib/speech";
 import { chatErrorMessage, micErrorMessage } from "@/lib/errors";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { ConversationsDrawer } from "./ConversationsDrawer";
+import { OverlayHistory } from "@/lib/overlay-history";
 import { MemoryPage } from "./MemoryPage";
 import { SettingsPage, type Prefs } from "./SettingsPage";
 import { dueLabel, TodayPage } from "./TodayPage";
@@ -470,30 +471,39 @@ export function GaduApp(props: {
   // Botão Voltar (Android e navegador): fecha primeiro o que estiver aberto por cima (conversas, menu, assistente no celular);
   // sem nada aberto, volta para a tela anterior.
   const isPhone = () => typeof window !== "undefined" && window.innerWidth < 1024;
-  const overlayOpen = menu || drawer || (showAssist && isPhone());
+  const layers = (menu ? 1 : 0) + (drawer ? 1 : 0) + (showAssist && isPhone() ? 1 : 0);
   const overlayRef = useRef({ menu, drawer, assist: showAssist });
   overlayRef.current = { menu, drawer, assist: showAssist && isPhone() };
+  // Uma entrada de histórico por camada aberta (src/lib/overlay-history.ts).
+  const ohRef = useRef<OverlayHistory | null>(null);
   useEffect(() => {
-    if (overlayOpen) { if (!window.history.state?.gaduOverlay) window.history.pushState({ gaduOverlay: 1 }, ""); }
-    else if (window.history.state?.gaduOverlay) window.history.back();
-  }, [overlayOpen]);
-  useEffect(() => {
-    const onPop = () => {
-      const o = overlayRef.current;
-      if (o.drawer) setDrawer(false);
-      else if (o.menu) setMenu(false);
-      else if (o.assist) openAssist(false);
-      else {
-        const t = parseView(new URLSearchParams(window.location.search).get("tab") ?? undefined, props.admin);
-        if (t) { setPageOpen(false); setTabState(t); }
-      }
-    };
+    const oh = new OverlayHistory({
+      history: window.history,
+      onBack: () => {
+        const o = overlayRef.current;
+        if (o.drawer) setDrawer(false);
+        else if (o.menu) setMenu(false);
+        else if (o.assist) openAssist(false);
+        else {
+          const t = parseView(new URLSearchParams(window.location.search).get("tab") ?? undefined, props.admin);
+          if (t) { setPageOpen(false); setTabState(t); }
+        }
+      },
+      // Fechar uma camada pela interface volta no histórico; o endereço precisa continuar o da tela atual.
+      onSettled: () => {
+        const q = new URLSearchParams(window.location.search).get("tab");
+        if (window.location.pathname === "/app" && q && q !== tabRef.current) window.history.replaceState(window.history.state, "", `/app?tab=${tabRef.current}`);
+      },
+    });
+    ohRef.current = oh;
+    const onPop = () => oh.handlePopState();
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { if (overlayRef.current.drawer) return; setMenu(false); } };
     window.addEventListener("popstate", onPop);
     window.addEventListener("keydown", onKey);
-    return () => { window.removeEventListener("popstate", onPop); window.removeEventListener("keydown", onKey); };
+    return () => { window.removeEventListener("popstate", onPop); window.removeEventListener("keydown", onKey); ohRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  useEffect(() => { ohRef.current?.sync(layers); }, [layers]);
   // Menu aberto: a página por trás não rola.
   useEffect(() => { document.documentElement.classList.toggle("menu-open", menu); }, [menu]);
   // Mudou de tela com o microfone aberto e sem nenhum controle de voz à vista: para de ouvir.
@@ -501,6 +511,29 @@ export function GaduApp(props: {
     if (listeningRef.current && !(tab === "conversa" || showAssist)) recRef.current?.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
+  // Teclado abriu (Android/iPhone): o campo em foco continua à vista, sem ficar atrás do teclado.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const keepVisible = () => {
+      const el = document.activeElement;
+      if (el instanceof HTMLElement && el.matches("textarea, input:not([type=checkbox]):not([type=range]):not([type=radio])")) el.scrollIntoView({ block: "nearest", behavior: "auto" });
+    };
+    vv.addEventListener("resize", keepVisible);
+    return () => vv.removeEventListener("resize", keepVisible);
+  }, []);
+  // Segundo plano, tela bloqueada ou saída do app: o microfone nunca fica aberto. Ao voltar, a fala pausada continua.
+  useEffect(() => {
+    const hide = () => { try { recRef.current?.stop(); } catch {} };
+    const onVis = () => { if (document.visibilityState === "hidden") hide(); else speaker?.resumeIfPaused(); };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pagehide", hide);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("pagehide", hide);
+      try { recRef.current?.abort(); } catch {}
+    };
+  }, [speaker]);
   function toggleNavMini() {
     setNavMini((v) => { try { localStorage.setItem(LS_NAV_MINI, v ? "0" : "1"); } catch {} return !v; });
   }
@@ -679,7 +712,7 @@ export function GaduApp(props: {
                     <Icon name={(busy || mode === "speaking") && !listening ? "stop" : "mic"} />
                   </button>
                   <label className="sr" htmlFor="msg">Mensagem</label>
-                  <textarea id="msg" rows={1} value={draft} placeholder={listening ? "Escutando…" : "Escreva ou fale com o GaDu"} maxLength={4000}
+                  <textarea id="msg" rows={1} value={draft} placeholder={listening ? "Escutando…" : "Escreva ou fale com o GaDu"} maxLength={4000} autoComplete="off" autoCapitalize="sentences"
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && window.innerWidth > 900) { e.preventDefault(); void send(draft); } }} />
                   <button type="submit" className="round pri" aria-label="Enviar" disabled={busy || !draft.trim()}><Icon name="send" /></button>

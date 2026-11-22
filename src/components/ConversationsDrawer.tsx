@@ -74,7 +74,7 @@ export function ConversationsDrawer(props: {
         <div className="search">
           <Icon name="history" size={18} />
           <label className="sr" htmlFor="conv-q">Buscar nas conversas</label>
-          <input id="conv-q" className="search-input" type="search" placeholder="Buscar por assunto" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input id="conv-q" className="search-input" type="search" enterKeyHint="search" autoComplete="off" placeholder="Buscar por assunto" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         {error && <div className="notice" role="alert">{error}</div>}
         <div className="drawer-list hist-list">

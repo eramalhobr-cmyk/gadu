@@ -1,6 +1,18 @@
 # GaDu · Validações que dependem de aparelhos físicos
 
-Atualizado em 15/11/2026. Os testes automáticos simulam voz, teclado e o botão Voltar. Isso **não substitui** o teste em aparelho. Nada desta lista foi validado ainda.
+Atualizado em 22/11/2026. Os testes automáticos simulam voz, teclado e o botão Voltar. Isso **não substitui** o teste em aparelho. **Nada desta lista foi validado em aparelho de verdade ainda.** Roteiro para o Galaxy S26 Ultra e o iPhone: [CHECKLIST_CELULAR.md](CHECKLIST_CELULAR.md).
+
+## O que já foi verificado (emulado, nesta máquina)
+| Verificação | Como | Resultado |
+|---|---|---|
+| Layout, alvos de toque, viewport, campos 16 px, área segura, tema | `e2e/mobile.e2e.cjs`, 5 perfis (Pixel 7, Galaxy S9+, 412x915 Chrome e Samsung Internet, iPhone 14 WebKit) | 44/44 contra `next start` local |
+| Manifest, ícones, service worker, offline, CSP | mesma suíte | idem |
+| Instalável no Chrome | `Page.getInstallabilityErrors` vazio e manifest sem avisos (CDP) | 4 perfis, local e produção |
+| Voltar com várias camadas abertas | `src/lib/overlay-history.test.ts` (7 testes, histórico simulado) | passam. **Não** prova o gesto de voltar do Android |
+| Fala em trechos curtos, sem "despertador" no Android, reconhecimento ausente ou em HTTP | `src/lib/speech.test.ts` | passam. **Não** prova a voz no Chrome do Android |
+| Push, clique na notificação, reinscrição | `test/sw.integration.test.ts` (service worker em ambiente simulado), `src/lib/push-client.test.ts` | passam. **Não** prova a entrega real do push |
+
+**Não verificável sem aparelho:** teclado virtual (visualViewport real), microfone e reconhecimento (Chrome e Samsung Internet), vozes e TTS reais, corte de falas longas no Chrome do Android, push de verdade (FCM/APNs), Voltar físico e gesto de borda, instalação pelo menu do navegador, ícone e barra de status, iOS 16.4+ em PWA, desempenho e bateria.
 
 Como registrar: para cada item, anotar aparelho, sistema, navegador, se está instalado na tela de início (PWA), data e resultado (ok, falhou e o que aconteceu). Registrar no CHANGELOG só o que foi feito de fato.
 
@@ -35,6 +47,7 @@ Como registrar: para cada item, anotar aparelho, sistema, navegador, se está in
 | N1 | Android: abrir o menu ☰ e usar o Voltar (botão ou gesto) | o menu fecha e o app continua na mesma tela |
 | N2 | Android: abrir o assistente e usar o Voltar | o painel fecha |
 | N3 | Android: trocar de tela pelo menu e usar o Voltar | volta para a tela anterior |
+| N3b | Android: abrir o assistente, abrir o menu e usar o Voltar duas vezes | 1º fecha o menu, 2º fecha o assistente; só o 3º sai da tela |
 | N4 | iPhone: gesto de voltar pela borda dentro do PWA | não sai do app com o menu aberto |
 | N5 | Aparelho com entalhe ou ilha | nada fica atrás da barra de status nem do indicador de início |
 | N6 | Ligar "reduzir movimento" no sistema | menu e painel abrem sem animação |
@@ -45,3 +58,5 @@ Como registrar: para cada item, anotar aparelho, sistema, navegador, se está in
 | P1 | Instalar na tela de início | ícone e cor do tema corretos (azul-marinho) |
 | P2 | Ligar notificações e enviar teste | chega no aparelho |
 | P3 | Abrir offline | tela offline; o rascunho fica guardado |
+| P4 | Tocar na notificação com o app fechado e aberto | o app abre ou vem para a frente na rota da notificação |
+| P5 | Permissão de notificação negada | o Ajustes explica como liberar; não fica botão que não faz nada |

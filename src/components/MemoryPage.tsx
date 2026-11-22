@@ -78,7 +78,7 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
         <div className="search">
           <Icon name="spark" size={18} />
           <label className="sr" htmlFor="mem-q">Buscar na memória</label>
-          <input id="mem-q" className="search-input" type="search" placeholder="Buscar em memórias e conversas" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input id="mem-q" className="search-input" type="search" enterKeyHint="search" autoComplete="off" placeholder="Buscar em memórias e conversas" value={q} onChange={(e) => setQ(e.target.value)} />
           {q && <button className="icon-btn" onClick={() => setQ("")} aria-label="Limpar busca"><Icon name="x" size={16} /></button>}
         </div>
         {error && <div className="notice" role="alert">{error}</div>}

@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Privacidade · GaDu" };
 export default function Privacidade() {
   return (
     <main className="doc">
-      <a href="/login" className="mono">← GaDu</a>
+      <a href="/login" className="mono doc-back">← GaDu</a>
       <h1>Política de privacidade</h1>
       <p className="muted">Atualizada em 10 de novembro de 2026.</p>
 
