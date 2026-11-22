@@ -403,8 +403,8 @@ button.pj-card:hover { border-color: color-mix(in srgb, var(--c) 55%, transparen
 .mt-sub { color: var(--ink-3); font-size: var(--fs-sm); overflow-wrap: anywhere; }
 .mt-num { font-variant-numeric: tabular-nums; font-size: var(--fs-sm); color: var(--ink); }
 .mt-big { margin: 0; font: 600 28px/1.15 var(--body); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.mt-bar { height: 8px; }
-.mt-bar > div { background: var(--sig); }
+.mt-bar { height: 8px; border-radius: 4px; background: var(--wash); overflow: hidden; }
+.mt-bar > div { height: 100%; border-radius: 4px; background: var(--sig); transition: width var(--dur) var(--ease); }
 .mt-bar > div.no_ritmo, .mt-bar > div.batida, .mt-bar > div.concluida { background: var(--ok); }
 .mt-bar > div.atrasada, .mt-bar > div.vencida { background: var(--hot); }
 .mt-bar > div.pausada, .mt-bar > div.arquivada, .mt-bar > div.sem_dados { background: var(--ink-3); }

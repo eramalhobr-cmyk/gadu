@@ -59,7 +59,7 @@ export default async function Home() {
           <div className="lp-hero-text">
             <span className="lp-kicker">Assistente inteligente e plataforma integrada</span>
             <h1>Seu assistente para <em>agentes</em>, <em>produtividade</em> e <em>criação</em>.</h1>
-            <p className="muted">O GaDu conversa por voz e texto em qualquer tela. Hoje ele já cuida do seu dia: agenda, e-mails, tarefas, projetos e memória, sempre com a sua aprovação, e já começa a cuidar das finanças (contas e gastos do mês, em beta). Metas e conquistas, casa inteligente, agentes de trabalho, criação de sites e impressão 3D chegam por módulos, cada um com o status real.</p>
+            <p className="muted">O GaDu conversa por voz e texto em qualquer tela. Hoje ele já cuida do seu dia: agenda, e-mails, tarefas, projetos e memória, sempre com a sua aprovação, já começa a cuidar das finanças (contas e gastos do mês) e das metas (prazo, ritmo e progresso real), os dois em beta. Conquistas, casa inteligente, agentes de trabalho, criação de sites e impressão 3D chegam por módulos, cada um com o status real.</p>
             <div className="row">
               <a className="btn btn-pri lp-cta" href={cta.href}>{cta.label}</a>
               <a className="btn" href="#como">Como funciona</a>

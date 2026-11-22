@@ -89,7 +89,7 @@ export function MetasPage(props: { onAsk: (q: string) => void; onOpenTasks: () =
 
 function Barra({ m }: { m: MetaView }) {
   return (
-    <div className="bar mt-bar" role="progressbar" aria-label="Progresso" aria-valuemin={0} aria-valuemax={100} aria-valuenow={m.progresso.semDados ? 0 : m.progresso.pct} aria-valuetext={progressoTexto(m)}>
+    <div className="mt-bar" role="progressbar" aria-label="Progresso" aria-valuemin={0} aria-valuemax={100} aria-valuenow={m.progresso.semDados ? 0 : m.progresso.pct} aria-valuetext={progressoTexto(m)}>
       <div className={m.ritmo.situacao} style={{ width: `${m.progresso.semDados ? 0 : m.progresso.pct}%` }} />
     </div>
   );
@@ -103,7 +103,7 @@ function CartaoMeta({ m, onOpen }: { m: MetaView; onOpen: () => void }) {
       <span className="mt-sub">{catLabel(g)}{g.prazo ? ` · prazo ${dataBR(g.prazo)}/${g.prazo.slice(0, 4)}` : " · sem prazo"}</span>
       <Barra m={m} />
       <span className="mt-num">{progressoTexto(m)}{!m.progresso.semDados && g.medicao !== "percentual" ? ` · ${m.progresso.pct}%` : ""}</span>
-      <span className="mt-sub">{ritmoTexto(m)}</span>
+      {ritmoTexto(m) !== SITUACAO_LABEL[m.ritmo.situacao] && <span className="mt-sub">{ritmoTexto(m)}</span>}
     </button>
   );
 }
