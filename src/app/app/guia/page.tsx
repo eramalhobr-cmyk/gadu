@@ -16,7 +16,7 @@ const ASK: { area: string; color: string; say: string[]; then: string }[] = [
   { area: "Lembretes", color: "var(--c-pink)", say: ["Me lembra daqui a 20 minutos de tirar o bolo do forno", "Me lembra sexta às 9 de pagar o condomínio"], then: "Na hora certa chega uma notificação no celular. Os lembretes aparecem no Hoje." },
   { area: "Tarefas", color: "var(--hot)", say: ["Anota aí: renovar o seguro do carro até sexta", "Quais tarefas estão atrasadas?"], then: "As tarefas ficam na tela Tarefas e as urgentes aparecem no Hoje. Toque no quadradinho para concluir." },
   { area: "E-mails", color: "var(--c-violet)", say: ["Tenho e-mails importantes?", "Quais e-mails pedem resposta?"], then: "O GaDu só lê. No Hoje, cada e-mail tem o botão Virar tarefa." },
-  { area: "Memória", color: "var(--c-green)", say: ["Lembre que prefiro reuniões depois das 10h", "O que você sabe sobre mim?"], then: "O que ele aprende fica para você aprovar em Memórias. Só vale depois do seu sim." },
+  { area: "Memória", color: "var(--c-green)", say: ["Lembre que prefiro reuniões depois das 10h", "O que você sabe sobre mim?"], then: "O que ele aprende fica para você aprovar em Memória. Só vale depois do seu sim." },
   { area: "Projetos e agentes", color: "var(--c-blue)", say: ["Me ajuda a quebrar isso em tarefas", "Pode anotar"], then: "Abra um projeto ou um agente e toque em Conversar. Ele já sabe do que se trata." },
 ];
 
@@ -37,7 +37,7 @@ export default async function Guia() {
     { title: "Instale na tela de início", why: "Abre como um aplicativo e é o que permite receber notificações no iPhone.", how: ["iPhone: no Safari, toque em Compartilhar › Adicionar à Tela de Início.", "Android: no Chrome, toque nos três pontinhos › Instalar app."], done: null, href: "/app?tab=hoje", cta: "Abrir o Hoje" },
     { title: "Ligue as notificações", why: "Para receber lembretes, o briefing da manhã e a revisão da noite.", how: ["Configurações › Ligar notificações › Permitir.", "Toque em Enviar teste para conferir."], done: has(push), href: "/app?tab=ajustes", cta: "Abrir Configurações" },
     { title: "Conecte o Google", why: "Para o GaDu ler sua agenda e seus e-mails e criar eventos quando você confirmar.", how: ["Configurações › Conexões › Conectar Google.", "Na tela do Google, marque todas as caixas."], done: has(google), href: "/app?tab=ajustes", cta: "Conectar" },
-    { title: "Traga o que outras IAs já sabem", why: "Assim o GaDu começa já conhecendo você.", how: ["Memórias › Importar de outra IA.", "Copie o pedido, cole no ChatGPT ou no Claude e traga a resposta.", "Aprove o que fizer sentido."], done: has(memories), href: "/app?tab=memoria", cta: "Abrir Memórias" },
+    { title: "Traga o que outras IAs já sabem", why: "Assim o GaDu começa já conhecendo você.", how: ["Mais › Memória › Importar de outra IA.", "Copie o pedido, cole no ChatGPT ou no Claude e traga a resposta.", "Aprove o que fizer sentido."], done: has(memories), href: "/app?tab=memoria", cta: "Abrir Memória" },
     { title: "Escolha seus agentes", why: "Versões do GaDu para cada área: saúde, finanças, estudos, seu negócio.", how: ["Agentes › Adicionar sugeridos, ou Novo agente.", "Edite as instruções do seu jeito."], done: has(agents), href: "/app?tab=agentes", cta: "Ver agentes" },
     { title: "Converse pela primeira vez", why: "Fale como falaria com uma pessoa. Comece por: Começar o dia.", how: ["Toque no microfone, fale, revise o texto e envie.", "Ou toque no GaDu no centro da barra, em qualquer tela."], done: has(convs), href: "/app?tab=conversa", cta: "Conversar" },
   ];
@@ -101,7 +101,7 @@ export default async function Guia() {
         <Panel title="Se algo der errado" icon="bell">
           <div className="rows">
             <div className="row-i"><div className="grow"><span className="t">Ele entendeu errado</span><span className="s">Corrija falando: “não, é quinta às 11”. Propostas erradas você descarta com um toque.</span></div></div>
-            <div className="row-i"><div className="grow"><span className="t">Quero apagar algo</span><span className="s">Memórias na tela Memórias. Conversas no histórico. Tarefas e lembretes no próprio item.</span></div></div>
+            <div className="row-i"><div className="grow"><span className="t">Quero apagar algo</span><span className="s">Memórias na tela Memória (em Mais). Conversas no histórico. Tarefas e lembretes no próprio item.</span></div></div>
             <div className="row-i"><div className="grow"><span className="t">Não chegou notificação</span><span className="s">Configurações › Enviar teste. No iPhone, abra o GaDu pelo ícone da tela de início.</span></div></div>
             <div className="row-i"><div className="grow"><span className="t">Quanto estou gastando?</span><span className="s">Configurações mostra o gasto do mês e os limites de cada motor de IA.</span></div></div>
           </div>
