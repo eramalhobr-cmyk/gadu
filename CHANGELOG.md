@@ -6,9 +6,12 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
-## 2026-11-22 · UX-3 (primeira parte) · Voz em um toque: tela de escuta com letra grande e envio sozinho em 3 s (branch `feat/ux-voz`)
+## 2026-11-22 · Passagem de bastão entre IAs (PR #33, merge `0b1c707`) · só documentação
+- `AGENTS.md` (regras para qualquer IA), `CLAUDE.md` apontando para ele, diário `docs/HANDOFF.md` e modelo de PR com "Feito por (IA)" e "Revisar". Feito pelo Cursor (Grok Bot). Integrado em 22/11/2026 às 19:26 (Brasília), com CI verde rodado manualmente.
+
+## 2026-11-22 · UX-3 (primeira parte) · Voz em um toque: tela de escuta com letra grande e envio sozinho em 3 s (PR #36, merge `b7b2320`) · **publicado**
 - **Feito por:** Cursor (Grok Bot).
-- **Estágio:** desenvolvido e testado localmente. A publicação é registrada em docs/HANDOFF.md e no PROJECT_STATUS depois do merge.
+- **Estágio:** **publicado** em 22/11/2026 às 19:54 (Brasília), PR #36, merge `b7b2320`. CI verde (verify, e2e-public, database); deploy Vercel `success` (status do GitHub); CSS novo conferido no site no ar. Ainda não validado com pessoa logada em aparelho.
 - **Um toque para falar:** o microfone central e o botão "Falar com o GaDu" abrem a **tela de escuta**:
   - "Estou ouvindo…" e a transcrição ao vivo em letra grande (26 px);
   - botão grande de parar;
@@ -26,9 +29,9 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
   - Novo teste no `e2e/auth.e2e.cjs` (não rodado: exige credenciais).
 - **Falta no UX-3:** confirmações faladas ("sim", "não", "muda para…"), respostas faladas mais curtas e a opção de texto grande (115% a 130%) em Configurações.
 
-## 2026-11-22 · UX-2 · Tela Hoje curta: 5 blocos, "Falar com o GaDu" e uma lista só com Feito/Adiar (branch `feat/ux-hoje`)
+## 2026-11-22 · UX-2 · Tela Hoje curta: 5 blocos, "Falar com o GaDu" e uma lista só com Feito/Adiar (PR #35, merge `0e26745`) · **publicado**
 - **Feito por:** Cursor (Grok Bot).
-- **Estágio:** desenvolvido e testado localmente. A publicação é registrada em docs/HANDOFF.md e no PROJECT_STATUS depois do merge.
+- **Estágio:** **publicado** em 22/11/2026 às 19:48 (Brasília), PR #35, merge `0e26745`. CI verde (verify, e2e-public, database); deploy Vercel `success` (status do GitHub); CSS novo conferido no site no ar. Ainda não validado com pessoa logada em aparelho.
 - **Hoje em 5 blocos:**
   1. saudação com o botão grande **"Falar com o GaDu"** e a ação do momento;
   2. "Agora", com o próximo compromisso ou um convite para conectar o Google;
@@ -50,9 +53,9 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
   - Novo teste no `e2e/auth.e2e.cjs` (não rodado: exige credenciais).
 - **Fica para depois:** "Virar tarefa" a partir de um e-mail (o e-mail abre no Gmail pela lista); janelas livres da agenda (as antigas "Recomendações") pelo chat ("Priorizar meu dia").
 
-## 2026-11-22 · UX-1 · Navegação simples: microfone no centro, "Mais" no lugar de Módulos, sem menu lateral no celular (branch `feat/ux-navegacao`)
+## 2026-11-22 · UX-1 · Navegação simples: microfone no centro, "Mais" no lugar de Módulos, sem menu lateral no celular (PR #34, merge `2c8e98f`) · **publicado**
 - **Feito por:** Cursor (Grok Bot).
-- **Estágio:** desenvolvido e testado localmente. A publicação é registrada em docs/HANDOFF.md e no PROJECT_STATUS depois do merge.
+- **Estágio:** **publicado** em 22/11/2026 às 19:41 (Brasília), PR #34, merge `2c8e98f`. CI verde (verify, e2e-public, database); deploy Vercel `success` (status do GitHub); CSS novo conferido no site no ar. Ainda não validado com pessoa logada em aparelho.
 - **Barra de baixo (celular):** Hoje · Conversa · **microfone grande** · Tarefas · Mais.
   - Um toque no microfone fala com o GaDu de qualquer tela: abre o painel já escutando. Sem reconhecimento de voz no navegador, abre o campo de escrever.
   - Tocar e segurar abre o painel para escrever.

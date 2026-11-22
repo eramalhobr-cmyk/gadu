@@ -19,7 +19,7 @@ Este é o caderno de passagem de bastão entre as IAs que programam o GaDu (Clau
 ## Em andamento (atualize ao começar e ao terminar)
 | Frente | IA | Branch | Situação |
 |---|---|---|---|
-| UX-1 navegação e UX-2 tela Hoje | Cursor (Grok Bot) | `feat/ux-navegacao` e seguintes | em andamento, começou em 22/11 às 19:30 |
+| Ciclo UX (UX-1, UX-2, UX-3 parte 1) | Cursor (Grok Bot) | — | **concluído e publicado** em 22/11 às 19:54 (PRs #34, #35, #36). Próximo de UX: resto do UX-3 e UX-4 |
 | 3D-1 (conversa → OpenSCAD) | Claude Code | a definir pela sessão | começa em 22/11 por volta das 20:25 |
 
 ## A revisar por outra IA
@@ -30,9 +30,31 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - [ ] **PR #28/#29, celular** (Claude Code): o Voltar do Android com uma entrada por camada. A navegação offline no WebKit é limitação do Playwright, então conferir num iPhone de verdade.
 - [ ] **PR #30, Metas** (Claude Code): migração `metas_base`, cálculo de ritmo e interruptor `GOALS_ENABLED`.
 - [ ] **PR #32, plano** (Cursor/Grok Bot): conferir se as fases 3D-0 a 3D-3 e o ciclo UX-1 a UX-6 no ROADMAP batem com o pedido do Eduardo.
+- [ ] **PR #34, UX-1 navegação** (Cursor/Grok Bot): microfone central (toque fala, segurar abre o painel), tela Mais, fim do menu sanfona, Configurações unificada (`?tab=perfil` e `?tab=integracoes` rolam até a parte certa). Conferir o Voltar do Android no aparelho.
+- [ ] **PR #35, UX-2 Hoje** (Cursor/Grok Bot): `toActionItem` em `src/lib/core/format.ts` (só `tasks`/`reminders` ganham `ref`); Feito/Adiar/Desfazer gravam pelo cliente com RLS em `AttentionCard.tsx`. Conferir com dados reais; "Virar tarefa" de e-mail saiu do Hoje.
+- [ ] **PR #36, UX-3 voz** (Cursor/Grok Bot): `ListenSheet.tsx` e a contagem de 3 s; `voiceSheetRef` no `onText` do reconhecedor em `GaduApp.tsx`. Conferir no Chrome Android e no Samsung Internet se o fim da fala dispara a contagem e se o microfone sempre fecha.
+- [ ] **e2e com login** (`e2e/auth.e2e.cjs`): os testes novos de Mais, Hoje e tela de escuta foram escritos sem rodar (faltam credenciais de teste nesta máquina). Rodar com o usuário de teste e corrigir o que falhar.
 - [ ] **Validação com login no aparelho** de tudo o que foi publicado em 22/11 (pendência humana, com o Eduardo).
 
 ## Diário (mais recente no topo)
+
+### 22/11/2026 · 19:30–20:00 · Cursor (Grok Bot), ciclo UX
+- **Fez e publicou:**
+  - PR #33: passagem de bastão (`AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF.md`, modelo de PR). Merge às 19:26.
+  - PR #34, UX-1: barra de baixo Hoje · Conversa · microfone · Tarefas · Mais; tela Mais; sem menu sanfona; Configurações num lugar só; menu lateral simples. Merge às 19:41.
+  - PR #35, UX-2: Hoje em 5 blocos, de cerca de 4,7 para 2,1 telas a 412 × 915; lista única com Feito/Adiar e Desfazer; `ref` em `/api/attention`. Merge às 19:48.
+  - PR #36, UX-3 parte 1: tela de escuta em letra grande, envio sozinho em 3 s com Cancelar e conversa contínua. Merge às 19:54.
+- **Evidências:**
+  - CI verde nos 4 PRs;
+  - deploy Vercel `success` pelos status do GitHub;
+  - CSS novo conferido no site no ar;
+  - capturas antes e depois, a 412 × 915 com dados fictícios, em `/workspace/gadu-review/ux-before` e `ux-after` (máquina do agente).
+- **Como testar sem login:** uma página local `src/app/review/page.tsx`, que **não vai para o repositório** (está em `.git/info/exclude`), renderiza o `GaduApp` com dados fictícios. Build com `NEXT_PUBLIC_SUPABASE_URL=https://gadu-fake.example.com`; os scripts de Playwright em `/workspace/gadu-review/*.cjs` simulam o Supabase e as rotas.
+- **Não mexeu** em arquivos do 3D: a frente 3D-1 é do Claude Code.
+- **Ficou pela metade:**
+  - do UX-3: confirmações faladas, respostas faladas mais curtas e opção de texto grande;
+  - o e2e com login não foi rodado.
+- **Próximo passo:** validar no aparelho com o Eduardo; depois o resto do UX-3 e o UX-4.
 
 ### 22/11/2026 · 19:30 · Cursor (Grok Bot)
 - **Fez:** criou este sistema de passagem de bastão: [AGENTS.md](../AGENTS.md) (regras para qualquer IA), `CLAUDE.md` apontando para ele, este diário e o modelo de PR com "Feito por (IA)" e "Revisar".

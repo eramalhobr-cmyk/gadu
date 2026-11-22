@@ -393,20 +393,20 @@ Objetivo: o GaDu fácil para qualquer pessoa, inclusive quem não é digital, co
 - **Ações sem desfazer:** concluir tarefa, passar para amanhã e outras ações gravam na hora, sem "Desfazer".
 - **Inconsistência:** 100 estilos inline nos componentes e regras repetidas no CSS (ex.: `.dockbar` definido duas vezes em `src/app/v2.css`); cada módulo monta o topo e as ações de um jeito.
 
-### UX-1 · Navegação (P0) · feito em 22/11/2026 pelo Cursor (Grok Bot), PR `feat/ux-navegacao`
+### UX-1 · Navegação (P0) · feito e publicado em 22/11/2026 pelo Cursor (Grok Bot), PR #34
 - [x] Barra de baixo com 5 itens fixos: **Hoje · Conversa · [Falar] · Tarefas · Mais**. O botão central vira **microfone grande** (um toque fala; tocar e segurar abre o painel)
 - [x] "Módulos" vira **"Mais"**: blocos grandes só com o que funciona (Agenda, Financeiro, Metas, Projetos, Memória, Agentes, Configurações, Ajuda); planejados numa linha "Em breve" no fim
 - [x] Tirar o menu sanfona do celular: conta, integrações e administração entram em "Mais › Configurações" (um lugar só para a conta)
 - [x] Menu lateral do computador: lista simples na mesma ordem do celular, sem grupos recolhíveis e sem módulos planejados (ficam em "Em breve")
 - [x] Nomes únicos: **Conversa** (com "Conversas anteriores" dentro dela), **Memória**, **Configurações**; tirar o botão duplicado de abrir o assistente no topo do celular
 
-### UX-2 · Hoje e rolagem (P0) · feito em 22/11/2026 pelo Cursor (Grok Bot), PR `feat/ux-hoje`
+### UX-2 · Hoje e rolagem (P0) · feito e publicado em 22/11/2026 pelo Cursor (Grok Bot), PR #35
 - [x] No máximo 5 blocos e cerca de 2 telas: (1) saudação com **botão grande "Falar com o GaDu"** e a ação do momento; (2) "Agora" (próximo compromisso); (3) **uma lista única "Merece sua atenção"** com Feito/Adiar no próprio item (junta tarefas, lembretes, e-mails e metas); (4) 3 atalhos de voz; (5) "Ver tudo"
 - [x] Tirar o catálogo de módulos e o bloco duplicado "Precisa de atenção" do Hoje; números do topo todos tocáveis ou removidos
 - [x] Ao rolar, o botão Falar fica sempre à mão (microfone da barra de baixo, UX-1); voltar ao topo tocando no título
 - [x] Criar lembrete pela voz ou pelo botão "+", em vez do formulário fixo no meio da tela
 
-### UX-3 · Voz primeiro (P0/P1) · primeira parte feita em 22/11/2026 pelo Cursor (Grok Bot), PR `feat/ux-voz`; faltam confirmações faladas, respostas faladas mais curtas e a opção de texto grande
+### UX-3 · Voz primeiro (P0/P1) · primeira parte feita e publicada em 22/11/2026 pelo Cursor (Grok Bot), PR #36; faltam confirmações faladas, respostas faladas mais curtas e a opção de texto grande
 - [x] Um toque para falar em qualquer tela; tela de escuta com **texto grande** ("Estou ouvindo…", transcrição ao vivo) e botão grande "Parar"
 - [x] Envio automático depois do silêncio, com 3 s de "Enviando… Cancelar" (em vez de revisar e tocar em Enviar); revisar continua como opção
 - [x] **Modo mãos-livres** ligável na própria tela de escuta (não só em Configurações), com aviso visível de que está ligado
@@ -433,7 +433,7 @@ Objetivo: o GaDu fácil para qualquer pessoa, inclusive quem não é digital, co
 
 ## Próximo ciclo (prioridades, em ordem; revisado em 22/11/2026)
 1. Validar com pessoa logada, em aparelho, o que foi publicado em 22/11 (Hoje e Fontes, Financeiro, Metas, voz, notificações) e fechar os passos manuais da segurança (senhas vazadas, S-09).
-2. **UX-1 a UX-3** (navegação, Hoje, voz primeiro): baixo risco, só interface.
+2. ~~UX-1 a UX-3~~ (navegação, Hoje, voz em um toque): **publicados em 22/11** (PRs #34, #35, #36). Falta do UX-3: confirmações faladas, respostas faladas mais curtas e opção de texto grande.
 3. **3D-1** (MVP conversa → OpenSCAD), conforme [docs/FEATURE-3D.md](docs/FEATURE-3D.md).
 4. UX-4 a UX-6 (acessibilidade, consistência, teste com pessoa não digital).
 5. Financeiro: simulador bruto → líquido, tetos por categoria, fase Conversa.
