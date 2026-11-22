@@ -52,12 +52,12 @@ export async function POST(request: Request) {
     const skip = new Set<ProviderId>();
     if ((spend.spentBy.anthropic ?? 0) >= budgets.anthropic) skip.add("anthropic");
     if ((spend.spentBy.gateway ?? 0) >= budgets.gateway) skip.add("gateway");
-    // Teto mensal com reserva atômica (transição: sem a migração, segue como antes).
-    const resv = await reserveBudget(supabase, "import", estimateMaxCost(serverConfig().cheapModel, text.length + 600, 3000));
-    if (!resv.ok && !resv.legacy) {
+    // Teto mensal com reserva atômica, só pelo servidor (S-01).
+    const resv = await reserveBudget(user.id, "import", estimateMaxCost(serverConfig().cheapModel, text.length + 600, 3000));
+    if (!resv.ok) {
       return NextResponse.json({ error: "budget", message: resv.reason === "unavailable" ? "Não consegui verificar seu orçamento de IA agora. Tente de novo em instantes." : "O teto de gasto com IA do mês foi atingido. Importe como lista (uma informação por linha), que não usa IA." }, { status: resv.reason === "unavailable" ? 503 : 402 });
     }
-    const rid = resv.ok ? resv.id : null;
+    const rid = resv.id;
     let settledImport = false;
     try {
       const r = await complete(
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
         { maxTokens: 3000, skip },
       );
       usedAi = true;
-      settledImport = await settleBudget(supabase, rid, "import", r);
+      settledImport = await settleBudget(user.id, rid, "import", r);
       const json = r.text.slice(r.text.indexOf("{"), r.text.lastIndexOf("}") + 1);
       const list = (JSON.parse(json) as { memorias?: { texto?: unknown; area?: unknown }[] }).memorias ?? [];
       items = list
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     } catch {
       return NextResponse.json({ error: "ai", message: "Não consegui ler esse texto agora. Tente colar como lista, uma informação por linha." }, { status: 502 });
     } finally {
-      if (rid && !settledImport) await releaseBudget(supabase, rid);
+      if (rid && !settledImport) await releaseBudget(user.id, rid);
     }
   }
 
