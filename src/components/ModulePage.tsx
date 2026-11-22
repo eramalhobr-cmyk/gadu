@@ -1,7 +1,7 @@
 "use client";
 import { Panel } from "./kit";
 import { colorVar, Icon } from "./ui";
-import { AREAS, MODULES, moduleById, STATUS_LABEL, type ModuleDef, type ModuleId, type ViewId } from "@/lib/modules";
+import { DOCK_VIEWS, MAIN_VIEWS, MODULES, moduleOf, STATUS_LABEL, viewDef, type ModuleDef, type ModuleId, type ViewId } from "@/lib/modules";
 import { PageHeader } from "./kit";
 
 /** Selo de status de um módulo. Sempre o status real. */
@@ -84,46 +84,65 @@ export function ModulePage({ id, onOpen }: { id: ModuleId; onOpen: (view: ViewId
   );
 }
 
-/** Tela Módulos (celular e computador): explora o produto por área, sem lista enorme.
- * As telas da barra de baixo (Hoje, Conversas, Tarefas) e a Plataforma (no menu da conta) não se repetem aqui. */
-export function ModulesHub({ onOpen, pending = 0, hide = [] }: { onOpen: (view: ViewId) => void; pending?: number; hide?: ModuleId[] }) {
-  const skip: ViewId[] = ["hoje", "modulos", "conversa", "tarefas"];
+/** Itens de "Mais", na ordem dos menus. Texto curto, em linguagem simples. */
+const MORE_TEXT: Partial<Record<ViewId, string>> = {
+  agenda: "Seus compromissos da semana",
+  financeiro: "Contas e gastos do mês",
+  metas: "Seus objetivos e o progresso",
+  projetos: "Tarefas separadas por projeto",
+  memoria: "O que o GaDu sabe sobre você",
+  agentes: "Ajudantes para cada assunto",
+};
+
+/** Tela "Mais" (UX-1): tudo o que funciona e não cabe na barra de baixo, em blocos grandes; a conta no mesmo lugar.
+ * O que ainda não existe fica numa linha discreta "Em breve", no fim. */
+export function ModulesHub(props: {
+  onOpen: (view: ViewId) => void;
+  onHistory: () => void;
+  pending?: number;
+  hide?: ModuleId[];
+  admin?: boolean;
+  name?: string;
+  email?: string;
+}) {
+  const { onOpen, pending = 0, hide = [] } = props;
+  const views = MAIN_VIEWS.filter((v) => !DOCK_VIEWS.includes(v) && !hide.includes(moduleOf(v).id));
+  const soon = MODULES.filter((m) => m.status === "planejado" && !hide.includes(m.id));
+  const initial = (props.name || props.email || "G").trim().charAt(0).toUpperCase();
+  const tile = (key: string, icon: string, name: string, text: string, color: string, onClick: () => void, badge?: React.ReactNode) => (
+    <button key={key} className="more-tile" style={{ ["--c" as string]: colorVar(color) }} onClick={onClick}>
+      <span className="hub-ico" aria-hidden="true"><Icon name={icon} size={24} /></span>
+      <span className="hub-t"><b>{name}</b><small>{text}</small></span>
+      {badge}
+    </button>
+  );
   return (
     <main className="page" id="conteudo">
-      <div className="wrap hub">
-        <PageHeader title="Módulos" text="Tudo o que o GaDu faz, por área. O que ainda não existe aparece como planejado." />
-        {AREAS.filter((a) => a.id !== "plataforma").map((a) => {
-          const mods = a.modules.filter((id) => !hide.includes(id)).map(moduleById);
-          const live = mods.filter((m) => m.status !== "planejado");
-          const soon = mods.filter((m) => m.status === "planejado");
-          type Tile = { key: string; view: ViewId; icon: string; name: string; text: string; m: ModuleDef };
-          const tiles: Tile[] = live.flatMap((m): Tile[] => (m.id === "pessoal" ? m.views.filter((v) => !skip.includes(v.id)).map((v) => ({ key: v.id, view: v.id, icon: v.icon, name: v.label, text: "", m })) : [{ key: m.id, view: m.views[0].id, icon: m.icon, name: m.name, text: m.tagline, m }]));
-          return (
-            <section key={a.id} className="hub-area" aria-labelledby={`area-${a.id}`}>
-              <div className="hub-head"><h2 id={`area-${a.id}`}>{a.name}</h2><p>{a.text}</p></div>
-              {tiles.length > 0 && (
-                <div className="hub-tiles">
-                  {tiles.map((t) => (
-                    <button key={t.key} className="hub-tile" style={{ ["--c" as string]: colorVar(t.m.color) }} onClick={() => onOpen(t.view)}>
-                      <span className="hub-ico" aria-hidden="true"><Icon name={t.icon} size={22} /></span>
-                      <span className="hub-t"><b>{t.name}</b>{t.text && <small>{t.text}</small>}</span>
-                      {t.view === "memoria" && pending > 0 ? <b className="nav-badge" aria-label={`${pending} memórias para revisar`}>{pending}</b> : t.m.status !== "disponivel" && <StatusPill status={t.m.status} />}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {soon.length > 0 && (
-                <div className="hub-soon">
-                  {soon.map((m) => (
-                    <button key={m.id} className="hub-soon-i" style={{ ["--c" as string]: colorVar(m.color) }} onClick={() => onOpen(m.views[0].id)}>
-                      <Icon name={m.icon} size={18} /><span>{m.name}</span><StatusPill status={m.status} />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </section>
-          );
-        })}
+      <div className="wrap hub more">
+        <h1 className="sr">Mais</h1>
+        <div className="more-tiles">
+          {views.map((v) => {
+            const d = viewDef(v);
+            return tile(v, d.icon, d.label, MORE_TEXT[v] ?? "", moduleOf(v).color, () => onOpen(v),
+              v === "memoria" && pending > 0 ? <b className="nav-badge" aria-label={`${pending} memórias para revisar`}>{pending}</b> : undefined);
+          })}
+          {tile("historico", "history", "Conversas anteriores", "Abrir uma conversa antiga", "sig", props.onHistory)}
+        </div>
+        <div className="more-tiles">
+          {tile("ajustes", "gear", "Configurações", "Conta, voz, Google e avisos", "pink", () => onOpen("ajustes"),
+            <span className="more-initial" aria-hidden="true">{initial}</span>)}
+          {props.admin && tile("admin", "lock", "Administração", "Pessoas e convites", "pink", () => onOpen("admin"))}
+          <a className="more-tile" href="/app/guia" style={{ ["--c" as string]: colorVar("blue") }}>
+            <span className="hub-ico" aria-hidden="true"><Icon name="book" size={24} /></span>
+            <span className="hub-t"><b>Ajuda</b><small>Guia passo a passo</small></span>
+          </a>
+        </div>
+        {soon.length > 0 && (
+          <p className="more-soon">
+            <span>Em breve:</span>
+            {soon.map((m) => <button key={m.id} className="link-btn" onClick={() => onOpen(m.views[0].id)}>{m.name}</button>)}
+          </p>
+        )}
       </div>
     </main>
   );

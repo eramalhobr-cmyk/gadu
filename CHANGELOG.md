@@ -6,6 +6,28 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-22 · UX-1 · Navegação simples: microfone no centro, "Mais" no lugar de Módulos, sem menu lateral no celular (branch `feat/ux-navegacao`)
+- **Feito por:** Cursor (Grok Bot).
+- **Estágio:** desenvolvido e testado localmente. A publicação é registrada em docs/HANDOFF.md e no PROJECT_STATUS depois do merge.
+- **Barra de baixo (celular):** Hoje · Conversa · **microfone grande** · Tarefas · Mais.
+  - Um toque no microfone fala com o GaDu de qualquer tela: abre o painel já escutando. Sem reconhecimento de voz no navegador, abre o campo de escrever.
+  - Tocar e segurar abre o painel para escrever.
+  - Durante a resposta, o toque para.
+- **"Mais"** substitui "Módulos":
+  - blocos grandes só com o que funciona: Agenda, Financeiro, Metas, Projetos, Memória, Agentes, Conversas anteriores, Configurações, Administração (só para administradores) e Ajuda;
+  - planejados numa linha "Em breve", sem selos "Beta" ou "Planejado".
+- **Menu sanfona do celular removido.** A conta fica em Mais › Configurações. Saiu também o botão duplicado de abrir o assistente no topo do celular.
+- **Configurações num lugar só:** perfil, aparência e voz, conexões, custos, conta e privacidade, e ajuda. `?tab=perfil` e `?tab=integracoes` continuam válidos e abrem a mesma tela, já na parte certa.
+- **Menu lateral do computador:** lista simples na mesma ordem do celular, sem grupos recolhíveis e sem planejados (ficam em "Em breve").
+- **Nomes únicos:** Conversa, Memória, Configurações. Saiu o rótulo de módulo ("Pessoal", "Plataforma") acima do título.
+- **Testes executados (22/11/2026, nesta máquina):**
+  - `npm run typecheck` ok;
+  - `npm test`: 165 unitários e 126 de integração, 0 falhas;
+  - `npm run build` ok;
+  - conferência com Playwright a 412 × 915 num app local com dados fictícios: microfone abre o painel, Voltar fecha, histórico pelo Mais, Perfil e Integrações abrem Configurações, tocar e segurar abre o painel.
+  - O e2e com login (`e2e/auth.e2e.cjs`) foi atualizado para Mais e o microfone, mas não foi rodado: exige credenciais, como antes.
+- **Capturas:** `/workspace/gadu-review/ux-before/` e `/workspace/gadu-review/ux-after/` (máquina do agente, fora do repositório).
+
 ## 2026-11-22 · Revisão geral do plano: 3D por fases, ciclo de UX com voz primeiro, Casa adiada · só documentação
 - **Estágio:** só documentação, sem mudança de código nem de banco.
 - **3D Studio:** especificação 3D-0 em [docs/FEATURE-3D.md](docs/FEATURE-3D.md) e fases no ROADMAP: 3D-1 (conversa → OpenSCAD WASM em Web Worker → three.js, controles deslizantes, verificações para a A1, STL, 3MF comum e 3MF "A1 PLA 0.4" a partir de um projeto-modelo do Bambu Studio), 3D-2 (figura a partir de foto com TRELLIS.2 ou Hunyuan3D-2.1 no Hugging Face ZeroGPU, reparo de malha) e 3D-3 (envio direto para a A1, depois). Sem serviço pago por geração.

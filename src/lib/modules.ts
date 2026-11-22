@@ -5,7 +5,7 @@ export type ModuleId = "pessoal" | "metas" | "financeiro" | "casa" | "office" | 
 export type ModuleStatus = "disponivel" | "parcial" | "desenvolvimento" | "planejado";
 export type ViewId = "hoje" | "modulos" | "conversa" | "tarefas" | "agenda" | "projetos" | "memoria" | "metas" | "financeiro" | "casa" | "agentes" | "office" | "studio" | "studio3d" | "integracoes" | "ajustes" | "perfil" | "admin";
 
-export type ViewDef = { id: ViewId; label: string; icon: string; adminOnly?: boolean; /** Aparece no topo do menu, fora dos grupos ("Início"). */ home?: boolean; /** Tela de navegação (não aparece nos grupos). */ hub?: boolean };
+export type ViewDef = { id: ViewId; label: string; icon: string; adminOnly?: boolean; /** Aparece no topo do menu, fora dos grupos ("Início"). */ home?: boolean; /** Tela de navegação (não aparece nos grupos). */ hub?: boolean; /** Endereço antigo que abre outra tela (ex.: Perfil e Integrações abrem Configurações); não aparece nos menus. */ alias?: boolean };
 export type ModuleDef = {
   id: ModuleId;
   name: string;
@@ -33,12 +33,12 @@ export const MODULES: ModuleDef[] = [
     id: "pessoal", name: "Pessoal", tagline: "Seu dia, sua agenda, suas tarefas e a sua memória.", icon: "sun", color: "sig", status: "disponivel",
     views: [
       { id: "hoje", label: "Hoje", icon: "sun", home: true },
-      { id: "modulos", label: "Módulos", icon: "grid", hub: true },
-      { id: "conversa", label: "Conversas", icon: "chat" },
+      { id: "modulos", label: "Mais", icon: "grid", hub: true },
+      { id: "conversa", label: "Conversa", icon: "chat" },
       { id: "tarefas", label: "Tarefas", icon: "check" },
       { id: "agenda", label: "Agenda", icon: "calendar" },
       { id: "projetos", label: "Projetos", icon: "folder" },
-      { id: "memoria", label: "Memórias", icon: "book" },
+      { id: "memoria", label: "Memória", icon: "book" },
     ],
     available: ["Conversa por voz e texto", "Agenda e e-mails do Google (leitura)", "Tarefas, projetos e lembretes", "Memória com a sua aprovação", "Briefing da manhã e revisão da noite"],
     planned: ["Rascunhos de e-mail com aprovação", "Voz natural e conversa contínua"],
@@ -95,9 +95,9 @@ export const MODULES: ModuleDef[] = [
   {
     id: "plataforma", name: "Plataforma", tagline: "Perfil, aparência, conexões, custos e segurança.", icon: "gear", color: "pink", status: "disponivel",
     views: [
-      { id: "integracoes", label: "Integrações", icon: "link" },
+      { id: "integracoes", label: "Configurações", icon: "link", alias: true },
       { id: "ajustes", label: "Configurações", icon: "gear" },
-      { id: "perfil", label: "Perfil", icon: "user" },
+      { id: "perfil", label: "Configurações", icon: "user", alias: true },
       { id: "admin", label: "Administração", icon: "lock", adminOnly: true },
     ],
     available: ["Perfil e aparência (tema claro e escuro)", "Conexões (Google) e notificações", "Gasto de IA, teto e reservas", "Privacidade: termos bloqueados"],
@@ -114,6 +114,15 @@ export const AREAS: AreaDef[] = [
   { id: "criacao", name: "Agentes e criação", text: "Agentes, sites e aplicações, modelos 3D.", modules: ["office", "studio", "studio3d"] },
   { id: "plataforma", name: "Plataforma", text: "Conta, aparência, conexões e custos.", modules: ["plataforma"] },
 ];
+/** Telas que funcionam, na ordem única dos menus (UX-1): a mesma no celular ("Mais") e no computador (menu lateral).
+ * Hoje, Conversa e Tarefas ficam na barra de baixo do celular; o resto, em "Mais". */
+export const MAIN_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "projetos", "memoria", "agentes"];
+export const DOCK_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas"];
+/** Endereço antigo → tela de verdade (um lugar só para a conta). */
+export function canonicalView(view: ViewId): ViewId {
+  return view === "perfil" || view === "integracoes" ? "ajustes" : view;
+}
+
 export function moduleById(id: ModuleId): ModuleDef {
   return MODULES.find((m) => m.id === id) ?? MODULES[0];
 }

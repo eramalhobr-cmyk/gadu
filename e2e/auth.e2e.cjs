@@ -34,48 +34,41 @@ describe("app com login", () => {
     assert.deepEqual(problems, []);
   });
 
-  test("menu do celular: abre, fecha ao tocar fora, ao escolher, com Esc e com Voltar", async () => {
+  test("celular sem menu lateral: a conta e os módulos ficam em Mais", async () => {
     const p = await page(PHONE);
     await p.goto(`${BASE}/app?tab=hoje`);
-    const open = () => p.evaluate(() => document.querySelector(".menu-wrap")?.classList.contains("open"));
-    await p.click(".bar-menu");
-    assert.equal(await open(), true);
-    await p.mouse.click(380, 400); // fora do painel
-    await p.waitForTimeout(350);
-    assert.equal(await open(), false, "toque fora fecha");
-    await p.click(".bar-menu");
-    await p.keyboard.press("Escape");
-    assert.equal(await open(), false, "Esc fecha");
-    await p.click(".bar-menu");
-    await p.waitForTimeout(300);
-    await p.goBack();
-    await p.waitForTimeout(300);
-    assert.equal(await open(), false, "Voltar fecha");
-    assert.match(p.url(), /tab=hoje/, "Voltar não sai da tela");
-    await p.click(".bar-menu");
-    await p.waitForTimeout(300);
-    await p.click(".menu-panel >> text=Configurações");
-    await p.waitForTimeout(300);
-    assert.equal(await open(), false, "escolher fecha");
+    assert.equal(await p.$(".bar-menu"), null, "sem botão de menu no topo");
+    assert.equal(await p.$(".menu-wrap"), null, "sem menu sanfona");
+    await p.click(".dock-item >> text=Mais");
+    await p.waitForSelector(".more");
+    assert.match(p.url(), /tab=modulos/);
+    await p.click(".more-tile >> text=Configurações");
+    await p.waitForSelector("#g-conta");
     assert.match(p.url(), /tab=ajustes/);
+    // Endereços antigos continuam válidos e abrem a mesma tela de Configurações.
+    for (const old of ["perfil", "integracoes"]) {
+      await p.goto(`${BASE}/app?tab=${old}`);
+      await p.waitForSelector("#g-conta");
+      assert.equal(await p.textContent(".bar-title h1"), "Configurações");
+    }
     await p.context().close();
   });
 
-  test("barra de baixo e tela Módulos: planejados aparecem discretos e com o selo", async () => {
+  test("barra de baixo e tela Mais: só o que funciona, planejados numa linha Em breve", async () => {
     const p = await page(PHONE);
     await p.goto(`${BASE}/app?tab=hoje`);
     const labels = await p.$$eval(".dockbar .dock-item span", (els) => els.map((e) => e.textContent));
-    assert.deepEqual(labels, ["Hoje", "Conversas", "Tarefas", "Módulos"]);
-    await p.click(".dock-item >> text=Módulos");
-    await p.waitForSelector(".hub");
-    const soon = await p.$$eval(".hub-soon-i", (els) => els.map((e) => e.textContent));
-    for (const name of ["Casa Inteligente"]) assert.ok(soon.some((s) => s.includes(name) && s.includes("Planejado")), name);
-    // Financeiro saiu do plano: Beta, com tela própria (se FINANCE_ENABLED=0 no servidor de teste, este módulo some da tela).
-    const tiles = await p.$$eval(".hub-tile", (els) => els.map((e) => e.textContent));
-    assert.ok(tiles.some((t) => t.includes("Financeiro") && t.includes("Beta")), "Financeiro como Beta na tela Módulos");
-    // Metas também é Beta, com tela própria (se GOALS_ENABLED=0 no servidor de teste, este módulo some da tela).
-    assert.ok(tiles.some((t) => t.includes("Metas") && t.includes("Beta")), "Metas como Beta na tela Módulos");
-    await p.click(".hub-soon-i >> text=Casa Inteligente");
+    assert.deepEqual(labels, ["Hoje", "Conversa", "Tarefas", "Mais"]);
+    assert.ok(await p.$(".dockbar .dock-mic[aria-label='Falar com o GaDu']"), "microfone grande no centro");
+    await p.click(".dock-item >> text=Mais");
+    await p.waitForSelector(".more");
+    const tiles = await p.$$eval(".more-tile", (els) => els.map((e) => e.textContent));
+    // Financeiro e Metas a um toque (somem se FINANCE_ENABLED=0 ou GOALS_ENABLED=0 no servidor de teste).
+    for (const name of ["Agenda", "Financeiro", "Metas", "Projetos", "Memória", "Agentes", "Conversas anteriores", "Configurações", "Ajuda"]) {
+      assert.ok(tiles.some((t) => t.includes(name)), name);
+    }
+    assert.ok(!tiles.some((t) => /Planejado|Beta/.test(t)), "sem selos técnicos nos blocos");
+    await p.click(".more-soon >> text=Casa Inteligente");
     await p.waitForSelector(".mp-hero");
     assert.ok((await p.textContent(".honest")).includes("ainda não existe"));
     await p.context().close();
@@ -107,17 +100,17 @@ describe("app com login", () => {
     await p.context().close();
   });
 
-  test("assistente no celular: abre pelo orbe, fecha com Voltar e pela alça; histórico é o mesmo da conversa completa", async () => {
+  test("assistente no celular: abre pelo microfone central, fecha com Voltar e pela alça; histórico é o mesmo da conversa completa", async () => {
     const p = await page(PHONE);
     const calls = await mockChat(p);
     await p.goto(`${BASE}/app?tab=tarefas`);
-    await p.click(".dock-orb");
+    await p.click(".dock-mic");
     await p.waitForSelector(".assist.open");
     await p.goBack();
     await p.waitForTimeout(300);
     assert.equal(await p.$(".assist.open"), null, "Voltar fecha o assistente");
     assert.match(p.url(), /tab=tarefas/);
-    await p.click(".dock-orb");
+    await p.click(".dock-mic");
     await p.fill("#assist-msg", "olá do painel");
     await p.click(".assist [aria-label=Enviar]");
     await p.waitForSelector(".assist .bub.b >> text=Resposta de teste.");
@@ -125,7 +118,7 @@ describe("app com login", () => {
     await p.click(".assist [aria-label='Abrir a conversa completa']");
     await p.waitForSelector(".chat-log .bub.u >> text=olá do painel");
     await p.click(".dock-item >> text=Hoje");
-    await p.click(".dock-orb");
+    await p.click(".dock-mic");
     await p.click(".assist-grab");
     assert.equal(await p.$(".assist.open"), null, "alça fecha");
     await p.context().close();
