@@ -17,7 +17,7 @@ const g = globalThis as Record<string, unknown>;
 g.window = { speechSynthesis: synth };
 g.SpeechSynthesisUtterance = class { text: string; onend = null; onerror = null; rate = 1; lang = ""; voice = null; pitch = 1; volume = 1; constructor(t: string) { this.text = t; } };
 
-const { Speaker, speakTimeout, speakable, stripSourceTags, splitForSpeech, MAX_UTTERANCE, needsKeepAlive, canListen, createRecognizer } = await import("./speech.ts");
+const { Speaker, SHORT_REPLY, TAIL_LINE, speakTimeout, speakable, stripSourceTags, splitForSpeech, MAX_UTTERANCE, needsKeepAlive, canListen, createRecognizer } = await import("./speech.ts");
 
 beforeEach(() => { spoken.length = 0; speaking = false; cancels = 0; synth.speaking = false; });
 void speaking;
@@ -175,4 +175,65 @@ test("TTS: voltar do segundo plano retoma a fala pausada", () => {
   sp.resumeIfPaused();
   assert.equal(resumed, 1);
   synth.paused = false;
+});
+
+test("respostas curtas: fala o começo e avisa que o resto está na tela", () => {
+  const s = new Speaker();
+  s.maxChars = SHORT_REPLY;
+  let idle = 0;
+  s.onIdle = () => idle++;
+  const frase = "Esta é uma frase de tamanho médio, com umas dez palavras. ";
+  for (let i = 0; i < 12; i++) s.push(frase);
+  s.flush();
+  const falado = spoken.map((u) => u.text);
+  assert.equal(falado.at(-1), TAIL_LINE);
+  const total = falado.slice(0, -1).join(" ").length;
+  assert.ok(total <= SHORT_REPLY + 10, `falou ${total} caracteres`);
+  assert.ok(total > 50, "falou o começo");
+  for (const u of [...spoken]) u.onend?.();
+  assert.equal(idle, 1);
+  s.cancel();
+});
+
+test("respostas curtas: resposta curta é falada inteira, sem o aviso", () => {
+  const s = new Speaker();
+  s.maxChars = SHORT_REPLY;
+  s.push("Pronto. Lancei o gasto de 50 reais em mercado.");
+  s.flush();
+  assert.ok(!spoken.some((u) => u.text === TAIL_LINE));
+  assert.equal(spoken.map((u) => u.text).join(" "), "Pronto. Lancei o gasto de 50 reais em mercado.");
+  s.cancel();
+});
+
+test("respostas curtas: limite zerado a cada resposta; maxChars 0 fala tudo", () => {
+  const s = new Speaker();
+  s.maxChars = 60;
+  s.push("Uma frase com mais ou menos quarenta letras. Outra frase que passaria do limite de sessenta. ");
+  s.flush();
+  assert.equal(spoken.at(-1)?.text, TAIL_LINE);
+  for (const u of [...spoken]) u.onend?.();
+  spoken.length = 0;
+  s.push("Nova resposta curta.");
+  s.flush();
+  assert.deepEqual(spoken.map((u) => u.text), ["Nova resposta curta."]);
+  for (const u of [...spoken]) u.onend?.();
+  spoken.length = 0;
+  s.maxChars = 0;
+  s.push("Uma frase com mais ou menos quarenta letras. Outra frase que passaria do limite de sessenta. ");
+  s.flush();
+  assert.ok(!spoken.some((u) => u.text === TAIL_LINE));
+  s.cancel();
+});
+
+test("announce fala frases do app sem limite e avisa o fim", () => {
+  const s = new Speaker();
+  s.maxChars = 10;
+  let idle = 0;
+  s.onIdle = () => idle++;
+  s.announce("Lanço o gasto de 50 reais em Mercado, hoje? Diga sim ou não.");
+  assert.equal(spoken.length, 1);
+  assert.match(spoken[0].text, /Diga sim ou não/);
+  spoken[0].onend?.();
+  assert.equal(idle, 1);
+  s.cancel();
 });

@@ -122,6 +122,10 @@ export function needsKeepAlive(ua = typeof navigator === "undefined" ? "" : navi
   return /Chrome|Chromium|CriOS|Edg\//.test(ua) && !/iPhone|iPad|iPod|Android/.test(ua);
 }
 
+/** Respostas faladas curtas: cerca de 20 s de fala. Depois disso, o GaDu avisa que o resto está na tela. */
+export const SHORT_REPLY = 280;
+export const TAIL_LINE = "O resto está na tela.";
+
 /** Tamanho máximo de um trecho falado. O Chrome do Android corta falas longas (~200 a 300 caracteres). */
 export const MAX_UTTERANCE = 170;
 
@@ -159,6 +163,10 @@ export class Speaker {
   private keepAlive: ReturnType<typeof setInterval> | null = null;
   private timers = new Set<ReturnType<typeof setTimeout>>();
   prefs: VoicePrefs = DEFAULT_VOICE;
+  /** Respostas faladas curtas (UX-3): limite de caracteres falados por resposta (0 = fala tudo). O resto fica na tela. */
+  maxChars = 0;
+  private chars = 0;
+  private cut = false;
   onIdle: () => void = () => {};
   onStart: () => void = () => {};
   private voice(): SpeechSynthesisVoice | undefined {
@@ -184,6 +192,7 @@ export class Speaker {
   push(delta: string) {
     if (!this.open) {
       this.open = true;
+      if (this.queue === 0) { this.chars = 0; this.cut = false; }
       // Voz presa de uma resposta anterior (acontece no Chrome): limpa antes de começar.
       if (this.queue === 0 && canSpeak() && window.speechSynthesis.speaking) window.speechSynthesis.cancel();
     }
@@ -208,10 +217,14 @@ export class Speaker {
   flush() {
     if (this.buffer.trim()) this.say(this.buffer);
     this.buffer = "";
+    if (this.cut) this.sayChunk(TAIL_LINE);
+    this.cut = false;
     this.open = false;
     this.maybeIdle();
   }
   cancel() {
+    this.chars = 0;
+    this.cut = false;
     this.buffer = "";
     this.queue = 0;
     this.spoken = 0;
@@ -237,9 +250,21 @@ export class Speaker {
     this.cancel();
     this.say(text);
   }
-  private say(text: string) {
+  /** Fala uma frase do próprio app (confirmações, avisos), sem limite de tamanho; entra na fila depois do que já está sendo falado. */
+  announce(text: string) {
     const clean = speakable(text);
-    if (!clean || !/[\p{L}\p{N}]/u.test(clean) || !canSpeak()) return;
+    if (!clean || !canSpeak()) return;
+    for (const chunk of splitForSpeech(clean)) this.sayChunk(chunk);
+  }
+  private say(text: string) {
+    let clean = speakable(text);
+    if (!clean || !/[\p{L}\p{N}]/u.test(clean) || !canSpeak() || this.cut) return;
+    if (this.maxChars > 0) {
+      if (this.chars > 0 && this.chars + clean.length > this.maxChars) { this.cut = true; return; }
+      // Primeiro trecho já longo demais: fala só a primeira frase dele.
+      if (this.chars === 0 && clean.length > this.maxChars * 1.3) { clean = splitForSpeech(clean, this.maxChars)[0]; this.cut = true; }
+      this.chars += clean.length;
+    }
     // Trechos curtos: o Chrome do Android corta falas longas.
     for (const chunk of splitForSpeech(clean)) this.sayChunk(chunk);
   }

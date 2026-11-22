@@ -1,24 +1,26 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "./RobotFace";
-import { EventCard, type EventDraft } from "./EventCard";
+import { ActionCard, type VoiceCmd } from "./ActionCard";
+import { ConfirmSheet } from "./ConfirmSheet";
+import type { ChatAction, EventDraft, GastoDraft } from "@/lib/chat-actions";
+import { toConfirmItem } from "@/lib/chat-actions";
+import { confirmPrompt, confirmQuestion, GIVE_UP_LINE, parseAnswer, resultLine, RETRY_LINE } from "@/lib/voice-confirm";
 import { SourcesDetail, type SourcesData } from "./SourcesDetail";
 import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
-import { canListen, canSpeak, createRecognizer, Speaker } from "@/lib/speech";
+import { canListen, canSpeak, createRecognizer, SHORT_REPLY, Speaker } from "@/lib/speech";
 import { chatErrorMessage, micErrorMessage } from "@/lib/errors";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { ConversationsDrawer } from "./ConversationsDrawer";
 import { OverlayHistory } from "@/lib/overlay-history";
 import { MemoryPage } from "./MemoryPage";
 import { SettingsPage, type Prefs } from "./SettingsPage";
-import { dueLabel, TodayPage } from "./TodayPage";
+import { TodayPage } from "./TodayPage";
 import { AgentsPage } from "./AgentsPage";
 import { ProjectsPage } from "./ProjectsPage";
 import { AgendaView } from "./AgendaView";
 import { FinanceiroPage } from "./FinanceiroPage";
-import { GastoCard, type GastoDraft } from "./GastoCard";
-import { MetaCard } from "./MetaCard";
 import { MetasPage } from "./MetasPage";
 import type { MetaDraft } from "@/lib/goals/types";
 import { Icon } from "./ui";
@@ -31,7 +33,7 @@ import { contextOf } from "@/lib/assistant-context";
 import { canonicalView, isOverview, MAIN_VIEWS, MODULES, moduleOf, parseView, viewDef, type ViewId } from "@/lib/modules";
 import { applyTheme, readTheme, type Theme } from "@/lib/theme";
 
-export type Msg = { id: string; role: "user" | "assistant" | "notice" | "event" | "gasto" | "meta"; content: string; via?: string; link?: { href: string; label: string }; event?: EventDraft; gasto?: GastoDraft; meta?: MetaDraft; sources?: SourcesData };
+export type Msg = { id: string; role: "user" | "assistant" | "notice" | "action"; content: string; via?: string; link?: { href: string; label: string }; action?: ChatAction; sources?: SourcesData };
 
 const DEFAULT_MORNING = "https://open.spotify.com/search/Update%20Di%C3%A1rio/podcasts";
 const QUICK = ["Começar o dia", "Como está minha agenda hoje?", "Tenho e-mails importantes?"];
@@ -51,7 +53,7 @@ type Target = { kind: "project" | "agent"; id: number; name: string } | null;
 
 const LS_DRAFT = "gadu.draft";
 const LS_PREFS = "gadu.prefs";
-const DEFAULT_PREFS: Prefs = { voice: true, handsFree: false, voiceURI: "", rate: 1, autoSend: false };
+const DEFAULT_PREFS: Prefs = { voice: true, handsFree: false, voiceURI: "", rate: 1, autoSend: false, shortVoice: true };
 
 function readPrefs(): Prefs {
   try {
@@ -64,6 +66,8 @@ function readPrefs(): Prefs {
       rate: Number.isFinite(rate) && rate >= 0.7 && rate <= 1.6 ? rate : 1,
       // Envio automático só com escolha explícita (padrão: desligado; o texto fica no campo para revisar).
       autoSend: p.autoSend === true,
+      // Respostas faladas curtas (UX-3): ligado por padrão; o detalhe fica na tela.
+      shortVoice: p.shortVoice !== false,
     };
   } catch {
     return DEFAULT_PREFS;
@@ -135,6 +139,17 @@ export function GaduApp(props: {
   const [heard, setHeard] = useState<string | null>(null);
   const voiceSheetRef = useRef(false);
   useEffect(() => { voiceSheetRef.current = voiceSheet; }, [voiceSheet]);
+  /** Confirmação falada (UX-3): fila das ações a confirmar, etapa atual e comandos enviados aos cartões. */
+  const [confirm, setConfirm] = useState<{ question: string; stage: "asking" | "listening" | "working"; heard: string; step: number; total: number } | null>(null);
+  const [cmds, setCmds] = useState<Record<string, VoiceCmd>>({});
+  const confirmQ = useRef<{ id: string; a: ChatAction }[]>([]);
+  const confirmStage = useRef<null | "asking" | "listening" | "working" | "result">(null);
+  const confirmListenRef = useRef(false);
+  const confirmStep = useRef(0);
+  const confirmTotal = useRef(0);
+  const confirmTries = useRef(0);
+  const cmdN = useRef(0);
+  const confirmFns = useRef({ next: () => false as boolean, answer: (_t: string) => {}, noAnswer: () => {}, idle: () => false as boolean });
   const [pending, setPending] = useState(0);
   const logRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -171,7 +186,7 @@ export function GaduApp(props: {
   useEffect(() => {
     try { localStorage.setItem(LS_PREFS, JSON.stringify(prefs)); } catch {}
     handsFreeRef.current = prefs.handsFree;
-    if (speaker) speaker.prefs = { voiceURI: prefs.voiceURI, rate: prefs.rate };
+    if (speaker) { speaker.prefs = { voiceURI: prefs.voiceURI, rate: prefs.rate }; speaker.maxChars = prefs.shortVoice ? SHORT_REPLY : 0; }
   }, [prefs, speaker]);
   useEffect(() => { logRef.current?.scrollTo({ top: logRef.current.scrollHeight }); }, [messages, tab]);
 
@@ -198,17 +213,29 @@ export function GaduApp(props: {
     const rec = createRecognizer({
       onText: (text, final) => {
         if (!mine()) return;
+        // Confirmação falada: a resposta (sim, não, muda para…) não vai para o campo de mensagem.
+        if (confirmListenRef.current) {
+          setConfirm((c) => (c ? { ...c, heard: text } : c));
+          if (final && text) { confirmListenRef.current = false; confirmFns.current.answer(text); }
+          return;
+        }
         setDraft(text);
         // Tela de escuta aberta: a fala final vai para a contagem de 3 s (dá para cancelar ou corrigir).
         if (final && text && voiceSheetRef.current) { setHeard(text); return; }
         // Envio automático só se a pessoa escolheu (ou no modo mãos-livres, que depende disso).
-        if (final && text && (prefsRef.current.autoSend || prefsRef.current.handsFree)) void sendRef.current(text);
+        if (final && text && (prefsRef.current.autoSend || prefsRef.current.handsFree)) void sendRef.current(text, { voice: true });
       },
-      onEnd: () => { if (!mine()) return; setListening(false); setMode((m) => (m === "listening" ? "idle" : m)); },
+      onEnd: () => {
+        if (!mine()) return;
+        setListening(false);
+        setMode((m) => (m === "listening" ? "idle" : m));
+        if (confirmListenRef.current) { confirmListenRef.current = false; confirmFns.current.noAnswer(); }
+      },
       onError: (code) => {
         if (!mine()) return;
         setListening(false);
         setMode("idle");
+        if (confirmListenRef.current) { confirmListenRef.current = false; confirmFns.current.noAnswer(); return; }
         const text = micErrorMessage(code);
         if (text) setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: text }]);
       },
@@ -226,7 +253,7 @@ export function GaduApp(props: {
     }
   }, [busy, speaker, voiceOk]);
 
-  const send = useCallback(async (text: string) => {
+  const send = useCallback(async (text: string, opts: { voice?: boolean } = {}) => {
     const message = text.trim();
     if (!message || busy) return;
     if (!navigator.onLine) {
@@ -244,14 +271,15 @@ export function GaduApp(props: {
     let answer = "";
     let spoke = false;
     let answerStarted = false;
-    if (speaker) {
-      speaker.onStart = () => setMode("speaking");
-      speaker.onIdle = () => {
-        setMode("idle");
-        // Modo mãos-livres: volta a ouvir só quando nada mais está acontecendo.
-        if (handsFreeRef.current) setTimeout(() => { if (modeRef.current === "idle" && !busyRef.current && !listeningRef.current) listenRef.current(); }, 400);
-      };
-    }
+    // Ações propostas nesta resposta que a confirmação falada vai ler (só quando a pessoa falou).
+    const toConfirm: { id: string; a: ChatAction }[] = [];
+    const addActions = (list: ChatAction[], content: (a: ChatAction) => string) => {
+      const ms = list.map((a) => ({ id: crypto.randomUUID(), role: "action" as const, content: content(a), action: a }));
+      if (opts.voice) toConfirm.push(...ms.map((m) => ({ id: m.id, a: m.action })));
+      setMessages((prev) => [...prev, ...ms]);
+    };
+    // Respostas faladas curtas, menos no briefing da manhã (que é feito para ouvir inteiro).
+    if (speaker) speaker.maxChars = prefsRef.current.shortVoice && !/^come[cç]ar o dia\b/i.test(message) ? SHORT_REPLY : 0;
     const attempt = async () => {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -285,25 +313,20 @@ export function GaduApp(props: {
           } else if (ev.t === "sources") {
             setMessages((ms) => ms.map((m) => (m.id === botId ? { ...m, sources: { items: ev.items, unavailable: ev.unavailable } } : m)));
           } else if (ev.t === "events") {
-            const items = ev.items as EventDraft[];
-            setMessages((ms) => [...ms, ...items.map((e) => ({ id: crypto.randomUUID(), role: "event" as const, content: e.title, event: e }))]);
+            addActions((ev.items as EventDraft[]).map((e) => ({ kind: "evento" as const, ev: e })), (a) => (a.kind === "evento" ? a.ev.title : ""));
           } else if (ev.t === "gastos") {
-            const items = ev.items as GastoDraft[];
-            setMessages((ms) => [...ms, ...items.map((g) => ({ id: crypto.randomUUID(), role: "gasto" as const, content: g.categoria, gasto: g }))]);
+            addActions((ev.items as GastoDraft[]).map((g) => ({ kind: "gasto" as const, g })), (a) => (a.kind === "gasto" ? a.g.categoria : ""));
           } else if (ev.t === "metas") {
-            const items = ev.items as MetaDraft[];
-            setMessages((ms) => [...ms, ...items.map((m) => ({ id: crypto.randomUUID(), role: "meta" as const, content: m.titulo, meta: m }))]);
+            addActions((ev.items as MetaDraft[]).map((d) => ({ kind: "meta" as const, d })), (a) => (a.kind === "meta" ? a.d.titulo : ""));
           } else if (ev.t === "tasks") {
             const items = ev.items as { title: string; due: string | null }[];
             setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: `${items.length === 1 ? "Tarefa anotada" : "Tarefas anotadas"}: ${items.map((t) => t.title).join("; ")}. Veja em Projetos › Tarefas.` }]);
           } else if (ev.t === "reminders") {
-            const items = ev.items as { text: string; dueAt: string }[];
+            // Lembrete já criado: cartão com Desfazer (e "está certo?" na confirmação falada).
+            const items = ev.items as { id: number; text: string; dueAt: string }[];
+            addActions(items.map((r) => ({ kind: "lembrete" as const, id: r.id, text: r.text, dueAt: r.dueAt })), (a) => (a.kind === "lembrete" ? a.text : ""));
             const push = typeof Notification !== "undefined" && Notification.permission === "granted";
-            const list = items.map((r) => `${r.text} (${dueLabel(r.dueAt)})`).join("; ");
-            setMessages((ms) => [...ms, {
-              id: crypto.randomUUID(), role: "notice",
-              content: `${items.length === 1 ? "Lembrete criado" : "Lembretes criados"}: ${list}.${push ? "" : " Ative as notificações em Ajustes para receber o aviso no celular."}`,
-            }]);
+            if (!push) setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "Ative as notificações em Configurações para receber o aviso do lembrete no celular." }]);
           } else if (ev.t === "notice") {
             setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: ev.text }]);
           } else if (ev.t === "done" && ev.memories > 0) {
@@ -335,7 +358,11 @@ export function GaduApp(props: {
     } finally {
       setBusy(false);
       abortRef.current = null;
+      // Confirmação falada: depois que a resposta terminar de ser falada, o GaDu lê cada ação e espera "sim" ou "não".
+      const voiceConfirm = toConfirm.length > 0 && !ctrl.signal.aborted && prefsRef.current.voice && canSpeak() && canListen();
+      if (voiceConfirm) { confirmQ.current = toConfirm; confirmStep.current = 0; confirmTotal.current = toConfirm.length; }
       if (spoke && speaker) speaker.flush();
+      else if (voiceConfirm) { setMode("idle"); setTimeout(() => confirmFns.current.next(), 300); }
       else {
         setMode("idle");
         // Modo conversa com a voz da resposta desligada: volta a ouvir mesmo assim.
@@ -357,6 +384,99 @@ export function GaduApp(props: {
   const sendRef = useRef(send);
   const listenRef = useRef(listen);
   useEffect(() => { sendRef.current = send; listenRef.current = listen; }, [send, listen]);
+
+  // Fim de cada fala: a confirmação falada tem prioridade; depois, o modo mãos-livres volta a ouvir.
+  useEffect(() => {
+    if (!speaker) return;
+    speaker.onStart = () => setMode("speaking");
+    speaker.onIdle = () => {
+      setMode("idle");
+      if (confirmFns.current.idle()) return;
+      if (handsFreeRef.current) setTimeout(() => { if (modeRef.current === "idle" && !busyRef.current && !listeningRef.current) listenRef.current(); }, 400);
+    };
+  }, [speaker]);
+
+  // ---- Confirmação falada (src/lib/voice-confirm.ts) ----
+  function closeConfirm() {
+    confirmStage.current = null;
+    confirmQ.current = [];
+    confirmListenRef.current = false;
+    setConfirm(null);
+  }
+  function say(line: string, stage: "asking" | "result") {
+    confirmStage.current = stage;
+    if (speaker && canSpeak()) speaker.announce(line);
+    else confirmFns.current.idle();
+  }
+  /** Lê a próxima ação da fila. Sem nada na fila, fecha e devolve false. */
+  function nextConfirm(): boolean {
+    const item = confirmQ.current[0];
+    if (!item) { closeConfirm(); return false; }
+    confirmStep.current += 1;
+    confirmTries.current = 0;
+    const ci = toConfirmItem(item.a);
+    setConfirm({ question: confirmQuestion(ci), stage: "asking", heard: "", step: confirmStep.current, total: confirmTotal.current });
+    say(confirmPrompt(ci), "asking");
+    return true;
+  }
+  function listenConfirm() {
+    confirmStage.current = "listening";
+    confirmListenRef.current = true;
+    setConfirm((c) => (c ? { ...c, stage: "listening", heard: "" } : c));
+    listenRef.current();
+  }
+  function retryOrGiveUp() {
+    confirmTries.current += 1;
+    if (confirmTries.current < 2) { setConfirm((c) => (c ? { ...c, stage: "asking" } : c)); say(RETRY_LINE, "asking"); return; }
+    confirmQ.current = [];
+    say(GIVE_UP_LINE, "result");
+  }
+  function answerConfirm(text: string) {
+    const item = confirmQ.current[0];
+    if (!item) return;
+    const ans = parseAnswer(text);
+    if (!ans) { retryOrGiveUp(); return; }
+    if (ans.kind === "change") {
+      // "muda para 60 reais": descarta a proposta e manda o pedido para a conversa, que propõe de novo.
+      setCmds((m) => ({ ...m, [item.id]: { n: ++cmdN.current, action: "no" } }));
+      closeConfirm();
+      void sendRef.current(text, { voice: true });
+      return;
+    }
+    confirmStage.current = "working";
+    setConfirm((c) => (c ? { ...c, stage: "working" } : c));
+    setCmds((m) => ({ ...m, [item.id]: { n: ++cmdN.current, action: ans.kind } }));
+  }
+  /** O cartão gravou (ou descartou): fala o resultado e segue para a próxima. */
+  function cardResult(id: string, action: "yes" | "no", ok: boolean) {
+    const item = confirmQ.current[0];
+    if (!item || item.id !== id) return;
+    confirmQ.current = confirmQ.current.slice(1);
+    say(resultLine(item.a.kind, action, ok), "result");
+  }
+  /** Toque em Sim/Não na tela de confirmação. */
+  function tapConfirm(yes: boolean) {
+    if (confirmListenRef.current) { confirmListenRef.current = false; try { recRef.current?.abort(); } catch {} }
+    speaker?.cancel();
+    answerConfirm(yes ? "sim" : "não");
+  }
+  function cancelConfirm() {
+    if (confirmListenRef.current) { confirmListenRef.current = false; try { recRef.current?.abort(); } catch {} }
+    closeConfirm();
+    speaker?.cancel();
+    setMode("idle");
+  }
+  confirmFns.current = {
+    next: nextConfirm,
+    answer: answerConfirm,
+    noAnswer: () => { if (confirmStage.current === "listening") retryOrGiveUp(); },
+    idle: () => {
+      const st = confirmStage.current;
+      if (st === "asking") { setTimeout(listenConfirm, 250); return true; }
+      if (st === "result" || (st === null && confirmQ.current.length > 0)) return nextConfirm();
+      return st === "listening" || st === "working";
+    },
+  };
 
   // Toque na notificação da manhã (/app?start=briefing): abre a conversa e começa o dia.
   const started = useRef(false);
@@ -401,7 +521,7 @@ export function GaduApp(props: {
     setVoiceSheet(false);
     setHeard(null);
     if (tabRef.current !== "conversa") openAssist(true);
-    void send(text);
+    void send(text, { voice: true });
   }
   function closeVoice() {
     try { recRef.current?.stop(); } catch {}
@@ -482,17 +602,20 @@ export function GaduApp(props: {
   // Botão Voltar (Android e navegador): fecha primeiro o que estiver aberto por cima (conversas, assistente no celular);
   // sem nada aberto, volta para a tela anterior.
   const isPhone = () => typeof window !== "undefined" && window.innerWidth < 1024;
-  const layers = (voiceSheet ? 1 : 0) + (drawer ? 1 : 0) + (showAssist && isPhone() ? 1 : 0);
-  const overlayRef = useRef({ voice: voiceSheet, drawer, assist: showAssist });
-  overlayRef.current = { voice: voiceSheet, drawer, assist: showAssist && isPhone() };
+  const layers = (confirm ? 1 : 0) + (voiceSheet ? 1 : 0) + (drawer ? 1 : 0) + (showAssist && isPhone() ? 1 : 0);
+  const overlayRef = useRef({ confirm: !!confirm, voice: voiceSheet, drawer, assist: showAssist });
+  overlayRef.current = { confirm: !!confirm, voice: voiceSheet, drawer, assist: showAssist && isPhone() };
   // Uma entrada de histórico por camada aberta (src/lib/overlay-history.ts).
   const ohRef = useRef<OverlayHistory | null>(null);
+  const confirmCancelRef = useRef(cancelConfirm);
+  confirmCancelRef.current = cancelConfirm;
   useEffect(() => {
     const oh = new OverlayHistory({
       history: window.history,
       onBack: () => {
         const o = overlayRef.current;
-        if (o.voice) { try { recRef.current?.stop(); } catch {} setVoiceSheet(false); setHeard(null); }
+        if (o.confirm) confirmCancelRef.current();
+        else if (o.voice) { try { recRef.current?.stop(); } catch {} setVoiceSheet(false); setHeard(null); }
         else if (o.drawer) setDrawer(false);
         else if (o.assist) openAssist(false);
         else {
@@ -691,9 +814,7 @@ export function GaduApp(props: {
                 )}
                 {messages.map((m) =>
                   m.role === "user" ? <div key={m.id} className="bub u">{m.content}</div>
-                  : m.role === "event" && m.event ? <EventCard key={m.id} ev={m.event} />
-                  : m.role === "gasto" && m.gasto ? <GastoCard key={m.id} g={m.gasto} onOpen={() => setTab("financeiro")} />
-                  : m.role === "meta" && m.meta ? <MetaCard key={m.id} d={m.meta} onOpen={() => setTab("metas")} />
+                  : m.role === "action" && m.action ? <ActionCard key={m.id} a={m.action} cmd={cmds[m.id]} onResult={(act, ok) => cardResult(m.id, act, ok)} onOpen={setTab} />
                   : m.role === "notice" ? (
                     <div key={m.id} className="notice" role="status">
                       {m.content}
@@ -742,6 +863,7 @@ export function GaduApp(props: {
       </div>
 
       <Assistant
+        cmds={cmds} onCardResult={cardResult}
         open={showAssist} width={assistW} onResizeStart={startResize} onResizeStep={stepAssistW} context={contextOf(tab)} messages={messages} draft={draft} mode={mode} listening={listening} busy={busy} voiceOk={voiceOk}
         onDraft={setDraft} onSend={(t) => { speaker?.unlock(); void send(t); }} onMic={micClick} onStop={stop}
         onClose={() => openAssist(false)}
@@ -777,6 +899,10 @@ export function GaduApp(props: {
           onSend={sendHeard} onCancel={() => setHeard(null)}
           onEdit={() => { closeVoice(); if (tabRef.current === "conversa") document.getElementById("msg")?.focus(); else openAssist(true); }}
           onClose={closeVoice} />
+      )}
+      {confirm && (
+        <ConfirmSheet question={confirm.question} stage={confirm.stage} heard={confirm.heard} step={confirm.step} total={confirm.total}
+          onYes={() => tapConfirm(true)} onNo={() => tapConfirm(false)} onClose={cancelConfirm} />
       )}
       {drawer && (
         <ConversationsDrawer currentId={conversationId} onClose={() => setDrawer(false)} onOpen={openConversation}
