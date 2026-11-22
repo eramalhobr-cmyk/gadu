@@ -75,6 +75,10 @@ Migrações versionadas em `supabase/migrations/AAAAMMDDHHMMSS_nome.sql`, nunca 
 - Assistente: a fonte `finance` do Core responde perguntas por intenção simples (sem IA extra); lançar gasto é **proposta** que a pessoa confirma, gravada por `POST /api/finance/gastos`. Perguntas e lançamentos passam pelo fluxo normal do chat (limites → reserva → cota → IA → liquidação, fail closed).
 - Interruptores de servidor, ligados por padrão: `FINANCE_ENABLED=0` (tela, rotas, fonte do Core e proposta de gasto) e `CORE_MVP=0` (só a fonte do Core).
 
+## Metas (branch `feat/metas-base`, não publicada)
+- Tabelas `goals`, `goal_progress`, `goal_milestones`, `goal_tasks` (migração `20261122210001`, não aplicada), mesmo desenho de Finanças: RLS por `user_id`, só `authenticated`, vínculos por chave composta. Valor atual calculado dos registros; sem registro, "sem dados".
+- `/api/goals/*` com a sessão (RLS); fonte `goals` do Core e atualização por proposta com confirmação; `GOALS_ENABLED=0` desliga tudo, `CORE_MVP=0` desliga a fonte e as propostas. Detalhe em `docs/METAS_CONQUISTAS.md`.
+
 ## Resiliência e contingência
 | Falha | O que acontece |
 |---|---|

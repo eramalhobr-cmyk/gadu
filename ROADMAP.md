@@ -367,7 +367,19 @@ Estágio: **publicada** (merge `41eb3ed`, 22/11/2026 às 16:44, Brasília). Apro
 
 ## Módulos futuros (planejados, sem código)
 - [~] Financeiro: base publicada (ver "Finanças · Base" abaixo); o restante da especificação (`docs/FEATURE-FINANCAS.md`) segue planejado
-- [ ] Metas & Conquistas: ver docs/METAS_CONQUISTAS.md (banco com RLS, metas ligadas a tarefas, agenda e financeiro pelo Core Contextual)
+- [ ] Metas & Conquistas: fase 1 em desenvolvimento (abaixo); fases 2 a 6 em docs/METAS_CONQUISTAS.md (projetos e agenda, recomendações, indicadores do Financeiro e de saúde, metas compartilhadas)
+
+## Metas · Base (fase 1 da especificação; branch `feat/metas-base`)
+Estágio: **desenvolvida e testada localmente, não publicada**. Aprovada pelo Eduardo, inclusive as tabelas novas. Detalhe e decisões em [docs/METAS_CONQUISTAS.md](docs/METAS_CONQUISTAS.md).
+- [x] Migração `20261122210001_metas_base.sql`: `goals`, `goal_progress`, `goal_milestones`, `goal_tasks` (RLS com `(select auth.uid())`, só `authenticated`, chaves compostas `(id, user_id)`, CHECKs, rollback no topo); só aditiva (uma restrição de unicidade em `tasks`)
+- [x] Cálculos puros em `src/lib/goals/` (progresso, ritmo necessário, no ritmo/atrasada/vencida, por tarefas concluídas, metas que pedem atenção) com testes unitários
+- [x] API `/api/goals/*` (lista, criar, editar/arquivar, detalhe, progresso, marcos, tarefas, resumo): sessão obrigatória, zod, `user_id` da sessão
+- [x] Tela Metas (mobile first, lista por situação e categoria, detalhe com histórico e tarefas, criar/editar, registrar progresso); módulo vira Beta; resumo no Hoje
+- [x] Assistente: fonte `goals` do Core ([M1]…, Fontes) e atualização ("corri 5 km hoje", "conclui a meta X") como proposta com confirmação, sem IA extra
+- [x] Interruptor `GOALS_ENABLED=0`; `CORE_MVP=0` desliga a fonte e as propostas
+- [x] Testes: isolamento A×B nas 4 tabelas, CHECKs, integração (401, user_id, proposta sem gravar, interruptores), e2e público 9/9 e mobile 44/44
+- [ ] Revisão do Eduardo, PR, aplicar a migração na produção (aprovação explícita), publicar, validar com pessoa logada em aparelho
+- [ ] Depois: conquistas, recomendações, hábito simples, vínculo com projetos e agenda, indicadores do Financeiro, metas compartilhadas
 - [ ] Casa Inteligente (GaDu Casa): ver docs/CASA_INTELIGENTE.md (Home Assistant como camada recomendada; Alexa via Home Assistant; Tuya direto como opção; confirmação e regras para dispositivos críticos)
 - [ ] Saúde: Samsung Health e Health Connect por conector Android desacoplado, depois de importação manual (docs/INTEGRACOES_SAUDE.md). App nativo exige aprovação específica
 - [ ] 3D Studio: busca de modelos gratuitos respeitando licenças, biblioteca, geração de modelos imprimíveis, exportação para fatiador

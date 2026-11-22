@@ -6,6 +6,14 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-22 · Metas, base (branch `feat/metas-base`) · desenvolvido e testado localmente · **NÃO publicado**
+- **Estágio:** desenvolvido e testado localmente. Sem push, sem PR, sem migração aplicada em serviço remoto. Aprovado pelo Eduardo (inclusive tabelas novas).
+- **Banco:** migração `20261122210001_metas_base.sql` (`goals`, `goal_progress`, `goal_milestones`, `goal_tasks`; RLS, chaves compostas, CHECKs; só aditiva, com uma restrição `unique (id, user_id)` em `tasks`; rollback no topo).
+- **App:** cálculo de progresso e ritmo (`src/lib/goals/`), API `/api/goals/*`, tela Metas (Beta, mobile first), resumo no Hoje, fonte `goals` do Core e atualização como proposta com confirmação, `GOALS_ENABLED=0`.
+- **Executado nesta máquina (22/11/2026), com commits na branch:** `npm run typecheck` ok; `npm test`: unitários 165 e integração 126, 0 falhas; `npm run build` ok; `bash scripts/test-db.sh` todos passaram (usuário normal, Postgres 17 + pgvector); `npm run test:e2e:public` 9/9 e `npm run test:e2e:mobile` 44/44 contra `next start` local (Supabase fictício); conferência visual em 390 px e no tema claro com prévia temporária, já removida.
+- **Não testado:** com pessoa logada, em aparelho real, em produção; nenhuma chamada a IA real. `test:e2e:auth` não foi rodado (exige credenciais); o teste foi ajustado para Metas como Beta.
+- **Limitações:** sem conquistas, recomendações, hábito, vínculo com projetos e agenda, indicadores de outros módulos e metas compartilhadas. Detalhe em [docs/METAS_CONQUISTAS.md](docs/METAS_CONQUISTAS.md).
+
 ## 2026-11-22 · Publicação do PR #28 (validação de uso diário no celular) · **publicado**
 - PR #28 integrado em 22/11/2026 às 17:19 (Brasília), merge `97f4d642ebe695286ceaabc80d83b05cf47b304d`. CI verde: `verify`, `e2e-public` (com a suíte mobile) e `database`. Deploy de produção na Vercel: `success`.
 - **Verificado em produção (só leitura):** `sw.js` com cache `gadu-v5`; `/icons/badge-96.png` 200; e2e público 8/8; suíte mobile 43/44 antes do ajuste do teste (falha só a navegação offline no WebKit, limitação do Playwright, investigada na entrada seguinte do ajuste, commit `89ec767`) e 44/44 com o ajuste rodando localmente contra a produção.
