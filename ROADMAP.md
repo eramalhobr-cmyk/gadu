@@ -368,7 +368,7 @@ Feita sem programar: leitura de todos os `.md` do repositório e revisão de exp
 ## 3D Studio · plano por fases (22/11/2026, ver [docs/FEATURE-3D.md](docs/FEATURE-3D.md))
 Escolha do Eduardo: usar as IAs que já temos, sem serviço pago por geração (**sem Meshy, sem Tripo**), e sair com um arquivo que o Bambu Studio abre já configurado para a A1. O fatiamento continua no Bambu Studio.
 - [x] **3D-0 · Especificação:** [docs/FEATURE-3D.md](docs/FEATURE-3D.md) (fluxo, verificações, exportação, dados, licenças, critérios de pronto)
-- [ ] **3D-1 · MVP, conversa → OpenSCAD** (P1). **Desenvolvido e testado localmente em 22/11/2026 (Beta, `MODELING_3D_ENABLED`, desligado por padrão); não publicado.** Pendências abaixo:
+- [ ] **3D-1 · MVP, conversa → OpenSCAD** (P1). **Beta, **publicado** em 22/11/2026 às 20:55 (Brasília), PR #40, merge `6d87a5f`, CI verde (verify, e2e-public, database), deploy de produção da Vercel concluído. No ar: `/api/3d/generate` sem sessão 401, `/vendor/openscad/render-worker.js` 200 com a CSP própria, e2e público contra a produção 10/10. `MODELING_3D_ENABLED` não definida na Vercel: o 3D está **desligado** em produção até o Eduardo ligar.** Pendências abaixo:
   - [x] Um modelo barato do AI Gateway escreve código `.scad` **paramétrico** (parâmetros no topo no formato do Customizer, com limites); `assert()` fica a cargo do prompt
   - [x] **OpenSCAD WASM num Web Worker**, componente GPL separado em `public/vendor/openscad/` (código do GaDu limpo, licença e fonte ao lado); sem rede (CSP própria), tempo-limite de 30 s, worker recriado se travar
   - [x] Visualizador **three.js** (giro, mesa 256 × 256 mm, medidas) e **controles deslizantes** dos parâmetros (sem custo de IA)
