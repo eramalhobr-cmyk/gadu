@@ -7,8 +7,8 @@ import { EmptyState, Panel } from "./kit";
 
 type Data = { enabled: boolean; items?: SourceItem[]; more?: number; unavailable?: { source: string; reason: string; text: string }[] };
 
-const ORIGIN: Partial<Record<ViewId, string>> = { tarefas: "Tarefas", agenda: "Agenda", hoje: "Hoje" };
-const ICON: Record<SourceItem["kind"], string> = { atrasada: "check", tarefa_hoje: "check", prioridade: "check", lembrete: "bell", evento: "calendar", email: "chat", financa: "coin" };
+const ORIGIN: Partial<Record<ViewId, string>> = { tarefas: "Tarefas", agenda: "Agenda", hoje: "Hoje", metas: "Metas" };
+const ICON: Record<SourceItem["kind"], string> = { atrasada: "check", tarefa_hoje: "check", prioridade: "check", lembrete: "bell", evento: "calendar", email: "chat", financa: "coin", meta: "target" };
 
 /** Cartão "Merece sua atenção": o mesmo Core do chat, sem IA (custo zero de modelo). Some se o servidor desligar o recurso. */
 export function AttentionCard(props: { busy: boolean; onOpen: (view: ViewId) => void; onAsk: (q: string) => void }) {

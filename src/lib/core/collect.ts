@@ -21,7 +21,7 @@ export type CollectInput = {
   plan?: Plan;
 };
 
-const TAG: Record<FactKind, string> = { atrasada: "T", tarefa_hoje: "T", prioridade: "T", lembrete: "L", evento: "A", email: "E", financa: "F" };
+const TAG: Record<FactKind, string> = { atrasada: "T", tarefa_hoje: "T", prioridade: "T", lembrete: "L", evento: "A", email: "E", financa: "F", meta: "M" };
 
 export async function collectAttention(input: CollectInput): Promise<CoreResult> {
   const scopes = resolveScopes({ userId: input.userId });

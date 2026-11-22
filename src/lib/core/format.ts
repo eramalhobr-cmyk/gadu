@@ -49,6 +49,7 @@ export function summarizeSources(items: Pick<SourceItem, "kind">[]): string {
     ["compromisso", "compromissos", (k) => k === "evento"],
     ["e-mail", "e-mails", (k) => k === "email"],
     ["dado financeiro", "dados financeiros", (k) => k === "financa"],
+    ["meta", "metas", (k) => k === "meta"],
   ];
   return groups
     .map(([one, many, is]) => { const n = items.filter((i) => is(i.kind)).length; return n ? `${n} ${n === 1 ? one : many}` : ""; })
