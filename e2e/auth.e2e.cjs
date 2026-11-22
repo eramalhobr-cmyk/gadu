@@ -15,6 +15,14 @@ before(async () => {
 });
 after(h.close);
 const page = (vp, opts = {}) => rawPage(vp, { ...opts, state: STATE });
+/** Tocar e segurar o microfone central abre o painel do assistente para escrever (um toque abre a tela de escuta). */
+async function holdMic(p) {
+  const b = await p.locator(".dock-mic").boundingBox();
+  await p.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await p.mouse.down();
+  await p.waitForTimeout(800);
+  await p.mouse.up();
+}
 
 describe("app com login", () => {
   test("sem rolagem lateral e com alvos de 44 px em 7 larguras", async () => {
@@ -133,17 +141,17 @@ describe("app com login", () => {
     await p.context().close();
   });
 
-  test("assistente no celular: abre pelo microfone central, fecha com Voltar e pela alça; histórico é o mesmo da conversa completa", async () => {
+  test("assistente no celular: abre ao segurar o microfone central, fecha com Voltar e pela alça; histórico é o mesmo da conversa completa", async () => {
     const p = await page(PHONE);
     const calls = await mockChat(p);
     await p.goto(`${BASE}/app?tab=tarefas`);
-    await p.click(".dock-mic");
+    await holdMic(p);
     await p.waitForSelector(".assist.open");
     await p.goBack();
     await p.waitForTimeout(300);
     assert.equal(await p.$(".assist.open"), null, "Voltar fecha o assistente");
     assert.match(p.url(), /tab=tarefas/);
-    await p.click(".dock-mic");
+    await holdMic(p);
     await p.fill("#assist-msg", "olá do painel");
     await p.click(".assist [aria-label=Enviar]");
     await p.waitForSelector(".assist .bub.b >> text=Resposta de teste.");
@@ -151,9 +159,36 @@ describe("app com login", () => {
     await p.click(".assist [aria-label='Abrir a conversa completa']");
     await p.waitForSelector(".chat-log .bub.u >> text=olá do painel");
     await p.click(".dock-item >> text=Hoje");
-    await p.click(".dock-mic");
+    await holdMic(p);
     await p.click(".assist-grab");
     assert.equal(await p.$(".assist.open"), null, "alça fecha");
+    await p.context().close();
+  });
+
+  test("voz em um toque: tela de escuta com letra grande, envio sozinho em 3 s e Cancelar", async () => {
+    let p = await page(PHONE, { voice: "final" });
+    let calls = await mockChat(p);
+    await p.goto(`${BASE}/app?tab=tarefas`);
+    await p.click(".dock-mic");
+    await p.waitForSelector(".listen-status >> text=Enviando em");
+    assert.equal(await p.textContent(".listen-text"), "teste de voz");
+    await p.waitForSelector(".listen", { state: "detached", timeout: 6000 });
+    await p.waitForSelector(".assist.open .bub.b >> text=Resposta de teste.");
+    assert.equal(calls.n, 1, "enviou sozinho depois da contagem");
+    await p.context().close();
+
+    p = await page(PHONE, { voice: "final" });
+    calls = await mockChat(p);
+    await p.goto(`${BASE}/app?tab=hoje`);
+    await p.click(".talk-big");
+    await p.waitForSelector(".listen-status >> text=Enviando em");
+    await p.click(".listen-row >> text=Cancelar");
+    await p.waitForTimeout(3500);
+    assert.equal(calls.n, 0, "Cancelar não envia");
+    await p.goBack();
+    await p.waitForTimeout(300);
+    assert.equal(await p.$(".listen"), null, "Voltar fecha a tela de escuta");
+    assert.match(p.url(), /tab=hoje/);
     await p.context().close();
   });
 
