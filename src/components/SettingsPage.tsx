@@ -1,7 +1,6 @@
 "use client";
 import type { ViewId } from "@/lib/modules";
 import type { Theme } from "@/lib/theme";
-import { PageHeader } from "./kit";
 import { useCallback, useEffect, useState } from "react";
 import { canSpeak, listVoices, voiceLabel, type Speaker } from "@/lib/speech";
 import { DENIED_HELP, deviceLabel, permissionMessage, pushSupport, type PushSupport } from "@/lib/push-client";
@@ -32,7 +31,7 @@ export function SettingsPage(props: {
   name: string;
   email: string;
   version: string;
-  /** Qual parte mostrar: Perfil, Integrações ou Configurações. */
+  /** Parte da tela a mostrar primeiro (rola até ela): Perfil (conta), Integrações (conexões) ou o começo. */
   section: "perfil" | "integracoes" | "ajustes";
   theme: Theme;
   onTheme: (t: Theme) => void;
@@ -54,6 +53,15 @@ export function SettingsPage(props: {
   const [pw2, setPw2] = useState("");
   const [pwMsg, setPwMsg] = useState("");
   const db = supabaseBrowser();
+  useEffect(() => {
+    const id = props.section === "perfil" ? "g-conta" : props.section === "integracoes" ? "g-conexoes" : null;
+    if (!id) return;
+    // Os cartões de cima carregam dados e crescem; rola de novo depois que assentam.
+    const go = () => document.getElementById(id)?.scrollIntoView({ block: "start" });
+    go();
+    const t1 = setTimeout(go, 400), t2 = setTimeout(go, 1200);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [props.section]);
 
   async function savePassword(e: React.FormEvent) {
     e.preventDefault();
@@ -78,26 +86,22 @@ export function SettingsPage(props: {
   return (
     <main className="page" id="conteudo">
       <div className="wrap">
-        {props.section !== "perfil" && (
-          <PageHeader eyebrow="Plataforma" title={props.section === "integracoes" ? "Integrações" : "Configurações"}
-            text={props.section === "integracoes" ? "Conecte o Google e escolha como o GaDu avisa você." : "Aparência, voz, custos de IA e ajuda."} />
-        )}
-        {props.section === "perfil" && <section className="set-head">
+        {/* Um lugar só para a conta (UX-1): perfil, aparência, voz, conexões, custos, privacidade e ajuda na mesma tela.
+            Endereços antigos (?tab=perfil, ?tab=integracoes) abrem esta tela já na parte certa. */}
+        <section className="set-head">
           <span className="initial" aria-hidden="true">{(props.name || props.email || "G").trim().charAt(0).toUpperCase()}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h1>{props.name || "Seu perfil"}</h1>
-            <div className="muted" style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{props.email}</div>
+            <h1>Configurações</h1>
+            <div className="muted" style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{props.name ? `${props.name} · ` : ""}{props.email}</div>
             <div className="mono muted">GaDu {props.version}</div>
           </div>
           <form action="/auth/signout" method="post"><button className="btn btn-sm" type="submit">Sair</button></form>
-        </section>}
-        {props.section === "ajustes" && (
-          <nav className="set-nav" aria-label="Seções das configurações">
-            {GROUPS.map((g) => <a key={g.id} className="chip" href={`#${g.id}`}>{g.label}</a>)}
-          </nav>
-        )}
+        </section>
+        <nav className="set-nav" aria-label="Seções das configurações">
+          {GROUPS.map((g) => <a key={g.id} className="chip" href={`#${g.id}`}>{g.label}</a>)}
+        </nav>
 
-        {props.section === "ajustes" && <section className="set-group" id="g-aparencia" aria-labelledby="h-aparencia">
+        <section className="set-group" id="g-aparencia" aria-labelledby="h-aparencia">
           <h2 id="h-aparencia">Aparência e voz</h2>
           <div className="set-cards">
             <section className="card">
@@ -114,22 +118,22 @@ export function SettingsPage(props: {
             </section>
             <VoiceCard {...props} />
           </div>
-        </section>}
+        </section>
 
-        {props.section === "integracoes" && <section className="set-group" id="g-conexoes" aria-labelledby="h-conexoes">
+        <section className="set-group" id="g-conexoes" aria-labelledby="h-conexoes">
           <h2 id="h-conexoes">Avisos e conexões</h2>
           <div className="set-cards">
       <NotificationsCard />
       <ConnectionsCard morningLink={props.morningLink} />
           </div>
-        </section>}
+        </section>
 
-        {props.section === "ajustes" && <section className="set-group" id="g-custos" aria-labelledby="h-custos">
+        <section className="set-group" id="g-custos" aria-labelledby="h-custos">
           <h2 id="h-custos">Custos de IA</h2>
           <div className="set-cards"><SpendCard /></div>
-        </section>}
+        </section>
 
-        {props.section === "perfil" && <section className="set-group" id="g-conta" aria-labelledby="h-conta">
+        <section className="set-group" id="g-conta" aria-labelledby="h-conta">
           <h2 id="h-conta">Privacidade e conta</h2>
           <div className="set-cards">
       <section className="card">
@@ -156,9 +160,9 @@ export function SettingsPage(props: {
         </form>
       </section>
           </div>
-        </section>}
+        </section>
 
-        {props.section === "ajustes" && <section className="set-group" id="g-ajuda" aria-labelledby="h-ajuda">
+        <section className="set-group" id="g-ajuda" aria-labelledby="h-ajuda">
           <h2 id="h-ajuda">Ajuda</h2>
           <div className="set-cards">
       <section className="card">
@@ -174,7 +178,7 @@ export function SettingsPage(props: {
               {props.admin && <button className="help-item" onClick={() => props.onOpen("admin")}><span style={{ flex: 1 }}>Pessoas e convites</span><span aria-hidden="true">›</span></button>}
             </section>
           </div>
-        </section>}
+        </section>
       </div>
     </main>
   );
@@ -184,7 +188,7 @@ const GROUPS = [
   { id: "g-aparencia", label: "Aparência e voz" },
   { id: "g-conexoes", label: "Avisos e conexões" },
   { id: "g-custos", label: "Custos de IA" },
-  { id: "g-conta", label: "Privacidade e conta" },
+  { id: "g-conta", label: "Conta e privacidade" },
   { id: "g-ajuda", label: "Ajuda" },
 ];
 

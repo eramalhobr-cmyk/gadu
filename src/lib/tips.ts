@@ -2,7 +2,7 @@
 export const TIPS = {
   hoje: {
     title: "Este é o seu dia, num lugar só",
-    text: "No topo fica o que importa agora. O GaDu no centro da barra de baixo fala com você de qualquer tela. Em Módulos você encontra todo o resto.",
+    text: "No topo fica o que importa agora. Toque no microfone, no centro da barra de baixo, para falar com o GaDu de qualquer tela. Em Mais fica todo o resto.",
   },
   conversa: {
     title: "Fale como falaria com uma pessoa",
@@ -22,7 +22,7 @@ export const TIPS = {
   },
   perfil: {
     title: "O que o GaDu sabe e como ele funciona",
-    text: "Em Memórias você revisa, aprova ou apaga o que o GaDu lembra. Em Configurações ficam a voz, as notificações, a conexão com o Google e os limites de gasto.",
+    text: "Em Memória você revisa, aprova ou apaga o que o GaDu lembra. Em Configurações ficam a voz, as notificações, a conexão com o Google e os limites de gasto.",
   },
   voz: {
     title: "Voz em qualquer tela",

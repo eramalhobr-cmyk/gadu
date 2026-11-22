@@ -1,0 +1,28 @@
+/* Ciclo UX · voz primeiro e uso simples (22/11/2026). Arquivo próprio para não misturar com as regras antigas de v2.css. */
+
+/* UX-1 · Barra de baixo: microfone grande no centro. Um toque fala; tocar e segurar abre o painel. */
+.dockbar { grid-template-columns: 1fr 1fr 84px 1fr 1fr; }
+.dock-item { min-height: 56px; font-size: 12px; font-weight: 600; }
+.dock-mic { justify-self: center; position: relative; width: 68px; height: 68px; margin-top: -26px; border-radius: 50%; border: 3px solid var(--panel); background: var(--sig); color: var(--sig-ink); display: grid; place-items: center; box-shadow: 0 6px 18px rgb(var(--shadow-rgb) / 0.4), 0 0 0 1px rgb(var(--sig-rgb) / 0.5); touch-action: manipulation; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; cursor: pointer; }
+.dock-mic:active { transform: scale(0.96); }
+.dock-mic:focus-visible { outline: 3px solid var(--sig); outline-offset: 3px; }
+.dock-mic.s-listening { background: var(--hot); box-shadow: 0 0 0 6px rgb(var(--hot-rgb) / 0.28); }
+.dock-mic.s-thinking, .dock-mic.s-speaking { background: var(--panel); color: var(--sig); box-shadow: 0 0 0 4px rgb(var(--sig-rgb) / 0.25); }
+@media (prefers-reduced-motion: no-preference) { .dock-mic.s-listening { animation: pulse 1.6s ease-out infinite; } }
+
+/* UX-1 · Menu lateral do computador: lista simples, sem grupos. */
+.nav-flat { display: flex; flex-direction: column; gap: 2px; }
+.nav-item.soon span { color: var(--ink-3); }
+
+/* UX-1 · Tela "Mais": blocos grandes, fáceis de tocar. */
+.more { gap: var(--s-4); }
+.more-tiles { display: grid; gap: var(--s-2); grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
+.more-tile { position: relative; display: flex; align-items: center; gap: var(--s-3); min-height: 72px; padding: var(--s-3) var(--s-4); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--panel); color: var(--ink); font: inherit; text-align: left; text-decoration: none; cursor: pointer; transition: border-color var(--dur) var(--ease); }
+.more-tile:hover { border-color: color-mix(in srgb, var(--c) 60%, var(--line)); }
+.more-tile .hub-ico { width: 48px; height: 48px; }
+.more-tile .hub-t { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.more-tile .hub-t b { font-size: var(--fs-lg); font-weight: 600; }
+.more-tile .hub-t small { font-size: var(--fs-md); color: var(--ink-2); }
+.more-initial { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--wash); color: var(--ink); font-weight: 700; }
+.more-soon { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-3); margin: var(--s-2) 0 0; color: var(--ink-3); font-size: var(--fs-md); }
+.more-soon .link-btn { min-height: 48px; color: var(--ink-2); font-size: var(--fs-md); }

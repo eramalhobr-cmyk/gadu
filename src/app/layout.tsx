@@ -3,6 +3,7 @@ import { IBM_Plex_Mono, Instrument_Sans, Michroma } from "next/font/google";
 import "./globals.css";
 import "./v2.css";
 import "./v2-pages.css";
+import "./ux.css";
 import { cookies } from "next/headers";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 

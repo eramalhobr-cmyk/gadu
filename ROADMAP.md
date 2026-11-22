@@ -393,12 +393,12 @@ Objetivo: o GaDu fácil para qualquer pessoa, inclusive quem não é digital, co
 - **Ações sem desfazer:** concluir tarefa, passar para amanhã e outras ações gravam na hora, sem "Desfazer".
 - **Inconsistência:** 100 estilos inline nos componentes e regras repetidas no CSS (ex.: `.dockbar` definido duas vezes em `src/app/v2.css`); cada módulo monta o topo e as ações de um jeito.
 
-### UX-1 · Navegação (P0)
-- [ ] Barra de baixo com 5 itens fixos: **Hoje · Conversa · [Falar] · Tarefas · Mais**. O botão central vira **microfone grande** (um toque fala; tocar e segurar abre o painel)
-- [ ] "Módulos" vira **"Mais"**: blocos grandes só com o que funciona (Agenda, Financeiro, Metas, Projetos, Memória, Agentes, Configurações, Ajuda); planejados numa linha "Em breve" no fim
-- [ ] Tirar o menu sanfona do celular: conta, integrações e administração entram em "Mais › Configurações" (um lugar só para a conta)
-- [ ] Menu lateral do computador: lista simples na mesma ordem do celular, sem grupos recolhíveis e sem módulos planejados (ficam em "Em breve")
-- [ ] Nomes únicos: **Conversa** (com "Conversas anteriores" dentro dela), **Memória**, **Configurações**; tirar o botão duplicado de abrir o assistente no topo do celular
+### UX-1 · Navegação (P0) · feito em 22/11/2026 pelo Cursor (Grok Bot), PR `feat/ux-navegacao`
+- [x] Barra de baixo com 5 itens fixos: **Hoje · Conversa · [Falar] · Tarefas · Mais**. O botão central vira **microfone grande** (um toque fala; tocar e segurar abre o painel)
+- [x] "Módulos" vira **"Mais"**: blocos grandes só com o que funciona (Agenda, Financeiro, Metas, Projetos, Memória, Agentes, Configurações, Ajuda); planejados numa linha "Em breve" no fim
+- [x] Tirar o menu sanfona do celular: conta, integrações e administração entram em "Mais › Configurações" (um lugar só para a conta)
+- [x] Menu lateral do computador: lista simples na mesma ordem do celular, sem grupos recolhíveis e sem módulos planejados (ficam em "Em breve")
+- [x] Nomes únicos: **Conversa** (com "Conversas anteriores" dentro dela), **Memória**, **Configurações**; tirar o botão duplicado de abrir o assistente no topo do celular
 
 ### UX-2 · Hoje e rolagem (P0)
 - [ ] No máximo 5 blocos e cerca de 2 telas: (1) saudação com **botão grande "Falar com o GaDu"** e a ação do momento; (2) "Agora" (próximo compromisso); (3) **uma lista única "Merece sua atenção"** com Feito/Adiar no próprio item (junta tarefas, lembretes, e-mails e metas); (4) 3 atalhos de voz; (5) "Ver tudo"

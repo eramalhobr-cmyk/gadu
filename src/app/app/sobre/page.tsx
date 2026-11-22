@@ -99,13 +99,13 @@ export default async function Sobre() {
             ["Tarefas", "Tudo o que você precisa fazer, das atrasadas às sem prazo."],
             ["Agenda", "A semana do Google Agenda, com criação de eventos."],
             ["Projetos", "Objetivo, próximos passos, tarefas e progresso."],
-            ["Memórias", "O que o GaDu sabe sobre você, com a sua aprovação."],
+            ["Memória", "O que o GaDu sabe sobre você, com a sua aprovação."],
             ["Agentes", "Versões do GaDu com instruções próprias: saúde, finanças, estudos, negócio."],
             ["Configurações", "Perfil, aparência, conexões, notificações e gastos."],
           ].map(([t, d]) => <div key={t} className="nm"><b>{t}</b><span>{d}</span></div>)}
           <div className="nm hl"><b>Assistente</b><span>Em qualquer tela: toque no GaDu no centro da barra, fale ou escreva e veja a resposta sem sair de onde está. Para o histórico inteiro, abra a conversa completa.</span></div>
         </div>
-        <p className="muted small">No celular: a barra de baixo tem Hoje, Conversas, o GaDu, Tarefas e Módulos. Módulos mostra todo o resto, por área. O menu (☰) guarda conta, configurações e o histórico.</p>
+        <p className="muted small">No celular: a barra de baixo tem Hoje, Conversa, o microfone (um toque para falar), Tarefas e Mais. Em Mais ficam todo o resto, as conversas anteriores e as Configurações.</p>
         <div className="navmap2">
           {[
             ["Metas · Beta", "Metas por número, percentual, marcos ou tarefas, com prazo, ritmo e progresso só com registros; perguntas e registros pela conversa, com a sua confirmação. Conquistas, recomendações e metas compartilhadas ainda não existem."],
