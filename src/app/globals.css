@@ -102,6 +102,7 @@ input[type="checkbox"] { accent-color: var(--sig); width: 22px; height: 22px; }
 .quick .chip { min-height: 40px; }
 
 /* Páginas de texto (privacidade, termos) */
+.doc-back { display: inline-flex; align-items: center; min-height: 48px; min-width: 48px; }
 .doc { max-width: 720px; margin: 0 auto; padding: calc(24px + var(--safe-t)) 16px 48px; line-height: 1.6; }
 .doc h1 { font-family: var(--display); font-size: 28px; margin: 16px 0 4px; }
 .doc h2 { font-size: 18px; margin: 28px 0 8px; color: var(--sig); }

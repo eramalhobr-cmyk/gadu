@@ -1,4 +1,5 @@
-export const dynamic = "force-static";
+// Dinâmica de propósito: só assim o Next coloca o nonce da CSP nos scripts (página estática tinha 11 bloqueios de CSP).
+export const dynamic = "force-dynamic";
 
 export default function Offline() {
   return (
