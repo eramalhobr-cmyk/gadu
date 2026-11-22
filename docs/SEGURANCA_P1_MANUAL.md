@@ -14,7 +14,7 @@ As migrações foram divididas para o chat **não cair** em produção:
 
 | Etapa | O que fazer | Por que nessa ordem |
 |---|---|---|
-| 0 | ⚠️ Não feito como descrito: o plano Supabase é Free, sem backups baixáveis (ver seção 3). A existência de `SUPABASE_SECRET_KEY` na Vercel não foi registrada como conferida. Conferir backup do banco (seção 3). Conferir na Vercel que `SUPABASE_SECRET_KEY` existe em Production | O app novo chama as funções de orçamento com essa chave. Sem ela, o chat **bloqueia** (fail closed) |
+| 0 | ⚠️ Não feito como descrito: o plano Supabase é Free, sem backups baixáveis (ver seção 3). `SUPABASE_SECRET_KEY` está presente em produção: `/api/health` responde `scheduler: true` e o contador de tentativas (função executável só por `service_role`) gravou linhas em 22/11. Conferir backup do banco (seção 3). Conferir na Vercel que `SUPABASE_SECRET_KEY` existe em Production | O app novo chama as funções de orçamento com essa chave. Sem ela, o chat **bloqueia** (fail closed) |
 | 1 | ✅ Feito (versão `20261122175405`). Aplicar `supabase/migrations/20261122120001_seguranca_p1_aditiva.sql` | Só adiciona. O app de hoje continua funcionando (provado em `supabase/tests/compat/aditiva_compat.sql`) |
 | 2 | ✅ Feito. Conferir a etapa 1 (consultas da seção 1.1) | Garante que as funções novas existem antes do deploy |
 | 3 | ✅ Feito (22/11/2026 14:54, deploy concluído). Fazer o merge e o deploy do app novo na Vercel | O app novo usa `server_reserve/settle/release_ai_budget` e não usa mais `consume_quota` |
