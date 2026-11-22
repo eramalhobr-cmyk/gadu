@@ -33,7 +33,10 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Conversa contínua com interrupção natural | planejado | P2 | — | voz paga |
 | Assistente Universal em todas as telas, em três estados (compacto, rápido, completo) | implementado | — | `src/components/Assistant.tsx`, `GaduApp.tsx` | PR #12, três estados e largura ajustável no PR #16; validar nos aparelhos |
 | Contexto do módulo e da tela enviado ao assistente | implementado | — | `src/lib/assistant-context.ts`, `src/app/api/chat/route.ts` | só rótulo validado; não amplia o acesso |
-| Relacionar informações entre módulos (Core Contextual) | planejado | P1 | `docs/CORE_CONTEXTUAL.md`, `src/lib/core-context.ts` (só tipos) | auditoria de RLS e isolamento; modelo de organizações |
+| Relacionar informações entre módulos (Core Contextual) | em desenvolvimento | P1 | `docs/CORE_CONTEXTUAL.md`, `src/lib/core-context.ts` (tipos), `src/lib/core/` | só a primeira entrega (atenção hoje, escopo pessoal); organizações dependem do modelo de organizações (S-08) |
+| Core: "O que merece minha atenção hoje?" no chat, com etiquetas e "Fontes" | em desenvolvimento | P1 | `src/lib/core/*`, `src/app/api/chat/route.ts`, `src/components/SourcesDetail.tsx`, `src/components/Assistant.tsx` | branch `feat/core-atencao-hoje`: testado localmente, não publicado; validar com pessoa logada |
+| Core: cartão "Merece sua atenção" na tela Hoje (sem IA) | em desenvolvimento | P1 | `src/app/api/attention/route.ts`, `src/components/AttentionCard.tsx`, `src/components/TodayPage.tsx` | idem; conferir em celular (390 px) com dados reais |
+| Interruptor de emergência `CORE_MVP=0` | em desenvolvimento | P1 | `src/lib/core/flag.ts`, `test/core-atencao.integration.test.ts` | ligado por padrão; precisa variável na Vercel para desligar |
 | Transcrição de voz revisável e escuta com limite de 20 s | implementado | — | `GaduApp.tsx`, `SettingsPage.tsx` | PR #14; envio automático desligado por padrão e interrupção sem reabrir o microfone no PR #16; testes com voz simulada; validar nos aparelhos |
 
 ## 3. Inteligência contextual e integração entre módulos

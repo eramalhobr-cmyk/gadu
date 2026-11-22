@@ -348,3 +348,14 @@ button.pj-card:hover { border-color: color-mix(in srgb, var(--c) 55%, transparen
   .pj-bar > span, .gp-bar span, .tl-tick > span, .tl-done summary svg { transition: none; }
 }
 .navmap2 .nm.soon { border-style: dashed; } .navmap2 .nm.soon b { color: var(--ink-2); }
+
+/* Core: "Fontes" sob a resposta e cartão "Merece sua atenção" */
+.srcs { margin-top: var(--s-2); font-size: var(--fs-xs); color: var(--ink-2); }
+.srcs > summary { cursor: pointer; min-height: var(--touch); display: flex; align-items: center; color: var(--ink-3); }
+.srcs ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.srcs li { display: flex; align-items: center; gap: var(--s-2); overflow-wrap: anywhere; }
+.srcs li .grow { flex: 1; min-width: 0; }
+.srcs .tag { color: var(--sig); flex: none; }
+.srcs .link-btn, .srcs .link { flex: none; min-height: var(--touch); display: inline-flex; align-items: center; }
+.attn-card .panel-head { flex-wrap: wrap; gap: var(--s-2); }
+.attn-miss { list-style: none; margin: var(--s-3) 0 0; padding: var(--s-3) 0 0; border-top: 1px dashed var(--line-2); display: grid; gap: var(--s-2); color: var(--ink-2); font-size: var(--fs-sm, 14px); }

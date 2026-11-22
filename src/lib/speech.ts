@@ -81,9 +81,17 @@ export function voiceLabel(v: SpeechSynthesisVoice): string {
   return tags.length ? `${name} · ${tags.join(", ")}` : name;
 }
 
-/** Prepara o texto para soar como fala: tira marcação, links e emojis; troca símbolos por palavras. */
-export function speakable(text: string): string {
+/** Tira as etiquetas de origem do Core ([T1], [L2], [A1], [E3], também agrupadas como [T1, A2]). Só para a voz: o texto exibido as mantém. */
+export function stripSourceTags(text: string): string {
   return text
+    .replace(/\[\s*[TLAE]\d+(?:\s*[,;]\s*[TLAE]\d+)*\s*\]/g, " ")
+    .replace(/\s+([.,;:!?…])/g, "$1")
+    .replace(/[ \t]{2,}/g, " ");
+}
+
+/** Prepara o texto para soar como fala: tira etiquetas de origem, marcação, links e emojis; troca símbolos por palavras. */
+export function speakable(text: string): string {
+  return stripSourceTags(text)
     .replace(/\bGaDu\b/g, "Gadu")
     .replace(/https?:\/\/\S+/g, " link ")
     .replace(/[\p{Extended_Pictographic}\u{FE0F}]/gu, " ")

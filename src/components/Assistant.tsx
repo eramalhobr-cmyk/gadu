@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { FaceMode } from "./robot-engine";
 import { EventCard } from "./EventCard";
+import { SourcesDetail } from "./SourcesDetail";
+import type { ViewId } from "@/lib/modules";
 import { Icon } from "./ui";
 import type { Msg } from "./GaduApp";
 import { contextLabel, type AssistantContext } from "@/lib/assistant-context";
@@ -38,6 +40,7 @@ export function Assistant(props: {
   onResizeStart: (e: React.PointerEvent) => void;
   onResizeStep: (delta: number) => void;
   onOpenConversation: () => void;
+  onOpenView: (view: ViewId) => void;
   onNew: () => void;
 }) {
   const log = useRef<HTMLDivElement>(null);
@@ -124,7 +127,7 @@ export function Assistant(props: {
               {m.content}
               {m.link && <div style={{ marginTop: 8 }}><a className="btn btn-sm" href={m.link.href} target="_blank" rel="noopener noreferrer">{m.link.label}</a></div>}
             </div>
-          ) : <div key={m.id} className="bub b"><span className="via">GaDu{m.via ? ` · via ${m.via}` : ""}</span>{m.content || "…"}</div>,
+          ) : <div key={m.id} className="bub b"><span className="via">GaDu{m.via ? ` · via ${m.via}` : ""}</span>{m.content || "…"}{m.sources && <SourcesDetail data={m.sources} onOpen={props.onOpenView} />}</div>,
         )}
       </div>
 
