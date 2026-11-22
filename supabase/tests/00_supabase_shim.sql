@@ -25,3 +25,13 @@ grant execute on function auth.uid() to anon, authenticated, service_role;
 grant usage on schema public to anon, authenticated, service_role;
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+
+-- No Supabase, funções novas em public nascem executáveis por anon, authenticated e service_role (além de PUBLIC).
+alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
+
+-- Sessões do Supabase Auth (só o que os testes usam).
+create table auth.sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
