@@ -5,7 +5,9 @@
 
 ---
 
-## Implementação: fase Base (22/11/2026) · desenvolvida e testada localmente, não publicada
+## Implementação: fase Base (22/11/2026) · publicada
+
+**Publicação (22/11/2026):** PR #5 (esta especificação) integrado às 15:49 (Brasília), merge `ff8fff0`. PR #26 (a base) integrado às 16:44 (Brasília), merge `41eb3edd7caaf640675f970f2dd2457dd942c8bf`, CI verde (`verify`, `e2e-public`, `database`). Migração `financas_base` aplicada na produção antes do merge (só aditiva), versão `20261122190001` no repositório e `20261122194404` no registro do Supabase; conferido: 4 tabelas `fin_*` com RLS ligada, 4 políticas cada, `anon` sem SELECT. Produção: home 200, `/api/finance/resumo` sem sessão 401, `/api/health` ok, e2e público 8 de 8. `FINANCE_ENABLED` não definida na Vercel (ligado por padrão). **Não verificado:** tela Financeiro e lançamento pela conversa com pessoa logada, em aparelho.
 
 Primeira fatia da §10 ("Base"), aprovada pelo Eduardo, inclusive as tabelas novas com RLS. O resto deste documento continua sendo a especificação de referência; esta seção diz **o que existe de verdade** e **o que foi decidido**.
 

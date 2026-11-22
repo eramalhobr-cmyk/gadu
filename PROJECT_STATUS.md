@@ -1,6 +1,6 @@
 # GaDu · Situação do projeto
 
-Atualizado em 22/11/2026 (Finanças, base, **desenvolvida e testada localmente na branch `feat/financas-base`, não publicada**; veja "Finanças base: desenvolvimento" abaixo; antes: Core "atenção hoje" **publicado**, PR #24, merge `215edab`; evidências em "Core atenção hoje: publicação" abaixo), com a segurança P1 **publicada** (PR #22, merge `cc85040`, migrações aplicadas e deploy no ar; evidências em "Segurança P1: publicação" abaixo). A tabela de produção abaixo é de 16/11 e não foi reescrita. Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
+Atualizado em 22/11/2026 (Finanças, base, **publicada**, PR #26, merge `41eb3ed`, migração aplicada e deploy no ar; evidências em "Finanças base: publicação" abaixo; antes: Core "atenção hoje" **publicado**, PR #24, merge `215edab`; evidências em "Core atenção hoje: publicação" abaixo), com a segurança P1 **publicada** (PR #22, merge `cc85040`, migrações aplicadas e deploy no ar; evidências em "Segurança P1: publicação" abaixo). A tabela de produção abaixo é de 16/11 e não foi reescrita. Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
 
 ## Ambiente de produção (verificado em 14/11/2026)
 | Item | Estado | Evidência |
@@ -70,8 +70,8 @@ Atualizado em 22/11/2026 (Finanças, base, **desenvolvida e testada localmente n
 | **Segurança P1 / fase 0 do Core** (S-01, S-02, S-03 parcial, S-04, S-05 parcial, S-06, S-07, S-10, S-11, S-12) | **Publicada em 22/11/2026**: PR #22 integrado, migrações aditiva e restritiva aplicadas, deploy no ar. Pendentes: senhas vazadas (painel), S-09 (backups), chat logado e encerramento de sessões em produção ainda não verificados | PR #22, merge `cc850400ff982d2463cf750de539fa194b04b5b6`; [docs/SEGURANCA_P1_MANUAL.md](docs/SEGURANCA_P1_MANUAL.md) |
 | **Core Contextual: "O que merece minha atenção hoje?"** (fase 1, escopo pessoal, só leitura, sem banco novo) | **Publicado em 22/11/2026** (PR #24, merge `215edab`), sem migração. No ar e ligado por padrão (`CORE_MVP` não existe na Vercel); `CORE_MVP=0` desliga. Pendente: validar com pessoa logada (tela Hoje e Fontes, Gmail e agenda reais, voz no aparelho) e medir o custo por mensagem | [docs/CORE_ATENCAO_HOJE.md](docs/CORE_ATENCAO_HOJE.md), [docs/CORE_CONTEXTUAL_MVP.md](docs/CORE_CONTEXTUAL_MVP.md) |
 | Documentação Marco Zero (contexto mestre, auditoria, governança) | Rascunho, não integrado. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` | PR #1 |
-| **Finanças, base: Contas e Dia a dia** (alto risco: banco novo) | **Desenvolvida e testada localmente, NÃO publicada.** Branch `feat/financas-base`; migração `20261122190001_financas_base.sql` **não aplicada**; sem push nem PR. Aprovação do Eduardo vale para o desenvolvimento; aplicar a migração e publicar pedem aprovação explícita | [docs/FEATURE-FINANCAS.md](docs/FEATURE-FINANCAS.md) |
-| Especificação de Finanças pessoais | Integrada (PR #5) | `docs/FEATURE-FINANCAS.md` |
+| **Finanças, base: Contas e Dia a dia** (alto risco: banco novo) | **Publicada em 22/11/2026** (PR #26, merge `41eb3ed`). Migração `financas_base` aplicada na produção (versão `20261122194404`). No ar e ligado por padrão (`FINANCE_ENABLED` não existe na Vercel). Pendente: validar a tela Financeiro e o lançamento pela conversa com pessoa logada, em aparelho | [docs/FEATURE-FINANCAS.md](docs/FEATURE-FINANCAS.md) |
+| Especificação de Finanças pessoais | Integrada (PR #5, em 22/11/2026 às 15:49, Brasília, merge `ff8fff0`) | `docs/FEATURE-FINANCAS.md` |
 
 ## Pendente
 - Logo novo (três movimentos): aguardando o arquivo. Hoje a marca é o texto GaDu.
@@ -83,7 +83,7 @@ Atualizado em 22/11/2026 (Finanças, base, **desenvolvida e testada localmente n
 - Decidir o destino do usuário de teste e da liberação do host do Supabase no ambiente "Gadu".
 - Auditoria completa de RLS e isolamento; administração de créditos por pessoa.
 - Monitoramento e alerta de erro; testes de ponta a ponta automatizados.
-- Módulos planejados, sem código: 3D Studio, Agent Office (além dos agentes), Agent Office Studio. Financeiro: base em branch (não publicada).
+- Módulos planejados, sem código: 3D Studio, Agent Office (além dos agentes), Agent Office Studio. Financeiro: base publicada (PR #26); o restante da especificação segue planejado.
 
 ## Segurança P1: publicação (22/11/2026)
 - **PR #22** integrado em 22/11/2026 às 14:54 (Brasília), merge commit `cc850400ff982d2463cf750de539fa194b04b5b6`. CI do PR verde: `verify`, `e2e-public`, `database`.
@@ -112,8 +112,18 @@ Matriz completa, com evidências e o **status de cada S-xx**: [docs/SECURITY_AUD
 6. O encerramento de sessões ao bloquear (`server_revoke_user_sessions`, apaga `auth.sessions`) foi testado só no banco local com uma imitação do Auth; **não verificado em produção** (manual, seção 1.3). Se falhar, o bloqueio continua valendo pelo `members`.
 7. Se o contador de tentativas de login estiver indisponível, o login **não** é travado (decisão registrada no manual, seção 5).
 
-## Finanças base: desenvolvimento (22/11/2026) · NÃO publicado
-- **Estágio:** desenvolvido e testado localmente. Nenhum push, PR, migração no Supabase, variável na Vercel ou deploy.
+## Finanças base: publicação (22/11/2026)
+- **PR #5 (especificação)** atualizado com a `main` e integrado em 22/11/2026 às 15:49 (Brasília), merge `ff8fff0`.
+- **PR #26 integrado** em 22/11/2026 às 16:44 (Brasília), merge commit `41eb3edd7caaf640675f970f2dd2457dd942c8bf`. CI verde: `verify`, `e2e-public`, `database`.
+- **Migração:** `financas_base` aplicada na produção **antes do merge** (só aditiva), registrada como versão `20261122194404`. Conferido: as 4 tabelas `fin_*` com RLS ligada, 4 políticas cada, `anon` sem SELECT. Assessor de segurança do Supabase sem avisos novos.
+- **Deploy de produção da Vercel:** `success`.
+- **Produção:** home 200; `/api/finance/resumo` sem sessão 401; `/api/health` ok.
+- **e2e público** (8 testes) contra a produção: 8 passaram.
+- **Flags:** `FINANCE_ENABLED` e `CORE_MVP` não estão definidas na Vercel, então o recurso está ligado por padrão.
+- **Não verificado:** tela Financeiro e lançamento pela conversa com pessoa logada, em aparelho.
+
+## Finanças base: desenvolvimento (22/11/2026) · histórico, já publicado
+- **Estágio (na época):** desenvolvido e testado localmente, antes da publicação acima.
 - **Banco:** 4 tabelas novas (`fin_itens`, `fin_item_meses`, `fin_gastos`, `fin_config`) numa migração só aditiva, com RLS e rollback comentado. Plano de implantação: PR de alto risco, aprovação do Eduardo, aplicar a migração (ela não afeta o app de hoje), publicar o app, conferir 401 nas rotas e a tela com pessoa logada.
 - **Interruptor:** `FINANCE_ENABLED=0` (ligado por padrão, como o `CORE_MVP`); para desligar em produção será preciso criar a variável na Vercel.
 - **Testes locais:** typecheck ok; `npm test` 124 unitários + 94 de integração; build ok; `test:db` todos (22 tabelas no isolamento); e2e público 8 de 8.
@@ -134,12 +144,12 @@ Matriz completa, com evidências e o **status de cada S-xx**: [docs/SECURITY_AUD
 3. Testes com login no CI, conforme a proposta em [docs/TESTES_E2E.md](docs/TESTES_E2E.md) (precisa de segredo no GitHub: aprovação).
 4. Validação em aparelhos: roteiro curto em [docs/ROTEIRO_ANDROID.md](docs/ROTEIRO_ANDROID.md); lista completa em [docs/VALIDACAO_APARELHOS.md](docs/VALIDACAO_APARELHOS.md).
 5. Modelo de organizações e testes de isolamento entre organizações (S-08), antes do Agent Office.
-6. Financeiro: base pronta na branch `feat/financas-base`; abrir o PR, aplicar a migração (aprovação explícita, com backup/rollback) e publicar; depois simulador bruto → líquido.
+6. Financeiro: base publicada (PR #26); validar a tela e o lançamento pela conversa com pessoa logada, em aparelho; depois simulador bruto → líquido.
 7. Agent Office; depois Agent Office Studio e 3D Studio.
 8. Observabilidade e créditos por pessoa.
 
 ## Ponto de retomada (para qualquer agente)
-0. **Finanças (22/11/2026):** a base está na branch `feat/financas-base`, testada localmente e **não publicada**. Próximo passo: abrir o PR (alto risco), pedir aprovação para aplicar a migração `20261122190001_financas_base.sql`, publicar e validar com pessoa logada. Depois: simulador bruto → líquido (INSS/IRRF por ano).
+0. **Finanças (22/11/2026):** a base está **publicada** (PR #26, merge `41eb3ed`; migração `financas_base` aplicada, versão `20261122194404`). Próximo passo: validar a tela Financeiro e o lançamento pela conversa com pessoa logada, em aparelho. Depois: simulador bruto → líquido (INSS/IRRF por ano).
 0. **Ponto de retomada anterior (22/11/2026):** a segurança P1 está publicada (PR #22). Próximos passos: decisão do Eduardo sobre S-09, ligar senhas vazadas no painel, verificar em produção o chat logado e o encerramento de sessões, depois S-05. Alto risco: aprovação explícita a cada passo. O Core "atenção hoje" também está publicado (PR #24); falta validá-lo com pessoa logada (tela Hoje e Fontes, Gmail e agenda reais, voz) e medir o custo por mensagem.
 1. Leia `CLAUDE.md`, este arquivo, [docs/FAST_TRACK.md](docs/FAST_TRACK.md) e [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md). O handoff técnico está em `docs/CLAUDE_HANDOFF_2026-11-12.md`.
 2. Confira o estado real: `git log origin/main -5`, PRs abertos no GitHub, o último deploy de produção na Vercel e `list_migrations` no Supabase.
