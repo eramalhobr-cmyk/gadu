@@ -18,6 +18,9 @@ import { ProjectsPage } from "./ProjectsPage";
 import { AgendaView } from "./AgendaView";
 import { FinanceiroPage } from "./FinanceiroPage";
 import { GastoCard, type GastoDraft } from "./GastoCard";
+import { MetaCard } from "./MetaCard";
+import { MetasPage } from "./MetasPage";
+import type { MetaDraft } from "@/lib/goals/types";
 import { Icon } from "./ui";
 import { TipCard } from "./TipCard";
 import { TIP_IDS, type TipId } from "@/lib/tips";
@@ -28,7 +31,7 @@ import { contextOf } from "@/lib/assistant-context";
 import { AREAS, isOverview, moduleById, moduleOf, parseView, viewDef, type ViewId } from "@/lib/modules";
 import { applyTheme, readTheme, type Theme } from "@/lib/theme";
 
-export type Msg = { id: string; role: "user" | "assistant" | "notice" | "event" | "gasto"; content: string; via?: string; link?: { href: string; label: string }; event?: EventDraft; gasto?: GastoDraft; sources?: SourcesData };
+export type Msg = { id: string; role: "user" | "assistant" | "notice" | "event" | "gasto" | "meta"; content: string; via?: string; link?: { href: string; label: string }; event?: EventDraft; gasto?: GastoDraft; meta?: MetaDraft; sources?: SourcesData };
 
 const DEFAULT_MORNING = "https://open.spotify.com/search/Update%20Di%C3%A1rio/podcasts";
 const QUICK = ["Começar o dia", "Como está minha agenda hoje?", "Tenho e-mails importantes?"];
@@ -82,6 +85,8 @@ export function GaduApp(props: {
   admin: boolean;
   /** FINANCE_ENABLED: false esconde a tela Financeiro e o módulo na navegação. */
   financeEnabled: boolean;
+  /** GOALS_ENABLED: false esconde a tela Metas, o módulo na navegação e o resumo do Hoje. */
+  goalsEnabled: boolean;
   seenTips: string[];
   /** Página de conteúdo (guia, como funciona) dentro do mesmo cabeçalho e menu. */
   page?: React.ReactNode;
@@ -292,6 +297,9 @@ export function GaduApp(props: {
           } else if (ev.t === "gastos") {
             const items = ev.items as GastoDraft[];
             setMessages((ms) => [...ms, ...items.map((g) => ({ id: crypto.randomUUID(), role: "gasto" as const, content: g.categoria, gasto: g }))]);
+          } else if (ev.t === "metas") {
+            const items = ev.items as MetaDraft[];
+            setMessages((ms) => [...ms, ...items.map((m) => ({ id: crypto.randomUUID(), role: "meta" as const, content: m.titulo, meta: m }))]);
           } else if (ev.t === "tasks") {
             const items = ev.items as { title: string; due: string | null }[];
             setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: `${items.length === 1 ? "Tarefa anotada" : "Tarefas anotadas"}: ${items.map((t) => t.title).join("; ")}. Veja em Projetos › Tarefas.` }]);
@@ -572,7 +580,7 @@ export function GaduApp(props: {
     <div className="nav-scroll">
       <div className="nav-home">{navItem(viewDef("hoje"))}</div>
       {AREAS.map((a) => {
-        const mods = a.modules.map(moduleById).filter((m) => m.id !== "financeiro" || props.financeEnabled);
+        const mods = a.modules.map(moduleById).filter((m) => (m.id !== "financeiro" || props.financeEnabled) && (m.id !== "metas" || props.goalsEnabled));
         const items = mods.flatMap((m) => m.status === "planejado"
           ? [<button key={m.id} className="nav-item soon" aria-current={view === m.views[0].id ? "page" : undefined} onClick={() => setTab(m.views[0].id)} style={{ ["--c" as string]: colorVar(m.color) }} title={navMini ? `${m.name} (planejado)` : undefined}>
               <Icon name={m.icon} size={19} /><span>{m.name}</span><small className="soon-tag">Planejado</small>
@@ -697,6 +705,7 @@ export function GaduApp(props: {
                   m.role === "user" ? <div key={m.id} className="bub u">{m.content}</div>
                   : m.role === "event" && m.event ? <EventCard key={m.id} ev={m.event} />
                   : m.role === "gasto" && m.gasto ? <GastoCard key={m.id} g={m.gasto} onOpen={() => setTab("financeiro")} />
+                  : m.role === "meta" && m.meta ? <MetaCard key={m.id} d={m.meta} onOpen={() => setTab("metas")} />
                   : m.role === "notice" ? (
                     <div key={m.id} className="notice" role="status">
                       {m.content}
@@ -724,14 +733,15 @@ export function GaduApp(props: {
 
         {view === "hoje" && (
           <TodayPage review={review} onReviewDone={() => setReview(false)} onDock={dockTalk} onWrite={() => openAssist(true)} name={props.name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk}
-            onOpenMemory={() => setTab("memoria")} onOpenTasks={() => setTab("tarefas")} onOpen={setTab}
+            onOpenMemory={() => setTab("memoria")} onOpenTasks={() => setTab("tarefas")} onOpen={setTab} goalsEnabled={props.goalsEnabled}
             onAsk={(q) => { speaker?.unlock(); openAssist(true); void send(q); }} />
         )}
         {(view === "tarefas" || view === "projetos") && <ProjectsPage key={`pp-${view}`} initialView={view} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
         {view === "agenda" && <AgendaView onBack={() => setTab("hoje")} />}
-        {view === "modulos" && <ModulesHub onOpen={setTab} pending={pending} hide={props.financeEnabled ? [] : ["financeiro"]} />}
+        {view === "modulos" && <ModulesHub onOpen={setTab} pending={pending} hide={[...(props.financeEnabled ? [] : ["financeiro" as const]), ...(props.goalsEnabled ? [] : ["metas" as const])]} />}
         {view === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
         {view === "financeiro" && props.financeEnabled && <FinanceiroPage onAsk={(q) => { if (q.endsWith(" ")) { setDraft(q); openAssist(true); } else { speaker?.unlock(); openAssist(true); void send(q); } }} />}
+        {view === "metas" && props.goalsEnabled && <MetasPage onAsk={(q) => { if (q.endsWith(" ")) { setDraft(q); openAssist(true); } else { speaker?.unlock(); openAssist(true); void send(q); } }} onOpenTasks={() => setTab("tarefas")} />}
         {view && isOverview(view) && <ModulePage id={moduleOf(view).id} onOpen={setTab} />}
         {view === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
         {view === "admin" && props.admin && <AdminPage />}

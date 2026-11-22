@@ -13,16 +13,18 @@ test("módulos: oito módulos, telas únicas e status coerente", () => {
   }
 });
 
-test("áreas cobrem todos os módulos uma única vez; Casa e Metas são planejados", () => {
+test("áreas cobrem todos os módulos uma única vez; Casa é planejada e Metas é beta", () => {
   const ids = AREAS.flatMap((a) => a.modules);
   assert.equal(new Set(ids).size, ids.length);
   assert.deepEqual([...ids].sort(), MODULES.map((m) => m.id).sort());
-  for (const id of ["casa", "metas"] as const) {
-    const m = MODULES.find((x) => x.id === id)!;
-    assert.equal(m.status, "planejado");
-    assert.equal(m.available.length, 0, "módulo planejado não mostra nada como disponível");
-    assert.ok(isOverview(m.views[0].id));
-  }
+  const casa = MODULES.find((x) => x.id === "casa")!;
+  assert.equal(casa.status, "planejado");
+  assert.equal(casa.available.length, 0, "módulo planejado não mostra nada como disponível");
+  assert.ok(isOverview(casa.views[0].id));
+  const metas = MODULES.find((x) => x.id === "metas")!;
+  assert.equal(metas.status, "parcial");
+  assert.ok(metas.available.length > 0 && metas.planned.length > 0, "beta lista o que existe e o que falta");
+  assert.ok(!isOverview("metas"), "Metas tem tela própria");
   assert.equal(parseView("casa", false), "casa");
   assert.equal(parseView("modulos", false), "modulos");
 });
@@ -52,7 +54,8 @@ test("contexto nunca amplia o acesso: escopo é sempre pessoal", () => {
 
 test("linha de contexto avisa quando o módulo é só planejado", () => {
   assert.match(contextLine(contextOf("financeiro")), /beta/);
-  assert.match(contextLine(contextOf("metas")), /planejado/);
+  assert.match(contextLine(contextOf("metas")), /beta/);
+  assert.match(contextLine(contextOf("casa")), /planejado/);
   assert.doesNotMatch(contextLine(contextOf("hoje")), /planejado/);
   assert.equal(contextLabel(contextOf("agentes")), "Agent Office › Agentes");
   assert.equal(moduleOf("admin").id, "plataforma");

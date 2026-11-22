@@ -45,11 +45,11 @@ export const MODULES: ModuleDef[] = [
     needs: [],
   },
   {
-    id: "metas", name: "Metas & Conquistas", tagline: "Objetivos de vida transformados em planos, com acompanhamento.", icon: "target", color: "hot", status: "planejado",
-    views: [{ id: "metas", label: "Metas & Conquistas", icon: "target" }],
-    available: [],
-    planned: ["Metas financeiras, familiares, profissionais, de saúde, estudo e desenvolvimento pessoal", "Marcos, indicadores, prazo e progresso real", "Plano executável: metas ligadas a tarefas, projetos e agenda", "O GaDu avisa atrasos e propõe ajustes", "Metas compartilhadas só com autorização de cada pessoa"],
-    needs: ["Especificação do módulo (docs/METAS_CONQUISTAS.md)", "Tabelas próprias, isoladas por pessoa", "Core Contextual para ligar metas a outros módulos", "Dados de saúde só por conector autorizado (docs/INTEGRACOES_SAUDE.md)"],
+    id: "metas", name: "Metas & Conquistas", tagline: "Objetivos de vida com prazo, ritmo e progresso real, só com registros.", icon: "target", color: "hot", status: "parcial",
+    views: [{ id: "metas", label: "Metas", icon: "target" }],
+    available: ["Metas por número com alvo, percentual, marcos (checklist) ou tarefas vinculadas", "Progresso só com registros que têm data e origem; sem registro, \"sem registros\"", "Ritmo até o prazo: no ritmo ou atrasada", "Vínculo com as suas tarefas", "Perguntar ao GaDu (\"como estão minhas metas\") e registrar progresso pela conversa, com a sua confirmação", "Resumo das metas que pedem atenção na tela Hoje"],
+    planned: ["Conquistas e sequências de acompanhamento", "Recomendações e ajuste de metas pelo GaDu, com a sua aprovação", "Vínculo com projetos e agenda", "Indicadores do Financeiro e de saúde (por conector autorizado)", "Metas compartilhadas só com autorização de cada pessoa"],
+    needs: ["Modelo de grupos e membros com RLS (metas compartilhadas)", "Dados de saúde só por conector autorizado (docs/INTEGRACOES_SAUDE.md)", "Módulo Financeiro com mais dados (indicadores)"],
     doc: "docs/METAS_CONQUISTAS.md",
   },
   {
@@ -128,7 +128,7 @@ export function viewDef(view: ViewId): ViewDef {
 }
 /** Telas que só descrevem um módulo (planejado ou parcial); não têm dados nem ações. */
 export function isOverview(view: ViewId): boolean {
-  return view === "metas" || view === "casa" || view === "office" || view === "studio" || view === "studio3d";
+  return view === "casa" || view === "office" || view === "studio" || view === "studio3d";
 }
 /** Converte ?tab= em tela. Endereços antigos continuam válidos; admin só para quem pode. */
 export function parseView(tab: string | undefined, admin: boolean): ViewId | null {

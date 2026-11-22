@@ -69,10 +69,12 @@ describe("app com login", () => {
     await p.click(".dock-item >> text=Módulos");
     await p.waitForSelector(".hub");
     const soon = await p.$$eval(".hub-soon-i", (els) => els.map((e) => e.textContent));
-    for (const name of ["Metas & Conquistas", "Casa Inteligente"]) assert.ok(soon.some((s) => s.includes(name) && s.includes("Planejado")), name);
+    for (const name of ["Casa Inteligente"]) assert.ok(soon.some((s) => s.includes(name) && s.includes("Planejado")), name);
     // Financeiro saiu do plano: Beta, com tela própria (se FINANCE_ENABLED=0 no servidor de teste, este módulo some da tela).
     const tiles = await p.$$eval(".hub-tile", (els) => els.map((e) => e.textContent));
     assert.ok(tiles.some((t) => t.includes("Financeiro") && t.includes("Beta")), "Financeiro como Beta na tela Módulos");
+    // Metas também é Beta, com tela própria (se GOALS_ENABLED=0 no servidor de teste, este módulo some da tela).
+    assert.ok(tiles.some((t) => t.includes("Metas") && t.includes("Beta")), "Metas como Beta na tela Módulos");
     await p.click(".hub-soon-i >> text=Casa Inteligente");
     await p.waitForSelector(".mp-hero");
     assert.ok((await p.textContent(".honest")).includes("ainda não existe"));
