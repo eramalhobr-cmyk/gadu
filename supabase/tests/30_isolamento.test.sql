@@ -78,6 +78,11 @@ begin
     insert into public.fin_item_meses (user_id, item_id, ano, mes, valor) select u, id, 2026, 11, 1.00 from public.fin_itens where user_id = u;
     insert into public.fin_gastos (user_id, ano, mes, dia, valor) values (u, 2026, 11, 5, 1.00);
     insert into public.fin_config (user_id) values (u);
+    -- Metas (sintético)
+    insert into public.goals (user_id, titulo, medicao, valor_alvo) values (u, 'meta sintética', 'numerica', 10);
+    insert into public.goal_progress (user_id, goal_id, valor, data) select u, id, 1, current_date from public.goals where user_id = u;
+    insert into public.goal_milestones (user_id, goal_id, titulo) select u, id, 'marco sintético' from public.goals where user_id = u;
+    insert into public.goal_tasks (user_id, goal_id, task_id) select u, g.id, (select t.id from public.tasks t where t.user_id = u limit 1) from public.goals g where g.user_id = u;
   end loop;
 end $$;
 
@@ -105,7 +110,11 @@ insert into iso_cases values
   ('fin_itens',          'user_id',    'nome = ''x''',        'insert into public.fin_itens (user_id, tipo, nome) values (%L, ''despesa'', ''x'')'),
   ('fin_item_meses',     'user_id',    'valor = 2',           'insert into public.fin_item_meses (user_id, item_id, ano, mes, valor) values (%1$L, (select id from public.fin_itens where user_id = %1$L limit 1), 2026, 12, 1)'),
   ('fin_gastos',         'user_id',    'valor = 2',           'insert into public.fin_gastos (user_id, ano, mes, dia, valor) values (%L, 2026, 11, 6, 1)'),
-  ('fin_config',         'user_id',    'dia_restante = 5',    'insert into public.fin_config (user_id) values (%L)');
+  ('fin_config',         'user_id',    'dia_restante = 5',    'insert into public.fin_config (user_id) values (%L)'),
+  ('goals',              'user_id',    'titulo = ''x''',      'insert into public.goals (user_id, titulo, medicao, valor_alvo) values (%L, ''x'', ''numerica'', 5)'),
+  ('goal_progress',      'user_id',    'valor = 2',           'insert into public.goal_progress (user_id, goal_id, valor, data) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), 1, current_date)'),
+  ('goal_milestones',    'user_id',    'titulo = ''x''',      'insert into public.goal_milestones (user_id, goal_id, titulo) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), ''x'')'),
+  ('goal_tasks',         'user_id',    'created_at = now()',  'insert into public.goal_tasks (user_id, goal_id, task_id) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), (select id from public.tasks where user_id = %1$L limit 1))');
 
 do $$
 declare c record; a text := '00000000-0000-0000-0000-00000000aaa1'; b text := '00000000-0000-0000-0000-00000000bbb1';
@@ -137,6 +146,7 @@ select pg_temp.check(not exists (select 1 from pg_tables t where t.schemaname = 
   'toda tabela do schema public está na suíte de isolamento');
 select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public') = (select count(*) from iso_cases), 'a suíte não lista tabela que não existe');
 select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public' and t.tablename like 'fin\_%' and t.rowsecurity) = 4, 'as 4 tabelas fin_* existem e têm RLS ligado');
+select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public' and t.tablename like 'goal%' and t.rowsecurity) = 4, 'as 4 tabelas de metas existem e têm RLS ligado');
 
 -- Vínculos cruzados: B não usa um projeto, conversa ou agente de A nos próprios registros.
 select pg_temp.check(pg_temp.exec_as(:'B', format('insert into public.tasks (title, project_id) values (''x'', %s)', (select id from public.projects where user_id = :'A' limit 1))) = -1, 'tasks: B não cria tarefa dentro de projeto de A');
