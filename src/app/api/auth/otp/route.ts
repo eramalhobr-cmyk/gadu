@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { limitAttempts } from "@/lib/rate-limit";
 import { supabaseServer } from "@/lib/supabase/server";
 
 const Body = z.object({ email: z.string().trim().toLowerCase().email().max(200) });
@@ -9,6 +10,8 @@ export async function POST(request: Request) {
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Digite um e-mail válido." }, { status: 400 });
   const { email } = parsed.data;
+  const limited = await limitAttempts(request, "otp", email);
+  if (limited) return limited;
   {
     const supabase = await supabaseServer();
     const origin = new URL(request.url).origin;

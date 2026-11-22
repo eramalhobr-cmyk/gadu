@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { accessOf } from "@/lib/access";
+import { limitAttempts } from "@/lib/rate-limit";
 import { supabaseServer } from "@/lib/supabase/server";
 
 const Body = z.object({
@@ -12,6 +13,8 @@ export async function POST(request: Request) {
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Código inválido." }, { status: 400 });
   const { email, token } = parsed.data;
+  const limited = await limitAttempts(request, "verify", email);
+  if (limited) return limited;
   const supabase = await supabaseServer();
   const { data, error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
   if (error || !data.user || !(await accessOf(supabase, data.user)).ok) {
