@@ -1,6 +1,6 @@
 # GaDu · Situação do projeto
 
-Atualizado em 22/11/2026 (mais tarde: Core "atenção hoje" desenvolvido e testado localmente na branch `feat/core-atencao-hoje`, **não publicado**), com a segurança P1 **publicada** (PR #22, merge `cc85040`, migrações aplicadas e deploy no ar; evidências em "Segurança P1: publicação" abaixo). A tabela de produção abaixo é de 16/11 e não foi reescrita. Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
+Atualizado em 22/11/2026 (mais tarde: Core "atenção hoje" **publicado**, PR #24, merge `215edab`; evidências em "Core atenção hoje: publicação" abaixo), com a segurança P1 **publicada** (PR #22, merge `cc85040`, migrações aplicadas e deploy no ar; evidências em "Segurança P1: publicação" abaixo). A tabela de produção abaixo é de 16/11 e não foi reescrita. Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
 
 ## Ambiente de produção (verificado em 14/11/2026)
 | Item | Estado | Evidência |
@@ -68,7 +68,7 @@ Atualizado em 22/11/2026 (mais tarde: Core "atenção hoje" desenvolvido e testa
 | Trabalho | Estágio | Onde |
 |---|---|---|
 | **Segurança P1 / fase 0 do Core** (S-01, S-02, S-03 parcial, S-04, S-05 parcial, S-06, S-07, S-10, S-11, S-12) | **Publicada em 22/11/2026**: PR #22 integrado, migrações aditiva e restritiva aplicadas, deploy no ar. Pendentes: senhas vazadas (painel), S-09 (backups), chat logado e encerramento de sessões em produção ainda não verificados | PR #22, merge `cc850400ff982d2463cf750de539fa194b04b5b6`; [docs/SEGURANCA_P1_MANUAL.md](docs/SEGURANCA_P1_MANUAL.md) |
-| **Core Contextual: "O que merece minha atenção hoje?"** (fase 1, escopo pessoal, só leitura, sem banco novo) | **Desenvolvido e testado localmente; não publicado.** Branch `feat/core-atencao-hoje`, sem push nem PR. Ligado por padrão; `CORE_MVP=0` desliga (variável da Vercel não acessível agora). Pendente: validar em celular com pessoa logada, abrir PR, CI, merge pelo Eduardo | [docs/CORE_ATENCAO_HOJE.md](docs/CORE_ATENCAO_HOJE.md), [docs/CORE_CONTEXTUAL_MVP.md](docs/CORE_CONTEXTUAL_MVP.md) |
+| **Core Contextual: "O que merece minha atenção hoje?"** (fase 1, escopo pessoal, só leitura, sem banco novo) | **Publicado em 22/11/2026** (PR #24, merge `215edab`), sem migração. No ar e ligado por padrão (`CORE_MVP` não existe na Vercel); `CORE_MVP=0` desliga. Pendente: validar com pessoa logada (tela Hoje e Fontes, Gmail e agenda reais, voz no aparelho) e medir o custo por mensagem | [docs/CORE_ATENCAO_HOJE.md](docs/CORE_ATENCAO_HOJE.md), [docs/CORE_CONTEXTUAL_MVP.md](docs/CORE_CONTEXTUAL_MVP.md) |
 | Documentação Marco Zero (contexto mestre, auditoria, governança) | Rascunho, não integrado. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` | PR #1 |
 | Especificação de Finanças pessoais | Pronta para revisão, não integrada | PR #5 |
 
@@ -111,9 +111,18 @@ Matriz completa, com evidências e o **status de cada S-xx**: [docs/SECURITY_AUD
 6. O encerramento de sessões ao bloquear (`server_revoke_user_sessions`, apaga `auth.sessions`) foi testado só no banco local com uma imitação do Auth; **não verificado em produção** (manual, seção 1.3). Se falhar, o bloqueio continua valendo pelo `members`.
 7. Se o contador de tentativas de login estiver indisponível, o login **não** é travado (decisão registrada no manual, seção 5).
 
+## Core atenção hoje: publicação (22/11/2026)
+- **PR #24 integrado em 22/11/2026 às 15:42 (Brasília), merge commit `215edab0d7d879e3483d0a6d77539609ce95f39c`. CI verde: `verify`, `e2e-public`, `database`.
+- **Deploy de produção da Vercel:** `success`.
+- **Produção:** home 200; `/api/attention` sem sessão 401 (a rota nova está no ar); `/api/health` ok.
+- **e2e público** (7 testes) contra a produção: 7 passaram.
+- **Migrações:** nenhuma.
+- **Flag:** `CORE_MVP` não está definida na Vercel, então o recurso está ligado por padrão.
+- **Não verificado:** tela Hoje e Fontes com pessoa logada; Gmail e agenda reais; voz no aparelho; custo por mensagem medido.
+
 ## Próximas prioridades (em ordem)
 1. **Fechar o que sobrou da segurança P1** (já publicada): senhas vazadas (painel), S-09 (decidir plano Pro ou dump lógico agendado), verificar chat logado e encerramento de sessões em produção, S-05 (RLS de escrita por acesso).
-2. **Core Contextual MVP, fase 1** (escopo pessoal, sem banco novo): primeira entrega proposta em [docs/CORE_ATENCAO_HOJE.md](docs/CORE_ATENCAO_HOJE.md), aguardando decisão; plano geral em [docs/CORE_CONTEXTUAL_MVP.md](docs/CORE_CONTEXTUAL_MVP.md).
+2. **Core Contextual MVP, fase 1** já publicada (PR #24): validar com pessoa logada e medir o custo por mensagem; depois fase 2 (prioridade pela tela aberta) e fase 3 (auditoria sem conteúdo, alto risco). Detalhe em [docs/CORE_ATENCAO_HOJE.md](docs/CORE_ATENCAO_HOJE.md); plano geral em [docs/CORE_CONTEXTUAL_MVP.md](docs/CORE_CONTEXTUAL_MVP.md).
 3. Testes com login no CI, conforme a proposta em [docs/TESTES_E2E.md](docs/TESTES_E2E.md) (precisa de segredo no GitHub: aprovação).
 4. Validação em aparelhos: roteiro curto em [docs/ROTEIRO_ANDROID.md](docs/ROTEIRO_ANDROID.md); lista completa em [docs/VALIDACAO_APARELHOS.md](docs/VALIDACAO_APARELHOS.md).
 5. Modelo de organizações e testes de isolamento entre organizações (S-08), antes do Agent Office.
@@ -122,7 +131,7 @@ Matriz completa, com evidências e o **status de cada S-xx**: [docs/SECURITY_AUD
 8. Observabilidade e créditos por pessoa.
 
 ## Ponto de retomada (para qualquer agente)
-0. **Ponto de retomada atual (22/11/2026):** a segurança P1 está publicada (PR #22). Próximos passos: decisão do Eduardo sobre S-09, ligar senhas vazadas no painel, verificar em produção o chat logado e o encerramento de sessões, depois S-05. Alto risco: aprovação explícita a cada passo.
+0. **Ponto de retomada atual (22/11/2026):** a segurança P1 está publicada (PR #22). Próximos passos: decisão do Eduardo sobre S-09, ligar senhas vazadas no painel, verificar em produção o chat logado e o encerramento de sessões, depois S-05. Alto risco: aprovação explícita a cada passo. O Core "atenção hoje" também está publicado (PR #24); falta validá-lo com pessoa logada (tela Hoje e Fontes, Gmail e agenda reais, voz) e medir o custo por mensagem.
 1. Leia `CLAUDE.md`, este arquivo, [docs/FAST_TRACK.md](docs/FAST_TRACK.md) e [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md). O handoff técnico está em `docs/CLAUDE_HANDOFF_2026-11-12.md`.
 2. Confira o estado real: `git log origin/main -5`, PRs abertos no GitHub, o último deploy de produção na Vercel e `list_migrations` no Supabase.
 3. Classifique o que vai fazer: baixo risco (UI, docs) segue o processo simplificado; alto risco (banco, auth, custo, permissões) exige aprovação explícita do Eduardo a cada passo.

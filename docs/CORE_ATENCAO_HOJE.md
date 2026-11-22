@@ -1,6 +1,6 @@
 # Core Contextual · primeira entrega proposta: "O que merece minha atenção hoje?"
 
-Estado em 22/11/2026: **aprovada pelo Eduardo, desenvolvida e testada localmente; não publicada** (branch `feat/core-atencao-hoje`, sem push nem PR). O texto abaixo é a proposta original; as decisões e o que mudou na implementação estão em "Decisões tomadas e estado". Faz parte da fase 1 de [CORE_CONTEXTUAL_MVP.md](CORE_CONTEXTUAL_MVP.md). O escopo é só pessoal: os dados da própria pessoa.
+Estado em 22/11/2026: **aprovada pelo Eduardo, desenvolvida, testada e publicada** (PR #24, merge `215edab`; evidências em "Publicação" ao fim). O texto abaixo é a proposta original; as decisões e o que mudou na implementação estão em "Decisões tomadas e estado". Faz parte da fase 1 de [CORE_CONTEXTUAL_MVP.md](CORE_CONTEXTUAL_MVP.md). O escopo é só pessoal: os dados da própria pessoa.
 
 ## O fluxo
 Pergunta típica, por voz ou texto, em qualquer tela: "O que merece minha atenção hoje?", "Como está meu dia?", "O que está atrasado?".
@@ -105,4 +105,13 @@ Não há acesso às variáveis da Vercel nesta etapa; um padrão desligado exigi
 6. `CORE_MVP=0` mantém o chat: coberto (integração).
 
 ### Pendências
-Validar com pessoa logada em celular; PR e CI; merge pelo Eduardo; validação em produção; fase 2 (prioridade pela tela) e fase 3 (auditoria sem conteúdo, alto risco).
+Validar com pessoa logada em celular e medir o custo por mensagem; fase 2 (prioridade pela tela) e fase 3 (auditoria sem conteúdo, alto risco).
+
+## Publicação (22/11/2026)
+- PR #24 integrado em 22/11/2026 às 15:42 (Brasília), merge commit `215edab0d7d879e3483d0a6d77539609ce95f39c`. CI verde: `verify`, `e2e-public`, `database`.
+- Deploy de produção da Vercel: `success`.
+- Produção: home 200; `/api/attention` sem sessão 401 (rota nova no ar); `/api/health` ok.
+- e2e público (7 testes) contra a produção: 7 passaram.
+- Nenhuma migração.
+- `CORE_MVP` não está definida na Vercel, então o recurso está ligado por padrão (`CORE_MVP=0` desliga).
+- **Não verificado:** tela Hoje e Fontes com pessoa logada; Gmail e agenda reais; voz no aparelho; custo por mensagem medido.
