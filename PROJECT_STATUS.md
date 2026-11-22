@@ -73,6 +73,11 @@ Atualizado em 22/11/2026 (Finanças, base, **publicada**, PR #26, merge `41eb3ed
 | **Finanças, base: Contas e Dia a dia** (alto risco: banco novo) | **Publicada em 22/11/2026** (PR #26, merge `41eb3ed`). Migração `financas_base` aplicada na produção (versão `20261122194404`). No ar e ligado por padrão (`FINANCE_ENABLED` não existe na Vercel). Pendente: validar a tela Financeiro e o lançamento pela conversa com pessoa logada, em aparelho | [docs/FEATURE-FINANCAS.md](docs/FEATURE-FINANCAS.md) |
 | Especificação de Finanças pessoais | Integrada (PR #5, em 22/11/2026 às 15:49, Brasília, merge `ff8fff0`) | `docs/FEATURE-FINANCAS.md` |
 
+## Validação no celular (22/11/2026, branch `fix/mobile-validacao`): desenvolvida e testada localmente, emulada, **não publicada**
+- Correções: Voltar do Android por camada, voz em trechos curtos, push com reinscrição e selo, CSP da tela offline, alvos de toque, atributos de teclado. Detalhes e evidências no CHANGELOG.
+- Testes: typecheck, `npm test` (143 + 100), build, `test-db`, e2e público 8/8 e e2e mobile 44/44 contra `next start` local; e2e mobile na produção atual 24/44 (as falhas são as correções ainda não publicadas); instalável pelo CDP nos dois.
+- **Ponto de retomada:** abrir PR, ver o CI (inclui o WebKit no job `e2e-public`) e, depois do deploy, repetir `E2E_BASE=https://gadu-agent.vercel.app npm run test:e2e:mobile`. O Eduardo roda o [docs/CHECKLIST_CELULAR.md](docs/CHECKLIST_CELULAR.md) no Galaxy S26 Ultra (Chrome e Samsung Internet) e anota. Sem aparelho, nada de teclado, voz, push e Voltar físico foi verificado.
+
 ## Pendente
 - Logo novo (três movimentos): aguardando o arquivo. Hoje a marca é o texto GaDu.
 - Validar a voz, o assistente com o teclado aberto e o Voltar do Android em aparelhos de verdade (iPhone e Android).

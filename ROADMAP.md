@@ -257,7 +257,7 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [x] Telas restantes redesenhadas com componentes compartilhados
 - [x] Home pública com a visão completa e status reais
 - [x] Arquitetura futura do Core Contextual documentada
-- [ ] Validação de voz em iPhone e Android (humana)
+- [ ] Validação de voz em iPhone e Android (humana; roteiro em docs/CHECKLIST_CELULAR.md)
 
 ## Sprint UX/UI v2.2 (14/11, PR #16)
 - [x] Busca e avaliação do protótipo "GADU Visual Refresh" no Lovable (docs/LOVABLE_VISUAL_REFRESH.md)
@@ -343,6 +343,17 @@ Estágio: **publicada** (merge `41eb3ed`, 22/11/2026 às 16:44, Brasília). Apro
 - [x] Aplicar a migração no Supabase (antes do merge, só aditiva; versão `20261122194404`; 4 tabelas com RLS, 4 políticas cada, `anon` sem SELECT; assessor sem avisos novos) e publicar (PR #26, CI verde, deploy `success`; produção: home 200, `/api/finance/resumo` 401 sem sessão, `/api/health` ok, e2e público 8 de 8; `FINANCE_ENABLED` e `CORE_MVP` não definidas na Vercel, ligado por padrão)
 - [ ] Validar tela Financeiro e lançamento pela conversa com pessoa logada, em aparelho (390 px)
 - [ ] Próximo: simulador bruto → líquido (INSS/IRRF por ano), teto por categoria, acumulado do ano, fase Conversa (marcar pago e lançar fixos por texto/áudio, log, "a confirmar", regras)
+
+## Validação de uso diário no celular (22/11/2026, branch `fix/mobile-validacao`, **não publicado**)
+- [x] Suíte `e2e/mobile.e2e.cjs` com 5 perfis emulados (Pixel 7, Galaxy S9+, 412x915 Chrome e Samsung Internet, iPhone WebKit), no job `e2e-public` do CI
+- [x] Instalabilidade pelo CDP (`Page.getInstallabilityErrors`), manifest, ícones, service worker e offline verificados (local e produção)
+- [x] Voltar do Android com uma entrada por camada (menu, histórico, assistente)
+- [x] Voz: fala em trechos curtos, sem pause/resume no Android, reconhecimento sem HTTP e com mensagens por erro, microfone para em segundo plano
+- [x] Push: reinscrição (`pushsubscriptionchange`), clique abre a rota certa, selo monocromático, permissão negada explicada
+- [x] CSP da tela offline, alvos de toque, `enterkeyhint`/`autocomplete`, `touch-action`
+- [x] Checklist para o Galaxy S26 Ultra e iPhone (docs/CHECKLIST_CELULAR.md)
+- [ ] Rodar o checklist no aparelho de verdade (Chrome, Samsung Internet, iPhone) e registrar
+- [ ] Publicar (PR, CI, validação em produção)
 
 ## Próximo ciclo (prioridades, em ordem)
 1. Auditoria de RLS e isolamento multiusuário e multiempresa.
