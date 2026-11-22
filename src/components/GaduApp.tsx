@@ -87,6 +87,8 @@ export function GaduApp(props: {
   financeEnabled: boolean;
   /** GOALS_ENABLED: false esconde a tela Metas, o módulo na navegação e o resumo do Hoje. */
   goalsEnabled: boolean;
+  /** MODELING_3D_ENABLED=1: mostra a entrada "3D" (Beta) em Mais. Desligado por padrão. */
+  modeling3dEnabled?: boolean;
   seenTips: string[];
   /** Página de conteúdo (guia, como funciona) dentro do mesmo cabeçalho e menu. */
   page?: React.ReactNode;
@@ -725,7 +727,7 @@ export function GaduApp(props: {
         {(view === "tarefas" || view === "projetos") && <ProjectsPage key={`pp-${view}`} initialView={view} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
         {view === "agenda" && <AgendaView onBack={() => setTab("hoje")} />}
         {view === "modulos" && <ModulesHub onOpen={setTab} onHistory={() => setDrawer(true)} pending={pending} admin={props.admin} name={props.name} email={props.email}
-          hide={[...(props.financeEnabled ? [] : ["financeiro" as const]), ...(props.goalsEnabled ? [] : ["metas" as const])]} />}
+          hide={[...(props.financeEnabled ? [] : ["financeiro" as const]), ...(props.goalsEnabled ? [] : ["metas" as const])]} show3d={Boolean(props.modeling3dEnabled)} />}
         {view === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
         {view === "financeiro" && props.financeEnabled && <FinanceiroPage onAsk={(q) => { if (q.endsWith(" ")) { setDraft(q); openAssist(true); } else { speaker?.unlock(); openAssist(true); void send(q); } }} />}
         {view === "metas" && props.goalsEnabled && <MetasPage onAsk={(q) => { if (q.endsWith(" ")) { setDraft(q); openAssist(true); } else { speaker?.unlock(); openAssist(true); void send(q); } }} onOpenTasks={() => setTab("tarefas")} />}

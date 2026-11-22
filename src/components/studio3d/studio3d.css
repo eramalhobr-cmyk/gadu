@@ -1,0 +1,59 @@
+/* 3D Studio (Beta): só estas classes; usa os tokens do design system. Celular primeiro. */
+.s3d { display: flex; flex-direction: column; gap: var(--s-4); padding-bottom: var(--s-8); }
+.s3d textarea.field { min-height: 88px; resize: vertical; }
+.s3d-ask { display: flex; flex-direction: column; gap: var(--s-3); }
+.s3d-ask > .btn { align-self: stretch; }
+.s3d-ex { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.s3d-ex .chip { min-height: 44px; text-align: left; }
+.s3d-row { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+.s3d-row .btn { flex: 1; min-width: 140px; }
+.s3d-err { margin-top: var(--s-3); padding: var(--s-3); border-radius: var(--r-md); border: 1px solid color-mix(in srgb, var(--bad) 55%, transparent); color: var(--bad); }
+.s3d-grid { display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); }
+.s3d-main, .s3d-side { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
+.s3d-state:empty { display: none; }
+
+.s3d-view { position: relative; }
+.s3d-canvas { width: 100%; aspect-ratio: 4 / 3; max-height: 62vh; border-radius: var(--r-lg); background: var(--deep); border: 1px solid var(--line); overflow: hidden; touch-action: none; }
+.s3d-canvas canvas { display: block; }
+.s3d-dims { position: absolute; left: var(--s-2); top: var(--s-2); display: flex; flex-direction: column; margin: 0; padding: 6px 10px; border-radius: var(--r-md); background: rgb(var(--panel-rgb) / 0.88); border: 1px solid var(--line); font-size: var(--fs-sm); pointer-events: none; }
+.s3d-dims b { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.s3d-dims span { color: var(--ink-3); font-size: var(--fs-xs); }
+.s3d-hint { margin: var(--s-2) 0 0; color: var(--ink-3); font-size: var(--fs-xs); }
+.s3d-nogl { position: absolute; inset: 0; display: grid; place-items: center; padding: var(--s-4); text-align: center; color: var(--ink-2); }
+
+.s3d-fail { margin-top: var(--s-3); padding: var(--s-3); border-radius: var(--r-md); border: 1px solid color-mix(in srgb, var(--hot) 55%, transparent); background: rgb(var(--hot-rgb) / 0.08); display: flex; flex-direction: column; gap: var(--s-2); align-items: flex-start; }
+.s3d-fail p { margin: 0; white-space: pre-wrap; word-break: break-word; }
+.s3d-fail pre { max-width: 100%; overflow: auto; font-family: var(--mono); font-size: var(--fs-xs); }
+.s3d-fail summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+
+.s3d-dl { display: flex; flex-direction: column; gap: var(--s-2); }
+.s3d-dl .btn { width: 100%; }
+
+.s3d-params { display: flex; flex-direction: column; gap: var(--s-4); margin-top: var(--s-3); }
+.s3d-p label { display: flex; justify-content: space-between; gap: var(--s-3); font-size: var(--fs-sm); color: var(--ink-2); }
+.s3d-p output { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.s3d-p input[type="range"] { width: 100%; min-height: var(--touch); accent-color: var(--sig); }
+.s3d-p-bool { display: flex; align-items: center; gap: var(--s-3); min-height: var(--touch); justify-content: flex-start !important; }
+.s3d-p-bool input { width: 24px; height: 24px; accent-color: var(--sig); }
+
+.s3d-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-3); }
+.s3d-check { display: flex; gap: var(--s-3); align-items: flex-start; }
+.s3d-check p { margin: 2px 0 0; color: var(--ink-2); font-size: var(--fs-sm); }
+.s3d-check .s3d-fix { color: var(--ink); }
+.s3d-ci { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; border: 1px solid currentColor; }
+.s3d-check.ok .s3d-ci { color: var(--ok); }
+.s3d-check.aviso .s3d-ci { color: var(--hot); }
+.s3d-check.erro .s3d-ci { color: var(--bad); }
+
+.s3d-code { max-height: 360px; overflow: auto; padding: var(--s-3); border-radius: var(--r-md); background: var(--deep); border: 1px solid var(--line); font-family: var(--mono); font-size: var(--fs-xs); white-space: pre; }
+.s3d details > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+
+@media (min-width: 900px) {
+  .s3d-dl { flex-direction: row; flex-wrap: wrap; }
+  .s3d-dl .btn { width: auto; flex: 1; }
+  .s3d-ask > .btn { align-self: flex-start; }
+}
+@media (min-width: 1024px) {
+  .s3d-grid { grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); align-items: start; }
+  .s3d-canvas { aspect-ratio: 16 / 10; }
+}

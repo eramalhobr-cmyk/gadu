@@ -92,7 +92,8 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 ## 8. 3D Studio e impressão 3D
 | Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
 |---|---|---|---|---|
-| Peça por conversa → OpenSCAD (WASM no navegador) → STL e 3MF "A1 PLA 0.4" (3D-1) | planejado; especificação feita | P1 | `docs/FEATURE-3D.md` | AI Gateway, orçamento e cota atuais; modelo de projeto A1 salvo pelo Eduardo |
+| Peça por conversa → OpenSCAD (WASM no navegador) → STL e 3MF comum (3D-1) | **desenvolvido e testado localmente** (Beta; `MODELING_3D_ENABLED=1`, desligado por padrão; não publicado) | P1 | `src/app/api/3d/generate/route.ts`, `src/lib/3d/*`, `src/components/studio3d/*`, `src/app/app/3d/page.tsx`, `public/vendor/openscad/*` | testar com a IA real; refino por voz e imagem; salvar versões (migração com aprovação) |
+| 3MF "A1 PLA 0.4" (projeto do Bambu Studio) | função pronta (`injectIntoTemplate`), botão **desativado** | P1 | `src/lib/3d/threemf.ts` | modelo de projeto salvo pelo Eduardo (docs/FEATURE-3D.md) |
 | Figura a partir de foto com modelos abertos gratuitos e reparo de malha (3D-2) | planejado | P2 | `docs/FEATURE-3D.md` | token do Hugging Face; limites diários do ZeroGPU; licenças |
 | Envio direto para a A1 pela rede local (3D-3) | planejado | P3 | `docs/FEATURE-3D.md` | ponte local; depois |
 | Busca de modelos gratuitos de terceiros e biblioteca | planejado | P3 | — | respeitar licenças |

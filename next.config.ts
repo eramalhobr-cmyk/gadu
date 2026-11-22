@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { VENDOR_CSP } from "./src/lib/3d/csp.ts";
 
 // Cabeçalhos de segurança aplicados a todas as respostas.
 // A Content-Security-Policy com nonce é montada por requisição em src/proxy.ts.
@@ -17,6 +18,7 @@ const config: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
+      { source: "/vendor/openscad/:path*", headers: [{ key: "Content-Security-Policy", value: VENDOR_CSP }, { key: "Cache-Control", value: "public, max-age=3600" }] },
       { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache" }, { key: "Service-Worker-Allowed", value: "/" }] },
     ];
   },

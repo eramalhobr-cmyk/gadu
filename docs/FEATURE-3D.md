@@ -1,6 +1,6 @@
 # GaDu 3D Studio: especificação (3D-0)
 
-Estado em 22/11/2026: **especificação (planejado)**. Nada deste documento existe no app ainda. A tela "3D Studio" continua só como visão geral do módulo (`src/lib/modules.ts`).
+Estado em 22/11/2026: **3D-1 desenvolvido e testado localmente (Beta, desligado por padrão)**, ainda **não publicado**. O que foi feito está em "3D-1: o que foi feito" logo abaixo; o resto do documento segue como especificação das próximas fases.
 
 Legenda: **[Fato]** verificado em fonte citada · **[Proposta]** decisão a aprovar · **[A confirmar]** validar antes de implementar.
 
@@ -23,11 +23,45 @@ Sem serviço pago por geração: **nada de Meshy, Tripo ou parecidos**. O custo 
 5. **Custo sob controle:** cada chamada de IA passa por `reserve/settle/release_ai_budget` e pela cota diária; interruptor `STUDIO3D_ENABLED=0` desliga tudo.
 6. **Voz e texto** em todo o fluxo (decisão oficial para módulos novos).
 
+## 3D-1: o que foi feito (22/11/2026, branch `feat/3d-1-openscad`)
+Escopo entregue: pedido em texto → código OpenSCAD paramétrico pela IA → render no navegador → visualizador e controles → verificações da A1 → STL e 3MF. **Sem banco** (nenhuma migração): nada é salvo no servidor nesta fase.
+
+**Como ligar:** variável `MODELING_3D_ENABLED=1` (qualquer outro valor, ou ausente, deixa desligado). Desligado: sem entrada "3D" no Mais, `/app/3d` e `/api/3d/*` respondem 404 (com sessão) ou 401 (sem sessão). Ligado: entrada **3D (Beta)** no Mais, abre `/app/3d`. Diferente de `FINANCE_ENABLED` e `GOALS_ENABLED` (ligados por padrão), este começa **desligado**. (A spec 3D-0 previa `STUDIO3D_ENABLED`; o nome oficial passou a ser `MODELING_3D_ENABLED`.)
+
+| Peça | Onde |
+|---|---|
+| Rota de geração | `src/app/api/3d/generate/route.ts` (`_guard.ts`: sessão 401 → interruptor 404) |
+| Parâmetros (Customizer) | `src/lib/3d/params.ts` |
+| Prompt, extração e validação do código | `src/lib/3d/scad.ts`; corpo zod em `schemas.ts`; limites em `limits.ts` |
+| Verificações da A1 | `src/lib/3d/checks.ts` |
+| Malha, STL, 3MF, zip | `mesh.ts`, `stl.ts`, `threemf.ts`, `zip.ts` |
+| Worker e cliente | `public/vendor/openscad/render-worker.js`, `render-core.js`; `src/lib/3d/worker-client.ts` |
+| Tela e visualizador | `src/components/studio3d/` (`Studio3D.tsx`, `Viewer3D.tsx`, `studio3d.css`), `src/app/app/3d/page.tsx` |
+
+**Rota e custo.** `POST /api/3d/generate` com `{ modo: "novo" | "refinar" | "corrigir", pedido, scad?, erro? }` (zod estrito: `user_id` ou custo no corpo são recusados). Pedido até 800 caracteres, código até 20 000, erro até 1 500, saída da IA até 6 000 tokens. Mesmo pipeline do chat, fail closed: sessão e acesso → interruptor → zod → privacidade (dado sensível e termos bloqueados não vão à IA) → limites por motor de Ajustes → **reserva** de orçamento só pelo servidor com o id da sessão → cota diária → IA → **liquidação pelo custo real** (também quando o código volta inválido; se a liquidação falhar, o consumo é gravado direto). Se a IA falhar, a reserva é liberada. Usa `complete()` com o modelo barato já configurado (`CHEAP_MODEL` / `GATEWAY_CHEAP_MODEL`, hoje Haiku 5.5), registrado como `kind = chat` (não exige migração). O servidor nunca executa o código: só devolve o texto, depois de conferir tamanho, ausência de `include`/`use`/`import`/`surface` e `$fn` até 360. Os controles deslizantes e o re-render **não chamam a IA**.
+
+**Worker e isolamento.** O OpenSCAD roda só num Web Worker (módulo): sem DOM, cookies nem rede. O app e o worker só trocam mensagens. Uma instância nova do OpenSCAD por render, motor Manifold, tempo-limite de 30 s: passou disso, o worker é encerrado e recriado. Pedidos novos enquanto um render roda são coalescidos (só o mais recente vale). A memória do WASM não tem teto próprio: o limite prático é o tempo e o tamanho da malha (recusa acima de 400 000 triângulos).
+
+**CSP.** As páginas **não mudaram** (`worker-src 'self'` já bastava; sem `wasm-unsafe-eval`, sem `blob:`). O caminho `/vendor/openscad/*` ganhou CSP própria e mais estrita, em `next.config.ts` (valor em `src/lib/3d/csp.ts`): `default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'none'; worker-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'`. O `src/proxy.ts` deixou de rodar nesse caminho (matcher exclui `vendor/`), para a CSP com nonce das páginas não se somar a esta. Esses arquivos são públicos (sem login), como qualquer arquivo de `public/`.
+
+**Licenças.**
+- **OpenSCAD WASM:** pacote npm [`openscad-wasm-prebuilt`](https://www.npmjs.com/package/openscad-wasm-prebuilt) 1.2.0, **GPL-2.0-or-later**. O `openscad.js` (WASM embutido) está **sem modificações** em `public/vendor/openscad/`, com `LICENSE.txt` (GPL v2) e `README.md` com os links do código-fonte (https://github.com/openscad/openscad e o repositório do pacote). Ele **não entra no bundle do app**: é um arquivo separado, carregado pelo worker; o código do GaDu (`render-core.js`, `render-worker.js`, `worker-client.ts`) só troca mensagens. A tela mostra o link para a licença. Não é parecer jurídico: é a leitura "componente separado, comunicação por mensagens" da spec; vale uma revisão se o GaDu for distribuído a terceiros. Para uso pessoal, nada a fazer.
+- **three.js** 0.187.0, MIT (dependência npm, carregada só na tela 3D por import dinâmico). `@types/three` (MIT) só em desenvolvimento.
+- CADAM (GPL-3.0): só inspiração; nenhum código copiado.
+
+**Verificações da A1 (`checks.ts`).** Tamanho (≤ 256 mm por eixo, exato); malha fechada (cada aresta em exatamente 2 faces, com vértices soldados a 0,0001 mm; detecta aberta, não-manifold e face invertida); base plana (área em z mínimo com normal para baixo ≥ min(100 mm², 10% da pegada X×Y)); parede mínima 1,2 mm (**estimativa**: até 400 raios amostrados contra a normal, mais os parâmetros declarados com nome de parede/espessura abaixo de 1,2; não vê parede fina entre as amostras e o texto diz que é estimativa); balanço (aviso: fração da superfície a mais de 45°). Mensagens em pt-BR com "O que fazer". A peça é posta no centro da mesa (128, 128) com a base em z = 0 antes de visualizar e exportar.
+
+**Exportação.** STL binário e 3MF comum (zip com `[Content_Types].xml`, `_rels/.rels` e `3D/3dmodel.model`, unidade mm, vértices soldados), ambos testados em unidade. O **3MF "A1 PLA 0.4"** tem a função pronta (`injectIntoTemplate` em `threemf.ts`: troca só `<resources>` e `<build>` do `3D/3dmodel.model` e copia o resto do projeto byte a byte), testada com um modelo **fictício**, mas o botão está **desativado** ("Aguardando o modelo de projeto do Eduardo") e `A1_TEMPLATE_AVAILABLE = false`.
+
+**Como o Eduardo envia o modelo de projeto:** no Bambu Studio, abra um projeto novo, escolha a impressora **Bambu Lab A1**, bico **0.4** e filamento **PLA** (perfis padrão da Bambu), sem nenhum objeto, e salve como `a1-pla-04.3mf` (Arquivo › Salvar projeto). Entregue o arquivo à IA que continuar o 3D (por exemplo colocando-o em `docs/` ou na pasta combinada na conversa). A IA então: (1) lista o conteúdo do zip e valida que `3D/3dmodel.model`, `Metadata/project_settings.config` e `Metadata/model_settings.config` existem; (2) ajusta `injectIntoTemplate` para o que o arquivo real exigir (a spec marca isso como **[A confirmar]**: objetos novos no Bambu Studio costumam precisar de uma entrada em `model_settings.config`); (3) abre o resultado num Bambu Studio atual para conferir que a A1/PLA/0.4 continuam selecionados; (4) decide onde guardar o modelo (bucket privado por pessoa, como na spec, ou arquivo no repositório se for só do Eduardo) e liga o botão.
+
+**Limitações do 3D-1:** sem imagem do render para a IA ver no refinamento; sem voz própria na tela (o teclado do celular já dita); nada é salvo (recarregar a página perde a peça; "Voltar uma versão" vale só enquanto a tela está aberta); o `.scad` da IA pode falhar (o botão "Pedir correção à IA" reenvia o erro); qualidade do código depende do modelo barato (os 10 testes de peças de referência dos critérios de pronto ainda **não** foram feitos: exigem a IA real e custo); o cabeçalho da tela mostra "Ajuda" porque a tela reaproveita o invólucro das páginas de conteúdo (como o Guia).
+
 ## Fases
 | Fase | Entrega | Status |
 |---|---|---|
 | 3D-0 | Esta especificação | feita (documento) |
-| 3D-1 (MVP) | Peça por conversa → OpenSCAD → STL e 3MF (comum e "A1 PLA 0.4") | planejado, P1 |
+| 3D-1 (MVP) | Peça por conversa → OpenSCAD → STL e 3MF (comum e "A1 PLA 0.4") | **desenvolvido e testado localmente** (Beta, interruptor desligado); 3MF A1 e salvar versões ficam pendentes |
 | 3D-2 | Figura a partir de foto com modelos abertos gratuitos + reparo de malha | planejado, P2 |
 | 3D-3 | Envio direto para a A1 pela rede local (ponte local) | planejado, P3 (depois) |
 
