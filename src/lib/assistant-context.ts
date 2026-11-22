@@ -33,7 +33,7 @@ export function contextLine(ctx: AssistantContext): string {
   const m = moduleOf(ctx.view);
   const v = viewDef(ctx.view);
   const status = m.status === "planejado" ? " Este módulo ainda está planejado: não existe no app e não tem dados. Se perguntarem, diga isso com clareza."
-    : m.status === "parcial" ? " Este módulo está parcial: só os agentes existem." : "";
+    : m.status === "parcial" ? (m.id === "office" ? " Este módulo está parcial: só os agentes existem." : " Este módulo está em beta: só o que está listado como disponível existe.") : "";
   return `\n\nTela atual da pessoa no app: módulo ${m.name}, tela ${v.label}.${status}`;
 }
 

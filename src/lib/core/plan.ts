@@ -1,3 +1,5 @@
+import { categoriaConhecida } from "../finance/lancamento.ts";
+
 // Plano do Core: qual é a intenção da mensagem e quanto contexto cabe. Regra simples, sem IA.
 export type Intent = "atencao_hoje";
 
@@ -37,4 +39,49 @@ export function detectIntent(message: string): Intent | null {
 export function planFor(intent: Intent, over: Partial<Pick<Plan, "maxFacts" | "maxChars">> = {}): Plan {
   void intent;
   return { ...ATENCAO_HOJE, ...over };
+}
+
+// ---- Finanças: intenções simples, sem IA ----
+export type FinanceKind = "resumo" | "contas" | "categoria" | "gasto";
+/** `categoria`: categoria padrão reconhecida; `termo`: palavra livre (estabelecimento) quando a categoria não é conhecida. */
+export type FinanceIntent = { kind: FinanceKind; categoria?: string; termo?: string };
+
+const GASTO_REGISTRAR: RegExp[] = [
+  /\b(gastei|paguei)\b.*\d/,
+  /\bcomprei\b.*\b(por|de|a)\s+(r\s*)?\d/,
+  /\b(lancar|lance|lanca|registrar|registre|registra|anotar|anote|anota|adicionar|adicione)\b.*\b(gasto|despesa|compra)\b.*\d/,
+];
+const CONTAS: RegExp[] = [
+  /\bcomo (estao|esta|ta|anda|andam|vao|vai) (as |minhas |meus |o |a )*(minhas |meus )?(contas|financas|gastos|dinheiro|orcamento)\b/,
+  /\b(minhas )?contas (em aberto|a pagar|abertas|do mes|deste mes|pendentes)\b/,
+  /\bquais (das )?(minhas )?contas (faltam|estao em aberto|estao abertas|vencem|ainda)\b/,
+  /\bquanto (ainda )?(falta|tenho que|tenho de|devo) pagar\b/,
+  /\bo que (falta|ainda falta) pagar\b/,
+];
+const RESUMO: RegExp[] = [
+  /\bquanto (eu )?(ja )?(gastei|gasto)\b/,
+  /\bquanto (eu )?(ja )?(recebi|ganhei|sobrou|sobra|vai sobrar)\b/,
+  /\b(resumo|balanco) (financeiro|do mes|das contas|dos gastos)\b/,
+  /\bcomo estao (meus )?gastos\b/,
+];
+const PREP = /\bquanto (?:eu )?(?:ja )?(?:gastei|gasto|foi gasto)\s+(?:com|em|no|na|nos|nas|de|do|da|pra|para)\s+(.+)$/;
+const FIM_TERMO = /\b(este|esse|neste|nesse|no|nesta|essa|esta|durante|hoje|ontem|agora|ate|desde|em|do|da|de)\b.*$/;
+
+/** Intenção financeira da mensagem, ou null. Só o texto; nenhuma chamada de IA. */
+export function detectFinanceIntent(message: string): FinanceIntent | null {
+  const t = norm(message.slice(0, 400));
+  if (!t) return null;
+  if (GASTO_REGISTRAR.some((r) => r.test(t))) return { kind: "gasto" };
+  const m = PREP.exec(t);
+  if (m) {
+    const trecho = m[1].replace(FIM_TERMO, "").trim() || m[1].trim();
+    const palavras = trecho.split(" ").filter(Boolean).slice(0, 4);
+    const candidatos = [trecho, ...palavras, ...palavras.slice(0, -1).map((p, i) => `${p} ${palavras[i + 1]}`)];
+    for (const c of candidatos) { const cat = categoriaConhecida(c); if (cat) return { kind: "categoria", categoria: cat }; }
+    const termo = palavras.slice(0, 2).join(" ").slice(0, 40);
+    if (termo.length >= 3) return { kind: "categoria", termo };
+  }
+  if (CONTAS.some((r) => r.test(t))) return { kind: "contas" };
+  if (RESUMO.some((r) => r.test(t))) return { kind: "resumo" };
+  return null;
 }

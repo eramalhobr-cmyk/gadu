@@ -51,7 +51,8 @@ test("contexto nunca amplia o acesso: escopo é sempre pessoal", () => {
 });
 
 test("linha de contexto avisa quando o módulo é só planejado", () => {
-  assert.match(contextLine(contextOf("financeiro")), /planejado/);
+  assert.match(contextLine(contextOf("financeiro")), /beta/);
+  assert.match(contextLine(contextOf("metas")), /planejado/);
   assert.doesNotMatch(contextLine(contextOf("hoje")), /planejado/);
   assert.equal(contextLabel(contextOf("agentes")), "Agent Office › Agentes");
   assert.equal(moduleOf("admin").id, "plataforma");

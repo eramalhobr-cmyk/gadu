@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type { Msg } from "@/components/GaduApp";
 import { cookies } from "next/headers";
 import { parseView } from "@/lib/modules";
+import { financeEnabled } from "@/lib/finance/flag";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 import { APP_VERSION } from "@/lib/config";
 import { accessOf } from "@/lib/access";
@@ -46,7 +47,9 @@ export async function loadApp({ google, tab, start }: AppParams = {}) {
       initialBlocked: Array.isArray(settings.blocked) ? settings.blocked.map(String) : [],
       version: APP_VERSION,
       morningLink: morning,
-      initialView: parseView(tab, access.admin) ?? (google ? "conversa" : "hoje"),
+      // FINANCE_ENABLED=0 esconde a tela: o endereço ?tab=financeiro volta para o Hoje.
+      initialView: (() => { const v = parseView(tab, access.admin); return (v === "financeiro" && !financeEnabled() ? null : v) ?? (google ? "conversa" : "hoje"); })(),
+      financeEnabled: financeEnabled(),
       initialTheme: parseTheme((await cookies()).get(THEME_COOKIE)?.value),
       admin: access.admin,
       seenTips: Array.isArray(settings.tips) ? settings.tips.map(String).slice(0, 20) : [],

@@ -12,11 +12,16 @@ const CAT = new Map<string, string>(CATEGORIAS.map((c) => [sem(c), c]));
 // Apelidos comuns que o modelo pode devolver.
 const CAT_ALIAS: Record<string, string> = { supermercado: "Mercado", feira: "Mercado", restaurante: "Restaurantes", lanche: "Restaurantes", gasolina: "Combustível", farmacia: "Farmácia e saúde", saude: "Farmácia e saúde", uber: "Transporte", onibus: "Transporte" };
 
-/** Categoria da lista padrão (sem acento nem maiúscula) ou "Outros". Texto livre fora da lista não é aceito aqui. */
-export function normalizarCategoria(v: unknown): string {
-  if (typeof v !== "string") return "Outros";
+/** Categoria da lista padrão (sem acento nem maiúscula, com apelidos) ou null. */
+export function categoriaConhecida(v: unknown): string | null {
+  if (typeof v !== "string") return null;
   const k = sem(v);
-  return CAT.get(k) ?? (CAT_ALIAS[k] ? CAT_ALIAS[k] : "Outros");
+  return CAT.get(k) ?? CAT_ALIAS[k] ?? null;
+}
+
+/** Categoria da lista padrão ou "Outros". Texto livre fora da lista não é aceito aqui. */
+export function normalizarCategoria(v: unknown): string {
+  return categoriaConhecida(v) ?? "Outros";
 }
 
 /** "débito", "Pix", "cartão de crédito"… para o meio do banco. Sem indicação: débito. */
