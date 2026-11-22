@@ -1,6 +1,7 @@
 "use client";
 import type { ViewId } from "@/lib/modules";
 import type { Theme } from "@/lib/theme";
+import { applyTextSize, readTextSize, TEXT_SIZES, type TextSize } from "@/lib/text-size";
 import { useCallback, useEffect, useState } from "react";
 import { canSpeak, listVoices, voiceLabel, type Speaker } from "@/lib/speech";
 import { DENIED_HELP, deviceLabel, permissionMessage, pushSupport, type PushSupport } from "@/lib/push-client";
@@ -111,11 +112,12 @@ export function SettingsPage(props: {
                   <button key={t} className="theme-opt" aria-pressed={props.theme === t} onClick={() => props.onTheme(t)}>
                     <span className={`theme-swatch ${t}`} aria-hidden="true"><i /><i /></span>
                     <b>{t === "dark" ? "Escuro" : "Claro"}</b>
-                    <span className="muted" style={{ fontSize: 14 }}>{t === "dark" ? "Identidade do GaDu. Melhor à noite." : "Mais legível em ambientes claros."}</span>
+                    <span className="muted" style={{ fontSize: "var(--fs-sm)" }}>{t === "dark" ? "Identidade do GaDu. Melhor à noite." : "Mais legível em ambientes claros."}</span>
                   </button>
                 ))}
               </div>
             </section>
+            <TextSizeCard />
             <VoiceCard {...props} />
           </div>
         </section>
@@ -241,7 +243,7 @@ function SpendCard() {
             {usd(u.total)} <span className="muted" style={{ fontSize: 15 }}>de {usd(u.monthlyBudget)} (teto do mês)</span>
           </div>
           <Bar value={u.total + (u.reserved ?? 0)} max={u.monthlyBudget} />
-          <div className="muted" style={{ fontSize: 14 }}>
+          <div className="muted" style={{ fontSize: "var(--fs-sm)" }}>
             Disponível: {usd(Math.max(0, u.monthlyBudget - u.total - (u.reserved ?? 0)))}
             {(u.reserved ?? 0) > 0 ? ` · ${usd(u.reserved ?? 0)} reservado para respostas em andamento` : ""}
           </div>
@@ -255,8 +257,8 @@ function SpendCard() {
                   <span style={{ fontVariantNumeric: "tabular-nums" }}>{usd(spent)} <span className="muted">/ {usd(limit)}</span></span>
                 </div>
                 <Bar value={spent} max={limit} />
-                {spent >= limit && <div style={{ color: "var(--bad)", fontSize: 14 }}>Limite atingido. O GaDu usa o outro motor até você aumentar.</div>}
-                <div className="muted" style={{ fontSize: 14 }}>{r.hint}</div>
+                {spent >= limit && <div style={{ color: "var(--bad)", fontSize: "var(--fs-sm)" }}>Limite atingido. O GaDu usa o outro motor até você aumentar.</div>}
+                <div className="muted" style={{ fontSize: "var(--fs-sm)" }}>{r.hint}</div>
                 {edit && (
                   <label className="row" style={{ flexWrap: "nowrap" }}>
                     <span className="muted" style={{ whiteSpace: "nowrap" }}>Limite US$</span>
@@ -277,7 +279,7 @@ function SpendCard() {
             )}
           </div>
           {msg && <span className="muted" role="status">{msg}</span>}
-          <p className="muted" style={{ margin: 0, fontSize: 14 }}>Ao chegar no limite de um motor, o GaDu passa para o outro. Com os dois no limite, ele para até o próximo mês.</p>
+          <p className="muted" style={{ margin: 0, fontSize: "var(--fs-sm)" }}>Ao chegar no limite de um motor, o GaDu passa para o outro. Com os dois no limite, ele para até o próximo mês.</p>
         </>
       )}
     </section>
@@ -313,17 +315,17 @@ function VoiceCard(props: { prefs: Prefs; setPrefs: (p: Prefs) => void; voiceOk:
       {!props.voiceOk && <p className="muted" style={{ margin: 0 }}>Este navegador não reconhece voz. No celular, use o Chrome (Android) ou o Safari (iPhone), ou o ditado do teclado.</p>}
       {speakOk && (
         <>
-          <label htmlFor="voice" className="muted" style={{ fontSize: 14 }}>Voz do GaDu</label>
+          <label htmlFor="voice" className="muted" style={{ fontSize: "var(--fs-sm)" }}>Voz do GaDu</label>
           <select id="voice" className="field" value={p.voiceURI} onChange={(e) => { set({ voiceURI: e.target.value }); test({ voiceURI: e.target.value }); }}>
             <option value="">Automática (a mais natural do aparelho)</option>
             {voices.map((v) => <option key={v.voiceURI} value={v.voiceURI}>{voiceLabel(v)}</option>)}
           </select>
-          <label htmlFor="rate" className="row" style={{ justifyContent: "space-between", fontSize: 14 }}>
+          <label htmlFor="rate" className="row" style={{ justifyContent: "space-between", fontSize: "var(--fs-sm)" }}>
             <span className="muted">Velocidade</span><span style={{ fontVariantNumeric: "tabular-nums" }}>{p.rate.toFixed(2).replace(".", ",")}×</span>
           </label>
           <input id="rate" type="range" min={0.7} max={1.6} step={0.05} value={p.rate} onChange={(e) => set({ rate: Number(e.target.value) })} onPointerUp={() => test()} onKeyUp={() => test()} />
           <div><button className="btn btn-sm" onClick={() => test()}>Ouvir exemplo</button></div>
-          <p className="muted" style={{ margin: 0, fontSize: 14 }}>
+          <p className="muted" style={{ margin: 0, fontSize: "var(--fs-sm)" }}>
             Vozes marcadas como “natural” soam menos robóticas. Para ter mais: no iPhone, Ajustes › Acessibilidade › Conteúdo Falado › Vozes › Português (Brasil) e baixe uma voz “Aprimorada” ou “Premium”. No Android, instale as vozes do Google. No computador, o Edge tem as vozes “Online (Natural)”.
           </p>
         </>
@@ -383,10 +385,10 @@ function ConnectionsCard({ morningLink }: { morningLink: string }) {
         </div>
         {g?.connected ? (
           <>
-            <div className="muted" style={{ fontSize: 14 }}>{g.email ?? "Conta Google"}. O GaDu lê agenda e e-mails quando você pergunta. E-mail é só leitura.</div>
+            <div className="muted" style={{ fontSize: "var(--fs-sm)" }}>{g.email ?? "Conta Google"}. O GaDu lê agenda e e-mails quando você pergunta. E-mail é só leitura.</div>
             {g.canWrite
               ? <div className="mono" style={{ color: "var(--sig)" }}>✓ Pode criar eventos (sempre com sua confirmação)</div>
-              : <div className="notice" style={{ fontSize: 14 }}>Para criar eventos pela voz, reconecte uma vez e marque a permissão de agenda. <a className="btn btn-sm" style={{ marginTop: 8 }} href="/api/google/connect">Reconectar Google</a></div>}
+              : <div className="notice" style={{ fontSize: "var(--fs-sm)" }}>Para criar eventos pela voz, reconecte uma vez e marque a permissão de agenda. <a className="btn btn-sm" style={{ marginTop: 8 }} href="/api/google/connect">Reconectar Google</a></div>}
             {confirm ? (
               <div className="row">
                 <button className="btn btn-sm" style={{ borderColor: "var(--bad)", color: "var(--bad)" }} onClick={disconnect}>Desconectar de vez</button>
@@ -397,17 +399,17 @@ function ConnectionsCard({ morningLink }: { morningLink: string }) {
             )}
           </>
         ) : g && !g.configured ? (
-          <div className="muted" style={{ fontSize: 14 }}>Falta configurar as credenciais do Google no servidor. Siga o passo a passo que o GaDu passou.</div>
+          <div className="muted" style={{ fontSize: "var(--fs-sm)" }}>Falta configurar as credenciais do Google no servidor. Siga o passo a passo que o GaDu passou.</div>
         ) : (
           <>
-            <div className="muted" style={{ fontSize: 14 }}>Permite que o GaDu leia sua agenda e seus e-mails para responder e montar o briefing do dia. Ele não envia e-mails nem muda a agenda.</div>
+            <div className="muted" style={{ fontSize: "var(--fs-sm)" }}>Permite que o GaDu leia sua agenda e seus e-mails para responder e montar o briefing do dia. Ele não envia e-mails nem muda a agenda.</div>
             <div><a className="btn btn-pri" href="/api/google/connect">Conectar Google</a></div>
           </>
         )}
       </div>
       <div className="item">
         <label htmlFor="morning">Notícias do Começar o dia</label>
-        <div className="muted" style={{ fontSize: 14 }}>Cole o link do Update Diário no Spotify (Compartilhar › Copiar link). Sem link, abro a busca do Spotify.</div>
+        <div className="muted" style={{ fontSize: "var(--fs-sm)" }}>Cole o link do Update Diário no Spotify (Compartilhar › Copiar link). Sem link, abro a busca do Spotify.</div>
         <div className="row" style={{ flexWrap: "nowrap" }}>
           <input id="morning" className="field" inputMode="url" placeholder="https://open.spotify.com/show/…" value={link} maxLength={300} onChange={(e) => setLink(e.target.value)} />
           <button className="btn" onClick={saveLink}>Salvar</button>
@@ -547,7 +549,7 @@ function NotificationsCard() {
           <input className="field" type="time" style={{ maxWidth: 140, colorScheme: "dark" }} value={briefing.time} onChange={(e) => /^\d{2}:\d{2}$/.test(e.target.value) && saveBriefing({ ...briefing, time: e.target.value })} />
         </label>
       )}
-      <p className="muted" style={{ margin: 0, fontSize: 14 }}>Todo dia, no horário escolhido, chega um resumo da agenda, dos e-mails e um alerta (conflito, atraso). Toque nele para o GaDu começar o dia com você.</p>
+      <p className="muted" style={{ margin: 0, fontSize: "var(--fs-sm)" }}>Todo dia, no horário escolhido, chega um resumo da agenda, dos e-mails e um alerta (conflito, atraso). Toque nele para o GaDu começar o dia com você.</p>
       <label className="switch"><span>Revisão da noite</span><input type="checkbox" role="switch" className="sr" checked={evening.enabled} onChange={(e) => saveEvening({ ...evening, enabled: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
       {evening.enabled && (
         <label className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
@@ -556,6 +558,30 @@ function NotificationsCard() {
         </label>
       )}
       {msg && <span className="muted" role="status">{msg}</span>}
+    </section>
+  );
+}
+
+/** Tamanho do texto (UX-3): vale na hora, em todas as telas, e fica guardado neste aparelho. */
+function TextSizeCard() {
+  const [size, setSize] = useState<TextSize>("100");
+  useEffect(() => { setSize(readTextSize()); }, []);
+  function pick(t: TextSize) {
+    applyTextSize(t);
+    setSize(t);
+  }
+  return (
+    <section className="card" id="texto">
+      <h2>Tamanho do texto</h2>
+      <div className="text-opts" role="group" aria-label="Tamanho do texto">
+        {TEXT_SIZES.map((t) => (
+          <button key={t.id} className="text-opt" aria-pressed={size === t.id} onClick={() => pick(t.id)}>
+            <span className="aa" aria-hidden="true" style={{ fontSize: `${Math.round(18 * Number(t.id) / 100)}px` }}>Aa</span>
+            <b>{t.label}</b>
+          </button>
+        ))}
+      </div>
+      <p className="text-sample">{TEXT_SIZES.find((t) => t.id === size)?.hint} Vale para todas as telas deste aparelho.</p>
     </section>
   );
 }
