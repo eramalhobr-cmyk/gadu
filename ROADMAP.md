@@ -344,7 +344,7 @@ Estágio: **publicada** (merge `41eb3ed`, 22/11/2026 às 16:44, Brasília). Apro
 - [ ] Validar tela Financeiro e lançamento pela conversa com pessoa logada, em aparelho (390 px)
 - [ ] Próximo: simulador bruto → líquido (INSS/IRRF por ano), teto por categoria, acumulado do ano, fase Conversa (marcar pago e lançar fixos por texto/áudio, log, "a confirmar", regras)
 
-## Validação de uso diário no celular (22/11/2026, branch `fix/mobile-validacao`, **não publicado**)
+## Validação de uso diário no celular (22/11/2026, PR #28, **publicado**; aparelho real pendente)
 - [x] Suíte `e2e/mobile.e2e.cjs` com 5 perfis emulados (Pixel 7, Galaxy S9+, 412x915 Chrome e Samsung Internet, iPhone WebKit), no job `e2e-public` do CI
 - [x] Instalabilidade pelo CDP (`Page.getInstallabilityErrors`), manifest, ícones, service worker e offline verificados (local e produção)
 - [x] Voltar do Android com uma entrada por camada (menu, histórico, assistente)
@@ -353,7 +353,7 @@ Estágio: **publicada** (merge `41eb3ed`, 22/11/2026 às 16:44, Brasília). Apro
 - [x] CSP da tela offline, alvos de toque, `enterkeyhint`/`autocomplete`, `touch-action`
 - [x] Checklist para o Galaxy S26 Ultra e iPhone (docs/CHECKLIST_CELULAR.md)
 - [ ] Rodar o checklist no aparelho de verdade (Chrome, Samsung Internet, iPhone) e registrar
-- [ ] Publicar (PR, CI, validação em produção)
+- [x] Publicar: PR #28 integrado em 22/11/2026 às 17:19 (Brasília), merge `97f4d642ebe695286ceaabc80d83b05cf47b304d`, CI verde, deploy Vercel `success`, e2e público 8/8 e mobile na produção (43/44 antes do ajuste do teste WebKit offline, 44/44 com o ajuste rodando local contra a produção)
 
 ## Próximo ciclo (prioridades, em ordem)
 1. Auditoria de RLS e isolamento multiusuário e multiempresa.

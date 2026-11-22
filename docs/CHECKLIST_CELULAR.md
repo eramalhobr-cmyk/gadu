@@ -27,5 +27,6 @@ Faça uma vez no **Chrome** e repita os itens 2, 4, 5, 6 e 8 no **Samsung Intern
 | 12 | Tema **escuro** e **claro** (Ajustes) e, no Android, modo escuro do sistema | Textos legíveis nos dois; a barra de status acompanha a cor do tema | ☐ |
 | 13 | Girar o celular (se o Android permitir) e dar zoom com dois dedos numa página | Não quebra; o zoom por pinça funciona (acessibilidade) | ☐ |
 | 14 | **iPhone** (Safari › Compartilhar › Adicionar à Tela de Início): abrir pelo ícone e repetir 2, 4–8, 11, 12 | Igual ao Android. Notificação só funciona instalado e com iOS 16.4 ou mais novo; fora disso o GaDu explica | ☐ |
+| 15 | **iPhone, sem internet:** abrir o GaDu uma vez com internet, ligar o modo avião e abrir/recarregar o app | Aparece a tela "sem internet" do GaDu (não a página de erro do Safari). O teste automático do WebKit **não** consegue verificar isso (limitação do `setOffline` do Playwright, ver [TESTES_E2E.md](TESTES_E2E.md)) | ☐ |
 
 Se algo falhar, mande o número do item, o que apareceu na tela e o navegador. O registro vai para o CHANGELOG só depois de feito de fato.

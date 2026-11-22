@@ -1,11 +1,11 @@
 # GaDu · Validações que dependem de aparelhos físicos
 
-Atualizado em 22/11/2026. Os testes automáticos simulam voz, teclado e o botão Voltar. Isso **não substitui** o teste em aparelho. **Nada desta lista foi validado em aparelho de verdade ainda.** Roteiro para o Galaxy S26 Ultra e o iPhone: [CHECKLIST_CELULAR.md](CHECKLIST_CELULAR.md).
+Atualizado em 22/11/2026 (PR #28 publicado às 17:19, Brasília, merge `97f4d642ebe695286ceaabc80d83b05cf47b304d`). Os testes automáticos simulam voz, teclado e o botão Voltar. Isso **não substitui** o teste em aparelho. **Nada desta lista foi validado em aparelho de verdade ainda.** Roteiro para o Galaxy S26 Ultra e o iPhone: [CHECKLIST_CELULAR.md](CHECKLIST_CELULAR.md).
 
 ## O que já foi verificado (emulado, nesta máquina)
 | Verificação | Como | Resultado |
 |---|---|---|
-| Layout, alvos de toque, viewport, campos 16 px, área segura, tema | `e2e/mobile.e2e.cjs`, 5 perfis (Pixel 7, Galaxy S9+, 412x915 Chrome e Samsung Internet, iPhone 14 WebKit) | 44/44 contra `next start` local |
+| Layout, alvos de toque, viewport, campos 16 px, área segura, tema | `e2e/mobile.e2e.cjs`, 5 perfis (Pixel 7, Galaxy S9+, 412x915 Chrome e Samsung Internet, iPhone 14 WebKit) | 44/44 contra `next start` local; contra a produção (PR #28 publicado em 22/11/2026): 43/44 antes do ajuste do teste (só a navegação offline no WebKit, limitação do Playwright) e 44/44 com o ajuste, rodando local contra a produção |
 | Manifest, ícones, service worker, offline, CSP | mesma suíte | idem |
 | Instalável no Chrome | `Page.getInstallabilityErrors` vazio e manifest sem avisos (CDP) | 4 perfis, local e produção |
 | Voltar com várias camadas abertas | `src/lib/overlay-history.test.ts` (7 testes, histórico simulado) | passam. **Não** prova o gesto de voltar do Android |

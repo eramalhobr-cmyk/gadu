@@ -192,9 +192,13 @@ for (const prof of PROFILES) {
       // A tela offline já está guardada no aparelho (pré-cache feito na instalação do service worker).
       const cached = await p.evaluate(async () => { const r = await caches.match("/offline"); return r ? await r.text() : ""; });
       assert.match(cached, /sem internet/i, "/offline guardada no cache");
-      // Navegação sem internet. No WebKit sobre http a página passa por um proxy do teste (ver open()), que ignora o modo offline:
-      // lá vale só a checagem do cache acima.
-      if (!(prof.engine === "webkit" && BASE.startsWith("http:"))) {
+      // Navegação sem internet. LIMITAÇÃO CONHECIDA do Playwright WebKit: context.setOffline(true) corta a rede antes do
+      // service worker, então nem um recurso já guardado no cache dele é entregue (diagnóstico em docs/TESTES_E2E.md).
+      // No WebKit a navegação offline NÃO é verificada aqui: vale a checagem do cache acima + conferir no iPhone real
+      // (docs/CHECKLIST_CELULAR.md). Chromium verifica de verdade.
+      if (prof.engine === "webkit") {
+        console.log("# WebKit: navegação offline não verificável via setOffline; conferir no iPhone (docs/CHECKLIST_CELULAR.md)");
+      } else {
         await p.evaluate(() => (navigator.serviceWorker.controller ? 1 : new Promise((r) => navigator.serviceWorker.addEventListener("controllerchange", r))));
         await p.context().setOffline(true);
         await p.goto(`${BASE}/login?off=1`).catch(() => {});
