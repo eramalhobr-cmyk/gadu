@@ -105,7 +105,11 @@ wait
 expect "teto global livre: reservas somadas das duas pessoas" "$(sum2 "$(num "$WORK/out_g3")" "$(num "$WORK/out_g4")")" 4
 
 # 6) Liquidação simultânea da MESMA reserva: o custo é gravado uma única vez (idempotência sob corrida).
-RID=$("${PSQL[@]}" -At -c "select id from public.ai_reservations where user_id = '$B2' and status = 'reserved' limit 1")
+# A divisão das 4 reservas entre b2 e b3 na corrida acima não é determinística (b2 pode ficar sem nenhuma).
+# Por isso libera tudo e cria UMA reserva própria de b2 para esta etapa.
+"${PSQL[@]}" -c "update public.ai_reservations set status = 'released' where status = 'reserved'" >/dev/null
+RID=$("${PSQL[@]}" -At -c "begin; set local role service_role; select public.server_reserve_ai_budget('$B2', 'chat', 0.25) ->> 'reservation_id'; commit;" | grep -E '^[0-9a-f-]{36}$' | head -1)
+[ -n "$RID" ] || RID=$("${PSQL[@]}" -At -c "select id from public.ai_reservations where user_id = '$B2' and status = 'reserved' order by created_at desc limit 1")
 SC=$(concurrent liquida "$B2" 20 "(public.server_settle_ai_budget('$B2', '$RID', 'anthropic', 'x', 10, 10, 0.05) ->> 'ok')::boolean" service_role)
 expect "liquidação: 20 chamadas simultâneas da mesma reserva, todas ok (idempotente)" "$SC" 20
 expect "liquidação: consumo gravado uma única vez" "$("${PSQL[@]}" -At -c "select count(*) || ':' || sum(cost_usd) from public.usage_events where user_id = '$B2'")" "1:0.050000"
