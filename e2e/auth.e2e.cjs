@@ -74,6 +74,39 @@ describe("app com login", () => {
     await p.context().close();
   });
 
+  test("Hoje: até 5 blocos, lista única com Feito/Adiar no item e Desfazer", async () => {
+    const p = await page(PHONE);
+    await fixtures(p, { tasks: [] });
+    const patches = [];
+    // Depois de fixtures: este tratador vem primeiro e deixa gravar (PATCH) só a tarefa fictícia.
+    await p.route("**/rest/v1/tasks**", async (route) => {
+      if (route.request().method() === "PATCH") { patches.push(route.request().postDataJSON()); return route.fulfill({ status: 204, body: "" }); }
+      return route.fallback();
+    });
+    await p.route("**/api/attention**", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+      enabled: true, more: 0, unavailable: [],
+      items: [{ tag: "T1", kind: "atrasada", label: "Tarefa atrasada", text: "Tarefa fictícia de teste", view: "tarefas", omitted: false, ref: { table: "tasks", id: 999999 } }],
+    }) }));
+    await p.goto(`${BASE}/app?tab=hoje`);
+    await p.waitForSelector(".attn-i >> text=Tarefa fictícia de teste");
+    const blocks = await p.$$eval(".today2 > section, .today2 > .panel", (els) => els.length);
+    assert.ok(blocks <= 6, `blocos no Hoje: ${blocks}`);
+    for (const gone of ["Módulos do GaDu", "Precisa de atenção", "Recomendações do GaDu"]) assert.equal(await p.$(`text=${gone}`), null, gone);
+    assert.ok(await p.$(".talk-big >> text=Falar com o GaDu"), "botão grande de falar");
+    await p.click(".attn-i [aria-label^='Feito']");
+    await p.waitForSelector(".undo-toast >> text=Desfazer");
+    assert.equal(await p.$(".attn-i >> text=Tarefa fictícia de teste"), null, "some da lista");
+    await p.click(".undo-toast >> text=Desfazer");
+    await p.waitForSelector(".attn-i >> text=Tarefa fictícia de teste");
+    assert.equal(patches.length, 2, "gravou e desfez");
+    assert.equal(patches[0].status, "done");
+    assert.equal(patches[1].status, "open");
+    // Lembretes: o número abre a lista aqui mesmo.
+    await p.click(".see-i[aria-controls=rem-list]");
+    await p.waitForSelector("#rem-list");
+    await p.context().close();
+  });
+
   test("conteúdo não fica escondido atrás da barra de baixo", async () => {
     const p = await page(PHONE);
     await p.goto(`${BASE}/app?tab=hoje`);

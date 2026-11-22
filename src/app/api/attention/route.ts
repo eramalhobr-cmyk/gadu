@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { collectAttention } from "@/lib/core/collect";
 import { coreEnabled } from "@/lib/core/flag";
-import { toItem } from "@/lib/core/format";
+import { toActionItem } from "@/lib/core/format";
 import { googleReader } from "@/lib/core/google-adapter";
 import { planFor } from "@/lib/core/plan";
 import { signedIn } from "../google/_auth";
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
       plan: planFor("atencao_hoje", { maxFacts: q.data.limit }),
     });
     return NextResponse.json(
-      { enabled: true, items: r.facts.map(toItem), more: r.more, unavailable: r.unavailable.map((u) => ({ source: u.source, reason: u.reason, text: u.text })) },
+      { enabled: true, items: r.facts.map(toActionItem), more: r.more, unavailable: r.unavailable.map((u) => ({ source: u.source, reason: u.reason, text: u.text })) },
       { headers: { "cache-control": "no-store" } },
     );
   } catch {

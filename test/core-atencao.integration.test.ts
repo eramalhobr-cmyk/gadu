@@ -288,6 +288,10 @@ test("/api/attention: itens só da sessão, com origem, sem IA e sem Fontes alhe
   const j = await res.json();
   assert.equal(j.enabled, true);
   assert.ok(j.items.some((i: { tag: string; view: string }) => i.tag === "T1" && i.view === "tarefas"));
+  // UX-2: tarefa traz a referência da linha para Feito/Adiar no próprio item; e-mail e agenda não trazem.
+  const t1 = j.items.find((i: { tag: string }) => i.tag === "T1");
+  assert.equal(t1.ref?.table, "tasks");
+  assert.ok(j.items.filter((i: { kind: string }) => i.kind === "email" || i.kind === "evento").every((i: { ref?: unknown }) => i.ref === undefined));
   assert.ok(!JSON.stringify(j).includes("SEGREDO-B") && !/Acme/i.test(JSON.stringify(j)));
   assert.deepEqual(j.unavailable.map((u: { source: string }) => u.source), ["agenda", "email"]);
   assert.equal(providerCalls.length + completeCalls, 0, "custo zero de modelo");

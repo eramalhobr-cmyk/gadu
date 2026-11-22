@@ -39,6 +39,17 @@ export function toItem(f: AttentionFact): SourceItem {
   return { tag: f.tag, kind: f.kind, label: f.label, text, view: f.view, ...(f.href ? { href: f.href } : {}), omitted: f.omitted };
 }
 
+/** Item da tela Hoje (UX-2): com a referência da linha quando dá para agir no próprio item (Feito/Adiar).
+ * Só tarefas e lembretes da própria pessoa; a ação grava pelo cliente com a sessão dela (RLS). */
+export type ActionItem = SourceItem & { ref?: { table: "tasks" | "reminders"; id: number } };
+export function toActionItem(f: AttentionFact): ActionItem {
+  const item: ActionItem = toItem(f);
+  const { table, id } = f.source;
+  const n = typeof id === "number" ? id : /^\d+$/.test(String(id)) ? Number(id) : NaN;
+  if ((table === "tasks" || table === "reminders") && Number.isSafeInteger(n)) item.ref = { table, id: n };
+  return item;
+}
+
 export const DEFAULT_LIMITS = { maxFacts: ATENCAO_HOJE.maxFacts, maxChars: ATENCAO_HOJE.maxChars };
 
 /** "2 tarefas, 1 lembrete, 1 compromisso" para o resumo de "Fontes". */

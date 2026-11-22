@@ -6,6 +6,30 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-22 · UX-2 · Tela Hoje curta: 5 blocos, "Falar com o GaDu" e uma lista só com Feito/Adiar (branch `feat/ux-hoje`)
+- **Feito por:** Cursor (Grok Bot).
+- **Estágio:** desenvolvido e testado localmente. A publicação é registrada em docs/HANDOFF.md e no PROJECT_STATUS depois do merge.
+- **Hoje em 5 blocos:**
+  1. saudação com o botão grande **"Falar com o GaDu"** e a ação do momento;
+  2. "Agora", com o próximo compromisso ou um convite para conectar o Google;
+  3. **uma lista única "Merece sua atenção"**;
+  4. "Peça com um toque", com 3 frases prontas;
+  5. "Ver tudo": tarefas, compromissos, lembretes e Mais, todos tocáveis. Os lembretes abrem aqui mesmo, com "+ Novo".
+- **Rolagem:** a 412 × 915, com dados fictícios, caiu de cerca de 4,7 telas (3.765 px) para cerca de 2,1 telas (1.663 px).
+- **Lista única:** junta o Core (tarefas, lembretes, compromissos e e-mails), as metas que pedem atenção e as memórias para revisar.
+  - Tarefas e lembretes têm **Feito** e **Adiar** (para amanhã) no próprio item, com aviso **"Desfazer"** por 6 s.
+  - Saíram os blocos duplicados "Precisa de atenção" (tarefas, compromissos, lembretes e e-mails), "Suas metas", "Recomendações" e o catálogo "Módulos do GaDu".
+- **API:** `/api/attention` passa a mandar `ref` (tabela e id) só em tarefas e lembretes da própria pessoa. A gravação continua pelo cliente com a sessão (RLS), como já era no Hoje.
+- **Letra e toque:** no Hoje, corpo com no mínimo 16 px e botões de 48 px (antes havia 15 textos de 11 px).
+- Tocar no título do topo volta ao começo da tela.
+- **Testes executados (22/11/2026):**
+  - `npm run typecheck` ok;
+  - `npm test`: 165 unitários e 126 de integração, 0 falhas; o teste de integração de `/api/attention` passou a conferir `ref`;
+  - `npm run build` ok;
+  - Playwright num app local com dados fictícios: Feito, Desfazer, Adiar de tarefa e de lembrete gravam e revertem; a lista de lembretes abre pelo número; nenhum alvo abaixo de 48 px e nenhum texto abaixo de 16 px no conteúdo, salvo a data e os números grandes.
+  - Novo teste no `e2e/auth.e2e.cjs` (não rodado: exige credenciais).
+- **Fica para depois:** "Virar tarefa" a partir de um e-mail (o e-mail abre no Gmail pela lista); janelas livres da agenda (as antigas "Recomendações") pelo chat ("Priorizar meu dia").
+
 ## 2026-11-22 · UX-1 · Navegação simples: microfone no centro, "Mais" no lugar de Módulos, sem menu lateral no celular (branch `feat/ux-navegacao`)
 - **Feito por:** Cursor (Grok Bot).
 - **Estágio:** desenvolvido e testado localmente. A publicação é registrada em docs/HANDOFF.md e no PROJECT_STATUS depois do merge.

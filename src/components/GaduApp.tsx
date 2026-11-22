@@ -609,7 +609,8 @@ export function GaduApp(props: {
           <a className="bar-brand" href="/app" aria-label="GaDu, início">
             <span className="brand">GaDu</span>
           </a>
-          <div className="bar-title">
+          {/* Tocar no título volta ao topo da tela (atalho de quem rolou muito). */}
+          <div className="bar-title" onClick={() => document.getElementById("conteudo")?.scrollTo({ top: 0, behavior: "smooth" })}>
             <h1>{title}</h1>
           </div>
           <div className="bar-actions">
