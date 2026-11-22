@@ -4,6 +4,9 @@
 html, body { height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.5 var(--body); -webkit-font-smoothing: antialiased; overscroll-behavior: none; }
 button, input, textarea { font: inherit; color: inherit; }
+/* Celular: sem atraso de duplo toque, sem o retângulo cinza do toque, texto não reescala ao girar. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+a, button, summary, label, select, [role="button"], [role="switch"], input[type="checkbox"], input[type="range"] { touch-action: manipulation; }
 button { cursor: pointer; }
 a { color: var(--sig); }
 :focus-visible { outline: 2px solid var(--sig); outline-offset: 2px; }

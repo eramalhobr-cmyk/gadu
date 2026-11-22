@@ -143,7 +143,7 @@ export function Assistant(props: {
           </button>
           <label className="sr" htmlFor="assist-msg">Mensagem para o GaDu</label>
           <textarea
-            id="assist-msg" className="field" rows={1} maxLength={4000}
+            id="assist-msg" className="field" rows={1} maxLength={4000} enterKeyHint="send" autoComplete="off" autoCapitalize="sentences"
             value={props.draft}
             placeholder={props.listening ? "Escutando…" : "Pergunte ou peça algo"}
             onChange={(e) => props.onDraft(e.target.value)}

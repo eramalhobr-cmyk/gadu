@@ -51,11 +51,11 @@ export function EmailLogin() {
   return (
     <form onSubmit={mode === "password" ? signIn : sendLink} style={box}>
       <label className="sr" htmlFor="email">E-mail</label>
-      <input id="email" className="field" type="email" inputMode="email" autoComplete="username" required placeholder="seu@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <input id="email" className="field" type="email" inputMode="email" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" required placeholder="seu@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} />
       {mode === "password" && (
         <>
           <label className="sr" htmlFor="password">Senha</label>
-          <input id="password" className="field" type="password" autoComplete="current-password" required placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <input id="password" className="field" type="password" autoComplete="current-password" enterKeyHint="go" required placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} />
         </>
       )}
       <button className="btn btn-pri" type="submit" disabled={busy || !email || (mode === "password" && !password)}>

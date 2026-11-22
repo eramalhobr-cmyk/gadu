@@ -16,6 +16,10 @@ test("erros do microfone: cancelar não avisa; desconhecido tem mensagem genéri
   assert.equal(micErrorMessage("aborted"), "");
   assert.match(micErrorMessage("no-speech"), /Não ouvi nada/);
   assert.match(micErrorMessage("not-allowed"), /bloqueado/);
+  assert.match(micErrorMessage("service-not-allowed"), /Chrome/);
+  assert.match(micErrorMessage("no-speech"), /Não ouvi/);
+  assert.match(micErrorMessage("network"), /internet/);
+  assert.equal(micErrorMessage("aborted"), "");
   assert.match(micErrorMessage("qualquer-coisa"), /microfone/);
 });
 

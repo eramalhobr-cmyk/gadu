@@ -4,6 +4,7 @@ import type { Theme } from "@/lib/theme";
 import { PageHeader } from "./kit";
 import { useCallback, useEffect, useState } from "react";
 import { canSpeak, listVoices, voiceLabel, type Speaker } from "@/lib/speech";
+import { DENIED_HELP, deviceLabel, permissionMessage, pushSupport, type PushSupport } from "@/lib/push-client";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 export type Prefs = { voice: boolean; handsFree: boolean; voiceURI: string; rate: number ; autoSend: boolean };
@@ -422,7 +423,7 @@ function b64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
 }
 
 function NotificationsCard() {
-  const [support, setSupport] = useState<"ok" | "install" | "no" | null>(null);
+  const [support, setSupport] = useState<PushSupport | null>(null);
   const [perm, setPerm] = useState<NotificationPermission>("default");
   const [sub, setSub] = useState<PushSubscription | null>(null);
   const [briefing, setBriefing] = useState({ enabled: true, time: "07:00" });
@@ -432,11 +433,10 @@ function NotificationsCard() {
   const db = supabaseBrowser();
 
   useEffect(() => {
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
     const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
-    const has = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
-    setSupport(has ? "ok" : ios && !standalone ? "install" : "no");
-    if (!has) return;
+    const sup = pushSupport({ ua: navigator.userAgent, standalone, hasServiceWorker: "serviceWorker" in navigator, hasPushManager: "PushManager" in window, hasNotification: typeof Notification !== "undefined" });
+    setSupport(sup);
+    if (sup !== "ok") return;
     setPerm(Notification.permission);
     navigator.serviceWorker.ready.then((r) => r.pushManager.getSubscription()).then(setSub).catch(() => setSub(null));
   }, []);
@@ -479,13 +479,13 @@ function NotificationsCard() {
     try {
       const p = await Notification.requestPermission();
       setPerm(p);
-      if (p !== "granted") return setMsg("As notificações foram bloqueadas. Libere nas configurações do navegador para este site.");
+      if (p !== "granted") return setMsg(permissionMessage(p) ?? "");
       const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!key) return setMsg("Notificações ainda não configuradas no servidor.");
       const reg = await navigator.serviceWorker.ready;
       const s = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(key) }));
       const j = s.toJSON();
-      const device = /iphone|ipad/i.test(navigator.userAgent) ? "iPhone" : /android/i.test(navigator.userAgent) ? "Android" : "Computador";
+      const device = deviceLabel(navigator.userAgent);
       const r = await fetch("/api/push", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ endpoint: j.endpoint, keys: j.keys, device }) });
       if (!r.ok) return setMsg("Não consegui salvar a inscrição. Tente de novo.");
       setSub(s);
@@ -519,8 +519,10 @@ function NotificationsCard() {
       {support === "install" && (
         <p className="muted" style={{ margin: 0 }}>No iPhone, as notificações só funcionam com o GaDu instalado: no Safari, toque em Compartilhar › Adicionar à Tela de Início e abra o GaDu por lá.</p>
       )}
-      {support === "no" && <p className="muted" style={{ margin: 0 }}>Este navegador não recebe notificações.</p>}
-      {support === "ok" && (
+      {support === "ios-old" && <p className="muted" style={{ margin: 0 }}>Para receber notificações no iPhone é preciso o iOS 16.4 ou mais novo. Atualize o sistema e abra o GaDu pela tela de início.</p>}
+      {support === "no" && <p className="muted" style={{ margin: 0 }}>Este navegador não recebe notificações. No Android, use o Chrome.</p>}
+      {support === "ok" && perm === "denied" && <p className="muted" style={{ margin: 0 }} role="status">{DENIED_HELP}</p>}
+      {support === "ok" && perm !== "denied" && (
         sub && perm === "granted" ? (
           <div className="row">
             <span className="mono" style={{ color: "var(--sig)" }}>Ligadas neste aparelho</span>

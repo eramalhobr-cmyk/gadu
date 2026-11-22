@@ -12,6 +12,8 @@ type Rec = {
 
 export function canListen(): boolean {
   if (typeof window === "undefined") return false;
+  // O reconhecimento só funciona em HTTPS (ou localhost): fora disso o microfone nem é oferecido.
+  if (window.isSecureContext === false) return false;
   const w = window as unknown as Record<string, unknown>;
   return Boolean(w.SpeechRecognition || w.webkitSpeechRecognition);
 }
@@ -27,7 +29,8 @@ export function createRecognizer(handlers: {
   const w = window as unknown as Record<string, new () => Rec>;
   const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition;
   if (!Ctor) return null;
-  const rec = new Ctor();
+  let rec: Rec;
+  try { rec = new Ctor(); } catch { return null; }
   rec.lang = "pt-BR";
   rec.interimResults = true;
   rec.continuous = false;
@@ -112,11 +115,37 @@ export function speakTimeout(text: string, rate = 1): number {
   return Math.round(4000 + (text.length / perSecond) * 1000);
 }
 
-/** Chrome (computador e Android) para de falar depois de ~15 s se não for "acordado". iPhone não precisa. */
-function needsKeepAlive(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent;
-  return /Chrome|Chromium|CriOS|Edg\//.test(ua) && !/iPhone|iPad|iPod/.test(ua);
+/** Chrome do computador para de falar depois de ~15 s se não for "acordado" (pause + resume).
+ * Não vale para o iPhone (não precisa) nem para o Android: lá pause() equivale a cancelar a fala, então o
+ * "despertador" mataria a resposta. No Android o corte é evitado dividindo o texto em trechos curtos. */
+export function needsKeepAlive(ua = typeof navigator === "undefined" ? "" : navigator.userAgent): boolean {
+  return /Chrome|Chromium|CriOS|Edg\//.test(ua) && !/iPhone|iPad|iPod|Android/.test(ua);
+}
+
+/** Tamanho máximo de um trecho falado. O Chrome do Android corta falas longas (~200 a 300 caracteres). */
+export const MAX_UTTERANCE = 170;
+
+/** Divide o texto em trechos de até `max` caracteres, preferindo o fim de frase, depois vírgula/ponto e vírgula, depois espaço.
+ * Nunca perde texto: juntar os trechos com espaço devolve o texto original (sem espaços sobrando). */
+export function splitForSpeech(text: string, max = MAX_UTTERANCE): string[] {
+  const out: string[] = [];
+  let rest = text.replace(/\s+/g, " ").trim();
+  while (rest.length > max) {
+    const win = rest.slice(0, max + 1);
+    let cut = -1;
+    // [expressão, 1 = o sinal fica no trecho; 0 = o corte é no próprio espaço]
+    for (const [re, keep] of [[/[.!?…:](?=\s)/g, 1], [/[,;](?=\s)/g, 1], [/\s/g, 0]] as const) {
+      let m: RegExpExecArray | null;
+      let last = -1;
+      while ((m = re.exec(win))) last = m.index + keep;
+      if (last >= max * 0.4) { cut = last; break; }
+    }
+    if (cut < 0) cut = max; // palavra gigante sem espaço: corta duro
+    out.push(rest.slice(0, cut).trim());
+    rest = rest.slice(cut).trim();
+  }
+  if (rest) out.push(rest);
+  return out.filter(Boolean);
 }
 
 /** Fala enquanto o texto chega. A 1ª frase sai logo; as seguintes são agrupadas para soar contínuo.
@@ -139,9 +168,14 @@ export class Speaker {
   /** iOS só libera a voz depois de um toque: chame dentro do clique. */
   unlock() {
     if (!canSpeak()) return;
+    window.speechSynthesis.getVoices(); // no Chrome a lista de vozes só carrega depois da primeira consulta (evento voiceschanged)
     const u = new SpeechSynthesisUtterance(" ");
     u.volume = 0;
     window.speechSynthesis.speak(u);
+  }
+  /** Voltou do segundo plano (ou do bloqueio de tela): se a fala ficou em pausa, continua. */
+  resumeIfPaused() {
+    if (canSpeak() && this.queue > 0 && window.speechSynthesis.paused) window.speechSynthesis.resume();
   }
   /** Está falando ou ainda esperando o resto da resposta. */
   get active(): boolean {
@@ -206,6 +240,11 @@ export class Speaker {
   private say(text: string) {
     const clean = speakable(text);
     if (!clean || !/[\p{L}\p{N}]/u.test(clean) || !canSpeak()) return;
+    // Trechos curtos: o Chrome do Android corta falas longas.
+    for (const chunk of splitForSpeech(clean)) this.sayChunk(chunk);
+  }
+  private sayChunk(clean: string) {
+    if (!/[\p{L}\p{N}]/u.test(clean)) return;
     const u = new SpeechSynthesisUtterance(clean);
     const v = this.voice();
     u.lang = v?.lang || "pt-BR";
