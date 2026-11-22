@@ -1,6 +1,6 @@
 # GaDu · Situação do projeto
 
-Atualizado em 22/11/2026, com a segurança P1 desenvolvida e testada localmente na branch `fix/seguranca-p1` (**não publicada**; a produção segue como na tabela abaixo, de 16/11). Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
+Atualizado em 22/11/2026, com a segurança P1 **publicada** (PR #22, merge `cc85040`, migrações aplicadas e deploy no ar; evidências em "Segurança P1: publicação" abaixo). A tabela de produção abaixo é de 16/11 e não foi reescrita. Fonte de verdade: o código na `main` e as evidências abaixo. Intenção e planejamento ficam no [ROADMAP.md](ROADMAP.md); o detalhe por funcionalidade fica em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
 
 ## Ambiente de produção (verificado em 14/11/2026)
 | Item | Estado | Evidência |
@@ -67,7 +67,7 @@ Atualizado em 22/11/2026, com a segurança P1 desenvolvida e testada localmente 
 ## Em andamento
 | Trabalho | Estágio | Onde |
 |---|---|---|
-| **Segurança P1 / fase 0 do Core** (S-01, S-02, S-03 parcial, S-04, S-05 parcial, S-06, S-07, S-10, S-11, S-12) | **Desenvolvida e testada localmente. Não publicada; migrações não aplicadas no Supabase; painel do Supabase não alterado.** Aprovação para o código já dada; falta publicar na ordem do manual | branch `fix/seguranca-p1`; [docs/SEGURANCA_P1_MANUAL.md](docs/SEGURANCA_P1_MANUAL.md) |
+| **Segurança P1 / fase 0 do Core** (S-01, S-02, S-03 parcial, S-04, S-05 parcial, S-06, S-07, S-10, S-11, S-12) | **Publicada em 22/11/2026**: PR #22 integrado, migrações aditiva e restritiva aplicadas, deploy no ar. Pendentes: senhas vazadas (painel), S-09 (backups), chat logado e encerramento de sessões em produção ainda não verificados | PR #22, merge `cc850400ff982d2463cf750de539fa194b04b5b6`; [docs/SEGURANCA_P1_MANUAL.md](docs/SEGURANCA_P1_MANUAL.md) |
 | Documentação Marco Zero (contexto mestre, auditoria, governança) | Rascunho, não integrado. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` | PR #1 |
 | Especificação de Finanças pessoais | Pronta para revisão, não integrada | PR #5 |
 
@@ -76,16 +76,27 @@ Atualizado em 22/11/2026, com a segurança P1 desenvolvida e testada localmente 
 - Validar a voz, o assistente com o teclado aberto e o Voltar do Android em aparelhos de verdade (iPhone e Android).
 - Levar os testes de interface (`npm run test:e2e`) para o CI, com um usuário de teste dedicado (pede segredo no GitHub: aprovação).
 - Ver Administração e as telas com dados reais (o usuário de teste não é admin e está vazio).
-- Publicar a segurança P1: aplicar a migração aditiva, deploy, aplicar a restritiva (ordem e conferências no [manual](docs/SEGURANCA_P1_MANUAL.md)). Inclui a etapa 2 da cota (remover `consume_quota`).
-- Passos manuais no painel: proteção contra senhas vazadas, confirmar plano e backups (RPO e RTO), ensaiar uma restauração; só depois decidir sobre os backups lógicos.
+- Segurança P1 publicada (22/11). Falta verificar em produção, com uma pessoa logada, o chat e o encerramento de sessões ao bloquear (manual, seções 1.3 e etapa 4).
+- Passos manuais no painel: proteção contra senhas vazadas; S-09: o plano é Free, então decidir entre plano Pro ou dump lógico agendado; só depois decidir sobre os backups lógicos.
 - Decidir o destino do usuário de teste e da liberação do host do Supabase no ambiente "Gadu".
 - Auditoria completa de RLS e isolamento; administração de créditos por pessoa.
 - Monitoramento e alerta de erro; testes de ponta a ponta automatizados.
 - Módulos planejados, sem código: Financeiro, 3D Studio, Agent Office (além dos agentes), Agent Office Studio.
 
+## Segurança P1: publicação (22/11/2026)
+- **PR #22** integrado em 22/11/2026 às 14:54 (Brasília), merge commit `cc850400ff982d2463cf750de539fa194b04b5b6`. CI do PR verde: `verify`, `e2e-public`, `database`.
+- **Migrações no Supabase de produção:** aditiva aplicada antes do deploy (versão `20261122175405`, `seguranca_p1_aditiva`); restritiva aplicada depois do deploy (versão `20261122175542`, `seguranca_p1_restritiva`).
+- **Deploy da Vercel** (`gadu-agent`) do merge commit: "Deployment has completed". Site: home 200, `/app` redireciona para `/login`, `/api/chat` sem sessão 401, `/api/health` ok.
+- **Código novo no ar:** uma tentativa de login com e-mail fictício gerou linhas em `private.rate_limits` (`password_ip` e `password_email`).
+- **Banco depois da restritiva:** `consume_quota` não existe; `authenticated` sem EXECUTE em `settle_ai_budget` e sem INSERT em `usage_events`; `anon` com 0 privilégios de tabela em `public`; `consume_daily_quota` e `budget_status` continuam para `authenticated`.
+- **Assessor de segurança do Supabase:** avisos de função SECURITY DEFINER caíram de 6 para 2 (`budget_status` e `consume_daily_quota`, intencionais). Senhas vazadas continua desligado (passo manual).
+- **e2e público** (6 testes) contra a produção: 6 passaram.
+- **Não verificado:** chat com uma pessoa logada em produção (o e2e com login precisa de credenciais); encerramento de sessões ao bloquear em produção.
+- **S-09:** plano Supabase da organização é Free (sem backups automáticos baixáveis nem PITR). Segue pendente; depende de decisão do Eduardo: plano Pro ou dump lógico agendado.
+
 ## Problemas conhecidos e riscos
 Matriz completa, com evidências e o **status de cada S-xx**: [docs/SECURITY_AUDIT_2026-11-15.md](docs/SECURITY_AUDIT_2026-11-15.md).
-**Em produção hoje (até publicar a segurança P1)** os riscos abaixo continuam abertos. Já estão **corrigidos no código e nas migrações da branch `fix/seguranca-p1`, testados só localmente**:
+**Corrigidos pela segurança P1, publicada em 22/11/2026** (descrições abaixo são do risco original; evidências de produção em "Segurança P1: publicação"):
 - **S-01 (P1, custo):** uma pessoa logada pode liquidar a própria reserva com custo 0 pela API do Supabase e escapar do teto mensal (a cota diária continua valendo). Corrigido na branch (orçamento só pelo servidor).
 - **S-02:** resposta cancelada no meio não registra custo. Corrigido na branch (liquidação por estimativa).
 - **S-07, S-10, S-12:** `consume_quota` ainda existe e é usada como contingência; `usage_events` aceita insert da pessoa; `anon` tem SELECT nas tabelas. Corrigidos na migração restritiva da branch.
@@ -93,14 +104,14 @@ Matriz completa, com evidências e o **status de cada S-xx**: [docs/SECURITY_AUD
 - **Seguem abertos, mesmo depois da branch:** S-03 senhas vazadas (painel, manual), S-05 RLS de escrita por acesso, S-08 (organizações), S-09 (confirmar backups), S-13, S-14, S-15.
 1. App em `iad1` (EUA) e banco em `sa-east-1` (São Paulo): latência extra a cada consulta. Avaliar `gru1`.
 2. A proteção contra senhas vazadas está desligada no Supabase Auth (passo manual).
-3. O backup automático do plano Supabase não foi confirmado no painel (passo manual).
+3. O plano Supabase da organização é Free: sem backups automáticos baixáveis nem PITR (S-09 pendente, decisão do Eduardo: plano Pro ou dump lógico agendado).
 4. O cruzamento de dados entre módulos, organizações ou clientes não existe: o contexto do assistente é só um rótulo, e o escopo é sempre o da própria pessoa.
 5. A estabilidade da voz foi testada com uma síntese de voz simulada; falta confirmar nos aparelhos.
-6. O encerramento de sessões ao bloquear (`server_revoke_user_sessions`, apaga `auth.sessions`) foi testado só no banco local com uma imitação do Auth; confirmar em produção (manual, seção 1.3). Se falhar, o bloqueio continua valendo pelo `members`.
+6. O encerramento de sessões ao bloquear (`server_revoke_user_sessions`, apaga `auth.sessions`) foi testado só no banco local com uma imitação do Auth; **não verificado em produção** (manual, seção 1.3). Se falhar, o bloqueio continua valendo pelo `members`.
 7. Se o contador de tentativas de login estiver indisponível, o login **não** é travado (decisão registrada no manual, seção 5).
 
 ## Próximas prioridades (em ordem)
-1. **Publicar a segurança P1** (fase 0 do Core), já desenvolvida e testada localmente: migração aditiva → deploy → migração restritiva, conforme o [manual](docs/SEGURANCA_P1_MANUAL.md). Depois: senhas vazadas (painel), confirmação de backups e ensaio de restauração (S-09), S-05 (RLS de escrita por acesso).
+1. **Fechar o que sobrou da segurança P1** (já publicada): senhas vazadas (painel), S-09 (decidir plano Pro ou dump lógico agendado), verificar chat logado e encerramento de sessões em produção, S-05 (RLS de escrita por acesso).
 2. **Core Contextual MVP, fase 1** (escopo pessoal, sem banco novo): primeira entrega proposta em [docs/CORE_ATENCAO_HOJE.md](docs/CORE_ATENCAO_HOJE.md), aguardando decisão; plano geral em [docs/CORE_CONTEXTUAL_MVP.md](docs/CORE_CONTEXTUAL_MVP.md).
 3. Testes com login no CI, conforme a proposta em [docs/TESTES_E2E.md](docs/TESTES_E2E.md) (precisa de segredo no GitHub: aprovação).
 4. Validação em aparelhos: roteiro curto em [docs/ROTEIRO_ANDROID.md](docs/ROTEIRO_ANDROID.md); lista completa em [docs/VALIDACAO_APARELHOS.md](docs/VALIDACAO_APARELHOS.md).
@@ -110,7 +121,7 @@ Matriz completa, com evidências e o **status de cada S-xx**: [docs/SECURITY_AUD
 8. Observabilidade e créditos por pessoa.
 
 ## Ponto de retomada (para qualquer agente)
-0. **Ponto de retomada atual (22/11/2026):** a branch `fix/seguranca-p1` tem a segurança P1 pronta e testada localmente (commits em português, sem push). Próximo passo: revisar, abrir o PR, esperar o CI e publicar na ordem do manual, com a aprovação do Eduardo em cada passo sensível (aplicar migração, deploy). Depois do deploy, registrar aqui commit, deploy e evidências de produção.
+0. **Ponto de retomada atual (22/11/2026):** a segurança P1 está publicada (PR #22). Próximos passos: decisão do Eduardo sobre S-09, ligar senhas vazadas no painel, verificar em produção o chat logado e o encerramento de sessões, depois S-05. Alto risco: aprovação explícita a cada passo.
 1. Leia `CLAUDE.md`, este arquivo, [docs/FAST_TRACK.md](docs/FAST_TRACK.md) e [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md). O handoff técnico está em `docs/CLAUDE_HANDOFF_2026-11-12.md`.
 2. Confira o estado real: `git log origin/main -5`, PRs abertos no GitHub, o último deploy de produção na Vercel e `list_migrations` no Supabase.
 3. Classifique o que vai fazer: baixo risco (UI, docs) segue o processo simplificado; alto risco (banco, auth, custo, permissões) exige aprovação explícita do Eduardo a cada passo.

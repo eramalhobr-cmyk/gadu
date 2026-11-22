@@ -2,7 +2,7 @@
 
 Para o Eduardo. Cobre o que **não está no código**: a ordem de implantação das duas migrações, o que conferir no painel do Supabase (senhas vazadas, backups, restauração) e, opcionalmente, o limite de tentativas na Vercel. Contexto: [SECURITY_AUDIT_2026-11-15.md](SECURITY_AUDIT_2026-11-15.md).
 
-Estado desta entrega: código, migrações e testes **desenvolvidos e testados localmente**, na branch `fix/seguranca-p1`. **Nada foi publicado, nenhuma migração foi aplicada no Supabase e nenhuma configuração do painel foi mudada.** Cada passo abaixo pede a sua aprovação.
+Estado desta entrega (atualizado em 22/11/2026): **publicada** (PR #22, merge `cc850400ff982d2463cf750de539fa194b04b5b6`). As duas migrações foram aplicadas na produção (aditiva `20261122175405`, restritiva `20261122175542`) e o deploy da Vercel está no ar. **Nenhuma configuração do painel foi mudada.** Os passos de publicação (seção 1) estão marcados como feitos; as seções 2 a 4 continuam pendentes.
 
 Nenhum valor secreto aparece aqui. Chaves ficam só nas variáveis de ambiente da Vercel e do Supabase.
 
@@ -14,13 +14,13 @@ As migrações foram divididas para o chat **não cair** em produção:
 
 | Etapa | O que fazer | Por que nessa ordem |
 |---|---|---|
-| 0 | Conferir backup do banco (seção 3). Conferir na Vercel que `SUPABASE_SECRET_KEY` existe em Production | O app novo chama as funções de orçamento com essa chave. Sem ela, o chat **bloqueia** (fail closed) |
-| 1 | Aplicar `supabase/migrations/20261122120001_seguranca_p1_aditiva.sql` | Só adiciona. O app de hoje continua funcionando (provado em `supabase/tests/compat/aditiva_compat.sql`) |
-| 2 | Conferir a etapa 1 (consultas da seção 1.1) | Garante que as funções novas existem antes do deploy |
-| 3 | Fazer o merge e o deploy do app novo na Vercel | O app novo usa `server_reserve/settle/release_ai_budget` e não usa mais `consume_quota` |
-| 4 | Testar no app: enviar uma mensagem no chat e conferir que o consumo apareceu em Ajustes | Valida o app novo com o banco da etapa 1 |
-| 5 | Aplicar `supabase/migrations/20261122120002_seguranca_p1_restritiva.sql` | Só agora revoga as funções antigas, `consume_quota`, o insert em `usage_events` e o `anon` |
-| 6 | Conferir a etapa 5 (consultas da seção 1.2) e repetir o teste do chat | Fecha o ciclo |
+| 0 | ⚠️ Não feito como descrito: o plano Supabase é Free, sem backups baixáveis (ver seção 3). A existência de `SUPABASE_SECRET_KEY` na Vercel não foi registrada como conferida. Conferir backup do banco (seção 3). Conferir na Vercel que `SUPABASE_SECRET_KEY` existe em Production | O app novo chama as funções de orçamento com essa chave. Sem ela, o chat **bloqueia** (fail closed) |
+| 1 | ✅ Feito (versão `20261122175405`). Aplicar `supabase/migrations/20261122120001_seguranca_p1_aditiva.sql` | Só adiciona. O app de hoje continua funcionando (provado em `supabase/tests/compat/aditiva_compat.sql`) |
+| 2 | ✅ Feito. Conferir a etapa 1 (consultas da seção 1.1) | Garante que as funções novas existem antes do deploy |
+| 3 | ✅ Feito (22/11/2026 14:54, deploy concluído). Fazer o merge e o deploy do app novo na Vercel | O app novo usa `server_reserve/settle/release_ai_budget` e não usa mais `consume_quota` |
+| 4 | ❌ Não verificado em produção com pessoa logada (e2e com login precisa de credenciais). Só o público (6 de 6) e `/api/chat` sem sessão 401 foram testados. Testar no app: enviar uma mensagem no chat e conferir que o consumo apareceu em Ajustes | Valida o app novo com o banco da etapa 1 |
+| 5 | ✅ Feito (versão `20261122175542`). Aplicar `supabase/migrations/20261122120002_seguranca_p1_restritiva.sql` | Só agora revoga as funções antigas, `consume_quota`, o insert em `usage_events` e o `anon` |
+| 6 | ◐ Conferência do banco feita (`consume_quota` ausente; sem EXECUTE em `settle_ai_budget`; sem INSERT em `usage_events`; `anon` com 0 privilégios de tabela em `public`; `consume_daily_quota` e `budget_status` mantidas). Repetir o teste do chat com pessoa logada: pendente. Conferir a etapa 5 (consultas da seção 1.2) e repetir o teste do chat | Fecha o ciclo |
 
 **Nunca aplique a restritiva antes do deploy:** o app antigo usa as funções que ela revoga e o chat para de responder.
 
@@ -64,7 +64,7 @@ select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public' and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('public', p.oid, 'execute'));
 ```
 
-### 1.3 Teste de bloqueio (uma vez, com a conta de teste, nunca com a sua)
+### 1.3 Teste de bloqueio (**pendente: não verificado em produção**; uma vez, com a conta de teste, nunca com a sua)
 1. Em **Administração**, bloqueie a conta de teste.
 2. Confirme que a conta de teste perde o acesso (o app manda para o login).
 3. Confira se as sessões foram encerradas: a resposta do bloqueio traz `sessionsRevoked`. Se for `false`, olhe o log da Vercel. A mensagem é *"encerrar sessões do bloqueado falhou"*. O bloqueio vale mesmo assim (o acesso é checado em toda chamada); só o encerramento da sessão falhou. A função `server_revoke_user_sessions` apaga linhas de `auth.sessions`. Isso foi testado só no banco local, com uma imitação do Auth. Em produção, confirme esse passo.
@@ -80,7 +80,7 @@ where n.nspname = 'public' and (has_function_privilege('anon', p.oid, 'execute')
 
 ## 2. Proteção contra senhas vazadas (S-03, configuração do painel)
 
-Hoje está **desligada** (o assessor de segurança do Supabase avisa). É configuração do Auth, não do código. Não há migração para isso.
+Hoje está **desligada**, passo **pendente** (o assessor de segurança do Supabase avisa). É configuração do Auth, não do código. Não há migração para isso.
 
 1. Abra o painel do Supabase e escolha o projeto do GaDu.
 2. Menu **Authentication**.
@@ -101,6 +101,8 @@ Observações:
 **Não apague as tabelas `private.backup_usage_daily_20261113` e `private.backup_usage_events_20261113` ainda.** Elas só saem depois da sua aprovação e de uma restauração ensaiada com sucesso.
 
 ### 3.1 Conferir o plano e os backups
+**Conferido em 22/11/2026:** o plano da organização é **Free**, sem backups automáticos baixáveis nem PITR. S-09 segue pendente e depende de decisão do Eduardo: plano Pro ou dump lógico agendado.
+
 1. Painel do Supabase → **Settings → Billing** (ou **Subscription**): anote o **plano** (Free, Pro...).
 2. **Database → Backups**:
    - aba **Scheduled backups**: deve listar um backup por dia, com a data de cada um. Anote **quantos dias de retenção** aparecem (em geral 7 dias no Pro; no Free o painel pode não oferecer backups restauráveis);
