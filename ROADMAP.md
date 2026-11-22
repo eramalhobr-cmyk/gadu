@@ -1,6 +1,6 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 22/11/2026 (Core Contextual: "O que merece minha atenção hoje?", publicado, PR #24). Produção: https://gadu-agent.vercel.app (merge `215edab`).
+Atualizado a cada entrega. Última atualização: 22/11/2026 (Finanças, base, desenvolvida e testada localmente na branch `feat/financas-base`, sem publicação; antes: Core "atenção hoje" publicado, PR #24). Produção: https://gadu-agent.vercel.app (merge `215edab`).
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
 
 Documentos relacionados:
@@ -24,7 +24,7 @@ Prioridade: P0 agora · P1 próximo ciclo · P2 depois · P3 longo prazo.
 | Assistente pessoal e conversacional | Conversa confiável, barata e segura | implementado: fail closed, cota atômica, orçamento com reserva (PRs #2, #3, #6), erros em português (PR #9) | P0 | — | etapa 2 da cota; créditos por pessoa |
 | Assistente universal de voz e texto | Falar ou digitar em qualquer tela e módulo | implementado: Assistente Universal em todas as telas, com contexto do módulo (PR #12); voz do aparelho; modo conversa em beta | P1 | — | validar no iPhone e no Android; depois voz natural paga com teto |
 | Inteligência contextual | Conectar memória, agenda, tarefas, e-mail e módulos, respeitando permissões | implementado (memória, busca por significado, insights) | P1 | módulos futuros | contexto de Finanças e Office com permissões |
-| Financeiro | Controle mensal pela conversa: lançar, classificar, prever caixa | planejado (especificação no PR #5) | P1 | tabelas `fin_*` com RLS | revisar o PR #5; base Contas e Dia a dia |
+| Financeiro | Controle mensal pela conversa: lançar, classificar, prever caixa | em desenvolvimento: base (Contas e Dia a dia, perguntas e lançamento pela conversa, previsão até o próximo recebimento) desenvolvida e testada localmente em `feat/financas-base`, **não publicada**; especificação integrada (PR #5) | P1 | migração `20261122190001_financas_base.sql` (alto risco: aprovação para aplicar) | publicar a base; depois simulador bruto → líquido, tetos, fase Conversa |
 | Tarefas, agenda e memórias | Organizar o dia com voz | implementado; notificações e criação de eventos em beta | P1 | permissão `calendar.events`; PWA instalado | liberar a permissão; instalar o PWA no iPhone |
 | Agent Office e agentes | Agentes por área, multiusuário, organizações e clientes | agentes simples implementados; Office planejado | P2 | PR #6 (teto por agente); isolamento por organização | 6.1 fundamentos (docs/PLANO-AGENTES.md) |
 | Agent Office Studio | Agentes que criam sites, aplicações web e PWAs (sem app nativo nesta fase) | planejado | P3 | Agent Office; execução isolada | especificar depois do Office |
@@ -331,10 +331,23 @@ Estágio: **publicado em 22/11/2026 às 15:42 (Brasília)**, merge `215edab`, CI
 - [ ] Validar em produção com pessoa logada: tela Hoje e Fontes, Gmail e agenda reais, voz no aparelho; medir o custo por mensagem
 - [ ] Próximo: auditoria sem conteúdo (`core_audit`, fase 3, alto risco) e priorização pela tela aberta (fase 2)
 
+## Finanças · Base (fase 1 da especificação; branch `feat/financas-base`, 22/11/2026)
+Estágio: **desenvolvida e testada localmente; não publicada.** Aprovada pelo Eduardo, inclusive as tabelas novas. Detalhe e decisões em [docs/FEATURE-FINANCAS.md](docs/FEATURE-FINANCAS.md).
+- [x] Migração `20261122190001_financas_base.sql`: `fin_itens`, `fin_item_meses`, `fin_gastos`, `fin_config` (user_id, RLS com `(select auth.uid())`, só `authenticated`, nada para `anon`, CHECKs, índices por `(user_id, ano, mes)`, vínculos por chave composta, rollback no topo)
+- [x] Cálculos puros em `src/lib/finance/` (resumo do mês, vínculos cartão/segue, previsão até o próximo recebimento, validação de lançamento) com testes unitários
+- [x] API `/api/finance/*` (resumo, itens, valor/pago por mês, gastos, config): sessão obrigatória, zod, `user_id` da sessão, cliente da sessão (RLS)
+- [x] Tela Financeiro (mobile first): saldo/sobra, resumo, por categoria, previsão, abas Contas e Dia a dia, adicionar/editar/apagar, marcar pago, seletor de mês, estados vazios; módulo passa de "planejado" para Beta
+- [x] Assistente: fonte `finance` do Core ([F1]…, Fontes, sem IA extra) e lançar gasto como proposta que a pessoa confirma
+- [x] Interruptor `FINANCE_ENABLED=0` (ligado por padrão); `CORE_MVP=0` desliga a fonte `finance`
+- [x] Testes: banco (isolamento A x B nas 4 tabelas e na suíte geral, CHECKs, vínculos, privilégios), unitários, integração (rotas, chat, interruptores), e2e público (12 rotas 401)
+- [ ] Aplicar a migração no Supabase (alto risco: aprovação explícita) e publicar
+- [ ] Validar com pessoa logada em celular de verdade (390 px)
+- [ ] Próximo: simulador bruto → líquido (INSS/IRRF por ano), teto por categoria, acumulado do ano, fase Conversa (marcar pago e lançar fixos por texto/áudio, log, "a confirmar", regras)
+
 ## Próximo ciclo (prioridades, em ordem)
 1. Auditoria de RLS e isolamento multiusuário e multiempresa.
 2. Core Contextual (depende do item 1).
-3. Financeiro: revisar a especificação do PR #5 e começar a base.
+3. Financeiro: base desenvolvida (branch `feat/financas-base`); publicar (alto risco: migração), depois simulador bruto → líquido.
 4. Agent Office: organizações, clientes, membros e papéis.
 5. Agent Office Studio.
 6. 3D Studio.
@@ -342,7 +355,7 @@ Estágio: **publicado em 22/11/2026 às 15:42 (Brasília)**, merge `215edab`, CI
 8. Testes de ponta a ponta automatizados e validação de voz nos aparelhos.
 
 ## Módulos futuros (planejados, sem código)
-- [ ] Financeiro: ver a seção "Finanças pessoais" no PR #5 (`docs/FEATURE-FINANCAS.md`)
+- [~] Financeiro: base em desenvolvimento (ver "Finanças · Base" abaixo); o restante da especificação (`docs/FEATURE-FINANCAS.md`) segue planejado
 - [ ] Metas & Conquistas: ver docs/METAS_CONQUISTAS.md (banco com RLS, metas ligadas a tarefas, agenda e financeiro pelo Core Contextual)
 - [ ] Casa Inteligente (GaDu Casa): ver docs/CASA_INTELIGENTE.md (Home Assistant como camada recomendada; Alexa via Home Assistant; Tuya direto como opção; confirmação e regras para dispositivos críticos)
 - [ ] Saúde: Samsung Health e Health Connect por conector Android desacoplado, depois de importação manual (docs/INTEGRACOES_SAUDE.md). App nativo exige aprovação específica

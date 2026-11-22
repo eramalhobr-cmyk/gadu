@@ -53,6 +53,7 @@ Seis módulos: Pessoal, Financeiro, Agent Office, Agent Office Studio, 3D Studio
 - **Conversa (v2.1):** palco compacto no celular (avatar de 44 px), `.chat-empty` com `.sug-grid`, `.listening-bar`, microfone dentro do campo.
 - **Ajustes:** `.set-head`, `.set-nav`, `.set-group`, `.set-cards`, `.theme-opt`.
 - **Base (globals.css):** `.btn`, `.btn-pri`, `.btn-sm`, `.icon-btn`, `.chip`, `.field`, `.card`, `.banner`, `.seg`, `.drawer`.
+- **Financeiro (branch `feat/financas-base`):** `.fin-month` (seletor de mês), `.fin-big`/`.fin-num` (números tabulares), `.fin-bar` (progresso), `.fin-row`/`.fin-val` (linhas de conta e gasto), `.fin-edit` (edição na linha), `.fin-warn`, `.fin-toast`; reaproveita `.panel`, `.kpis`, `.seg`, `.chip`, `.fld`, `.tl-tick`. Cartão de proposta de gasto na conversa: `GastoCard` com as classes `.evc`.
 - **Erros:** `ErrorScreen`; mensagens em `src/lib/errors.ts`.
 
 ## Navegação (v2.2)

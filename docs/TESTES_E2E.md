@@ -5,11 +5,11 @@ Atualizado em 15/11/2026. Playwright é dependência oficial (`playwright` 1.63.
 ## Suítes
 | Suíte | Arquivo | Precisa de | Onde roda |
 |---|---|---|---|
-| Pública | `e2e/public.e2e.cjs` (6 testes) | `E2E_BASE` | **CI em todo PR** (job `e2e-public`) e local |
+| Pública | `e2e/public.e2e.cjs` (8 testes) | `E2E_BASE` | **CI em todo PR** (job `e2e-public`) e local |
 | Com login | `e2e/auth.e2e.cjs` (14 testes) | `E2E_BASE` + `E2E_STATE` (arquivo de sessão) **ou** `E2E_EMAIL` + `E2E_PASSWORD` | local, contra servidor local ou produção, com o usuário de teste. Fora dos PRs (ver proposta abaixo) |
 
 O que cobrem:
-- **Pública:** home e login em 7 larguras, sem rolagem lateral e com alvos de 44 px; `/app` sem login vai para o login; `/api/chat` e `/api/usage` recusam com 401 antes de qualquer custo; CSP com nonce e `frame-ancestors 'none'`; tema claro sem erro de página.
+- **Pública:** home e login em 7 larguras, sem rolagem lateral e com alvos de 44 px; `/app` sem login vai para o login; `/api/chat` e `/api/usage` recusam com 401 antes de qualquer custo; as 12 rotas `/api/finance/*` recusam com 401 (branch de Finanças); CSP com nonce e `frame-ancestors 'none'`; tema claro sem erro de página.
 - **Com login:** 7 larguras em 6 telas; menu do celular (tocar fora, Esc, Voltar, escolha); barra de baixo e tela Módulos; conteúdo acima da barra; temas; assistente (orbe, Voltar, alça, histórico compartilhado com a conversa completa); voz simulada (microfone negado, revisão da transcrição, limite de 20 s, interrupção, troca de tela); interruptores de Configurações; Tarefas e Projetos com fixtures, estado vazio e erro; menu recolhível e largura do painel no computador.
 
 Regras:
@@ -19,7 +19,7 @@ Regras:
 - **Sem dados reais:** só o usuário de teste, sem conteúdo pessoal.
 
 ## Banco: isolamento e riscos conhecidos
-- `npm run test:db`: Postgres local descartável com **todas** as migrações (precisa do pgvector; sem ele, falha). Roda cota, orçamento, concorrência e o **isolamento entre pessoas nas 18 tabelas**. Vai no CI (job `database`).
+- `npm run test:db`: Postgres local descartável com **todas** as migrações (precisa do pgvector; sem ele, falha). Roda cota, orçamento, concorrência e o **isolamento entre pessoas em todas as tabelas do `public` (22, com as 4 de Finanças na branch `feat/financas-base`; o teste falha se uma tabela nova não estiver na suíte)**. Vai no CI (job `database`).
 - `npm run audit:db`: o mesmo, mais `supabase/tests/audit/riscos_conhecidos.sql`, que diz CONFIRMADO ou NÃO REPRODUZIDO para cada risco conhecido. É informativo e não roda no CI.
 
 ## Como rodar

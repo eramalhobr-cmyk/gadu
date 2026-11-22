@@ -5,6 +5,49 @@
 
 ---
 
+## Implementação: fase Base (22/11/2026) · desenvolvida e testada localmente, não publicada
+
+Primeira fatia da §10 ("Base"), aprovada pelo Eduardo, inclusive as tabelas novas com RLS. O resto deste documento continua sendo a especificação de referência; esta seção diz **o que existe de verdade** e **o que foi decidido**.
+
+### O que foi implementado
+| Especificação | Estado | Onde |
+|---|---|---|
+| §3.1 Contas (itens e receitas, grupos, pago/em aberto, filtros, edição na linha, "este mês" ou "este e os próximos") | implementado | `FinanceiroPage.tsx` (aba Contas), `/api/finance/itens*` |
+| §3.2 Dia a dia (lançamento rápido, chips de categoria, meio, dia, descrição; lista por dia; total por categoria) | implementado, **sem teto por categoria** e sem soma por estabelecimento | aba Dia a dia, `/api/finance/gastos*` |
+| §3 Resumo do mês (4 cartões) | parcial: saldo do mês/sobra, % pago, receitas, contas, dia a dia, a pagar, por categoria. **Sem** "conta corrente" (saldo do banco) e **sem** "acumulado do ano" | `src/lib/finance/summary.ts` |
+| §4.1 `fin_itens` | implementado em forma **normalizada** (ver decisão 1) | migração `20261122190001_financas_base.sql` |
+| §4.2 `fin_gastos` | implementado (`origem`: manual, conversa, voz, print, extrato; só manual e conversa são usadas hoje) | idem |
+| §4.3 `config` | implementado como `fin_config` (dias de recebimento, adiantamento, receita e cartão principais). `orcamento`, `patrimonio`, `plano`, `simulacao`, `conta` e `log` **não existem** ainda | idem |
+| §5.1 Totais do mês | implementado, menos "previsão do dia a dia" (precisa de tetos) | `summary.ts` |
+| §5.2 Vínculos | implementado: `cartao` (não soma de novo; marcar o cartão marca as assinaturas e vice-versa), `segue` (marcar a receita marca quem segue), `via_reserva` (por mês, conta como despesa). Saem do **fluxo de caixa** só na fase Caixa | `summary.ts`, `pagamento.ts` |
+| §6 Entrada pela conversa: texto | implementado só para **gasto** ("gastei 45 no mercado no pix"), como proposta que a pessoa confirma. Sem áudio dedicado (a voz do app já transcreve), sem print, sem PDF, sem log, sem "a confirmar", sem regras de classificação | `src/lib/finance/lancamento.ts`, `GastoCard.tsx` |
+| Perguntas ("quanto gastei", "como estão minhas contas") | implementado como fonte `finance` do Core, sem IA extra | `src/lib/core/finance.ts` |
+| §5.4 Caixa, §5.5 Salário, §5.6 Quitação, §5.7 Reserva, §3.3 a §3.6, §6.2 a §6.4, §7 (deduplicação) | **não implementados** | — |
+| Simulador de salário (item pequeno) | só a **previsão até o próximo recebimento** (dia 15 e dia 1, configuráveis) | `previsao.ts` |
+
+### Decisões
+1. **Modelo normalizado em vez de `valores numeric[12]`/`pagos bool[12]`.** `fin_itens` (cadastro, vale para todos os anos) + `fin_item_meses` (item, ano, mês, valor, pago, via_reserva, nota). Motivos: CHECK por valor (`valor > 0`), mês 1-12 e índice `(user_id, ano, mes)` funcionam no banco (num array, nada disso vale por posição); "este e os próximos" e o simulador de salário futuro viram INSERT/UPDATE de linhas; virada de ano sem migração. Sem linha = o item não existe naquele mês (o "0" da especificação).
+2. **Vínculos como chaves compostas `(id, user_id)`.** `cartao_id`, `segue_id` e a config só apontam para itens da mesma pessoa, mesmo por quem tentar pelo banco (a RLS não protege chave estrangeira, a chave composta protege). Apagar o item solta os vínculos (`on delete set null (coluna)`) e apaga os meses (cascata).
+3. **Crédito sem dupla contagem só quando a fatura existe.** Gasto no crédito não soma no mês se o cartão principal tem fatura (valor > 0) naquele mês. Sem cartão principal ou sem fatura, soma e mostra um aviso, para não sumir do total. A especificação (§5.1) manda ignorar sempre; esta é a única diferença, para nunca esconder gasto.
+4. **`adiantamento_pct` (porcentagem) em vez de valor.** Se o salário mudar, o adiantamento acompanha. Padrão 0 (sem adiantamento): a receita entra inteira no dia dela. Dias padrão: 15 (adiantamento) e 1 (restante), editáveis.
+5. **Categoria é texto livre** no banco (1 a 40 caracteres); as 16 padrão da §3.2 são sugestões na tela e as únicas aceitas nas propostas da conversa (o resto vira "Outros").
+6. **Lançar pela conversa só propõe.** O modelo devolve `gastos` no bloco de controle; o servidor valida (valor > 0, data existente de até 1 ano atrás até hoje) e só repassa se a mensagem tinha intenção de lançar. A pessoa toca em "Lançar" e a tela chama `POST /api/finance/gastos` com a sessão dela. Meio sem indicação vira débito (aparece no cartão antes de confirmar).
+7. **Intenções por regra, sem IA** (`detectFinanceIntent`): resumo, contas, categoria (ou estabelecimento) e gasto. Perguntar injeta o bloco `[F1]…` e as "Fontes" (link para o Financeiro). Lançar só acrescenta as regras de proposta ao contexto. A pergunta de atenção do dia tem prioridade.
+8. **Interruptores.** `FINANCE_ENABLED=0` (ligado por padrão) esconde a tela e o módulo, responde 404 `disabled` nas rotas (depois do 401), desliga a fonte do Core e a proposta de gasto. `CORE_MVP=0` desliga só a fonte `finance` do Core (as perguntas); a proposta de gasto depende apenas de `FINANCE_ENABLED`.
+9. **Privacidade.** Nomes de contas, descrições e categorias com termo bloqueado ou dado sensível viram "(omitido pela regra de privacidade)" no bloco; os valores continuam. Descrição de proposta com termo bloqueado é descartada. A regra global já impede mensagens com "cartão de crédito", "chave pix" etc. de irem ao modelo.
+10. **Custo.** Nada novo: perguntas e lançamentos passam pelos limites, reserva de orçamento, cota diária e liquidação do chat (fail closed). As rotas `/api/finance/*` não chamam IA e não gastam cota.
+
+### Limitações conhecidas
+- "Paguei 120 de luz" vira **proposta de gasto**, não "marcar a conta de luz como paga" (isso é fase Conversa).
+- Valores em `numeric(12,2)`; a interface mostra reais com centavos, arredondados nos cartões grandes.
+- A tela não foi validada em aparelho nem com pessoa logada; foi conferida em 390 px e 1280 px com dados fictícios interceptados (sem rolagem lateral, alvos de 44 px, sem erros no console).
+- Sem exportação, sem gráfico de 12 meses, sem edição de ordem dos itens (a coluna `ordem` existe).
+
+### Próximos passos sugeridos
+Simulador bruto → líquido (INSS/IRRF por ano, com `salario_bruto` na config), teto por categoria e acumulado do ano, depois a fase Conversa (marcar pago e lançar item fixo por texto/áudio, log, "a confirmar", regras de classificação).
+
+---
+
 ## 1. O que a feature resolve
 
 Uma pessoa quer saber, a qualquer momento e pelo celular:

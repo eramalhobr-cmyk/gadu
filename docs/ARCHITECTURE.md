@@ -12,6 +12,7 @@ Vercel · projeto gadu-agent · região iad1 · funções sem estado (Next.js 16
   ├─ /api/chat ............ privacidade → limites (fail closed) → cota → contexto → roteador → streaming → grava
   ├─ /api/cron/tick ....... Vercel Cron a cada minuto: lembretes, briefing, revisão da noite, indexação
   ├─ /api/google/* ........ OAuth com PKCE, só leitura (agenda e Gmail); /api/calendar cria eventos com confirmação
+  ├─ /api/finance/* ....... Finanças (branch): resumo, itens, gastos, config; sessão obrigatória, cliente da sessão (RLS), `FINANCE_ENABLED=0` desliga
   ├─ /api/search .......... busca por significado (pgvector)
   ├─ /api/admin, /api/invite  convites e admin (sem acesso a conteúdo)
   └─ /api/health .......... saúde
@@ -38,7 +39,8 @@ Tabelas públicas, todas com `user_id` e RLS:
 - `usage_daily`, `usage_events`;
 - `google_connections`, `push_subscriptions`, `reminders`, `daily_briefings`, `daily_pushes`;
 - `projects`, `agents`, `tasks`;
-- `members`, `invites`, `search_index`.
+- `members`, `invites`, `search_index`;
+- Finanças (branch `feat/financas-base`, migração `20261122190001`, **ainda não aplicada**): `fin_itens`, `fin_item_meses`, `fin_gastos`, `fin_config`. Modelo normalizado, vínculos por chave composta `(id, user_id)`, só `authenticated`, sem função nem trigger. Detalhe em `docs/FEATURE-FINANCAS.md`.
 
 Migrações versionadas em `supabase/migrations/AAAAMMDDHHMMSS_nome.sql`, nunca editadas depois de aplicadas. O registro no Supabase usa a hora da aplicação, por isso o número não bate com o nome do arquivo. Testes de banco locais: `npm run test:db`, um Postgres temporário com imitação mínima do Supabase, testes SQL e de concorrência; nunca conecta no remoto.
 
@@ -66,6 +68,12 @@ Migrações versionadas em `supabase/migrations/AAAAMMDDHHMMSS_nome.sql`, nunca 
 10. Módulos e status vêm de uma fonte única (`src/lib/modules.ts`): Disponível, Beta (parcial), Em desenvolvimento, Planejado. Nenhuma tela mostra dado inventado para módulo que não existe.
 11. Visão oficial ampliada (14/11/2026): **Metas & Conquistas** e **Casa Inteligente (GaDu Casa)** fazem parte do produto, hoje como planejados. Áreas: Produtividade pessoal, Vida pessoal, Agentes e criação, Plataforma (`AREAS` em `modules.ts`). Especificações: `docs/METAS_CONQUISTAS.md`, `docs/CASA_INTELIGENTE.md`, `docs/INTEGRACOES_SAUDE.md`.
 12. Navegação: no celular, barra de baixo para o frequente, tela Módulos para explorar e menu da conta pela esquerda; no computador, menu lateral por área e recolhível. Assistente em três estados com uma única conversa.
+
+## Finanças (branch `feat/financas-base`, não publicada)
+- Cálculos em funções puras (`src/lib/finance/*`): resumo do mês (centavos inteiros, sem dupla contagem de cartão e crédito), vínculos, previsão até o próximo recebimento, validação de lançamento.
+- Leitura e escrita sempre com o cliente da **sessão** (RLS); `user_id` vem da sessão e o do corpo é descartado. Nenhuma rota de finanças chama IA nem usa a chave secreta.
+- Assistente: a fonte `finance` do Core responde perguntas por intenção simples (sem IA extra); lançar gasto é **proposta** que a pessoa confirma, gravada por `POST /api/finance/gastos`. Perguntas e lançamentos passam pelo fluxo normal do chat (limites → reserva → cota → IA → liquidação, fail closed).
+- Interruptores de servidor, ligados por padrão: `FINANCE_ENABLED=0` (tela, rotas, fonte do Core e proposta de gasto) e `CORE_MVP=0` (só a fonte do Core).
 
 ## Resiliência e contingência
 | Falha | O que acontece |

@@ -362,7 +362,8 @@ button.pj-card:hover { border-color: color-mix(in srgb, var(--c) 55%, transparen
 
 /* ---- Financeiro (base: Contas e Dia a dia). Só tokens do design system. ---- */
 .fin-month { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
-.fin-month b { flex: 1; text-align: center; font: 600 var(--fs-md)/1.2 var(--display); text-transform: capitalize; }
+.fin-month b { flex: 1; text-align: center; font: 600 var(--fs-md)/1.2 var(--display); }
+.fin-month b::first-letter { text-transform: uppercase; }
 .fin-big { font: 600 34px/1.1 var(--body); font-variant-numeric: tabular-nums; }
 .fin-big.ok { color: var(--ok); }
 .fin-big.bad { color: var(--bad); }
