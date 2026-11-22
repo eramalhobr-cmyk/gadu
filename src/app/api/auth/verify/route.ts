@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { accessOf } from "@/lib/access";
+import { limitAttempts } from "@/lib/rate-limit";
 import { supabaseServer } from "@/lib/supabase/server";
 
 const Body = z.object({
@@ -7,11 +8,13 @@ const Body = z.object({
   token: z.string().trim().regex(/^\d{6,10}$/),
 });
 
-// Confere o código e cria a sessão (cookies seguros, httpOnly, gerenciados pelo Supabase).
+// Confere o código e cria a sessão (cookies do @supabase/ssr: secure e SameSite=Lax; não são httpOnly, ver docs/SECURITY_AUDIT_2026-11-15.md, S-14).
 export async function POST(request: Request) {
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Código inválido." }, { status: 400 });
   const { email, token } = parsed.data;
+  const limited = await limitAttempts(request, "verify", email);
+  if (limited) return limited;
   const supabase = await supabaseServer();
   const { data, error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
   if (error || !data.user || !(await accessOf(supabase, data.user)).ok) {

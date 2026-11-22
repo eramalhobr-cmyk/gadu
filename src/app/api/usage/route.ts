@@ -32,11 +32,17 @@ async function auth() {
 export async function GET() {
   const a = await auth();
   if (!a) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const [profile, spend, credits] = await Promise.all([
+  const [profile, spend, credits, status] = await Promise.all([
     a.supabase.from("profiles").select("settings").eq("id", a.user.id).maybeSingle(),
     a.supabase.rpc("month_spend_by_provider"),
     gatewayCredits(),
+    a.supabase.rpc("budget_status"),
   ]);
+  // Teto e reservas do banco (fonte da verdade desde o orçamento com reserva). Sem a função, usa o teto do servidor.
+  const st = (status.data ?? null) as { spent?: unknown; reserved?: unknown; limit?: unknown } | null;
+  const num = (v: unknown) => (Number.isFinite(Number(v)) && Number(v) >= 0 ? Number(v) : null);
+  const limit = num(st?.limit);
+  const reserved = num(st?.reserved) ?? 0;
   const by: Record<string, number> = { anthropic: 0, gateway: 0, gemini: 0 };
   for (const row of (spend.data ?? []) as { provider: string; cost_usd: number | string }[]) by[row.provider] = Number(row.cost_usd) || 0;
   return NextResponse.json(
@@ -44,7 +50,8 @@ export async function GET() {
       budgets: readBudgets(profile.data?.settings),
       spent: by,
       total: by.anthropic + by.gateway + by.gemini,
-      monthlyBudget: serverConfig().monthlyBudgetUsd,
+      monthlyBudget: limit ?? serverConfig().monthlyBudgetUsd,
+      reserved,
       gateway: credits,
     },
     { headers: { "cache-control": "no-store" } },

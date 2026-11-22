@@ -22,9 +22,13 @@ export function priceKey(model: string): string {
   return model.replace(/^[a-z]+\//, "").replace(/\./g, "-");
 }
 
+/** Modelo sem preço cadastrado: usa o mais caro da tabela (nunca zero, para não furar o teto de gasto). */
+const FALLBACK: Price = Object.values(PRICES).reduce((a, b) => (b.output > a.output ? b : a));
+const priceOf = (model: string): Price => PRICES[priceKey(model)] ?? FALLBACK;
+export const isKnownModel = (model: string) => Boolean(PRICES[priceKey(model)]);
+
 export function costUsd(u: Usage): number {
-  const p = PRICES[priceKey(u.model)];
-  if (!p) return 0;
+  const p = priceOf(u.model);
   const m = 1_000_000;
   return (
     ((u.input_tokens ?? 0) * p.input +
@@ -32,4 +36,15 @@ export function costUsd(u: Usage): number {
       (u.cache_read_input_tokens ?? 0) * p.cacheRead +
       (u.cache_creation_input_tokens ?? 0) * p.cacheWrite) / m
   );
+}
+
+/**
+ * Estimativa de custo máximo de uma chamada, para reservar orçamento antes de chamar a IA.
+ * Entrada estimada em ~3 caracteres por token; saída pelo máximo configurado. Sempre ≥ 0.
+ */
+export function estimateMaxCost(model: string, inputChars: number, maxOutputTokens: number): number {
+  const p = priceOf(model);
+  const input = Math.max(0, Math.ceil((Number.isFinite(inputChars) ? inputChars : 0) / 3));
+  const output = Math.max(0, Number.isFinite(maxOutputTokens) ? maxOutputTokens : 0);
+  return (input * p.input + output * p.output) / 1_000_000;
 }

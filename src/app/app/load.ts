@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import type { Msg } from "@/components/GaduApp";
-import { TABS, type Tab } from "@/lib/tabs";
+import { cookies } from "next/headers";
+import { parseView } from "@/lib/modules";
+import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 import { APP_VERSION } from "@/lib/config";
 import { accessOf } from "@/lib/access";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -44,8 +46,8 @@ export async function loadApp({ google, tab, start }: AppParams = {}) {
       initialBlocked: Array.isArray(settings.blocked) ? settings.blocked.map(String) : [],
       version: APP_VERSION,
       morningLink: morning,
-      initialTab: (TABS.includes(tab as Tab) ? tab : tab === "memoria" || tab === "ajustes" || tab === "admin" ? "perfil" : google ? "conversa" : "hoje") as Tab,
-      initialProfile: (tab === "ajustes" ? "ajustes" : tab === "admin" && access.admin ? "admin" : "memoria") as "memoria" | "ajustes" | "admin",
+      initialView: parseView(tab, access.admin) ?? (google ? "conversa" : "hoje"),
+      initialTheme: parseTheme((await cookies()).get(THEME_COOKIE)?.value),
       admin: access.admin,
       seenTips: Array.isArray(settings.tips) ? settings.tips.map(String).slice(0, 20) : [],
       autoStart: (start === "briefing" || start === "review" ? start : null) as "briefing" | "review" | null,

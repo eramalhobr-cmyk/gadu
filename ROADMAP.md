@@ -1,7 +1,41 @@
 # GaDu · Roadmap
 
-Atualizado a cada entrega. Última atualização: 10/11/2026 (v0.8.1). Produção: https://gadu-agent.vercel.app `[x]` feito · `[ ]` falta · `[~]` em andamento.
+Atualizado a cada entrega. Última atualização: 22/11/2026 (Core Contextual: "O que merece minha atenção hoje?", publicado, PR #24). Produção: https://gadu-agent.vercel.app (merge `215edab`).
 Princípios: mobile first, segurança, resiliência, contingência e pronto para outras pessoas usarem (cada pessoa vê só os próprios dados).
+
+Documentos relacionados:
+- [PROJECT_STATUS.md](PROJECT_STATUS.md): situação atual e ponto de retomada.
+- [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md): status por funcionalidade, com arquivos de código.
+- [CHANGELOG.md](CHANGELOG.md): histórico.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): arquitetura e decisões oficiais.
+
+## Visão por módulo (13/11/2026)
+Status:
+- **implementado**: em produção.
+- **beta**: em produção, parcial ou sem validação real.
+- **em desenvolvimento**: em PR.
+- **planejado**: só em documento.
+- **bloqueado**: depende de decisão ou recurso externo.
+
+Prioridade: P0 agora · P1 próximo ciclo · P2 depois · P3 longo prazo.
+
+| Módulo | Objetivo | Status | Prioridade | Dependências | Próximos passos |
+|---|---|---|---|---|---|
+| Assistente pessoal e conversacional | Conversa confiável, barata e segura | implementado: fail closed, cota atômica, orçamento com reserva (PRs #2, #3, #6), erros em português (PR #9) | P0 | — | etapa 2 da cota; créditos por pessoa |
+| Assistente universal de voz e texto | Falar ou digitar em qualquer tela e módulo | implementado: Assistente Universal em todas as telas, com contexto do módulo (PR #12); voz do aparelho; modo conversa em beta | P1 | — | validar no iPhone e no Android; depois voz natural paga com teto |
+| Inteligência contextual | Conectar memória, agenda, tarefas, e-mail e módulos, respeitando permissões | implementado (memória, busca por significado, insights) | P1 | módulos futuros | contexto de Finanças e Office com permissões |
+| Financeiro | Controle mensal pela conversa: lançar, classificar, prever caixa | planejado (especificação no PR #5) | P1 | tabelas `fin_*` com RLS | revisar o PR #5; base Contas e Dia a dia |
+| Tarefas, agenda e memórias | Organizar o dia com voz | implementado; notificações e criação de eventos em beta | P1 | permissão `calendar.events`; PWA instalado | liberar a permissão; instalar o PWA no iPhone |
+| Agent Office e agentes | Agentes por área, multiusuário, organizações e clientes | agentes simples implementados; Office planejado | P2 | PR #6 (teto por agente); isolamento por organização | 6.1 fundamentos (docs/PLANO-AGENTES.md) |
+| Agent Office Studio | Agentes que criam sites, aplicações web e PWAs (sem app nativo nesta fase) | planejado | P3 | Agent Office; execução isolada | especificar depois do Office |
+| 3D Studio e impressão 3D | Buscar, organizar e gerar modelos imprimíveis; exportar para fatiador | planejado | P2 | — | especificar depois do GaDu Personal, antes do Agent Office |
+| Integrações, segurança e permissões | Isolamento por pessoa, custos sob controle, integrações autorizadas | implementado (RLS, fail closed, cota atômica, orçamento com reserva, CI); auditoria completa pendente | P0 | — | etapa 2 da cota; auditoria de RLS; créditos por pessoa; alerta de erro |
+| Home pública, dashboard e desktop/mobile | Primeira impressão e uso diário em qualquer tela | implementado: home, Hoje em painel, PWA, avatar oficial, UX/UI v2 com módulos, temas claro e escuro, novo painel, conversa, ajustes e home (PR #12) | P1 | — | v2.1 (PR #14) concluída; logo novo pendente; testes de ponta a ponta |
+
+Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis, voz, erros) → Finanças → 3D Studio → Agent Office → Agent Office Studio.
+
+## Histórico detalhado por fase
+`[x]` feito · `[ ]` falta · `[~]` em andamento.
 
 ## Fase 0 · MVP publicado (v0.1)
 
@@ -180,6 +214,142 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [x] Dicas na primeira visita de cada aba e do botão de voz (Entendi / Ver guia), salvas no perfil; "Rever as dicas" em Ajustes
 - [x] Guia e Como funciona dentro da mesma estrutura do app (cabeçalho, menu ☰, menu de baixo e voz flutuante), com alternância Guia | Como funciona
 
+## Marco Zero · segurança (auditoria de 12/11, ver docs/SECURITY_AUDIT_2026-11-12.md no PR #1)
+- [x] PR #2: chat bloqueia quando cota, teto mensal ou limites por provedor não podem ser validados (fail closed), com testes de integração. Em produção desde 13/11
+- [x] PR #3: cota diária atômica (limite no servidor, dia de Brasília, sem passar do teto), testes SQL e de concorrência. Migração aplicada no Supabase e app em produção desde 13/11
+- [x] Remover `consume_quota(integer)` antiga (etapa 2): **publicado em 22/11/2026** (PR #22, migração restritiva `20261122175542` aplicada; conferido no banco: `consume_quota` não existe)
+- [x] PR #6: orçamento mensal com reserva e reconciliação (concorrência). Migração aplicada e em produção desde 13/11; validado no uso real
+- [ ] Auditoria de RLS, autenticação, permissões e isolamento entre usuários
+- [ ] Administração de créditos e consumo por pessoa
+
+## Modelo de trabalho
+- [x] GaDu Fast Track documentado (`docs/FAST_TRACK.md`): baixo risco com processo simplificado, alto risco com aprovações específicas
+- [x] Documentação central: PROJECT_STATUS, CHANGELOG, FEATURE_MATRIX, ARCHITECTURE e decisões oficiais (PR #7)
+
+## Uso diário · experiência (13/11)
+- [x] Mensagens de erro em português por situação e telas de erro próprias (PR #9)
+- [x] Voz mais estável: fim da fala só com a resposta inteira, prazo por trecho, despertador no Chrome, um microfone por vez (PR #9)
+- [ ] Validar a voz nova no iPhone e no Android
+- [x] Teto, reservas e valor disponível do mês em Ajustes (PR #9)
+- [x] Design System v1: tokens únicos e `docs/DESIGN_SYSTEM.md` (PR #10)
+- [x] Menu lateral no computador; Hoje em 2 ou 3 colunas conforme a largura; conversa com leitura centralizada (PR #10)
+- [x] Acessibilidade: atalho de teclado e alvos de toque de 40 px (PR #10)
+- [ ] Design System etapa 2: migrar estilos inline e criar componentes compartilhados
+
+## UX/UI v2 (13/11, PR #12)
+- [x] Arquitetura de módulos com status real: Pessoal, Financeiro, Agent Office, Agent Office Studio, 3D Studio, Plataforma
+- [x] Menu lateral por módulos (computador) e barra de baixo com o assistente no centro e folha de módulos (celular)
+- [x] Assistente Universal por voz e texto em qualquer tela, com painel lateral e painel de baixo
+- [x] Contrato de contexto do assistente (módulo e tela), validado no servidor, sem ampliar o acesso
+- [x] Temas claro e escuro
+- [x] Painel Hoje, Conversa, Perfil e ajustes e home pública redesenhados
+- [x] Projetos, Agentes, Memória, Admin, Guia e Agenda no desenho da v2 (v2.1, PR #14)
+- [x] Auditoria de contraste do tema claro (v2.1: todos os pares AA)
+- [ ] Relacionar informações entre módulos (depende de permissões, isolamento e auditoria de segurança)
+
+## Sprint UX/UI v2.1 (14/11, PR #14)
+- [x] Paleta azul-marinho e grafite, menos neon, tipografia contemporânea
+- [ ] Logo novo (três movimentos): aguardando o arquivo
+- [x] Menu com grupos recolhíveis, sem repetir a barra de baixo; barra de baixo menor
+- [x] Hoje: saudação por horário, atenção, recomendações reais
+- [x] Conversa: palco compacto, microfone no campo, escuta com limite, transcrição revisável
+- [x] Assistente: painel alargável no computador; painel de baixo com teclado no celular
+- [x] Telas restantes redesenhadas com componentes compartilhados
+- [x] Home pública com a visão completa e status reais
+- [x] Arquitetura futura do Core Contextual documentada
+- [ ] Validação de voz em iPhone e Android (humana)
+
+## Sprint UX/UI v2.2 (14/11, PR #16)
+- [x] Busca e avaliação do protótipo "GADU Visual Refresh" no Lovable (docs/LOVABLE_VISUAL_REFRESH.md)
+- [x] Navegação híbrida no celular: barra de baixo, tela Módulos e menu da conta pela esquerda, com Voltar do Android
+- [x] Menu lateral do computador por área e recolhível
+- [x] Assistente em três estados (compacto, rápido, completo) com a mesma conversa; painel com largura ajustável
+- [x] Voz: interromper sem reabrir o microfone; mãos-livres protegido; envio automático desligado por padrão
+- [x] Pendências da v2.1: alvos de 44 px, cor do tema e manifest, abas e interruptores de Configurações, Agenda, textos, Hoje compacto
+- [x] Metas & Conquistas e Casa Inteligente no catálogo como planejados, com especificação
+- [x] Planejamento da integração com Samsung Health e Health Connect (docs/INTEGRACOES_SAUDE.md)
+- [x] Testes de interface com Playwright (16 cenários)
+- [ ] Validar voz, teclado e Voltar em iPhone e Android (humano)
+- [ ] Logo novo (aguardando o arquivo)
+
+## Qualidade e Segurança (15/11, PRs #18 e #19)
+- [x] Playwright como dependência oficial, com lockfile atualizado
+- [x] Testes reproduzíveis depois de `npm ci` (clone limpo, sem `.env`)
+- [x] Testes públicos no CI (job `e2e-public`), sem segredos
+- [x] Testes com login: falham se faltar credencial (nada é pulado); proposta de execução segura no CI (docs/TESTES_E2E.md)
+- [x] Regressão de navegação, assistente, temas e voz simulada (6 + 14 testes)
+- [x] Validações de aparelho documentadas (docs/VALIDACAO_APARELHOS.md)
+- [x] Auditoria de segurança somente leitura e matriz de riscos (docs/SECURITY_AUDIT_2026-11-15.md)
+- [x] Plano do Core Contextual MVP (docs/CORE_CONTEXTUAL_MVP.md)
+- [ ] Correções de segurança S-01 a S-09 (alto risco: cada uma com aprovação): ver "Segurança P1" abaixo; S-08 e S-09 seguem abertos
+- [ ] Testes com login no CI (segredo em GitHub Environment com revisor: aprovação)
+
+## Isolamento e preparação do Core (16/11, PR #20)
+- [x] Banco de teste com todas as migrações (pgvector no local e no CI)
+- [x] Isolamento entre pessoas testado em execução nas 18 tabelas, vínculos cruzados, papéis e busca por significado (CI)
+- [x] Riscos S-01, S-05, S-07, S-10 e S-12 confirmados em execução (`npm run audit:db`)
+- [x] Proposta "O que merece minha atenção hoje?" para decisão (docs/CORE_ATENCAO_HOJE.md)
+- [x] Roteiro curto de validação no Android (docs/ROTEIRO_ANDROID.md)
+- [x] Decisão sobre a primeira entrega do Core e sobre a correção do S-01 (aprovada pelo Eduardo; S-01 corrigido no PR #22)
+- [ ] Logo novo (arquivo ainda não está no repositório nem no Drive)
+
+## Segurança P1 / fase 0 do Core (22/11, PR #22)
+Estágio: **publicado em 22/11/2026** (merge `cc85040`, migrações aditiva `20261122175405` e restritiva `20261122175542` aplicadas, deploy no ar; painel do Supabase não alterado). Evidências em PROJECT_STATUS.md e CHANGELOG.md. Detalhe por S-xx em docs/SECURITY_AUDIT_2026-11-15.md; passos manuais em docs/SEGURANCA_P1_MANUAL.md.
+- [x] S-01: orçamento (reserva, liquidação, liberação) só pelo servidor, com `service_role` e o id da sessão; custo real gravado mesmo com `already`
+- [x] S-02: resposta cortada com texto já enviado é liquidada por estimativa; libera só se nada saiu
+- [x] S-07 (etapa 2 da cota): chat fail closed sem `consume_quota`; função revogada e removida
+- [x] S-10: pessoa não escreve em `usage_events`
+- [x] S-12: `anon` sem acesso ao schema `public`; `authenticated` sem TRUNCATE, REFERENCES e TRIGGER
+- [x] S-03 (código): limite de tentativas por IP e por e-mail (hash) em login, código e convite, com 429 em português
+- [ ] S-03 (painel): ligar a proteção contra senhas vazadas (manual, seção 2)
+- [x] S-04: agendador e `index_backlog` ignoram quem não está ativo
+- [x] S-05 (parcial): bloquear encerra sessões; custo e cota recusam quem não está ativo
+- [ ] S-05 (resto): RLS de escrita por acesso
+- [x] S-06: admin não bloqueia admin, `ADMIN_EMAILS` nem a si mesmo
+- [x] S-11: proxy responde 503 nas rotas protegidas sem a configuração do Supabase
+- [x] Testes: SQL (`test:db`, com compatibilidade da migração aditiva e corrida de liquidação), integração (chat, limite de tentativas, bloqueio de admin, agendador, proxy) e unitários
+- [x] **Publicar:** migração aditiva → deploy → migração restritiva (feito em 22/11/2026)
+- [ ] Verificar em produção, com uma pessoa logada: chat e encerramento de sessões ao bloquear (não verificados)
+- [x] Plano Supabase conferido: Free (sem backups automáticos baixáveis nem PITR)
+- [ ] S-09: decisão do Eduardo (plano Pro ou dump lógico agendado); depois RPO, RTO e ensaio de restauração
+- [ ] Passos manuais: senhas vazadas, Vercel Firewall (opcional)
+- [ ] S-08 (organizações), S-13, S-14, S-15: fora desta entrega
+
+
+## Core Contextual · fase 1: "O que merece minha atenção hoje?" (22/11, PR #24)
+Estágio: **publicado em 22/11/2026 às 15:42 (Brasília)**, merge `215edab`, CI verde, deploy `success`, e2e público 7 de 7 em produção, sem migração. Aprovado pelo Eduardo. Detalhe em docs/CORE_ATENCAO_HOJE.md e docs/CORE_CONTEXTUAL_MVP.md.
+- [x] `src/lib/core/` (escopos, plano por regra, fontes de tarefas, lembretes, agenda e e-mail, coleta, formato, limites, privacidade)
+- [x] Chat: intenção "atencao_hoje" injeta o bloco do Core (etiquetas T/L/A/E, indisponíveis explícitos), sem IA extra e com a reserva/cota de sempre
+- [x] "Fontes" recolhível sob a resposta, com link para a tela de origem
+- [x] Cartão "Merece sua atenção" na tela Hoje (`/api/attention`, sem IA, custo zero de modelo)
+- [x] Gmail só leitura e enxuto (até 5, remetente e assunto), só com o escopo já concedido
+- [x] Interruptor `CORE_MVP=0` (ligado por padrão, porque não há acesso às variáveis da Vercel agora)
+- [x] Testes: unitários, integração (com e sem flag, A x B, Google desconectado), `test:db` (consulta do Core como B), e2e público (401)
+- [x] Nenhuma migração nova
+- [ ] Validar em celular de verdade (390 px) com uma pessoa logada e dados reais (os testes de interface com login não rodaram aqui)
+- [x] Publicar (PR #24, CI verde, merge, deploy; produção: home 200, `/api/attention` 401 sem sessão, `/api/health` ok, e2e público 7 de 7; `CORE_MVP` não definida na Vercel, ligado por padrão)
+- [ ] Validar em produção com pessoa logada: tela Hoje e Fontes, Gmail e agenda reais, voz no aparelho; medir o custo por mensagem
+- [ ] Próximo: auditoria sem conteúdo (`core_audit`, fase 3, alto risco) e priorização pela tela aberta (fase 2)
+
+## Próximo ciclo (prioridades, em ordem)
+1. Auditoria de RLS e isolamento multiusuário e multiempresa.
+2. Core Contextual (depende do item 1).
+3. Financeiro: revisar a especificação do PR #5 e começar a base.
+4. Agent Office: organizações, clientes, membros e papéis.
+5. Agent Office Studio.
+6. 3D Studio.
+7. Observabilidade, alertas de erro e créditos por pessoa.
+8. Testes de ponta a ponta automatizados e validação de voz nos aparelhos.
+
+## Módulos futuros (planejados, sem código)
+- [ ] Financeiro: ver a seção "Finanças pessoais" no PR #5 (`docs/FEATURE-FINANCAS.md`)
+- [ ] Metas & Conquistas: ver docs/METAS_CONQUISTAS.md (banco com RLS, metas ligadas a tarefas, agenda e financeiro pelo Core Contextual)
+- [ ] Casa Inteligente (GaDu Casa): ver docs/CASA_INTELIGENTE.md (Home Assistant como camada recomendada; Alexa via Home Assistant; Tuya direto como opção; confirmação e regras para dispositivos críticos)
+- [ ] Saúde: Samsung Health e Health Connect por conector Android desacoplado, depois de importação manual (docs/INTEGRACOES_SAUDE.md). App nativo exige aprovação específica
+- [ ] 3D Studio: busca de modelos gratuitos respeitando licenças, biblioteca, geração de modelos imprimíveis, exportação para fatiador
+- [ ] Agent Office Studio: agentes que criam sites, aplicações web e PWAs, com execução isolada e aprovação; sem app nativo Android/iOS nesta fase
+- [ ] Voz e texto em todos os módulos novos (decisão oficial)
+
 ## Fase 6 · Agentes Pessoal e Trabalho (proposta em discussão, ver docs/PLANO-AGENTES.md)
 - [ ] 6.1 Fundamentos: espaços Pessoal e Trabalho; agentes com categoria, papel, hierarquia, autonomia e teto; organograma
 - [ ] 6.2 CRM leve: clientes, contatos, funil, atividades; agente Comercial; "antes da reunião"
@@ -196,7 +366,7 @@ Princípios: mobile first, segurança, resiliência, contingência e pronto para
 - [ ] Caixa, Plano, Simulador e Ano
 
 ## Por último (combinado em 10/11)
-- [ ] Testes automáticos de ponta a ponta antes de publicar, alerta de erro e tela de erro própria
+- [ ] Testes automáticos de ponta a ponta antes de publicar e alerta de erro (tela de erro própria: feita no PR #9)
 - [ ] Ações com aprovação no Gmail (rascunhos) e foco na agenda
 - [ ] Voz natural paga (ElevenLabs/OpenAI) com teto próprio
 

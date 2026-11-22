@@ -1,12 +1,13 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { colorVar, shortDate, todayKey } from "./ui";
+import { EmptyState, Panel } from "./kit";
+import { colorVar, Icon, shortDate, todayKey } from "./ui";
 
 export type Task = { id: number; link?: string | null; title: string; status: "open" | "done" | "cancelled"; priority: number; due_date: string | null; project_id: number | null; done_at: string | null; projects?: { name: string; color: string } | null };
 type Mode = "today" | "all" | "project";
 
-const PRIO = { 1: "alta", 2: "normal", 3: "baixa" } as Record<number, string>;
+const PRIO = { 1: "Alta", 2: "Normal", 3: "Baixa" } as Record<number, string>;
 
 /** Ordena: atrasadas, hoje, com prazo, sem prazo; dentro de cada grupo, prioridade. */
 export function sortTasks(list: Task[]): Task[] {
@@ -14,6 +15,21 @@ export function sortTasks(list: Task[]): Task[] {
     const da = a.due_date ?? "9999", dbb = b.due_date ?? "9999";
     return da === dbb ? a.priority - b.priority : da < dbb ? -1 : 1;
   });
+}
+
+/** Grupos da lista completa: atrasadas, hoje, próximas e sem prazo. */
+function groupTasks(list: Task[], today: string) {
+  const groups: { id: string; label: string; items: Task[] }[] = [
+    { id: "late", label: "Atrasadas", items: [] },
+    { id: "today", label: "Hoje", items: [] },
+    { id: "next", label: "Próximas", items: [] },
+    { id: "none", label: "Sem prazo", items: [] },
+  ];
+  for (const t of list) {
+    const g = !t.due_date ? 3 : t.due_date < today ? 0 : t.due_date === today ? 1 : 2;
+    groups[g].items.push(t);
+  }
+  return groups.filter((g) => g.items.length > 0);
 }
 
 export function TasksPanel(props: { mode: Mode; projectId?: number; title?: string; onChange?: (open: number, doneToday: number) => void; onSeeAll?: () => void }) {
@@ -64,74 +80,99 @@ export function TasksPanel(props: { mode: Mode; projectId?: number; title?: stri
   }
 
   const today = todayKey();
+  const compact = props.mode === "today";
   let list = items ?? [];
-  if (props.mode === "today") {
+  if (compact) {
     // Urgentes (atrasadas, de hoje ou prioridade alta); se forem poucas, completa com as próximas.
     const urgent = list.filter((t) => (t.due_date && t.due_date <= today) || t.priority === 1);
     list = (urgent.length >= 3 ? urgent : [...urgent, ...list.filter((t) => !urgent.includes(t))]).slice(0, 6);
   }
   const hidden = (items?.length ?? 0) - list.length;
+  const fid = `task-${props.mode}-${props.projectId ?? 0}`;
+
+  const row = (t: Task) => {
+    const late = Boolean(t.due_date && t.due_date < today);
+    const isToday = t.due_date === today;
+    return (
+      <li key={t.id} className="tl-item">
+        <button className="tl-tick" onClick={() => toggle(t)} aria-label={`Concluir ${t.title}`}><span aria-hidden="true" /></button>
+        <span className="tl-body">
+          <span className="tl-title">{t.title}</span>
+          {(t.priority === 1 || t.due_date || (t.projects && props.mode !== "project") || t.link) && (
+            <span className="tl-meta">
+              {t.priority === 1 && <span className="tl-tag hot">Alta</span>}
+              {t.due_date && <span className={`tl-tag ${late ? "bad" : isToday ? "sig" : ""}`}><Icon name="calendar" size={13} />{late ? "Atrasada · " : isToday ? "Hoje" : ""}{isToday ? "" : shortDate(t.due_date)}</span>}
+              {t.projects && props.mode !== "project" && <span className="tl-tag proj" style={{ ["--c" as string]: colorVar(t.projects.color) }}><i aria-hidden="true" />{t.projects.name}</span>}
+              {t.link && <a className="tl-tag link" href={t.link} target="_blank" rel="noopener noreferrer">Abrir e-mail<Icon name="chevron" size={12} /></a>}
+            </span>
+          )}
+        </span>
+        {!compact && <button className="icon-btn tl-del" onClick={() => remove(t)} aria-label={`Remover ${t.title}`}><Icon name="x" size={16} /></button>}
+      </li>
+    );
+  };
+
+  const form = (
+    <form className={`tl-add ${title.trim() ? "open" : ""}`} onSubmit={add}>
+      <div className="tl-add-main">
+        <Icon name="plus" size={18} />
+        <label className="sr" htmlFor={fid}>Nova tarefa</label>
+        <input id={fid} className="tl-add-input" placeholder={compact ? "Nova tarefa" : "Adicionar tarefa"} value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} />
+      </div>
+      {title.trim() && (
+        <div className="tl-add-opts">
+          <label className="tl-opt">
+            <span>Prazo</span>
+            <input id={`${fid}-due`} className="field" type="date" value={due} min={today} onChange={(e) => setDue(e.target.value)} />
+          </label>
+          <label className="tl-opt">
+            <span>Prioridade</span>
+            <select id={`${fid}-prio`} className="field" value={prio} onChange={(e) => setPrio(Number(e.target.value))}>
+              {[1, 2, 3].map((p) => <option key={p} value={p}>{PRIO[p]}</option>)}
+            </select>
+          </label>
+          <button className="btn btn-pri tl-add-btn" type="submit">Criar</button>
+        </div>
+      )}
+    </form>
+  );
 
   return (
-    <section className="card">
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <h2>{props.title ?? "Tarefas"}</h2>
-        {props.onSeeAll && <button className="link-btn mono" style={{ color: "var(--sig)", textDecoration: "none" }} onClick={props.onSeeAll}>Ver todas ›</button>}
-      </div>
+    <Panel title={props.title ?? "Tarefas"} icon="check" className={`tl-panel ${compact ? "compact" : ""}`}
+      action={props.onSeeAll && <button className="link" onClick={props.onSeeAll}>Ver todas<Icon name="chevron" size={14} /></button>}>
+      {!compact && form}
       {err && <div className="notice" role="alert">{err}</div>}
-      {items === null ? <p className="muted">Carregando…</p> : list.length === 0 ? (
-        <p className="muted" style={{ margin: 0 }}>{props.mode === "today" ? "Nada urgente. Diga “anota aí: …” para criar uma tarefa." : "Nenhuma tarefa aberta."}</p>
+      {items === null ? <p className="muted" role="status">Carregando tarefas…</p> : list.length === 0 ? (
+        compact
+          ? <EmptyState icon="check" title="Nada urgente" text="Diga “anota aí: …” para criar uma tarefa." />
+          : <EmptyState icon="check" title="Nenhuma tarefa aberta" text={props.mode === "project" ? "Adicione a primeira tarefa deste projeto acima." : "Escreva acima ou diga ao GaDu: “anota aí: …”."} />
+      ) : compact ? (
+        <ul className="tl">{list.map(row)}</ul>
       ) : (
-        <ul className="tasks">
-          {list.map((t) => {
-            const late = t.due_date && t.due_date < today;
-            return (
-              <li key={t.id}>
-                <button className="tick" onClick={() => toggle(t)} aria-label={`Concluir ${t.title}`} />
-                <span className="task-body">
-                  <span>{t.title}</span>
-                  <span className="mono task-meta">
-                    {t.priority === 1 && <b style={{ color: "var(--hot)" }}>alta</b>}
-                    {t.due_date && <span style={{ color: late ? "var(--bad)" : undefined }}>{late ? "atrasada · " : ""}{shortDate(t.due_date)}</span>}
-                    {t.projects && props.mode !== "project" && <span style={{ color: colorVar(t.projects.color) }}>{t.projects.name}</span>}
-                    {t.link && <a href={t.link} target="_blank" rel="noopener noreferrer" style={{ color: "var(--sig)" }}>abrir e-mail ›</a>}
-                  </span>
-                </span>
-                {props.mode !== "today" && <button className="link-btn" onClick={() => remove(t)} aria-label={`Remover ${t.title}`}>×</button>}
-              </li>
-            );
-          })}
-        </ul>
+        <div className="tl-groups">
+          {groupTasks(list, today).map((g) => (
+            <section key={g.id} className={`tl-group ${g.id}`} aria-label={g.label}>
+              <h3 className="tl-group-head"><span>{g.label}</span><span className="tl-count">{g.items.length}</span></h3>
+              <ul className="tl">{g.items.map(row)}</ul>
+            </section>
+          ))}
+        </div>
       )}
-      {props.mode === "today" && hidden > 0 && <span className="muted" style={{ fontSize: 14 }}>+{hidden} sem urgência</span>}
-      {props.mode !== "today" && done.length > 0 && (
-        <details>
-          <summary className="mono muted">Concluídas nas últimas 24h ({done.length})</summary>
-          <ul className="tasks">
+      {compact && hidden > 0 && <span className="tl-more">+{hidden} sem urgência</span>}
+      {!compact && done.length > 0 && (
+        <details className="tl-done">
+          <summary><Icon name="chevron" size={14} />Concluídas nas últimas 24h<span className="tl-count">{done.length}</span></summary>
+          <ul className="tl">
             {done.map((t) => (
-              <li key={t.id} className="done">
-                <button className="tick on" onClick={() => toggle(t)} aria-label={`Reabrir ${t.title}`} />
-                <span className="task-body"><span>{t.title}</span></span>
+              <li key={t.id} className="tl-item done">
+                <button className="tl-tick on" onClick={() => toggle(t)} aria-label={`Reabrir ${t.title}`}><span aria-hidden="true"><Icon name="check" size={14} /></span></button>
+                <span className="tl-body"><span className="tl-title">{t.title}</span></span>
               </li>
             ))}
           </ul>
         </details>
       )}
-      <form className="rem-form" onSubmit={add}>
-        <label className="sr" htmlFor={`task-${props.mode}-${props.projectId ?? 0}`}>Nova tarefa</label>
-        <input id={`task-${props.mode}-${props.projectId ?? 0}`} className="field" placeholder="Nova tarefa" value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} />
-        {title.trim() && (
-          <div className="row" style={{ flexWrap: "nowrap" }}>
-            <label className="sr" htmlFor="task-due">Prazo</label>
-            <input id="task-due" className="field" type="date" value={due} min={today} onChange={(e) => setDue(e.target.value)} style={{ colorScheme: "dark" }} />
-            <label className="sr" htmlFor="task-prio">Prioridade</label>
-            <select id="task-prio" className="field" value={prio} onChange={(e) => setPrio(Number(e.target.value))} style={{ maxWidth: 130 }}>
-              {[1, 2, 3].map((p) => <option key={p} value={p}>{PRIO[p]}</option>)}
-            </select>
-            <button className="btn" type="submit">Criar</button>
-          </div>
-        )}
-      </form>
-    </section>
+      {compact && form}
+    </Panel>
   );
 }

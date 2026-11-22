@@ -2,15 +2,19 @@
 export const TIPS = {
   hoje: {
     title: "Este é o seu dia, num lugar só",
-    text: "Toque em Começar o dia para ouvir um resumo da agenda, dos e-mails e das tarefas. O botão redondo no canto de baixo fala com o GaDu de qualquer tela.",
+    text: "No topo fica o que importa agora. O GaDu no centro da barra de baixo fala com você de qualquer tela. Em Módulos você encontra todo o resto.",
   },
   conversa: {
     title: "Fale como falaria com uma pessoa",
     text: "Experimente: “me lembra amanhã às 9 de ligar para o banco”, “anota aí: comprar presente”, “marca dentista quinta às 10”. Tudo o que o GaDu propõe só vale depois que você aprova.",
   },
+  tarefas: {
+    title: "Tudo o que você precisa fazer",
+    text: "As tarefas ficam agrupadas: atrasadas, hoje, próximas e sem prazo. Escreva no campo ou diga ao GaDu “anota aí: …”. Tarefas de um projeto aparecem aqui também.",
+  },
   projetos: {
-    title: "Tarefas e projetos",
-    text: "Em Tarefas fica tudo o que você precisa fazer. Em Projetos, junte objetivo, próximos passos e tarefas. Dentro de um projeto, toque em Conversar sobre o projeto.",
+    title: "Projetos juntam o que é maior",
+    text: "Um projeto tem objetivo, próximos passos e tarefas. Abra um projeto e toque em Conversar para o GaDu ajudar com o contexto dele.",
   },
   agentes: {
     title: "Agentes são o GaDu especializado",
@@ -18,11 +22,11 @@ export const TIPS = {
   },
   perfil: {
     title: "O que o GaDu sabe e como ele funciona",
-    text: "Em Memória você revisa, aprova ou apaga o que o GaDu lembra. Em Ajustes ficam as notificações, a conexão com o Google, a voz e os limites de gasto.",
+    text: "Em Memórias você revisa, aprova ou apaga o que o GaDu lembra. Em Configurações ficam a voz, as notificações, a conexão com o Google e os limites de gasto.",
   },
   voz: {
     title: "Voz em qualquer tela",
-    text: "Toque, fale e solte. A resposta aparece aqui mesmo, sem sair da tela. Para ver a conversa inteira, toque em Abrir conversa.",
+    text: "Toque no microfone e fale. O texto aparece no campo para você revisar antes de enviar. Para ver a conversa inteira, toque em Abrir a conversa completa.",
   },
 } as const;
 export type TipId = keyof typeof TIPS;

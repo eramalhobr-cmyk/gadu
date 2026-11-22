@@ -2,9 +2,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "./RobotFace";
 import { EventCard, type EventDraft } from "./EventCard";
+import { SourcesDetail, type SourcesData } from "./SourcesDetail";
 import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
 import { canListen, canSpeak, createRecognizer, Speaker } from "@/lib/speech";
+import { chatErrorMessage, micErrorMessage } from "@/lib/errors";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { ConversationsDrawer } from "./ConversationsDrawer";
 import { MemoryPage } from "./MemoryPage";
@@ -12,11 +14,18 @@ import { SettingsPage, type Prefs } from "./SettingsPage";
 import { dueLabel, TodayPage } from "./TodayPage";
 import { AgentsPage } from "./AgentsPage";
 import { ProjectsPage } from "./ProjectsPage";
+import { AgendaView } from "./AgendaView";
 import { Icon } from "./ui";
 import { TipCard } from "./TipCard";
 import { TIP_IDS, type TipId } from "@/lib/tips";
+import { Assistant } from "./Assistant";
+import { ModulePage, ModulesHub, StatusPill } from "./ModulePage";
+import { colorVar } from "./ui";
+import { contextOf } from "@/lib/assistant-context";
+import { AREAS, isOverview, moduleById, moduleOf, parseView, viewDef, type ViewId } from "@/lib/modules";
+import { applyTheme, readTheme, type Theme } from "@/lib/theme";
 
-export type Msg = { id: string; role: "user" | "assistant" | "notice" | "event"; content: string; via?: string; link?: { href: string; label: string }; event?: EventDraft };
+export type Msg = { id: string; role: "user" | "assistant" | "notice" | "event"; content: string; via?: string; link?: { href: string; label: string }; event?: EventDraft; sources?: SourcesData };
 
 const DEFAULT_MORNING = "https://open.spotify.com/search/Update%20Di%C3%A1rio/podcasts";
 const QUICK = ["Começar o dia", "Como está minha agenda hoje?", "Tenho e-mails importantes?"];
@@ -27,15 +36,16 @@ const FLASH: Record<string, string> = {
   config: "O Google ainda não está configurado no servidor. Siga o passo a passo para criar as credenciais.",
   erro: "Não consegui concluir a conexão com o Google. Tente de novo em Ajustes, Conexões.",
 };
-import { TABS, type Tab } from "@/lib/tabs";
-export type { Tab };
-const TAB_LABEL: Record<Tab, string> = { hoje: "Hoje", conversa: "Conversa", projetos: "Projetos", agentes: "Agentes", perfil: "Perfil" };
-const TAB_ICON: Record<Tab, string> = { hoje: "sun", conversa: "chat", projetos: "grid", agentes: "agents", perfil: "user" };
+/** Dica da primeira visita de cada tela. */
+const TIP_OF: Partial<Record<ViewId, TipId>> = { hoje: "hoje", conversa: "conversa", tarefas: "tarefas", projetos: "projetos", agentes: "agentes", memoria: "perfil", ajustes: "perfil" };
+const LS_ASSIST = "gadu.assist";
+const LS_ASSIST_W = "gadu.assistW";
+const LS_NAV_MINI = "gadu.navMini";
 type Target = { kind: "project" | "agent"; id: number; name: string } | null;
 
 const LS_DRAFT = "gadu.draft";
 const LS_PREFS = "gadu.prefs";
-const DEFAULT_PREFS: Prefs = { voice: true, handsFree: false, voiceURI: "", rate: 1 };
+const DEFAULT_PREFS: Prefs = { voice: true, handsFree: false, voiceURI: "", rate: 1, autoSend: false };
 
 function readPrefs(): Prefs {
   try {
@@ -46,6 +56,8 @@ function readPrefs(): Prefs {
       handsFree: Boolean(p.handsFree),
       voiceURI: typeof p.voiceURI === "string" ? p.voiceURI : "",
       rate: Number.isFinite(rate) && rate >= 0.7 && rate <= 1.6 ? rate : 1,
+      // Envio automático só com escolha explícita (padrão: desligado; o texto fica no campo para revisar).
+      autoSend: p.autoSend === true,
     };
   } catch {
     return DEFAULT_PREFS;
@@ -61,32 +73,58 @@ export function GaduApp(props: {
   version: string;
   morningLink: string;
   flash: string | null;
-  initialTab: Tab;
-  initialProfile: "memoria" | "ajustes" | "admin";
+  initialView: ViewId;
+  initialTheme: Theme;
   autoStart: "briefing" | "review" | null;
   admin: boolean;
   seenTips: string[];
   /** Página de conteúdo (guia, como funciona) dentro do mesmo cabeçalho e menu. */
   page?: React.ReactNode;
 }) {
-  const [tab, setTabState] = useState<Tab>(props.initialTab);
-  const [profileView, setProfileView] = useState<"memoria" | "ajustes" | "admin">(props.initialProfile);
-  const [dock, setDock] = useState(false);
+  const [tab, setTabState] = useState<ViewId>(props.initialView);
+  const [assist, setAssist] = useState(false);
+  /** Largura do painel do assistente no computador (arrastável), em px. */
+  const [assistW, setAssistW] = useState(384);
+  const [menu, setMenu] = useState(false);
+  const [navMini, setNavMini] = useState(false);
+  const areaOf = (v: ViewId) => AREAS.find((a) => a.modules.includes(moduleOf(v).id))?.id ?? "produtividade";
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(["produtividade", areaOf(props.initialView)]));
+  useEffect(() => {
+    try { const saved = JSON.parse(localStorage.getItem("gadu.nav") || "null"); if (Array.isArray(saved)) setOpenGroups(new Set(saved.map(String))); } catch {}
+  }, []);
+  // O grupo da tela atual sempre fica aberto.
+  useEffect(() => {
+    const id = areaOf(tab);
+    setOpenGroups((g) => (g.has(id) ? g : new Set(g).add(id)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+  function toggleGroup(id: string) {
+    setOpenGroups((g) => { const n = new Set(g); if (n.has(id)) n.delete(id); else n.add(id); try { localStorage.setItem("gadu.nav", JSON.stringify([...n])); } catch {} return n; });
+  }
+  const [theme, setTheme] = useState<Theme>(props.initialTheme);
   const [pageOpen, setPageOpen] = useState(Boolean(props.page));
   // Com uma página de conteúdo aberta, nenhuma aba aparece; tocar numa aba volta ao app.
-  const view: Tab | null = pageOpen ? null : tab;
+  const view: ViewId | null = pageOpen ? null : tab;
   /** Troca de aba. Se estiver numa página de conteúdo, volta para o app e ajusta o endereço. */
-  function setTab(t: Tab) {
-    if (pageOpen) {
-      setPageOpen(false);
-      window.history.replaceState(null, "", `/app?tab=${t}`);
-    }
+  function setTab(t: ViewId) {
+    if (t === "admin" && !props.admin) t = "ajustes";
+    setPageOpen(false);
+    window.history.replaceState(null, "", `/app?tab=${t}`);
+    setMenu(false);
     setTabState(t);
+  }
+  function openAssist(on: boolean) {
+    setAssist(on);
+    try { localStorage.setItem(LS_ASSIST, on ? "1" : "0"); } catch {}
+  }
+  function toggleTheme(next?: Theme) {
+    const t = next ?? (theme === "dark" ? "light" : "dark");
+    setTheme(t);
+    applyTheme(t);
   }
   const [seen, setSeen] = useState<Set<string>>(() => new Set(props.seenTips));
   const [review, setReview] = useState(false);
   const [target, setTarget] = useState<Target>(null);
-  const [projView, setProjView] = useState<"tarefas" | "projetos">("tarefas");
   const [messages, setMessages] = useState<Msg[]>(props.initialMessages);
   const [conversationId, setConversationId] = useState<number | null>(props.initialConversationId);
   const [draft, setDraft] = useState("");
@@ -109,6 +147,16 @@ export function GaduApp(props: {
   useEffect(() => {
     setPrefs(readPrefs());
     setVoiceOk(canListen());
+    setTheme(readTheme(props.initialTheme));
+    // Assistente: aberto por padrão em telas largas; depois vale a escolha da pessoa.
+    try {
+      // No celular o assistente começa fechado: abrir é sempre uma ação da pessoa.
+      const saved = localStorage.getItem(LS_ASSIST);
+      if (window.innerWidth >= 1024) setAssist(saved ? saved === "1" : window.innerWidth >= 1360);
+      const w = Number(localStorage.getItem(LS_ASSIST_W));
+      if (w >= 320 && w <= 640) setAssistW(w);
+      setNavMini(localStorage.getItem(LS_NAV_MINI) === "1");
+    } catch {}
     try { setDraft(localStorage.getItem(LS_DRAFT) || ""); } catch {}
     setOnline(navigator.onLine);
     const on = () => setOnline(true);
@@ -142,26 +190,30 @@ export function GaduApp(props: {
   const listen = useCallback(() => {
     if (!voiceOk || busy) return;
     speaker?.cancel();
+    // Nunca dois microfones abertos ao mesmo tempo (toques repetidos ou modo conversa).
+    try { recRef.current?.abort(); } catch {}
+    // Avisos de um microfone antigo (já trocado) são ignorados.
+    const mine = () => recRef.current === rec;
     const rec = createRecognizer({
       onText: (text, final) => {
+        if (!mine()) return;
         setDraft(text);
-        if (final && text) void sendRef.current(text);
+        // Envio automático só se a pessoa escolheu (ou no modo mãos-livres, que depende disso).
+        if (final && text && (prefsRef.current.autoSend || prefsRef.current.handsFree)) void sendRef.current(text);
       },
-      onEnd: () => { setListening(false); setMode((m) => (m === "listening" ? "idle" : m)); },
+      onEnd: () => { if (!mine()) return; setListening(false); setMode((m) => (m === "listening" ? "idle" : m)); },
       onError: (code) => {
+        if (!mine()) return;
         setListening(false);
         setMode("idle");
-        const text: Record<string, string> = {
-          "not-allowed": "O microfone está bloqueado. Libere o microfone para este site nas configurações do navegador.",
-          "service-not-allowed": "O microfone está bloqueado. Libere o microfone para este site nas configurações do navegador.",
-          "audio-capture": "Não encontrei um microfone neste aparelho.",
-          network: "O reconhecimento de voz precisa de internet. Confira a conexão e tente de novo.",
-        };
-        if (text[code]) setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: text[code] }]);
+        const text = micErrorMessage(code);
+        if (text) setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: text }]);
       },
     });
     if (!rec) return;
     recRef.current = rec;
+    // Nunca deixa o microfone aberto indefinidamente: para sozinho depois de 20 s.
+    setTimeout(() => { if (recRef.current === rec) { try { rec.stop(); } catch {} } }, 20_000);
     try {
       rec.start();
       setListening(true);
@@ -193,18 +245,19 @@ export function GaduApp(props: {
       speaker.onStart = () => setMode("speaking");
       speaker.onIdle = () => {
         setMode("idle");
-        if (handsFreeRef.current) setTimeout(() => listenRef.current(), 400);
+        // Modo mãos-livres: volta a ouvir só quando nada mais está acontecendo.
+        if (handsFreeRef.current) setTimeout(() => { if (modeRef.current === "idle" && !busyRef.current && !listeningRef.current) listenRef.current(); }, 400);
       };
     }
     const attempt = async () => {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message, conversationId, projectId: !conversationId && target?.kind === "project" ? target.id : null, agentId: !conversationId && target?.kind === "agent" ? target.id : null }),
+        body: JSON.stringify({ message, conversationId, context: contextOf(tabRef.current), projectId: !conversationId && target?.kind === "project" ? target.id : null, agentId: !conversationId && target?.kind === "agent" ? target.id : null }),
         signal: ctrl.signal,
       });
       if (res.status === 401) { window.location.href = "/login"; return; }
-      if (!res.ok || !res.body) throw new Error(String(res.status));
+      if (!res.ok || !res.body) throw Object.assign(new Error("http"), { status: res.status || 500 });
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       let buf = "";
@@ -226,6 +279,8 @@ export function GaduApp(props: {
             if (!answerStarted) { answerStarted = true; if (!(prefs.voice && canSpeak())) setMode("speaking"); }
             setMessages((ms) => ms.map((m) => (m.id === botId ? { ...m, content: answer } : m)));
             if (prefs.voice && speaker) { speaker.push(ev.text); spoke = true; }
+          } else if (ev.t === "sources") {
+            setMessages((ms) => ms.map((m) => (m.id === botId ? { ...m, sources: { items: ev.items, unavailable: ev.unavailable } } : m)));
           } else if (ev.t === "events") {
             const items = ev.items as EventDraft[];
             setMessages((ms) => [...ms, ...items.map((e) => ({ id: crypto.randomUUID(), role: "event" as const, content: e.title, event: e }))]);
@@ -253,27 +308,43 @@ export function GaduApp(props: {
       try {
         await attempt();
       } catch (e) {
-        // Contingência: uma nova tentativa automática se a rede caiu antes de responder.
-        if (ctrl.signal.aborted || answer) throw e;
+        // Contingência: uma nova tentativa automática se a rede caiu (ou o servidor falhou) antes de responder.
+        // Erros da própria mensagem (4xx) não melhoram tentando de novo.
+        const st = (e as { status?: number }).status ?? 0;
+        if (ctrl.signal.aborted || answer || (st >= 400 && st < 500)) throw e;
         await new Promise((r) => setTimeout(r, 800));
         await attempt();
       }
       if (answer && /^come[cç]ar o dia\b/i.test(message)) {
         setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "Quer ouvir as notícias agora?", link: { href: props.morningLink || DEFAULT_MORNING, label: "Ouvir o Update Diário" } }]);
       }
-    } catch {
+    } catch (e) {
       if (!ctrl.signal.aborted) {
-        setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "Não consegui falar com o servidor. Sua mensagem ficou no rascunho; tente de novo." }]);
+        setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: chatErrorMessage((e as { status?: number }).status ?? 0) }]);
         setDraft(message);
       }
     } finally {
       setBusy(false);
       abortRef.current = null;
       if (spoke && speaker) speaker.flush();
-      else setMode("idle");
+      else {
+        setMode("idle");
+        // Modo conversa com a voz da resposta desligada: volta a ouvir mesmo assim.
+        if (answer && !ctrl.signal.aborted && handsFreeRef.current) setTimeout(() => { if (modeRef.current === "idle" && !busyRef.current && !listeningRef.current) listenRef.current(); }, 600);
+      }
     }
   }, [busy, conversationId, prefs.voice, refreshPending, speaker, props.morningLink, target]);
 
+  const modeRef = useRef(mode);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+  const busyRef = useRef(busy);
+  useEffect(() => { busyRef.current = busy; }, [busy]);
+  const listeningRef = useRef(listening);
+  useEffect(() => { listeningRef.current = listening; }, [listening]);
+  const prefsRef = useRef(prefs);
+  useEffect(() => { prefsRef.current = prefs; }, [prefs]);
+  const tabRef = useRef(tab);
+  useEffect(() => { tabRef.current = tab; }, [tab]);
   const sendRef = useRef(send);
   const listenRef = useRef(listen);
   useEffect(() => { sendRef.current = send; listenRef.current = listen; }, [send, listen]);
@@ -283,7 +354,6 @@ export function GaduApp(props: {
   useEffect(() => {
     if (!props.autoStart || started.current) return;
     started.current = true;
-    window.history.replaceState(null, "", "/app");
     if (props.autoStart === "review") { setTab("hoje"); setReview(true); return; }
     setTab("conversa");
     setTimeout(() => void sendRef.current("Começar o dia"), 300);
@@ -309,7 +379,7 @@ export function GaduApp(props: {
 
   // Voz flutuante: fala com o GaDu de qualquer tela, sem sair dela.
   function dockTalk() {
-    setDock(true);
+    openAssist(true);
     micClick();
   }
 
@@ -330,8 +400,8 @@ export function GaduApp(props: {
       return;
     }
     if (listening) { recRef.current?.stop(); return; }
-    if (busy) { abortRef.current?.abort(); speaker?.cancel(); setMode("idle"); return; }
-    speaker?.cancel();
+    // Respondendo (pensando ou falando): o toque interrompe e para. Não abre o microfone junto.
+    if (busy || mode === "speaking") { abortRef.current?.abort(); speaker?.cancel(); setMode("idle"); return; }
     listen();
   }
 
@@ -376,202 +446,305 @@ export function GaduApp(props: {
   }
 
   const stateLabel = { idle: "Em repouso", listening: "Escutando", thinking: "Pensando", speaking: "Respondendo" }[mode];
+  const active = listening || busy || mode === "speaking";
+  const mod = view ? moduleOf(view) : null;
+  const title = view ? viewDef(view).label : "Ajuda";
+  const tip = view ? TIP_OF[view] : undefined;
+  const showAssist = assist && view !== "conversa";
+  const stop = () => { if (listening) recRef.current?.stop(); else { abortRef.current?.abort(); speaker?.cancel(); setMode("idle"); } };
+  /** Botão central: abre/fecha o assistente; na Conversa, leva ao campo de mensagem (a voz fica no próprio campo). */
+  function orbClick() {
+    if (view === "conversa") { document.getElementById("msg")?.focus(); return; }
+    if (active) { stop(); return; }
+    openAssist(!assist);
+  }
+  const initial = (props.name || props.email || "G").trim().charAt(0).toUpperCase();
 
-  return (
-    <div className="shell dots">
-      <header className="top">
-        <div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
-          <button className="icon-btn" onClick={() => setDrawer(true)} aria-label="Conversas anteriores" aria-expanded={drawer}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" /></svg>
-          </button>
-          <span className="brand">GaDu</span>
-        </div>
-        <div className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
-          <span className={`mono state ${mode === "thinking" ? "hot" : ""}`}><i />{stateLabel}</span>
-          <a className="icon-btn help-btn" href="/app/guia" aria-label="Guia do GaDu" title="Guia do GaDu">?</a>
-        </div>
-      </header>
-      {!online && <div className="banner" role="status">Sem internet. O app continua aberto e as mensagens ficam no rascunho.</div>}
-      {view && !seen.has(view) && <TipCard key={view} id={view} onDone={() => markTip(view)} />}
-      {pageOpen && <main className="page doc-page">{props.page}</main>}
+  // Botão Voltar (Android e navegador): fecha primeiro o que estiver aberto por cima (conversas, menu, assistente no celular);
+  // sem nada aberto, volta para a tela anterior.
+  const isPhone = () => typeof window !== "undefined" && window.innerWidth < 1024;
+  const overlayOpen = menu || drawer || (showAssist && isPhone());
+  const overlayRef = useRef({ menu, drawer, assist: showAssist });
+  overlayRef.current = { menu, drawer, assist: showAssist && isPhone() };
+  useEffect(() => {
+    if (overlayOpen) { if (!window.history.state?.gaduOverlay) window.history.pushState({ gaduOverlay: 1 }, ""); }
+    else if (window.history.state?.gaduOverlay) window.history.back();
+  }, [overlayOpen]);
+  useEffect(() => {
+    const onPop = () => {
+      const o = overlayRef.current;
+      if (o.drawer) setDrawer(false);
+      else if (o.menu) setMenu(false);
+      else if (o.assist) openAssist(false);
+      else {
+        const t = parseView(new URLSearchParams(window.location.search).get("tab") ?? undefined, props.admin);
+        if (t) { setPageOpen(false); setTabState(t); }
+      }
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { if (overlayRef.current.drawer) return; setMenu(false); } };
+    window.addEventListener("popstate", onPop);
+    window.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("popstate", onPop); window.removeEventListener("keydown", onKey); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Menu aberto: a página por trás não rola.
+  useEffect(() => { document.documentElement.classList.toggle("menu-open", menu); }, [menu]);
+  // Mudou de tela com o microfone aberto e sem nenhum controle de voz à vista: para de ouvir.
+  useEffect(() => {
+    if (listeningRef.current && !(tab === "conversa" || showAssist)) recRef.current?.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+  function toggleNavMini() {
+    setNavMini((v) => { try { localStorage.setItem(LS_NAV_MINI, v ? "0" : "1"); } catch {} return !v; });
+  }
+  /** Painel do assistente no computador: arrastar a borda muda a largura (320 a 640 px), sem espremer a área de trabalho. */
+  function startResize(e: React.PointerEvent) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = assistW;
+    let last = startW;
+    const max = () => Math.max(320, Math.min(640, window.innerWidth - (navMini ? 76 : 280) - 560));
+    const move = (ev: PointerEvent) => { last = Math.round(Math.min(max(), Math.max(320, startW + (startX - ev.clientX)))); setAssistW(last); };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      try { localStorage.setItem(LS_ASSIST_W, String(last)); } catch {}
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
+  function stepAssistW(delta: number) {
+    setAssistW((w) => { const n = Math.min(640, Math.max(320, w + delta)); try { localStorage.setItem(LS_ASSIST_W, String(n)); } catch {} return n; });
+  }
 
-      {view === "conversa" && (
-        <main className="main chat">
-          <section className="face" aria-label="GaDu">
-            <Avatar mode={mode} label={`GaDu: ${stateLabel}`} />
-          </section>
-          {target && (
-            <div className="target-pill">
-              <span className="mono">{target.kind === "agent" ? "Agente" : "Projeto"}</span>
-              <b>{target.name}</b>
-              {!conversationId && <button className="link-btn" onClick={() => setTarget(null)} aria-label="Conversar sem agente ou projeto">×</button>}
-            </div>
-          )}
-          <div className="log" ref={logRef} aria-live="polite">
-            {!messages.some((m) => m.role !== "notice") && (
-              <div className="msg-b">
-                <div className="mono via">GaDu</div>
-                Oi{props.name ? `, ${props.name}` : ""}. Toque no microfone e fale, ou escreva. Tudo o que eu aprender sobre você passa pela sua aprovação antes de virar memória.
-              </div>
-            )}
-            {!messages.some((m) => m.role !== "notice") && (
-              <div className="row quick" aria-label="Atalhos">
-                {QUICK.map((q) => (
-                  <button key={q} className="chip" disabled={busy} onClick={() => { speaker?.unlock(); void send(q); }}>{q}</button>
-                ))}
-              </div>
-            )}
-            {messages.map((m) =>
-              m.role === "user" ? (
-                <div key={m.id} className="msg-u">{m.content}</div>
-              ) : m.role === "event" && m.event ? (
-                <EventCard key={m.id} ev={m.event} />
-              ) : m.role === "notice" ? (
-                <div key={m.id} className="notice" role="status">
-                  {m.content}
-                  {m.link && <div style={{ marginTop: 8 }}><a className="btn btn-sm" href={m.link.href} target="_blank" rel="noopener noreferrer">{m.link.label}</a></div>}
-                </div>
-              ) : (
-                <div key={m.id} className="msg-b">
-                  <div className="mono via">GaDu{m.via ? ` · via ${m.via}` : ""}</div>
-                  {m.content || "…"}
-                </div>
-              ),
-            )}
+  const inDock: ViewId[] = ["hoje", "conversa", "tarefas", "modulos"];
+  const accountViews: ViewId[] = ["perfil", "ajustes", "integracoes", "admin"];
+  /** Menu lateral do computador: por área do produto, com grupos recolhíveis.
+   * Módulo planejado aparece discreto, dentro da área, com o selo. */
+  const navItem = (v: { id: ViewId; label: string; icon: string }, extra?: React.ReactNode) => (
+    <button key={v.id} className="nav-item" aria-current={view === v.id ? "page" : undefined} onClick={() => setTab(v.id)} title={navMini ? v.label : undefined}>
+      <Icon name={v.icon} size={19} /><span>{v.label}</span>
+      {v.id === "memoria" && pending > 0 && <b className="nav-badge" aria-label={`${pending} memórias para revisar`}>{pending}</b>}
+      {extra}
+    </button>
+  );
+  const navGroups = () => (
+    <div className="nav-scroll">
+      <div className="nav-home">{navItem(viewDef("hoje"))}</div>
+      {AREAS.map((a) => {
+        const mods = a.modules.map(moduleById);
+        const items = mods.flatMap((m) => m.status === "planejado"
+          ? [<button key={m.id} className="nav-item soon" aria-current={view === m.views[0].id ? "page" : undefined} onClick={() => setTab(m.views[0].id)} style={{ ["--c" as string]: colorVar(m.color) }} title={navMini ? `${m.name} (planejado)` : undefined}>
+              <Icon name={m.icon} size={19} /><span>{m.name}</span><small className="soon-tag">Planejado</small>
+            </button>]
+          : m.views.filter((v) => !v.home && !v.hub && (!v.adminOnly || props.admin)).map((v) => navItem(v, m.status !== "disponivel" && v === m.views[0] ? <StatusPill status={m.status} /> : undefined)));
+        const isOpen = navMini || openGroups.has(a.id);
+        return (
+          <div className={`nav-grp ${isOpen ? "open" : ""}`} key={a.id}>
+            <button className="nav-grp-head" aria-expanded={isOpen} aria-controls={`grp-${a.id}`} onClick={() => toggleGroup(a.id)}>
+              <span className="name">{a.name}</span><span className="chev" aria-hidden="true"><Icon name="chevron" size={16} /></span>
+            </button>
+            <div className="nav-grp-body" id={`grp-${a.id}`} hidden={!isOpen}>{items}</div>
           </div>
-          <form
-            className="composer"
-            onSubmit={(e) => { e.preventDefault(); void send(draft); }}
-          >
-            <button type="button" className={`mic ${listening ? "on" : ""}`} onClick={micClick} aria-label={listening ? "Parar de ouvir" : busy ? "Parar resposta" : "Falar"} >
-              {busy && !listening ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" fill="currentColor" /></svg>
-              ) : (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 0 0 6 0V6.5a3 3 0 0 0-3-3zM5.5 12a6.5 6.5 0 0 0 13 0M12 18.5V21" /></svg>
-              )}
-            </button>
-            <label className="sr" htmlFor="msg">Mensagem</label>
-            <textarea
-              id="msg"
-              className="field"
-              rows={1}
-              value={draft}
-              placeholder={listening ? "Escutando…" : "Fale ou escreva"}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && window.innerWidth > 900) { e.preventDefault(); void send(draft); } }}
-              maxLength={4000}
-            />
-            <button type="submit" className="btn btn-pri send" aria-label="Enviar" disabled={busy || !draft.trim()}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M4.5 12h15M13 5.5l6.5 6.5-6.5 6.5" /></svg>
-            </button>
-          </form>
-        </main>
-      )}
-
-      {view === "hoje" && (
-        <TodayPage review={review} onReviewDone={() => setReview(false)} onDock={dockTalk} onWrite={() => setTab("conversa")} name={props.name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk} onOpenMemory={() => { setProfileView("memoria"); setTab("perfil"); }} onOpenTasks={() => { setProjView("tarefas"); setTab("projetos"); }} onAsk={(q) => { speaker?.unlock(); setTab("conversa"); void send(q); }} />
-      )}
-      {view === "projetos" && <ProjectsPage key={projView} initialView={projView} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
-      {view === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
-      {view === "perfil" && (
-        <div className="seg seg-top" role="tablist" aria-label="Perfil">
-          {(props.admin ? (["memoria", "ajustes", "admin"] as const) : (["memoria", "ajustes"] as const)).map((v) => (
-            <button key={v} role="tab" aria-selected={profileView === v} onClick={() => setProfileView(v)}>
-              {v === "memoria" ? "Memória" : v === "ajustes" ? "Ajustes" : "Admin"}{v === "memoria" && pending > 0 ? ` · ${pending}` : ""}
-            </button>
-          ))}
-        </div>
-      )}
-      {view === "perfil" && profileView === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
-      {view === "perfil" && profileView === "admin" && props.admin && <AdminPage />}
-      {view === "perfil" && profileView === "ajustes" && (
-        <SettingsPage
-          email={props.email}
-          version={props.version}
-          prefs={prefs}
-          setPrefs={setPrefs}
-          voiceOk={voiceOk}
-          speaker={speaker}
-          onNew={() => { newConversation(); setTab("conversa"); }}
-          initialBlocked={props.initialBlocked}
-          morningLink={props.morningLink}
-          onResetTips={resetTips}
-        />
-      )}
-
-      {view !== "conversa" && (
-        <VoiceDock
-          open={dock}
-          mode={mode}
-          listening={listening}
-          busy={busy}
-          draft={draft}
-          last={[...messages].reverse().find((m) => m.role === "assistant" || m.role === "notice")}
-          tip={!seen.has("voz")}
-          onTipDone={() => markTip("voz")}
-          onTalk={dockTalk}
-          onStop={() => { if (listening) recRef.current?.stop(); else { abortRef.current?.abort(); speaker?.cancel(); setMode("idle"); } }}
-          onOpen={() => { setDock(false); setTab("conversa"); }}
-          onClose={() => setDock(false)}
-        />
-      )}
-
-      {drawer && (
-        <ConversationsDrawer
-          currentId={conversationId}
-          onClose={() => setDrawer(false)}
-          onOpen={openConversation}
-          onNew={() => { newConversation(); setTab("conversa"); setDrawer(false); }}
-          onDeleted={(id) => { if (id === conversationId) newConversation(); }}
-        />
-      )}
-
-      <nav className="tabs" aria-label="Navegação">
-        {TABS.map((t) => (
-          <button key={t} className="tab" aria-current={view === t ? "page" : undefined} onClick={() => setTab(t)}>
-            <Icon name={TAB_ICON[t]} size={20} />
-            {TAB_LABEL[t]}
-            {t === "perfil" && pending > 0 && <b className="badge">{pending}</b>}
-          </button>
-        ))}
-      </nav>
+        );
+      })}
+      <div className="nav-extra">
+        <button className="nav-item" onClick={() => setDrawer(true)} aria-expanded={drawer} title={navMini ? "Conversas anteriores" : undefined}><Icon name="history" size={19} /><span>Conversas anteriores</span></button>
+        <a className="nav-item" href="/app/guia" title={navMini ? "Guia e como funciona" : undefined}><Icon name="book" size={19} /><span>Guia e como funciona</span></a>
+      </div>
     </div>
   );
-}
-
-
-/** Botão de voz flutuante e painel compacto: ouvir, ver a resposta e continuar, em qualquer tela. */
-function VoiceDock(props: { tip: boolean; onTipDone: () => void; open: boolean; mode: FaceMode; listening: boolean; busy: boolean; draft: string; last?: Msg; onTalk: () => void; onStop: () => void; onOpen: () => void; onClose: () => void }) {
-  const active = props.listening || props.busy || props.mode === "speaking";
-  const label = props.listening ? "Escutando…" : props.mode === "thinking" ? "Pensando…" : props.mode === "speaking" ? "Respondendo…" : "Toque para falar";
+  const navUser = (
+    <div className="nav-user">
+      <span className="initial" aria-hidden="true">{initial}</span>
+      <button className="who" onClick={() => setTab("perfil")}><b>{props.name || "Você"}</b><small>{props.email}</small></button>
+      <button className="icon-btn" onClick={() => toggleTheme()} aria-label={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"} title={theme === "dark" ? "Tema claro" : "Tema escuro"}><Icon name={theme === "dark" ? "sun" : "moon"} /></button>
+    </div>
+  );
+  /** Menu do celular (gaveta da esquerda): só conta, plataforma e atalhos. Os módulos ficam na tela Módulos; o dia a dia, na barra de baixo. */
+  const mobileMenu = (
+    <div className="nav-scroll">
+      {navUser}
+      <div className="menu-sec">
+        <span className="menu-label">Explorar</span>
+        <button className="nav-item" aria-current={view === "modulos" ? "page" : undefined} onClick={() => setTab("modulos")}><Icon name="grid" size={19} /><span>Todos os módulos</span></button>
+        <button className="nav-item" onClick={() => { setMenu(false); setDrawer(true); }}><Icon name="history" size={19} /><span>Conversas anteriores</span></button>
+      </div>
+      <div className="menu-sec">
+        <span className="menu-label">Conta e plataforma</span>
+        {moduleById("plataforma").views.filter((v) => !v.adminOnly || props.admin).map((v) => navItem(v))}
+      </div>
+      <div className="menu-sec">
+        <a className="nav-item" href="/app/guia"><Icon name="book" size={19} /><span>Guia e como funciona</span></a>
+      </div>
+    </div>
+  );
   return (
-    <>
-      {props.open && (
-        <div className="dock" role="dialog" aria-label="Falar com o GaDu">
-          {props.tip && <TipCard id="voz" floating onDone={props.onTipDone} />}
-          <div className="dock-head">
-            <span className={`mono state ${props.mode === "thinking" ? "hot" : ""}`}><i />{label}</span>
-            <button className="icon-btn" onClick={props.onClose} aria-label="Fechar">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-            </button>
-          </div>
-          {props.listening && props.draft && <div className="msg-u" style={{ alignSelf: "flex-end" }}>{props.draft}</div>}
-          {props.last && !props.listening && (
-            <div className={props.last.role === "notice" ? "notice" : "msg-b dock-answer"}>{props.last.content || "…"}</div>
-          )}
-          <div className="row" style={{ flexWrap: "nowrap" }}>
-            {active ? <button className="btn btn-sm" onClick={props.onStop}>Parar</button> : <button className="btn btn-sm btn-pri" onClick={props.onTalk}>Falar de novo</button>}
-            <button className="btn btn-sm" onClick={props.onOpen}>Abrir conversa</button>
-          </div>
+    <div className={`app ${showAssist ? "with-assist" : ""} ${navMini ? "nav-mini" : ""}`} style={{ ["--assist-w" as string]: `${assistW}px` }}>
+      <a className="skip" href="#conteudo">Pular para o conteúdo</a>
+
+      <aside className="nav on-dark" aria-label="Módulos">
+        <div className="nav-top">
+          <a className="nav-brand" href="/app" aria-label="GaDu, início"><span className="brand">GaDu</span></a>
+          <button className="icon-btn nav-collapse" onClick={toggleNavMini} aria-label={navMini ? "Expandir o menu" : "Recolher o menu"} aria-pressed={navMini} title={navMini ? "Expandir o menu" : "Recolher o menu"}><Icon name="panel" /></button>
         </div>
-      )}
-      <button className={`fab ${active ? "on" : ""}`} onClick={active ? props.onStop : props.onTalk} aria-label={active ? "Parar" : "Falar com o GaDu"}>
-        {active && !props.listening ? (
-          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" /></svg>
-        ) : (
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true"><path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 0 0 6 0V6.5a3 3 0 0 0-3-3zM5.5 12a6.5 6.5 0 0 0 13 0M12 18.5V21" /></svg>
+        <button className="btn btn-pri nav-new" onClick={() => { newConversation(); setTab("conversa"); }} aria-label="Nova conversa" title={navMini ? "Nova conversa" : undefined}><Icon name="plus" size={18} /><span>Nova conversa</span></button>
+        {navGroups()}
+        <div className="nav-foot">{navUser}</div>
+      </aside>
+
+      <div className="frame">
+        <header className="bar">
+          <button className="icon-btn bar-menu" onClick={() => setMenu(true)} aria-label="Abrir o menu" aria-expanded={menu} aria-controls="menu-cel"><Icon name="menu" /></button>
+          <a className="bar-brand" href="/app" aria-label="GaDu, início">
+            <span className="brand">GaDu</span>
+          </a>
+          <div className="bar-title">
+            {mod && <span className="crumb">{mod.name}</span>}
+            <h1>{title}</h1>
+          </div>
+          <div className="bar-actions">
+            {/* Estado só quando há algo acontecendo (escutando, pensando, respondendo). */}
+            {active && <span className={`mono state ${mode === "thinking" ? "hot" : ""}`} role="status"><i />{stateLabel}</span>}
+            <button className="icon-btn desk-only" onClick={() => toggleTheme()} aria-label={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"}><Icon name={theme === "dark" ? "sun" : "moon"} /></button>
+            {view !== "conversa" && (
+              <button className="icon-btn" onClick={() => openAssist(!assist)} aria-label={assist ? "Fechar o assistente" : "Abrir o assistente"} aria-pressed={assist}><Icon name="panel" /></button>
+            )}
+            <a className="icon-btn desk-only" href="/app/guia" aria-label="Guia do GaDu" title="Guia do GaDu"><b aria-hidden="true">?</b></a>
+          </div>
+        </header>
+        {!online && <div className="banner" role="status">Sem internet. O app continua aberto e as mensagens ficam no rascunho.</div>}
+        {tip && !seen.has(tip) && <TipCard key={`tip-${tip}`} id={tip} onDone={() => markTip(tip)} />}
+        {pageOpen && <main className="page doc-page" id="conteudo">{props.page}</main>}
+
+        {view === "conversa" && (
+          <main className="chat2" id="conteudo">
+            <aside className="chat-stage on-dark" aria-label="GaDu">
+              <div className="chat-ava"><Avatar mode={mode} label={`GaDu: ${stateLabel}`} /></div>
+              <div className="meta">
+                <b className="who">GaDu</b>
+                <span className={`state ${mode === "thinking" ? "hot" : ""}`}><i />{stateLabel}</span>
+                {target && (
+                  <div className="target-pill">
+                    <span className="mono">{target.kind === "agent" ? "Agente" : "Projeto"}</span>
+                    <b>{target.name}</b>
+                    {!conversationId && <button className="link-btn" onClick={() => setTarget(null)} aria-label="Conversar sem agente ou projeto">×</button>}
+                  </div>
+                )}
+              </div>
+              <div className="acts">
+                <button className="btn btn-sm" onClick={() => newConversation()} aria-label="Nova conversa"><Icon name="plus" size={16} /><span>Nova</span></button>
+                <button className="btn btn-sm" onClick={() => setDrawer(true)} aria-label="Histórico de conversas"><Icon name="history" size={16} /><span>Histórico</span></button>
+              </div>
+            </aside>
+            <section className="chat-col">
+              <div className="chat-log" ref={logRef} aria-live="polite">
+                {!messages.some((m) => m.role !== "notice") && (
+                  <div className="chat-empty">
+                    <h2>Oi{props.name ? `, ${props.name}` : ""}. Como posso ajudar?</h2>
+                    <p>Escreva ou toque no microfone do campo abaixo. Tudo o que eu aprender sobre você passa pela sua aprovação antes de virar memória.</p>
+                    <div className="sug-grid" aria-label="Sugestões">
+                      {[...QUICK, "Anota aí: "].map((q) => (
+                        <button key={q} className="sug" disabled={busy} onClick={() => { speaker?.unlock(); if (q.endsWith(" ")) { setDraft(q); document.getElementById("msg")?.focus(); } else void send(q); }}>
+                          <Icon name={q.startsWith("Começar") ? "sun" : q.includes("agenda") ? "calendar" : q.includes("e-mail") ? "chat" : "check"} size={18} />
+                          <span>{q.endsWith(" ") ? "Anotar uma tarefa" : q}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {messages.map((m) =>
+                  m.role === "user" ? <div key={m.id} className="bub u">{m.content}</div>
+                  : m.role === "event" && m.event ? <EventCard key={m.id} ev={m.event} />
+                  : m.role === "notice" ? (
+                    <div key={m.id} className="notice" role="status">
+                      {m.content}
+                      {m.link && <div style={{ marginTop: 8 }}><a className="btn btn-sm" href={m.link.href} target="_blank" rel="noopener noreferrer">{m.link.label}</a></div>}
+                    </div>
+                  ) : <div key={m.id} className="bub b"><span className="via">GaDu{m.via ? ` · via ${m.via}` : ""}</span>{m.content || "…"}{m.sources && <SourcesDetail data={m.sources} onOpen={setTab} />}</div>,
+                )}
+              </div>
+              <form className="chat-form" onSubmit={(e) => { e.preventDefault(); void send(draft); }}>
+                {listening && <div className="listening-bar" role="status"><span className="dot-rec" aria-hidden="true" />Escutando… fale e eu escrevo aqui.<button type="button" className="link-btn" onClick={micClick}>Parar</button></div>}
+                <div className="chat-box">
+                  <button type="button" className={`round ${listening ? "on" : ""}`} onClick={micClick} aria-label={listening ? "Parar de ouvir" : busy || mode === "speaking" ? "Parar resposta" : "Falar"} aria-pressed={listening}>
+                    <Icon name={(busy || mode === "speaking") && !listening ? "stop" : "mic"} />
+                  </button>
+                  <label className="sr" htmlFor="msg">Mensagem</label>
+                  <textarea id="msg" rows={1} value={draft} placeholder={listening ? "Escutando…" : "Escreva ou fale com o GaDu"} maxLength={4000}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && window.innerWidth > 900) { e.preventDefault(); void send(draft); } }} />
+                  <button type="submit" className="round pri" aria-label="Enviar" disabled={busy || !draft.trim()}><Icon name="send" /></button>
+                </div>
+              </form>
+            </section>
+          </main>
         )}
-      </button>
-    </>
+
+        {view === "hoje" && (
+          <TodayPage review={review} onReviewDone={() => setReview(false)} onDock={dockTalk} onWrite={() => openAssist(true)} name={props.name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk}
+            onOpenMemory={() => setTab("memoria")} onOpenTasks={() => setTab("tarefas")} onOpen={setTab}
+            onAsk={(q) => { speaker?.unlock(); openAssist(true); void send(q); }} />
+        )}
+        {(view === "tarefas" || view === "projetos") && <ProjectsPage key={`pp-${view}`} initialView={view} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
+        {view === "agenda" && <AgendaView onBack={() => setTab("hoje")} />}
+        {view === "modulos" && <ModulesHub onOpen={setTab} pending={pending} />}
+        {view === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
+        {view && isOverview(view) && <ModulePage id={moduleOf(view).id} onOpen={setTab} />}
+        {view === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
+        {view === "admin" && props.admin && <AdminPage />}
+        {(view === "ajustes" || view === "perfil" || view === "integracoes") && (
+          <SettingsPage name={props.name} email={props.email} version={props.version} prefs={prefs} setPrefs={setPrefs} voiceOk={voiceOk} speaker={speaker}
+            section={view} theme={theme} onTheme={toggleTheme} admin={props.admin} onOpen={setTab}
+            onNew={() => { newConversation(); setTab("conversa"); }} initialBlocked={props.initialBlocked} morningLink={props.morningLink} onResetTips={resetTips} />
+        )}
+      </div>
+
+      <Assistant
+        open={showAssist} width={assistW} onResizeStart={startResize} onResizeStep={stepAssistW} context={contextOf(tab)} messages={messages} draft={draft} mode={mode} listening={listening} busy={busy} voiceOk={voiceOk}
+        onDraft={setDraft} onSend={(t) => { speaker?.unlock(); void send(t); }} onMic={micClick} onStop={stop}
+        onClose={() => openAssist(false)}
+        onOpenView={(v) => { openAssist(false); setTab(v); }} onOpenConversation={() => { openAssist(false); setTab("conversa"); }} onNew={() => newConversation()}
+      />
+      {!showAssist && view !== "conversa" && (
+        <button className={`orb-fab ${active ? "on" : ""}`} onClick={() => openAssist(true)} aria-label="Abrir o assistente GaDu">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/avatar/gadu-480.webp" alt="" />
+        </button>
+      )}
+
+      <nav className="dockbar" aria-label="Navegação">
+        <button className="dock-item" aria-current={view === "hoje" ? "page" : undefined} onClick={() => setTab("hoje")}><Icon name="sun" size={20} /><span>Hoje</span></button>
+        <button className="dock-item" aria-current={view === "conversa" ? "page" : undefined} onClick={() => setTab("conversa")}><Icon name="chat" size={20} /><span>Conversas</span></button>
+        {/* Botão central: sempre o GaDu. Só muda o anel quando há um estado real (escutando, pensando, respondendo). */}
+        <button className={`dock-orb s-${listening ? "listening" : mode}`} onClick={orbClick} aria-pressed={view !== "conversa" ? showAssist : undefined}
+          aria-label={view === "conversa" ? "Escrever para o GaDu" : showAssist ? "Fechar o assistente" : "Abrir o assistente GaDu"}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/avatar/gadu-480.webp" alt="" />
+          {active && <span className="orb-badge" aria-hidden="true"><Icon name={listening ? "mic" : mode === "speaking" ? "chat" : "spark"} size={12} /></span>}
+        </button>
+        <button className="dock-item" aria-current={view === "tarefas" ? "page" : undefined} onClick={() => setTab("tarefas")}><Icon name="check" size={20} /><span>Tarefas</span></button>
+        <button className="dock-item" aria-current={view && !inDock.slice(0, 3).includes(view) && !accountViews.includes(view) ? "page" : undefined} onClick={() => setTab("modulos")}>
+          <Icon name="grid" size={20} /><span>Módulos</span>{pending > 0 && <b className="badge">{pending}</b>}
+        </button>
+      </nav>
+
+      {/* Menu do celular: sempre montado para animar a entrada e a saída. Fecha ao tocar fora, ao escolher, com Esc ou com o Voltar. */}
+      <div className={`menu-wrap ${menu ? "open" : ""}`} aria-hidden={!menu} inert={!menu}>
+        <button className="menu-scrim" tabIndex={-1} aria-label="Fechar o menu" onClick={() => setMenu(false)} />
+        <aside className="menu-panel on-dark" id="menu-cel" role="dialog" aria-modal="true" aria-label="Menu">
+          <div className="sheet-head">
+            <span className="brand">GaDu</span>
+            <button className="icon-btn" onClick={() => setMenu(false)} aria-label="Fechar o menu"><Icon name="x" /></button>
+          </div>
+          {mobileMenu}
+        </aside>
+      </div>
+
+      {drawer && (
+        <ConversationsDrawer currentId={conversationId} onClose={() => setDrawer(false)} onOpen={openConversation}
+          onNew={() => { newConversation(); setTab("conversa"); setDrawer(false); }} onDeleted={(id) => { if (id === conversationId) newConversation(); }} />
+      )}
+    </div>
   );
 }

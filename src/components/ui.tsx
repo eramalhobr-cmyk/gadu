@@ -22,8 +22,26 @@ const PATHS: Record<string, string> = {
   grid: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
   user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20.5c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5",
   agents: "M12 3l8 4.5-8 4.5-8-4.5zM4 12l8 4.5 8-4.5M4 16.5L12 21l8-4.5",
+  cube: "M12 2.8l8 4.4v9.6l-8 4.4-8-4.4V7.2zM4 7.2l8 4.4 8-4.4M12 11.6v9.6",
+  gear: "M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1",
+  moon: "M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z",
+  menu: "M4 7h16M4 12h16M4 17h16",
+  full: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
+  x: "M6 6l12 12M18 6L6 18",
+  send: "M4.5 12h15M13 5.5l6.5 6.5-6.5 6.5",
+  history: "M4 12a8 8 0 1 0 2.6-5.9M4 4.5V9h4.5M12 8v4.5l3 1.8",
+  plus: "M12 5v14M5 12h14",
+  expand: "M8 14l4-4 4 4",
+  panel: "M4 5h16v14H4zM14.5 5v14",
+  stop: "M7 7h10v10H7z",
+  lock: "M7 11V8a5 5 0 0 1 10 0v3M5.5 11h13v9.5h-13z",
+  calendar: "M4.5 6.5h15v13h-15zM4.5 10.5h15M8.5 4v4M15.5 4v4",
+  link: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
+  chevron: "M9 6l6 6-6 6",
+  target: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM12 11a1 1 0 1 0 0 2 1 1 0 0 0 0-2z",
+  bell: "M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15zM10 20.5a2 2 0 0 0 4 0",
 };
-export const ICONS = Object.keys(PATHS).filter((k) => !["folder", "check", "chat", "sun", "grid", "user", "agents", "mic"].includes(k));
+export const ICONS = Object.keys(PATHS).filter((k) => !["folder", "check", "chat", "sun", "grid", "user", "agents", "mic", "cube", "gear", "moon", "menu", "x", "send", "history", "plus", "expand", "panel", "stop", "lock", "calendar", "link", "chevron", "bell"].includes(k));
 
 export function Icon({ name, size = 20 }: { name: string; size?: number }) {
   return (
@@ -40,7 +58,7 @@ export function Ring({ value, total, label }: { value: number; total: number; la
     <div className="ring" role="img" aria-label={`${label}: ${pct}%`}>
       <svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true">
         <circle cx="42" cy="42" r={r} fill="none" stroke="var(--wash)" strokeWidth="7" />
-        <circle cx="42" cy="42" r={r} fill="none" stroke="var(--sig)" strokeWidth="7" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct / 100)} transform="rotate(-90 42 42)" style={{ transition: "stroke-dashoffset .6s", filter: "drop-shadow(0 0 6px rgba(95,240,220,.5))" }} />
+        <circle cx="42" cy="42" r={r} fill="none" stroke="var(--sig)" strokeWidth="7" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct / 100)} transform="rotate(-90 42 42)" style={{ transition: "stroke-dashoffset .6s", filter: "drop-shadow(0 0 6px rgb(var(--sig-rgb) / .5))" }} />
       </svg>
       <span className="ring-pct">{total ? `${pct}%` : "–"}</span>
     </div>

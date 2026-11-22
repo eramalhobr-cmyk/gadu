@@ -22,6 +22,15 @@ function authorized(request: Request): boolean {
 
 type Db = ReturnType<typeof supabaseAdmin>;
 
+// S-04: quem não está ativo (members.access <> 'active') não recebe push, não tem o Google lido e não é indexado.
+// Quem entra só pela lista do servidor e não tem linha em members continua ativo (igual a src/lib/access.ts).
+// Se não der para saber quem está bloqueado, a tarefa falha (não processa ninguém às cegas).
+async function blockedIds(db: Db): Promise<Set<string>> {
+  const { data, error } = await db.from("members").select("user_id").neq("access", "active");
+  if (error) throw new Error("lista de bloqueados indisponível");
+  return new Set((data ?? []).map((m) => m.user_id as string));
+}
+
 async function subsOf(db: Db, userId: string): Promise<Sub[]> {
   const { data } = await db.from("push_subscriptions").select("id, endpoint, p256dh, auth").eq("user_id", userId);
   return (data ?? []) as Sub[];
@@ -36,15 +45,18 @@ async function push(db: Db, userId: string, payload: Parameters<typeof sendPush>
 }
 
 async function reminders(db: Db) {
-  const { data } = await db
+  const blocked = await blockedIds(db);
+  let query = db
     .from("reminders")
     .select("id, user_id, text")
     .eq("status", "pending")
-    .lte("due_at", new Date(Date.now() + 30_000).toISOString())
-    .order("due_at")
-    .limit(100);
+    .lte("due_at", new Date(Date.now() + 30_000).toISOString());
+  // Filtra no banco para os bloqueados não ocuparem as 100 vagas da rodada.
+  if (blocked.size) query = query.not("user_id", "in", `(${[...blocked].join(",")})`);
+  const { data } = await query.order("due_at").limit(100);
   let sent = 0;
   for (const r of data ?? []) {
+    if (blocked.has(r.user_id as string)) continue;
     // Marca antes de enviar: se duas execuções se cruzarem, só uma envia.
     const { data: claimed } = await db.from("reminders").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", r.id).eq("status", "pending").select("id");
     if (!claimed?.length) continue;
@@ -55,9 +67,11 @@ async function reminders(db: Db) {
 
 async function briefings(db: Db) {
   const now = spNow();
+  const blocked = await blockedIds(db);
   const { data: people } = await db.from("profiles").select("id, display_name, settings").eq("settings->briefing->>enabled", "true");
   let sent = 0;
   for (const p of people ?? []) {
+    if (blocked.has(p.id as string)) continue;
     const at = parseTime((p.settings as { briefing?: { time?: unknown } })?.briefing?.time);
     if (now.minutes < at || now.minutes > at + 180) continue; // janela de 3h depois do horário
     const userId = p.id as string;
@@ -93,9 +107,11 @@ async function briefings(db: Db) {
 // Revisão da noite (opcional): resumo do dia e convite para reagendar o que ficou.
 async function evenings(db: Db) {
   const now = spNow();
+  const blocked = await blockedIds(db);
   const { data: people } = await db.from("profiles").select("id, settings").eq("settings->evening->>enabled", "true");
   let sent = 0;
   for (const p of people ?? []) {
+    if (blocked.has(p.id as string)) continue;
     const at = parseTime((p.settings as { evening?: { time?: unknown } })?.evening?.time ?? "21:00");
     if (now.minutes < at || now.minutes > at + 120) continue;
     const userId = p.id as string;
@@ -115,8 +131,10 @@ async function evenings(db: Db) {
 // Indexação para a busca por significado: processa aos poucos o que mudou.
 async function indexing(db: Db) {
   if (!embeddingsAvailable()) return 0;
+  // index_backlog já ignora quem não está ativo (migração 20261122120001); o filtro aqui cobre a janela antes dela.
+  const blocked = await blockedIds(db);
   const { data } = await db.rpc("index_backlog", { lim: 16 });
-  const rows = ((data ?? []) as { user_id: string; kind: string; ref_id: number; content: string }[]).filter((r) => r.content?.trim()).slice(0, 48);
+  const rows = ((data ?? []) as { user_id: string; kind: string; ref_id: number; content: string }[]).filter((r) => r.content?.trim() && !blocked.has(r.user_id)).slice(0, 48);
   if (rows.length) {
     const vecs = await embed(rows.map((r) => r.content));
     const { error } = await db.from("search_index").upsert(
@@ -129,13 +147,20 @@ async function indexing(db: Db) {
   return rows.length;
 }
 
+// Reconciliação do orçamento: marca reservas vencidas (que já não contam no teto). Sem a migração, não faz nada.
+async function expireReservations(db: Db) {
+  const { data, error } = await db.rpc("expire_ai_reservations");
+  if (error) return error.code === "PGRST202" || error.code === "42883" ? 0 : Promise.reject(new Error(error.message));
+  return Number(data ?? 0);
+}
+
 export async function GET(request: Request) {
   if (!authorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!pushConfigured() || !process.env.SUPABASE_SECRET_KEY) return NextResponse.json({ ok: false, reason: "not_configured" });
   const db = supabaseAdmin();
-  const [r, b, ev, ix] = await Promise.allSettled([reminders(db), briefings(db), evenings(db), indexing(db)]);
+  const [r, b, ev, ix, rs] = await Promise.allSettled([reminders(db), briefings(db), evenings(db), indexing(db), expireReservations(db)]);
   const val = (x: PromiseSettledResult<number>) => (x.status === "fulfilled" ? x.value : -1);
-  const out = { ok: true, reminders: val(r), briefings: val(b), evenings: val(ev), indexed: val(ix) };
-  for (const [k, x] of Object.entries({ r, b, ev, ix })) if (x.status === "rejected") console.error("cron com falha", k, x.reason instanceof Error ? x.reason.message.slice(0, 160) : "erro");
+  const out = { ok: true, reminders: val(r), briefings: val(b), evenings: val(ev), indexed: val(ix), expired: val(rs) };
+  for (const [k, x] of Object.entries({ r, b, ev, ix, rs })) if (x.status === "rejected") console.error("cron com falha", k, x.reason instanceof Error ? x.reason.message.slice(0, 160) : "erro");
   return NextResponse.json(out);
 }

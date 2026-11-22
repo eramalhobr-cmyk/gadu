@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 import { EXPORT_PROMPT, IMPORT_MAX_CHARS } from "@/lib/importer";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { when } from "./ConversationsDrawer";
+import { EmptyState, PageHeader, Panel } from "./kit";
+import { Icon } from "./ui";
 
 type Memory = { id: number; content: string; area: string; origin: string; status: "pending" | "approved" };
 type Hit = { kind: "memoria" | "conversa" | "mensagem" | "tarefa" | "projeto"; id: number; text: string; sub: string; conversationId?: number; semantic?: boolean };
@@ -66,68 +68,102 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
     await load();
   }
 
+  const KIND = { memoria: "Memória", conversa: "Conversa", mensagem: "Mensagem", tarefa: "Tarefa", projeto: "Projeto" } as const;
+  const byArea = approved.reduce<Record<string, Memory[]>>((acc, m) => { (acc[m.area] ??= []).push(m); return acc; }, {});
+
   return (
-    <main className="page">
-      <label className="sr" htmlFor="mem-q">Buscar na memória</label>
-      <input id="mem-q" className="field" type="search" placeholder="Buscar em memórias e conversas" value={q} onChange={(e) => setQ(e.target.value)} />
-      {hits && (
-        <section className="card" aria-live="polite">
-          <h2>Resultados</h2>
-          {hits.length === 0 ? <p className="muted">Nada encontrado.</p> : hits.map((h) => (
-            <div className="item" key={`${h.kind}-${h.id}`}>
-              <div className="mono" style={{ color: h.kind === "memoria" ? "var(--sig)" : "var(--ink-3)" }}>{({ memoria: "Memória", conversa: "Conversa", mensagem: "Mensagem", tarefa: "Tarefa", projeto: "Projeto" } as const)[h.kind]}{h.semantic ? " · por significado" : ""}</div>
-              <div>{h.text}</div>
-              <div className="muted" style={{ fontSize: 14 }}>{h.sub}</div>
-              {h.conversationId && <div><button className="btn btn-sm" onClick={() => onOpenConversation(h.conversationId!)}>Abrir conversa</button></div>}
-            </div>
-          ))}
-        </section>
-      )}
-
-      {!hits && <p className="muted" style={{ margin: 0 }}>A memória é do GaDu, não das IAs. Tudo entra como pendente e só vale depois que você aprova.</p>}
-      {error && <div className="notice" role="alert">{error}</div>}
-
-      <section className="card">
-        <div className="row" style={{ justifyContent: "space-between" }}>
-          <h2 style={{ color: "var(--hot)" }}>Para revisar{pending.length ? ` · ${pending.length}` : ""}</h2>
-          {approvable.length > 1 && (
-            <button className="btn btn-sm" onClick={() => act(() => db.from("memories").update({ status: "approved" }).in("id", approvable.map((m) => m.id)))}>Aprovar todas ({approvable.length})</button>
-          )}
+    <main className="page" id="conteudo">
+      <div className="wrap">
+        <PageHeader eyebrow="Pessoal" title="Memórias" text="A memória é do GaDu, não das IAs. Tudo entra como pendente e só vale depois que você aprova." />
+        <div className="search">
+          <Icon name="spark" size={18} />
+          <label className="sr" htmlFor="mem-q">Buscar na memória</label>
+          <input id="mem-q" className="search-input" type="search" placeholder="Buscar em memórias e conversas" value={q} onChange={(e) => setQ(e.target.value)} />
+          {q && <button className="icon-btn" onClick={() => setQ("")} aria-label="Limpar busca"><Icon name="x" size={16} /></button>}
         </div>
-        {items === null ? <p className="muted">Carregando…</p> : pending.length === 0 ? <p className="muted">Nada para revisar.</p> : pending.map((m) => (
-          <div className="item" key={m.id}>
-            <div>{m.content}</div>
-            <div className="mono muted">{m.area} · origem: {m.origin}</div>
-            {hit(m.content) && <div style={{ color: "var(--hot)", fontSize: 14 }}>Contém o termo bloqueado “{hit(m.content)}”. Não pode ser aprovada.</div>}
-            <div className="row">
-              <button className="btn btn-sm btn-pri" disabled={Boolean(hit(m.content))} onClick={() => act(() => db.from("memories").update({ status: "approved" }).eq("id", m.id))}>Aprovar</button>
-              <button className="btn btn-sm" onClick={() => act(() => db.from("memories").delete().eq("id", m.id))}>Descartar</button>
+        {error && <div className="notice" role="alert">{error}</div>}
+
+        {hits && (
+          <Panel title={`Resultados${hits.length ? ` · ${hits.length}` : ""}`} icon="spark">
+            <div aria-live="polite">
+              {hits.length === 0 ? <EmptyState icon="spark" title="Nada encontrado" text="Tente outras palavras. A busca também procura pelo significado." /> : (
+                <div className="rows">
+                  {hits.map((h) => (
+                    <div className="row-i mem-hit" key={`${h.kind}-${h.id}`}>
+                      <div className="grow">
+                        <span className={`kind ${h.kind}`}>{KIND[h.kind]}{h.semantic ? " · por significado" : ""}</span>
+                        <span className="t wrap-t">{h.text}</span>
+                        <span className="s">{h.sub}</span>
+                      </div>
+                      {h.conversationId && <button className="btn btn-sm" onClick={() => onOpenConversation(h.conversationId!)}>Abrir</button>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
-      </section>
+          </Panel>
+        )}
 
-      <section className="card">
-        <h2>Lembre que…</h2>
-        <label className="sr" htmlFor="mem-new">Nova memória</label>
-        <input id="mem-new" className="field" value={text} maxLength={400} placeholder="Ex.: prefiro reuniões depois das 10h" onChange={(e) => setText(e.target.value)} />
-        <div className="row">
-          {AREAS.map((a) => <button key={a} className="chip" aria-pressed={area === a} onClick={() => setArea(a)}>{a}</button>)}
+        <div className="mem-cols">
+          <div className="col">
+            <Panel className="mem-review o1" title={`Para revisar${pending.length ? ` · ${pending.length}` : ""}`} icon="bell"
+              action={approvable.length > 1 && <button className="btn btn-sm" onClick={() => act(() => db.from("memories").update({ status: "approved" }).in("id", approvable.map((m) => m.id)))}>Aprovar todas ({approvable.length})</button>}>
+              {items === null ? <p className="muted" role="status">Carregando…</p> : pending.length === 0 ? (
+                <EmptyState icon="check" title="Nada para revisar" text="Quando o GaDu aprender algo numa conversa, aparece aqui para o seu sim." />
+              ) : (
+                <div className="rows">
+                  {pending.map((m) => (
+                    <div className="mem-item" key={m.id}>
+                      <p className="mem-text">{m.content}</p>
+                      <span className="mem-meta">{m.area} · origem: {m.origin}</span>
+                      {hit(m.content) && <p className="mem-warn" role="note">Contém o termo bloqueado “{hit(m.content)}”. Não pode ser aprovada.</p>}
+                      <div className="form-actions">
+                        <button className="btn btn-sm btn-pri" disabled={Boolean(hit(m.content))} onClick={() => act(() => db.from("memories").update({ status: "approved" }).eq("id", m.id))}><Icon name="check" size={16} />Aprovar</button>
+                        <button className="btn btn-sm" onClick={() => act(() => db.from("memories").delete().eq("id", m.id))}>Descartar</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Panel>
+
+            <Panel className="o3" title={`O que eu sei sobre você${approved.length ? ` · ${approved.length}` : ""}`} icon="book">
+              {items === null ? <p className="muted" role="status">Carregando…</p> : approved.length === 0 ? (
+                <EmptyState icon="book" title="Ainda não sei nada aprovado" text="Adicione algo em “Lembre que…” ou importe de outra IA." />
+              ) : Object.entries(byArea).map(([a, list]) => (
+                <section key={a} className="mem-area" aria-label={a}>
+                  <h3 className="tl-group-head"><span>{a}</span><span className="tl-count">{list.length}</span></h3>
+                  <div className="rows">
+                    {list.map((m) => (
+                      <div className="row-i" key={m.id}>
+                        <div className="grow"><span className="t wrap-t">{m.content}</span><span className="s">origem: {m.origin}</span></div>
+                        <button className="btn btn-sm btn-quiet" onClick={() => act(() => db.from("memories").delete().eq("id", m.id))}>Esquecer</button>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </Panel>
+          </div>
+
+          <div className="col">
+            <Panel className="o2" title="Lembre que…" icon="plus">
+              <label className="fld">
+                <span>Nova memória</span>
+                <input id="mem-new" className="field" value={text} maxLength={400} placeholder="Ex.: prefiro reuniões depois das 10h" onChange={(e) => setText(e.target.value)} />
+              </label>
+              <div className="fld">
+                <span id="mem-area-l">Área</span>
+                <div className="chips" role="group" aria-labelledby="mem-area-l">
+                  {AREAS.map((a) => <button key={a} className="chip" aria-pressed={area === a} onClick={() => setArea(a)}>{a}</button>)}
+                </div>
+              </div>
+              <div><button className="btn" disabled={!text.trim()} onClick={() => act(async () => { const r = await db.from("memories").insert({ content: text.trim(), area, origin: "Você" }); if (!r.error) setText(""); return r; })}>Adicionar para revisão</button></div>
+            </Panel>
+            <ImportCard onDone={load} />
+          </div>
         </div>
-        <div><button className="btn" disabled={!text.trim()} onClick={() => act(async () => { const r = await db.from("memories").insert({ content: text.trim(), area, origin: "Você" }); if (!r.error) setText(""); return r; })}>Adicionar para revisão</button></div>
-      </section>
-
-      <ImportCard onDone={load} />
-
-      <section className="card">
-        <h2>O que eu sei sobre você{approved.length ? ` · ${approved.length}` : ""}</h2>
-        {approved.length === 0 ? <p className="muted">Ainda não sei nada aprovado sobre você.</p> : approved.map((m) => (
-          <div className="item" key={m.id} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ minWidth: 0 }}><div>{m.content}</div><div className="mono muted">{m.area} · origem: {m.origin}</div></div>
-            <button className="btn btn-sm" onClick={() => act(() => db.from("memories").delete().eq("id", m.id))}>Esquecer</button>
-          </div>
-        ))}
-      </section>
+      </div>
     </main>
   );
 }
@@ -174,11 +210,10 @@ function ImportCard({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <section className="card">
-      <h2>Importar de outra IA</h2>
+    <Panel className="o4" title="Importar de outra IA" icon="link">
       {!open ? (
         <>
-          <p className="muted" style={{ margin: 0 }}>Traga o que o ChatGPT, o Claude ou o Gemini já sabem sobre você. Tudo entra para revisão.</p>
+          <p className="muted">Traga o que o ChatGPT, o Claude ou o Gemini já sabem sobre você. Tudo entra para revisão.</p>
           <div><button className="btn" onClick={() => setOpen(true)}>Importar memórias</button></div>
         </>
       ) : (
@@ -190,23 +225,23 @@ function ImportCard({ onDone }: { onDone: () => void }) {
           </ol>
           <div className="quote">{EXPORT_PROMPT}</div>
           <div><button className="btn btn-sm" onClick={copyPrompt}>{copied ? "Copiado" : "Copiar pedido"}</button></div>
-          <div className="row">
+          <div className="chips" role="group" aria-label="Origem">
             {ORIGINS.map((o) => <button key={o} className="chip" aria-pressed={origin === o} onClick={() => setOrigin(o)}>{o}</button>)}
           </div>
           <label className="sr" htmlFor="imp-text">Texto para importar</label>
           <textarea id="imp-text" className="field" rows={6} maxLength={IMPORT_MAX_CHARS} placeholder="Cole aqui. Uma informação por linha funciona melhor." value={text} onChange={(e) => setText(e.target.value)} />
-          <div className="row">
-            <label className="btn btn-sm" style={{ cursor: "pointer" }}>
+          <div className="form-actions">
+            <label className="btn btn-sm file-btn">
               Enviar arquivo
               <input type="file" accept=".txt,.md,.json,text/plain,application/json" onChange={readFile} hidden />
             </label>
             <button className="btn btn-sm btn-pri" disabled={busy || !text.trim()} onClick={submit}>{busy ? "Importando…" : "Importar"}</button>
             <button className="btn btn-sm" onClick={() => { setOpen(false); setMsg(""); }}>Fechar</button>
           </div>
-          <p className="muted" style={{ margin: 0, fontSize: 14 }}>Lista: grátis. Texto corrido: o GaDu usa o modelo mais barato para separar os fatos (centavos).</p>
+          <p className="muted small">Lista: grátis. Texto corrido: o GaDu usa o modelo mais barato para separar os fatos (centavos).</p>
         </>
       )}
-      {msg && <span className="muted" role="status">{msg}</span>}
-    </section>
+      {msg && <p className="form-msg" role="status">{msg}</p>}
+    </Panel>
   );
 }

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Avatar } from "@/components/RobotFace";
 import { Icon } from "@/components/ui";
+import { ModuleCards } from "@/components/ModulePage";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { accessOf } from "@/lib/access";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -37,24 +39,32 @@ export default async function Home() {
     <div className="lp dots">
       <header className="lp-top">
         <a href="/" className="lp-brand" aria-label="GaDu, início">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/avatar/logo-96.webp" alt="" width={36} height={36} />
           <span className="brand">GaDu</span>
         </a>
-        <a className="btn btn-sm btn-pri" href={cta.href}>{cta.label}</a>
+        <nav className="lp-nav" aria-label="Seções">
+          <a href="#modulos">Módulos</a>
+          <a href="#assistente">Assistente</a>
+          <a href="#como">Como funciona</a>
+          <a href="#privacidade">Privacidade</a>
+        </nav>
+        <span className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
+          <ThemeToggle />
+          <a className="btn btn-sm btn-pri" href={cta.href}>{cta.label}</a>
+        </span>
       </header>
 
       <main>
         <section className="lp-hero">
-          <div className="lp-avatar"><Avatar mode="speaking" label="O rosto do GaDu" /></div>
+          <div className="lp-stage on-dark"><div className="lp-avatar"><Avatar mode="speaking" label="O rosto do GaDu" /></div></div>
           <div className="lp-hero-text">
-            <span className="mono lp-kicker">Seu centro de inteligência pessoal</span>
-            <h1>Um assistente que <em>escuta</em>, <em>lembra</em> e <em>organiza</em> o seu dia.</h1>
-            <p className="muted">Por voz ou texto, no celular. Ele cuida da agenda, dos e-mails, das tarefas e da memória, e só age com a sua aprovação.</p>
+            <span className="lp-kicker">Assistente inteligente e plataforma integrada</span>
+            <h1>Seu assistente para <em>agentes</em>, <em>produtividade</em> e <em>criação</em>.</h1>
+            <p className="muted">O GaDu conversa por voz e texto em qualquer tela. Hoje ele já cuida do seu dia: agenda, e-mails, tarefas, projetos e memória, sempre com a sua aprovação. Metas e conquistas, financeiro, casa inteligente, agentes de trabalho, criação de sites e impressão 3D chegam por módulos, cada um com o status real.</p>
             <div className="row">
               <a className="btn btn-pri lp-cta" href={cta.href}>{cta.label}</a>
               <a className="btn" href="#como">Como funciona</a>
             </div>
+            <p className="lp-now"><span className="pill disponivel">Disponível</span> Módulo Pessoal <span className="pill parcial">Beta</span> Agent Office <span className="pill planejado">Planejado</span> outros módulos</p>
             <p className="mono muted lp-origin">GaDu = Gael + Eduardo</p>
           </div>
         </section>
@@ -69,8 +79,50 @@ export default async function Home() {
           ))}
         </section>
 
+        <section className="lp-section" id="modulos">
+          <span className="mono lp-kicker">Uma plataforma, oito módulos em quatro áreas</span>
+          <h2>O que já funciona e o que está no plano</h2>
+          <p className="muted">Produtividade pessoal, vida pessoal (metas, financeiro e casa), agentes e criação, e a plataforma. Cada módulo mostra o status real: nada aparece como pronto antes de estar.</p>
+          <ModuleCards />
+          <div className="lp-ctx">
+            <span className="lp-ctx-ico" aria-hidden="true"><Icon name="spark" size={22} /></span>
+            <div>
+              <b>Contexto da tela <span className="pill parcial">Beta</span></b>
+              <p className="muted">O assistente já sabe em que módulo e tela você está e usa só os seus dados. É uma pista, não um acesso novo.</p>
+              <b className="lp-ctx-2">Inteligência integrada entre módulos <span className="pill planejado">Planejado</span></b>
+              <p className="muted">Relacionar metas, tarefas, agenda, financeiro, casa e agentes numa mesma resposta. Ainda não existe: depende de permissões, isolamento e auditoria.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="lp-section lp-assist" id="assistente">
+          <div>
+            <span className="mono lp-kicker">Assistente universal</span>
+            <h2>Voz e texto em qualquer tela</h2>
+            <p className="muted">O GaDu fica sempre à mão: um painel ao lado no computador e um painel que sobe no celular. Ele sabe em que tela você está e responde sem tirar você de lá.</p>
+            <ul className="plist ok">
+              <li><Icon name="check" size={16} /><span>Fale ou escreva, como preferir</span></li>
+              <li><Icon name="check" size={16} /><span>A mesma conversa em todas as telas</span></li>
+              <li><Icon name="check" size={16} /><span>Usa só os seus dados, com as suas permissões</span></li>
+            </ul>
+          </div>
+          <div className="lp-assist-mock on-dark" aria-hidden="true">
+            <div className="assist-head">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/avatar/logo-96.webp" alt="" width={36} height={36} />
+              <div className="t"><b>GaDu <span className="mono assist-state">· Pronto</span></b><small>Em Pessoal › Hoje</small></div>
+            </div>
+            <div className="assist-log">
+              <div className="bub u">Como está o meu dia?</div>
+              <div className="bub b"><span className="via">GaDu</span>Três compromissos, o primeiro às 9h. Há uma janela livre das 15h às 17h30.</div>
+            </div>
+            <div className="assist-composer"><span className="round"><Icon name="mic" /></span><span className="field muted" style={{ display: "flex", alignItems: "center" }}>Pergunte ou peça algo</span><span className="round pri"><Icon name="send" /></span></div>
+          </div>
+        </section>
+
         <section className="lp-section">
-          <h2>O que o GaDu faz</h2>
+          <span className="mono lp-kicker">Disponível hoje · módulo Pessoal</span>
+          <h2>O que o GaDu já faz</h2>
           <div className="lp-features">
             {FEATURES.map((f) => (
               <article key={f.title} className="lp-feature" style={{ ["--c" as string]: f.color }}>
@@ -104,13 +156,13 @@ export default async function Home() {
             <svg viewBox="0 0 360 300" role="img" aria-label="Você fala com o GaDu no celular. O GaDu consulta a memória, a agenda e os e-mails, usa a inteligência artificial e devolve a resposta, pedindo sua aprovação antes de agir.">
               <defs>
                 <marker id="lpa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--sig)" /></marker>
-                <radialGradient id="lpg"><stop offset="0" stopColor="rgba(95,240,220,.35)" /><stop offset="1" stopColor="rgba(95,240,220,0)" /></radialGradient>
+                <radialGradient id="lpg"><stop offset="0" stopColor="rgb(var(--sig-rgb) / .35)" /><stop offset="1" stopColor="rgb(var(--sig-rgb) / 0)" /></radialGradient>
               </defs>
               <circle cx="180" cy="150" r="70" fill="url(#lpg)" />
               {[[60, 46, "var(--sig)"], [300, 46, "var(--c-violet)"], [60, 254, "var(--c-green)"], [300, 254, "var(--c-blue)"]].map(([x, y, c]) => (
                 <line key={`${x}-${y}`} x1="180" y1="150" x2={x as number} y2={y as number} stroke={c as string} strokeWidth="1.2" strokeDasharray="4 5" opacity=".7" />
               ))}
-              <circle cx="180" cy="150" r="44" fill="rgba(10,18,22,.98)" stroke="var(--sig)" strokeWidth="1.6" />
+              <circle cx="180" cy="150" r="44" fill="rgb(var(--panel-rgb) / .98)" stroke="var(--sig)" strokeWidth="1.6" />
               <text x="180" y="146" textAnchor="middle" fill="var(--ink)" fontSize="16" fontWeight="600">GaDu</text>
               <text x="180" y="164" textAnchor="middle" fill="var(--ink-3)" fontSize="10">orquestra tudo</text>
               {[
@@ -120,7 +172,7 @@ export default async function Home() {
                 [300, 254, "Agenda e e-mail", "Google", "var(--c-blue)"],
               ].map(([x, y, t, s, c]) => (
                 <g key={t as string}>
-                  <rect x={(x as number) - 56} y={(y as number) - 24} width="112" height="48" rx="14" fill="rgba(10,18,22,.95)" stroke={c as string} />
+                  <rect x={(x as number) - 56} y={(y as number) - 24} width="112" height="48" rx="14" fill="rgb(var(--panel-rgb) / .95)" stroke={c as string} />
                   <text x={x as number} y={(y as number) - 2} textAnchor="middle" fill="var(--ink)" fontSize="13" fontWeight="600">{t as string}</text>
                   <text x={x as number} y={(y as number) + 14} textAnchor="middle" fill="var(--ink-3)" fontSize="10">{s as string}</text>
                 </g>
@@ -134,7 +186,7 @@ export default async function Home() {
           </ol>
         </section>
 
-        <section className="lp-section">
+        <section className="lp-section" id="privacidade">
           <h2>Privacidade em primeiro lugar</h2>
           <div className="lp-badges">
             {[
@@ -144,16 +196,6 @@ export default async function Home() {
             ].map(([t, d]) => (
               <div key={t} className="lp-badge"><span className="lp-ico"><Icon name="check" size={18} /></span><div><b>{t}</b><span className="muted">{d}</span></div></div>
             ))}
-          </div>
-        </section>
-
-        <section className="lp-section lp-next">
-          <span className="mono lp-kicker">Em construção</span>
-          <h2>Pessoal e Trabalho</h2>
-          <p className="muted">Agentes para a vida pessoal e uma empresa virtual para o negócio próprio: um CEO que orquestra comercial, projetos, financeiro e marketing.</p>
-          <div className="lp-org" aria-hidden="true">
-            <span className="lp-node ceo">CEO</span>
-            <div className="lp-org-row">{["Comercial", "Projetos", "Financeiro", "Marketing"].map((a) => <span key={a} className="lp-node">{a}</span>)}</div>
           </div>
         </section>
 
@@ -177,7 +219,7 @@ export default async function Home() {
 /** Ilustração do app num celular (dados fictícios). */
 function PhoneMock() {
   return (
-    <div className="lp-phone" aria-hidden="true">
+    <div className="lp-phone on-dark" aria-hidden="true">
       <div className="lp-phone-screen">
         <div className="mono muted" style={{ fontSize: 9 }}>QUINTA-FEIRA, 12 DE NOVEMBRO</div>
         <div className="lp-phone-hello">Bom dia.</div>

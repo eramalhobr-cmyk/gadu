@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Instrument_Sans, Michroma } from "next/font/google";
 import "./globals.css";
+import "./v2.css";
+import "./v2-pages.css";
+import { cookies } from "next/headers";
+import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 
 const display = Michroma({ subsets: ["latin"], weight: "400", variable: "--font-display", display: "swap" });
 const body = Instrument_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
@@ -17,15 +21,17 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#05080b",
+  themeColor: [{ media: "(prefers-color-scheme: dark)", color: "#0a111e" }, { media: "(prefers-color-scheme: light)", color: "#f1f5fa" }],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Tema escolhido pela pessoa (cookie). Sem cookie, vale o escuro, que é a identidade do GaDu.
+  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
-    <html lang="pt-BR" className={`${display.variable} ${body.variable} ${mono.variable}`}>
+    <html lang="pt-BR" data-theme={theme} className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );

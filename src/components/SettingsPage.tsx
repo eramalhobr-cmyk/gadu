@@ -1,14 +1,18 @@
 "use client";
+import type { ViewId } from "@/lib/modules";
+import type { Theme } from "@/lib/theme";
+import { PageHeader } from "./kit";
 import { useCallback, useEffect, useState } from "react";
 import { canSpeak, listVoices, voiceLabel, type Speaker } from "@/lib/speech";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
-export type Prefs = { voice: boolean; handsFree: boolean; voiceURI: string; rate: number };
+export type Prefs = { voice: boolean; handsFree: boolean; voiceURI: string; rate: number ; autoSend: boolean };
 type Usage = {
   budgets: { anthropic: number; gateway: number };
   spent: { anthropic: number; gateway: number; gemini: number };
   total: number;
   monthlyBudget: number;
+  reserved?: number;
   gateway: { balance: number; used: number } | null;
 };
 
@@ -24,8 +28,15 @@ function Bar({ value, max }: { value: number; max: number }) {
 }
 
 export function SettingsPage(props: {
+  name: string;
   email: string;
   version: string;
+  /** Qual parte mostrar: Perfil, Integrações ou Configurações. */
+  section: "perfil" | "integracoes" | "ajustes";
+  theme: Theme;
+  onTheme: (t: Theme) => void;
+  admin: boolean;
+  onOpen: (view: ViewId) => void;
   prefs: Prefs;
   setPrefs: (p: Prefs) => void;
   voiceOk: boolean;
@@ -64,17 +75,62 @@ export function SettingsPage(props: {
   }
 
   return (
-    <main className="page">
-      <section className="card">
-        <h2>Ajuda</h2>
-        <a className="help-item primary" href="/app/guia" style={{ textDecoration: "none" }}><span style={{ flex: 1 }}>Guia passo a passo</span><span aria-hidden="true">›</span></a>
-        <a className="help-item" href="/app/sobre" style={{ textDecoration: "none" }}><span style={{ flex: 1 }}>Como o GaDu funciona (arquitetura)</span><span aria-hidden="true">›</span></a>
-        <button className="help-item" onClick={props.onResetTips}><span style={{ flex: 1 }}>Rever as dicas de cada tela</span><span aria-hidden="true">›</span></button>
-      </section>
+    <main className="page" id="conteudo">
+      <div className="wrap">
+        {props.section !== "perfil" && (
+          <PageHeader eyebrow="Plataforma" title={props.section === "integracoes" ? "Integrações" : "Configurações"}
+            text={props.section === "integracoes" ? "Conecte o Google e escolha como o GaDu avisa você." : "Aparência, voz, custos de IA e ajuda."} />
+        )}
+        {props.section === "perfil" && <section className="set-head">
+          <span className="initial" aria-hidden="true">{(props.name || props.email || "G").trim().charAt(0).toUpperCase()}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1>{props.name || "Seu perfil"}</h1>
+            <div className="muted" style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{props.email}</div>
+            <div className="mono muted">GaDu {props.version}</div>
+          </div>
+          <form action="/auth/signout" method="post"><button className="btn btn-sm" type="submit">Sair</button></form>
+        </section>}
+        {props.section === "ajustes" && (
+          <nav className="set-nav" aria-label="Seções das configurações">
+            {GROUPS.map((g) => <a key={g.id} className="chip" href={`#${g.id}`}>{g.label}</a>)}
+          </nav>
+        )}
+
+        {props.section === "ajustes" && <section className="set-group" id="g-aparencia" aria-labelledby="h-aparencia">
+          <h2 id="h-aparencia">Aparência e voz</h2>
+          <div className="set-cards">
+            <section className="card">
+              <h2>Tema</h2>
+              <div className="theme-opts">
+                {(["dark", "light"] as const).map((t) => (
+                  <button key={t} className="theme-opt" aria-pressed={props.theme === t} onClick={() => props.onTheme(t)}>
+                    <span className={`theme-swatch ${t}`} aria-hidden="true"><i /><i /></span>
+                    <b>{t === "dark" ? "Escuro" : "Claro"}</b>
+                    <span className="muted" style={{ fontSize: 14 }}>{t === "dark" ? "Identidade do GaDu. Melhor à noite." : "Mais legível em ambientes claros."}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+            <VoiceCard {...props} />
+          </div>
+        </section>}
+
+        {props.section === "integracoes" && <section className="set-group" id="g-conexoes" aria-labelledby="h-conexoes">
+          <h2 id="h-conexoes">Avisos e conexões</h2>
+          <div className="set-cards">
       <NotificationsCard />
       <ConnectionsCard morningLink={props.morningLink} />
-      <SpendCard />
-      <VoiceCard {...props} />
+          </div>
+        </section>}
+
+        {props.section === "ajustes" && <section className="set-group" id="g-custos" aria-labelledby="h-custos">
+          <h2 id="h-custos">Custos de IA</h2>
+          <div className="set-cards"><SpendCard /></div>
+        </section>}
+
+        {props.section === "perfil" && <section className="set-group" id="g-conta" aria-labelledby="h-conta">
+          <h2 id="h-conta">Privacidade e conta</h2>
+          <div className="set-cards">
       <section className="card">
         <h2>Termos bloqueados</h2>
         <p className="muted" style={{ margin: 0 }}>Memórias com estes termos não podem ser aprovadas. Use para o nome da empresa e assuntos corporativos.</p>
@@ -98,18 +154,38 @@ export function SettingsPage(props: {
           {pwMsg && <span className="muted" role="status">{pwMsg}</span>}
         </form>
       </section>
+          </div>
+        </section>}
+
+        {props.section === "ajustes" && <section className="set-group" id="g-ajuda" aria-labelledby="h-ajuda">
+          <h2 id="h-ajuda">Ajuda</h2>
+          <div className="set-cards">
       <section className="card">
-        <h2>Conta</h2>
-        <div>{props.email}</div>
-        <div className="row">
-          <button className="btn" onClick={props.onNew}>Nova conversa</button>
-          <form action="/auth/signout" method="post"><button className="btn" type="submit">Sair</button></form>
-        </div>
-        <div className="mono muted">GaDu {props.version}</div>
+        <h2>Aprender a usar</h2>
+        <a className="help-item primary" href="/app/guia" style={{ textDecoration: "none" }}><span style={{ flex: 1 }}>Guia passo a passo</span><span aria-hidden="true">›</span></a>
+        <a className="help-item" href="/app/sobre" style={{ textDecoration: "none" }}><span style={{ flex: 1 }}>Como o GaDu funciona (arquitetura)</span><span aria-hidden="true">›</span></a>
+        <button className="help-item" onClick={props.onResetTips}><span style={{ flex: 1 }}>Rever as dicas de cada tela</span><span aria-hidden="true">›</span></button>
       </section>
+            <section className="card">
+              <h2>Atalhos</h2>
+              <button className="help-item" onClick={props.onNew}><span style={{ flex: 1 }}>Nova conversa</span><span aria-hidden="true">›</span></button>
+              <button className="help-item" onClick={() => props.onOpen("memoria")}><span style={{ flex: 1 }}>Revisar a memória</span><span aria-hidden="true">›</span></button>
+              {props.admin && <button className="help-item" onClick={() => props.onOpen("admin")}><span style={{ flex: 1 }}>Pessoas e convites</span><span aria-hidden="true">›</span></button>}
+            </section>
+          </div>
+        </section>}
+      </div>
     </main>
   );
 }
+
+const GROUPS = [
+  { id: "g-aparencia", label: "Aparência e voz" },
+  { id: "g-conexoes", label: "Avisos e conexões" },
+  { id: "g-custos", label: "Custos de IA" },
+  { id: "g-conta", label: "Privacidade e conta" },
+  { id: "g-ajuda", label: "Ajuda" },
+];
 
 function SpendCard() {
   const [u, setU] = useState<Usage | null>(null);
@@ -157,9 +233,13 @@ function SpendCard() {
       ) : (
         <>
           <div style={{ fontSize: 22, fontVariantNumeric: "tabular-nums" }}>
-            {usd(u.total)} <span className="muted" style={{ fontSize: 15 }}>de {usd(u.monthlyBudget)} (teto geral)</span>
+            {usd(u.total)} <span className="muted" style={{ fontSize: 15 }}>de {usd(u.monthlyBudget)} (teto do mês)</span>
           </div>
-          <Bar value={u.total} max={u.monthlyBudget} />
+          <Bar value={u.total + (u.reserved ?? 0)} max={u.monthlyBudget} />
+          <div className="muted" style={{ fontSize: 14 }}>
+            Disponível: {usd(Math.max(0, u.monthlyBudget - u.total - (u.reserved ?? 0)))}
+            {(u.reserved ?? 0) > 0 ? ` · ${usd(u.reserved ?? 0)} reservado para respostas em andamento` : ""}
+          </div>
           {rows.map((r) => {
             const spent = u.spent[r.id];
             const limit = u.budgets[r.id];
@@ -201,6 +281,9 @@ function SpendCard() {
 
 function VoiceCard(props: { prefs: Prefs; setPrefs: (p: Prefs) => void; voiceOk: boolean; speaker: Speaker | null }) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  // Detectado só no aparelho: no servidor não há síntese de voz (evita diferença entre servidor e navegador).
+  const [speakOk, setSpeakOk] = useState(false);
+  useEffect(() => { setSpeakOk(canSpeak()); }, []);
   useEffect(() => {
     if (!canSpeak()) return;
     const upd = () => setVoices(listVoices());
@@ -219,10 +302,11 @@ function VoiceCard(props: { prefs: Prefs; setPrefs: (p: Prefs) => void; voiceOk:
   return (
     <section className="card">
       <h2>Voz</h2>
-      <label className="switch"><span>GaDu responde falando</span><input type="checkbox" checked={p.voice} onChange={(e) => set({ voice: e.target.checked })} /></label>
-      <label className="switch"><span>Modo conversa (volta a ouvir depois de responder)</span><input type="checkbox" checked={p.handsFree} disabled={!props.voiceOk} onChange={(e) => set({ handsFree: e.target.checked })} /></label>
+      <label className="switch"><span>GaDu responde falando</span><input type="checkbox" role="switch" className="sr" checked={p.voice} onChange={(e) => set({ voice: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
+      <label className="switch"><span>Enviar sozinho o que eu falar<small className="muted"> · desligado (padrão): o texto fica no campo para você revisar e enviar</small></span><input type="checkbox" role="switch" className="sr" checked={p.autoSend} onChange={(e) => set({ autoSend: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
+      <label className="switch"><span>Modo mãos-livres<small className="muted"> · volta a ouvir depois de responder e envia sozinho; só liga se você escolher</small></span><input type="checkbox" role="switch" className="sr" checked={p.handsFree} disabled={!props.voiceOk} onChange={(e) => set({ handsFree: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
       {!props.voiceOk && <p className="muted" style={{ margin: 0 }}>Este navegador não reconhece voz. No celular, use o Chrome (Android) ou o Safari (iPhone), ou o ditado do teclado.</p>}
-      {canSpeak() && (
+      {speakOk && (
         <>
           <label htmlFor="voice" className="muted" style={{ fontSize: 14 }}>Voz do GaDu</label>
           <select id="voice" className="field" value={p.voiceURI} onChange={(e) => { set({ voiceURI: e.target.value }); test({ voiceURI: e.target.value }); }}>
@@ -450,7 +534,7 @@ function NotificationsCard() {
           </>
         )
       )}
-      <label className="switch"><span>Briefing da manhã</span><input type="checkbox" checked={briefing.enabled} onChange={(e) => saveBriefing({ ...briefing, enabled: e.target.checked })} /></label>
+      <label className="switch"><span>Briefing da manhã</span><input type="checkbox" role="switch" className="sr" checked={briefing.enabled} onChange={(e) => saveBriefing({ ...briefing, enabled: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
       {briefing.enabled && (
         <label className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
           <span className="muted">Horário</span>
@@ -458,7 +542,7 @@ function NotificationsCard() {
         </label>
       )}
       <p className="muted" style={{ margin: 0, fontSize: 14 }}>Todo dia, no horário escolhido, chega um resumo da agenda, dos e-mails e um alerta (conflito, atraso). Toque nele para o GaDu começar o dia com você.</p>
-      <label className="switch"><span>Revisão da noite</span><input type="checkbox" checked={evening.enabled} onChange={(e) => saveEvening({ ...evening, enabled: e.target.checked })} /></label>
+      <label className="switch"><span>Revisão da noite</span><input type="checkbox" role="switch" className="sr" checked={evening.enabled} onChange={(e) => saveEvening({ ...evening, enabled: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
       {evening.enabled && (
         <label className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
           <span className="muted">Horário</span>

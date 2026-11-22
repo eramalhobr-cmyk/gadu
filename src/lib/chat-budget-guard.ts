@@ -1,0 +1,94 @@
+/** Fail closed when a required quota or budget RPC cannot be verified. */
+export type RpcResult<T> = { data: T | null; error: { message?: string } | null };
+
+export type DailyResult =
+  | { allowed: true; used: number | null; limit: number }
+  | { allowed: false; reason: "daily"; used: number; limit: number }
+  | { allowed: false; reason: "unavailable" };
+
+/** Valor monetário vindo do banco: número finito ≥ 0, ou texto numérico (inclui notação científica). */
+function money(v: unknown): number | null {
+  if (typeof v === "number") return Number.isFinite(v) && v >= 0 ? v : null;
+  if (typeof v === "string" && /^\+?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(v.trim())) {
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+  return null;
+}
+
+/**
+ * Executa uma RPC obrigatória sem deixar exceções escaparem: falha de rede, timeout ou erro inesperado
+ * viram `error`, para a decisão fail-closed tratar tudo do mesmo jeito.
+ */
+export async function safeRpc<T>(call: () => PromiseLike<RpcResult<T>>): Promise<RpcResult<T>> {
+  try {
+    const r = await call();
+    if (!r || typeof r !== "object") return { data: null, error: { message: "invalid rpc response" } };
+    return r;
+  } catch {
+    return { data: null, error: { message: "rpc request failed" } };
+  }
+}
+
+const count = (v: unknown) => (typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : null);
+
+/**
+ * Resposta de consume_daily_quota(): {"allowed": bool, "used": int, "limit": int}.
+ * Só um objeto com esse formato exato libera; qualquer outra coisa bloqueia (fail closed).
+ */
+export function checkDailyQuota(result: RpcResult<unknown>): DailyResult {
+  if (result.error || !result.data || typeof result.data !== "object" || Array.isArray(result.data)) return { allowed: false, reason: "unavailable" };
+  const d = result.data as { allowed?: unknown; used?: unknown; limit?: unknown };
+  const used = count(d.used), limit = count(d.limit);
+  if (typeof d.allowed !== "boolean" || used === null || limit === null) return { allowed: false, reason: "unavailable" };
+  // Resposta positiva coerente: consumiu ao menos 1 e não passou do limite.
+  if (d.allowed && (used < 1 || used > limit)) return { allowed: false, reason: "unavailable" };
+  return d.allowed ? { allowed: true, used, limit } : { allowed: false, reason: "daily", used, limit };
+}
+
+export type ProviderSpend = { ok: true; spentBy: Record<string, number> } | { ok: false };
+
+/**
+ * Gasto do mês por provedor (limites definidos pela pessoa em Ajustes). Sem esse dado não dá para
+ * saber se um motor passou do limite: falha ou linha inválida bloqueia a chamada (fail closed).
+ */
+export function checkProviderSpend(result: RpcResult<unknown>): ProviderSpend {
+  if (result.error || !Array.isArray(result.data)) return { ok: false };
+  const spentBy: Record<string, number> = {};
+  for (const row of result.data as unknown[]) {
+    const r = (row ?? {}) as { provider?: unknown; cost_usd?: unknown };
+    const cost = money(r.cost_usd);
+    if (typeof r.provider !== "string" || !r.provider || cost === null) return { ok: false };
+    spentBy[r.provider] = (spentBy[r.provider] ?? 0) + cost;
+  }
+  return { ok: true, spentBy };
+}
+
+/** O banco não tem a função (migração não aplicada): PostgREST PGRST202 ou Postgres 42883. Só o agendador tolera isso. */
+export function isMissingFunction(error: unknown): boolean {
+  const code = (error as { code?: unknown } | null)?.code;
+  return code === "PGRST202" || code === "42883";
+}
+
+export type Reservation =
+  | { ok: true; id: string; amount: number }
+  | { ok: false; reason: "monthly" | "global"; spent: number | null; limit: number | null }
+  | { ok: false; reason: "unavailable" };
+
+/**
+ * Resposta de reserve_ai_budget(): {"allowed": true, "reservation_id", "amount", ...}
+ * ou {"allowed": false, "reason": "monthly" | "global" | ...}. Formato inesperado bloqueia (fail closed).
+ */
+export function checkReservation(result: RpcResult<unknown>): Reservation {
+  if (result.error || !result.data || typeof result.data !== "object" || Array.isArray(result.data)) return { ok: false, reason: "unavailable" };
+  const d = result.data as { allowed?: unknown; reservation_id?: unknown; amount?: unknown; reason?: unknown; spent?: unknown; limit?: unknown };
+  if (d.allowed === true) {
+    const amount = money(d.amount);
+    if (typeof d.reservation_id !== "string" || !/^[0-9a-f-]{36}$/i.test(d.reservation_id) || amount === null || amount <= 0) return { ok: false, reason: "unavailable" };
+    return { ok: true, id: d.reservation_id, amount };
+  }
+  if (d.allowed === false && (d.reason === "monthly" || d.reason === "global")) {
+    return { ok: false, reason: d.reason, spent: money(d.spent), limit: money(d.limit) };
+  }
+  return { ok: false, reason: "unavailable" };
+}

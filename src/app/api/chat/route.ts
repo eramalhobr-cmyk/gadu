@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { checkDailyQuota, checkProviderSpend, safeRpc } from "@/lib/chat-budget-guard";
 import { readBudgets, serverConfig } from "@/lib/config";
 import { accessOf } from "@/lib/access";
 import { after } from "next/server";
@@ -7,14 +8,22 @@ import { complete } from "@/lib/llm/complete";
 import type { ProviderId } from "@/lib/llm/types";
 import type { ChatTurn } from "@/lib/llm/types";
 import { splitMeta, visiblePart } from "@/lib/meta";
-import { costUsd } from "@/lib/pricing";
+import { costUsd, estimateMaxCost } from "@/lib/pricing";
+import { estimatePartialUsage } from "@/lib/partial-cost";
+import { releaseBudget, reserveBudget, settleBudget } from "@/lib/ai-budget";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
 import { accessToken, events, formatEvents, formatMails, GoogleError, googleIntent, inbox } from "@/lib/google";
 import { insights, type InTask } from "@/lib/insights";
 import { embed, embeddingsAvailable, toVector } from "@/lib/embeddings";
 import { agentAreas } from "@/lib/presets";
 import { contextBlock, extrasBlock, systemPrompt } from "@/lib/prompt";
+import { AssistantContextSchema, contextLine } from "@/lib/assistant-context";
 import { supabaseServer } from "@/lib/supabase/server";
+import { collectAttention } from "@/lib/core/collect";
+import { coreEnabled } from "@/lib/core/flag";
+import { formatCoreBlock, toItem, type SourceItem } from "@/lib/core/format";
+import { googleReader } from "@/lib/core/google-adapter";
+import { detectIntent } from "@/lib/core/plan";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +35,8 @@ const Body = z.object({
   // Só valem ao criar uma conversa nova: conversa sobre um projeto ou com um agente.
   projectId: z.number().int().positive().nullable().optional(),
   agentId: z.number().int().positive().nullable().optional(),
+  // Assistente Universal: em que módulo e tela a pessoa está. Só um rótulo validado; não carrega dados nem amplia o acesso.
+  context: AssistantContextSchema.nullable().optional(),
 });
 
 // Eventos enviados ao app, um JSON por linha (NDJSON).
@@ -37,6 +48,7 @@ type Out =
   | { t: "reminders"; items: { id: number; text: string; dueAt: string }[] }
   | { t: "tasks"; items: { id: number; title: string; due: string | null }[] }
   | { t: "events"; items: { title: string; start: string; end: string; location: string | null }[] }
+  | { t: "sources"; items: SourceItem[]; unavailable: string[] }
   | { t: "notice"; text: string; kind: "privacy" | "quota" | "engine" | "error" };
 
 export async function POST(request: Request) {
@@ -54,22 +66,61 @@ export async function POST(request: Request) {
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (o: Out) => controller.enqueue(encoder.encode(JSON.stringify(o) + "\n"));
+      // Reserva de orçamento desta resposta: liquidada pelo custo real ou liberada no finally.
+      let reservationId: string | null = null;
+      let reservedUsd = 0;
+      let settled = false;
+      // Já houve tentativa de gravar o custo desta resposta (com sucesso ou não): não grava de novo.
+      let recorded = false;
+      // Para estimar o custo se a resposta for interrompida (S-02).
+      let full = "";
+      let inputChars = 0;
+      let streamProvider: ProviderId | null = null;
+      let usage: { input: number; output: number; cost: number; provider: ProviderId; model: string } | null = null;
       try {
         // 1. Privacidade: dado sensível não sai daqui e nem é gravado.
         if (isSensitive(message)) {
           send({ t: "notice", kind: "privacy", text: "Percebi um dado sensível nessa mensagem (documento, senha, dado bancário ou de saúde). Pela regra de privacidade, ele não vai para nenhuma IA externa, então não enviei. Pode reescrever sem esse dado?" });
           return;
         }
-        // 2. Cota diária (proteção de custo).
-        const { data: okQuota } = await supabase.rpc("consume_quota", { p_limit: cfg.dailyLimit });
-        if (okQuota === false) {
-          send({ t: "notice", kind: "quota", text: `Você chegou ao limite de ${cfg.dailyLimit} mensagens de hoje. O limite volta amanhã e pode ser ajustado nas configurações do servidor.` });
+        // 2. Limites por provedor (Ajustes): leitura sem custo. Sem esse dado não dá para respeitá-los (fail closed).
+        const spendRows = await safeRpc<unknown>(() => supabase.rpc("month_spend_by_provider"));
+        const providerSpend = checkProviderSpend(spendRows);
+        if (!providerSpend.ok) {
+          console.error("chat provider budget validation unavailable");
+          send({ t: "notice", kind: "error", text: "Não consegui verificar os limites dos motores de IA agora. Tente novamente em instantes." });
           return;
         }
-        // 2b. Teto de gasto mensal.
-        const { data: spent } = await supabase.rpc("month_spend");
-        if (Number(spent ?? 0) >= cfg.monthlyBudgetUsd) {
-          send({ t: "notice", kind: "quota", text: `O teto de gasto do mês (US$ ${cfg.monthlyBudgetUsd.toFixed(2)}) foi atingido. O GaDu volta a responder no próximo mês, ou quando o teto for aumentado.` });
+        // 2b. Teto mensal com RESERVA atômica: o banco soma gasto + reservas abertas + estimativa desta resposta.
+        //     Pedidos simultâneos não ultrapassam o teto. Estimativa: contexto típico (~60 mil caracteres) e saída máxima.
+        const reserved = estimateMaxCost(cfg.model, message.length + 60_000, 8000);
+        // S-01: reserva e liquidação só pelo servidor, com o id da sessão (nunca do corpo da requisição).
+        const reservation = await reserveBudget(user.id, "chat", reserved);
+        if (reservation.ok) {
+          reservationId = reservation.id;
+          reservedUsd = reservation.amount;
+        } else if (reservation.reason === "unavailable") {
+          console.error("chat budget reservation unavailable");
+          send({ t: "notice", kind: "error", text: "Não consegui verificar seu orçamento de IA agora. Tente novamente em instantes." });
+          return;
+        } else {
+          const lim = reservation.limit !== null ? ` (US$ ${reservation.limit.toFixed(2)})` : "";
+          send({ t: "notice", kind: "quota", text: reservation.reason === "global"
+            ? "O limite de gasto com IA da conta foi atingido neste mês. Fale com o administrador do GaDu."
+            : `O teto de gasto do mês${lim} foi atingido. O GaDu volta a responder no próximo mês, ou quando o teto for aumentado.` });
+          return;
+        }
+        // 2c. Cota diária por último, logo antes de gravar: atômica no banco, limite definido pelo servidor
+        //     (nunca enviado pelo app) e dia de Brasília. Mensagem bloqueada acima não gasta cota.
+        // S-07: sem contingência. Se a função falhar ou não existir, bloqueia (fail closed).
+        const daily = checkDailyQuota(await safeRpc<unknown>(() => supabase.rpc("consume_daily_quota")));
+        if (!daily.allowed) {
+          if (daily.reason === "unavailable") {
+            console.error("chat quota validation unavailable");
+            send({ t: "notice", kind: "error", text: "Não consegui verificar seu limite de mensagens agora. Tente novamente em instantes." });
+          } else {
+            send({ t: "notice", kind: "quota", text: `Você chegou ao limite de ${daily.limit} mensagens de hoje. O limite volta à meia-noite.` });
+          }
           return;
         }
         // 3. Conversa: usa a existente (se for da pessoa) ou cria uma nova.
@@ -105,14 +156,13 @@ export async function POST(request: Request) {
         // Busca por significado em paralelo (memórias, conversas, tarefas, projetos). Falha não atrapalha a conversa.
         const semantic = semanticContext(supabase, message);
         // 4. Contexto: perfil, memória aprovada, histórico recente, conversas antigas relacionadas e gasto por provedor.
-        const [profile, memories, history, related, spendRows, openTasks, activeProjects, agentRow, projectRow] = await Promise.all([
+        const [profile, memories, history, related, openTasks, activeProjects, agentRow, projectRow] = await Promise.all([
           supabase.from("profiles").select("display_name, settings").eq("id", user.id).maybeSingle(),
           supabase.from("memories").select("content, area").eq("status", "approved").order("created_at", { ascending: true }).limit(80),
           supabase.from("messages").select("role, content").eq("conversation_id", conversationId).order("created_at", { ascending: false }).limit(16),
           relatedQuery(message)
             ? supabase.from("conversations").select("title, summary, updated_at").textSearch("search", relatedQuery(message), { type: "websearch", config: "portuguese" }).not("summary", "is", null).neq("id", conversationId).order("updated_at", { ascending: false }).limit(3)
             : Promise.resolve({ data: [] as { title: string; summary: string; updated_at: string }[] }),
-          supabase.rpc("month_spend_by_provider"),
           supabase.from("tasks").select("title, priority, due_date, projects(name)").eq("status", "open").order("due_date", { ascending: true, nullsFirst: false }).order("priority").limit(15),
           supabase.from("projects").select("id, name, goal").eq("status", "active").order("updated_at", { ascending: false }).limit(20),
           agentId ? supabase.from("agents").select("name, area, instructions").eq("id", agentId).maybeSingle() : Promise.resolve({ data: null }),
@@ -130,8 +180,7 @@ export async function POST(request: Request) {
         });
         // Limite por provedor: quem passou do limite do mês fica de fora desta resposta.
         const budgets = readBudgets(profile.data?.settings);
-        const spentBy: Record<string, number> = {};
-        for (const r of (spendRows.data ?? []) as { provider: string; cost_usd: number }[]) spentBy[r.provider] = Number(r.cost_usd);
+        const spentBy = providerSpend.spentBy;
         const skip = new Set<ProviderId>();
         if ((spentBy.anthropic ?? 0) >= budgets.anthropic) skip.add("anthropic");
         if ((spentBy.gateway ?? 0) >= budgets.gateway) skip.add("gateway");
@@ -147,19 +196,34 @@ export async function POST(request: Request) {
         }
         // Fase 2: agenda e e-mails do Google entram no contexto só quando o assunto pede.
         const taskList = ((openTasks.data ?? []) as unknown as { title: string; priority: number; due_date: string | null }[]);
-        const google = await googleContext(supabase, user.id, message, blocked, taskList);
+        // Core "O que merece minha atenção hoje?": regra simples (sem IA), só com CORE_MVP ligado. Escopo = a sessão.
+        // Falha do Core nunca derruba o chat: volta ao caminho anterior.
+        let coreBlock = "";
+        let coreSources: { items: SourceItem[]; unavailable: string[] } | null = null;
+        if (coreEnabled() && detectIntent(message) === "atencao_hoje" && !profile.error) {
+          try {
+            const core = await collectAttention({ userId: user.id, db: supabase, google: googleReader(supabase, user.id), blocked });
+            coreBlock = formatCoreBlock(core);
+            coreSources = { items: core.facts.map(toItem), unavailable: core.unavailable.map((u) => u.text) };
+          } catch (e) {
+            console.error("core falhou", e instanceof Error ? e.message.slice(0, 120) : "erro");
+          }
+        }
+        // O Core já traz agenda e e-mails de hoje: não lê o Google duas vezes (exceto se pediu a semana).
+        const google = coreBlock && !googleIntent(message).week ? "" : await googleContext(supabase, user.id, message, blocked, taskList);
         const lastTurn = turns[turns.length - 1];
         if (lastTurn && lastTurn.role === "user") lastTurn.content += "\n\n" + message;
         else turns.push({ role: "user", content: message });
 
         // 5. Resposta em streaming, com troca de provedor se o principal cair.
-        let full = "";
         let provider = "";
-        let usage: { input: number; output: number; cost: number; provider: ProviderId; model: string } | null = null;
         let sent = 0;
+        const system = systemPrompt();
+        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + (parsed.data.context ? contextLine(parsed.data.context) : "");
+        inputChars = system.length + context.length + turns.reduce((n, t) => n + t.content.length, 0);
         for await (const ev of routeChat({
-          system: systemPrompt(),
-          context: contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google,
+          system,
+          context,
           turns,
           signal: request.signal,
           onUsage: (u) => {
@@ -173,6 +237,7 @@ export async function POST(request: Request) {
           },
         }, skip)) {
           if (ev.type === "provider") {
+            streamProvider = ev.id;
             provider = `${ev.name} · ${ev.id === "gateway" ? "Vercel" : ev.id === "anthropic" ? "Anthropic" : "Google"}`;
             send({ t: "provider", name: provider });
           } else {
@@ -197,15 +262,17 @@ export async function POST(request: Request) {
           },
         ]);
         const u = usage as { input: number; output: number; cost: number; provider: ProviderId; model: string } | null;
+        // Liquida a reserva pelo custo real (consumo gravado na mesma transação).
         if (u) {
-          await supabase.from("usage_events").insert({ provider: u.provider, model: u.model.slice(0, 80), kind: "chat", input_tokens: u.input, output_tokens: u.output, cost_usd: u.cost });
+          recorded = true;
+          settled = await settleBudget(user.id, reservationId, "chat", u);
         }
         const newCount = msgCount + 2;
         await supabase.from("conversations").update({ updated_at: new Date().toISOString(), message_count: newCount }).eq("id", conversationId);
         // Memória v2: resume a conversa em segundo plano (depois de responder), a cada 6 mensagens.
         if (newCount >= 4 && (!hasSummary || newCount % 6 === 0)) {
           const convId = conversationId;
-          after(() => summarize(supabase, convId, skip));
+          after(() => summarize(supabase, user.id, convId, skip));
         }
         let added = 0;
         if (proposals.length) {
@@ -244,6 +311,7 @@ export async function POST(request: Request) {
         // Eventos: só propostas. O app mostra e a pessoa confirma antes de criar na agenda.
         const okEvents = eventProposals.filter((e) => !isSensitive(e.title) && !blockedTerm(e.title, blocked));
         if (okEvents.length) send({ t: "events", items: okEvents });
+        if (coreSources) send({ t: "sources", ...coreSources });
         send({ t: "done", memories: added });
       } catch (e) {
         if (e instanceof BudgetReached) {
@@ -264,7 +332,30 @@ export async function POST(request: Request) {
           send({ t: "notice", kind: "error", text: "Não consegui responder agora. Tente de novo em instantes." });
         }
       } finally {
-        controller.close();
+        // Reserva ainda aberta (bloqueio, erro do provedor, cancelamento):
+        //  - já saiu texto: o provedor cobrou, então liquida (pelo uso real se chegou, senão pela estimativa; S-02);
+        //  - nada saiu: libera para não prender o orçamento.
+        try {
+          if (reservationId && !settled && !recorded) {
+            const real = usage as { input: number; output: number; cost: number; provider: ProviderId; model: string } | null;
+            if (real) {
+              recorded = true;
+              settled = await settleBudget(user.id, reservationId, "chat", real);
+            } else if (streamProvider) {
+              const model = streamProvider === "anthropic" ? cfg.model : streamProvider === "gateway" ? cfg.gatewayModel : cfg.geminiModel;
+              const est = estimatePartialUsage(model, inputChars, full.length, reservedUsd);
+              if (est) {
+                recorded = true;
+                settled = await settleBudget(user.id, reservationId, "chat", { provider: streamProvider, model: est.model, input: est.input, output: est.output, cost: est.cost });
+              }
+            }
+          }
+          if (reservationId && !settled) await releaseBudget(user.id, reservationId);
+        } catch (e) {
+          console.error("encerramento do orçamento falhou", e instanceof Error ? e.message.slice(0, 120) : "erro");
+        } finally {
+          controller.close();
+        }
       }
     },
   });
@@ -289,7 +380,7 @@ function relatedQuery(message: string): string {
 type Db = Awaited<ReturnType<typeof supabaseServer>>;
 
 /** Gera ou atualiza o resumo da conversa com o modelo mais barato. Falhas não afetam a conversa. */
-async function summarize(supabase: Db, conversationId: number, skip: Set<ProviderId>) {
+async function summarize(supabase: Db, userId: string, conversationId: number, skip: Set<ProviderId>) {
   try {
     const [{ data: conv }, { data: msgs }] = await Promise.all([
       supabase.from("conversations").select("summary").eq("id", conversationId).maybeSingle(),
@@ -297,12 +388,22 @@ async function summarize(supabase: Db, conversationId: number, skip: Set<Provide
     ]);
     const transcript = (msgs ?? []).reverse().map((m) => `${m.role === "user" ? "Pessoa" : "GaDu"}: ${String(m.content).slice(0, 1500)}`).join("\n");
     if (!transcript) return;
+    // Resumo também passa pelo orçamento: reserva antes, liquida depois; sem orçamento, não resume.
+    const prompt = transcript.length + 800;
+    const resv = await reserveBudget(userId, "summary", estimateMaxCost(serverConfig().cheapModel, prompt, 600));
+    if (!resv.ok) return;
+    const rid = resv.id;
+    let done = false;
+    try {
     const r = await complete(
       `Resuma a conversa abaixo em português do Brasil, em até 120 palavras, para servir de memória futura do assistente. Inclua decisões, pedidos pendentes, nomes de projetos e datas citadas. Não inclua dados sensíveis (documentos, senhas, dados bancários ou de saúde). Responda só com o resumo, sem título.${conv?.summary ? `\n\nResumo anterior:\n${conv.summary}` : ""}\n\nConversa:\n${transcript}`,
       { maxTokens: 600, skip },
     );
     await supabase.from("conversations").update({ summary: r.text.slice(0, 2000), summary_at: new Date().toISOString() }).eq("id", conversationId);
-    await supabase.from("usage_events").insert({ provider: r.provider, model: r.model.slice(0, 80), kind: "summary", input_tokens: r.input, output_tokens: r.output, cost_usd: r.cost });
+    done = await settleBudget(userId, rid, "summary", r);
+    } finally {
+      if (rid && !done) await releaseBudget(userId, rid);
+    }
   } catch (e) {
     console.error("resumo falhou", e instanceof Error ? e.message.slice(0, 200) : "erro");
   }

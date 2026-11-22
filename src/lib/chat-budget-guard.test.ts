@@ -1,0 +1,60 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { checkDailyQuota, checkProviderSpend, checkReservation, isMissingFunction, safeRpc } from "./chat-budget-guard.ts";
+
+const ok = <T>(data: T) => ({ data, error: null });
+const failed = { data: null, error: { message: "database unavailable" } };
+
+test("daily quota permits only a well-formed allowed response", () => {
+  assert.deepEqual(checkDailyQuota(ok({ allowed: true, used: 3, limit: 150 })), { allowed: true, used: 3, limit: 150 });
+  assert.deepEqual(checkDailyQuota(ok({ allowed: false, used: 150, limit: 150 })), { allowed: false, reason: "daily", used: 150, limit: 150 });
+  assert.deepEqual(checkDailyQuota(ok({ allowed: false, used: 0, limit: 0 })), { allowed: false, reason: "daily", used: 0, limit: 0 });
+  for (const result of [
+    failed, ok(null), ok(undefined), ok(true), ok(1), ok("true"), ok([]),
+    ok({ allowed: "true", used: 1, limit: 2 }), ok({ allowed: true, used: -1, limit: 2 }), ok({ allowed: true, used: 1.5, limit: 2 }),
+    ok({ allowed: true, used: 1 }), ok({ allowed: true, used: 3, limit: 2 }),
+  ]) {
+    assert.deepEqual(checkDailyQuota(result as never), { allowed: false, reason: "unavailable" });
+  }
+});
+
+test("safeRpc turns thrown errors and empty results into errors", async () => {
+  assert.deepEqual(await safeRpc(async () => { throw new Error("fetch failed"); }), { data: null, error: { message: "rpc request failed" } });
+  assert.deepEqual(await safeRpc(async () => undefined as never), { data: null, error: { message: "invalid rpc response" } });
+  assert.deepEqual(await safeRpc(async () => ok(true)), ok(true));
+  // Resultado de safeRpc com exceção nunca libera a cota.
+  assert.deepEqual(checkDailyQuota(await safeRpc<unknown>(async () => { throw new Error("timeout"); })), { allowed: false, reason: "unavailable" });
+});
+
+test("provider spend fails closed on errors and invalid rows", () => {
+  assert.deepEqual(checkProviderSpend(ok([])), { ok: true, spentBy: {} });
+  assert.deepEqual(checkProviderSpend(ok([{ provider: "anthropic", cost_usd: 1.5 }, { provider: "gateway", cost_usd: "0.25" }])), { ok: true, spentBy: { anthropic: 1.5, gateway: 0.25 } });
+  for (const result of [failed, ok(null), ok({}), ok([{ provider: "anthropic", cost_usd: null }]), ok([{ provider: "", cost_usd: 1 }]), ok([{ provider: "gateway", cost_usd: -2 }]), ok([{ cost_usd: 1 }])]) {
+    assert.deepEqual(checkProviderSpend(result as never), { ok: false });
+  }
+});
+
+test("daily quota rejects a positive answer that did not consume", () => {
+  assert.deepEqual(checkDailyQuota(ok({ allowed: true, used: 0, limit: 150 })), { allowed: false, reason: "unavailable" });
+});
+
+test("only a missing function is recognised as such (cron tolerates it; the chat never does)", () => {
+  assert.equal(isMissingFunction({ code: "PGRST202", message: "Could not find the function" }), true);
+  assert.equal(isMissingFunction({ code: "42883" }), true);
+  for (const e of [null, {}, { code: "PGRST301" }, { code: "57014" }, { message: "PGRST202" }]) assert.equal(isMissingFunction(e), false);
+});
+
+test("budget reservation: only a well-formed allowed answer reserves", () => {
+  const id = "3f2b1c9e-8d7a-4b6c-9e5f-1a2b3c4d5e6f";
+  assert.deepEqual(checkReservation(ok({ allowed: true, reservation_id: id, amount: 0.25 })), { ok: true, id, amount: 0.25 });
+  assert.deepEqual(checkReservation(ok({ allowed: true, reservation_id: id, amount: "0.250000" })), { ok: true, id, amount: 0.25 });
+  assert.deepEqual(checkReservation(ok({ allowed: false, reason: "monthly", spent: 19.9, limit: 20 })), { ok: false, reason: "monthly", spent: 19.9, limit: 20 });
+  assert.deepEqual(checkReservation(ok({ allowed: false, reason: "global" })), { ok: false, reason: "global", spent: null, limit: null });
+  for (const r of [
+    failed, ok(null), ok(true), ok([]), ok({ allowed: true }), ok({ allowed: true, reservation_id: "x", amount: 1 }),
+    ok({ allowed: true, reservation_id: id, amount: 0 }), ok({ allowed: true, reservation_id: id, amount: -1 }),
+    ok({ allowed: false, reason: "auth" }), ok({ allowed: false, reason: "invalid" }), ok({ allowed: "true", reservation_id: id, amount: 1 }),
+  ]) {
+    assert.deepEqual(checkReservation(r as never), { ok: false, reason: "unavailable" });
+  }
+});
