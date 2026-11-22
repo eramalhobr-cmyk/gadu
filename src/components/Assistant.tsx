@@ -1,9 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { FaceMode } from "./robot-engine";
-import { EventCard } from "./EventCard";
-import { GastoCard } from "./GastoCard";
-import { MetaCard } from "./MetaCard";
+import { ActionCard, type VoiceCmd } from "./ActionCard";
 import { SourcesDetail } from "./SourcesDetail";
 import type { ViewId } from "@/lib/modules";
 import { Icon } from "./ui";
@@ -46,6 +44,9 @@ export function Assistant(props: {
   onOpenConversation: () => void;
   onOpenView: (view: ViewId) => void;
   onNew: () => void;
+  /** Confirmação falada: comandos para os cartões e o aviso de volta. */
+  cmds: Record<string, VoiceCmd>;
+  onCardResult: (id: string, action: "yes" | "no", ok: boolean) => void;
 }) {
   const log = useRef<HTMLDivElement>(null);
   // Celular: modo rápido mostra só as últimas trocas; o histórico inteiro fica na tela Conversa.
@@ -125,9 +126,7 @@ export function Assistant(props: {
           </div>
         ) : shown.map((m) =>
           m.role === "user" ? <div key={m.id} className="bub u">{m.content}</div>
-          : m.role === "event" && m.event ? <EventCard key={m.id} ev={m.event} />
-          : m.role === "gasto" && m.gasto ? <GastoCard key={m.id} g={m.gasto} onOpen={() => props.onOpenView("financeiro")} />
-          : m.role === "meta" && m.meta ? <MetaCard key={m.id} d={m.meta} onOpen={() => props.onOpenView("metas")} />
+          : m.role === "action" && m.action ? <ActionCard key={m.id} a={m.action} cmd={props.cmds[m.id]} onResult={(act, ok) => props.onCardResult(m.id, act, ok)} onOpen={props.onOpenView} />
           : m.role === "notice" ? (
             <div key={m.id} className="notice" role="status">
               {m.content}
