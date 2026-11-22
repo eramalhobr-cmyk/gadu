@@ -57,9 +57,9 @@ export async function collectFinance(input: { userId: string; db: SessionDb; blo
   const diaLinha = fact("Dia a dia", resumo.diaADia.qtd
     ? `${formatBRL(resumo.diaADia.total)} em ${resumo.diaADia.qtd} gasto${resumo.diaADia.qtd === 1 ? "" : "s"} neste mês.`
     : "nenhum gasto do dia a dia lançado neste mês.", "fin_gastos", `${hoje.ano}-${hoje.mes}`);
-  const catFatos = resumo.diaADia.porCategoria.slice(0, 8).map((c) => {
+  const catFatos = resumo.diaADia.porCategoria.slice(0, 8).map((c, i) => {
     const n = nome(c.categoria);
-    return fact("Categoria", `${n ?? OMITTED} ${formatBRL(c.total)} (${c.qtd} gasto${c.qtd === 1 ? "" : "s"})`, "fin_gastos", `${hoje.ano}-${hoje.mes}:${sem(c.categoria)}`, n === null);
+    return fact("Categoria", `${n ?? OMITTED} ${formatBRL(c.total)} (${c.qtd} gasto${c.qtd === 1 ? "" : "s"})`, "fin_gastos", `${hoje.ano}-${hoje.mes}:categoria-${i + 1}`, n === null);
   });
 
   const out: F[] = [];
