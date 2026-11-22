@@ -359,3 +359,37 @@ button.pj-card:hover { border-color: color-mix(in srgb, var(--c) 55%, transparen
 .srcs .link-btn, .srcs .link { flex: none; min-height: var(--touch); display: inline-flex; align-items: center; }
 .attn-card .panel-head { flex-wrap: wrap; gap: var(--s-2); }
 .attn-miss { list-style: none; margin: var(--s-3) 0 0; padding: var(--s-3) 0 0; border-top: 1px dashed var(--line-2); display: grid; gap: var(--s-2); color: var(--ink-2); font-size: var(--fs-sm, 14px); }
+
+/* ---- Financeiro (base: Contas e Dia a dia). Só tokens do design system. ---- */
+.fin-month { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
+.fin-month b { flex: 1; text-align: center; font: 600 var(--fs-md)/1.2 var(--display); }
+.fin-month b::first-letter { text-transform: uppercase; }
+.fin-big { font: 600 34px/1.1 var(--body); font-variant-numeric: tabular-nums; }
+.fin-big.ok { color: var(--ok); }
+.fin-big.bad { color: var(--bad); }
+.fin-num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fin-num.bad { color: var(--bad); }
+.fin-num.ok { color: var(--ok); }
+.fin-bar { height: 8px; border-radius: 4px; background: var(--wash); overflow: hidden; }
+.fin-bar > i { display: block; height: 100%; background: var(--ok); border-radius: 4px; transition: width var(--dur) var(--ease); }
+.fin-bar.cat > i { background: var(--sig); }
+.fin-warn { display: flex; gap: var(--s-2); align-items: flex-start; margin: 0; padding: var(--s-2) var(--s-3); border: 1px dashed var(--line-2); border-radius: var(--r-md); color: var(--ink-2); font-size: var(--fs-sm); }
+.fin-grp { margin: var(--s-3) 0 0; font: 600 var(--fs-sm)/1.3 var(--display); color: var(--ink-3); }
+.fin-row { display: flex; align-items: center; gap: var(--s-2); min-height: 52px; padding: var(--s-1) 0; border-bottom: 1px solid var(--line); }
+.fin-row:last-child { border-bottom: 0; }
+.fin-row.sub { padding-left: var(--s-6); }
+.fin-row .grow { flex: 1; min-width: 0; }
+.fin-row .t { display: block; overflow-wrap: anywhere; }
+.fin-row .s { display: block; color: var(--ink-3); font-size: var(--fs-sm); }
+.fin-row.paid .t { color: var(--ink-3); text-decoration: line-through; }
+.fin-val { min-height: var(--touch); padding: 0 var(--s-2); border: 0; background: none; color: var(--ink); border-radius: var(--r-md); }
+.fin-val:hover { background: var(--wash); }
+.fin-edit { display: grid; gap: var(--s-3); padding: var(--s-3); margin: var(--s-1) 0 var(--s-2); border: 1px solid var(--line-2); border-radius: var(--r-lg); background: var(--surface-2); }
+.fin-edit .two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+.fin-chk { display: flex; align-items: center; gap: var(--s-2); min-height: var(--touch); font-size: var(--fs-sm); color: var(--ink-2); }
+.fin-chk input { width: 20px; height: 20px; }
+.fin-cat { display: flex; align-items: center; gap: var(--s-2); min-height: 40px; }
+.fin-cat .grow { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.fin-toast { margin: 0; padding: var(--s-2) var(--s-3); border-radius: var(--r-md); background: var(--wash); color: var(--ink); font-size: var(--fs-sm); }
+.fin-toast.err { color: var(--bad); }
+.fin-filters { display: flex; flex-wrap: wrap; gap: var(--s-2); }

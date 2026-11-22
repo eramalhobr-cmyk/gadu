@@ -61,6 +61,30 @@ describe("telas públicas", () => {
     assert.deepEqual(st, { plain: 401, limit: 401, forged: 401 });
     await p.context().close();
   });
+  test("Finanças: as rotas /api/finance/* recusam sem login (401), com qualquer método ou parâmetro", async () => {
+    const p = await page(PHONE, { auth: false });
+    await p.goto(`${BASE}/`);
+    const id = "00000000-0000-4000-8000-000000000001";
+    const st = await p.evaluate(async (id) => {
+      const call = async (path, method = "GET", body) => (await fetch(path, { method, headers: { "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined })).status;
+      return {
+        resumo: await call("/api/finance/resumo?ano=2026&mes=11"),
+        itens: await call("/api/finance/itens?ano=2026&mes=11"),
+        itensPost: await call("/api/finance/itens", "POST", { tipo: "despesa", nome: "x" }),
+        itemPatch: await call(`/api/finance/itens/${id}`, "PATCH", { nome: "y" }),
+        itemDelete: await call(`/api/finance/itens/${id}`, "DELETE"),
+        itemMes: await call(`/api/finance/itens/${id}/mes`, "PUT", { ano: 2026, mes: 11, pago: true }),
+        gastos: await call("/api/finance/gastos?ano=2026&mes=11"),
+        gastosPost: await call("/api/finance/gastos", "POST", { ano: 2026, mes: 11, dia: 1, valor: 1, user_id: id }),
+        gastoPatch: await call(`/api/finance/gastos/${id}`, "PATCH", { valor: 2 }),
+        gastoDelete: await call(`/api/finance/gastos/${id}`, "DELETE"),
+        config: await call("/api/finance/config"),
+        configPut: await call("/api/finance/config", "PUT", { dia_restante: 5 }),
+      };
+    }, id);
+    assert.deepEqual(Object.values(st), Array(12).fill(401), JSON.stringify(st));
+    await p.context().close();
+  });
   test("cabeçalhos de segurança: CSP com nonce e sem iframe", async () => {
     const p = await page(PHONE, { auth: false });
     const r = await p.goto(`${BASE}/`);

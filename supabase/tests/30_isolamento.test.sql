@@ -73,6 +73,11 @@ begin
     insert into public.invites (created_by, email, token_hash, expires_at) values (u, u || '@convite.test', md5(u::text) || md5(u::text || 'x'), now() + interval '7 days');
     insert into public.search_index (user_id, kind, ref_id, content, embedding) values (u, 'memory', 1, 'índice sintético', v);
     insert into public.ai_reservations (user_id, kind, amount_usd, expires_at) values (u, 'chat', 0.05, now() + interval '10 minutes');
+    -- Finanças (sintético, sem valor real)
+    insert into public.fin_itens (user_id, tipo, nome) values (u, 'despesa', 'conta sintética');
+    insert into public.fin_item_meses (user_id, item_id, ano, mes, valor) select u, id, 2026, 11, 1.00 from public.fin_itens where user_id = u;
+    insert into public.fin_gastos (user_id, ano, mes, dia, valor) values (u, 2026, 11, 5, 1.00);
+    insert into public.fin_config (user_id) values (u);
   end loop;
 end $$;
 
@@ -96,7 +101,11 @@ insert into iso_cases values
   ('members',            'user_id',    'role = ''admin''',    'insert into public.members (user_id, role) values (%L, ''admin'')'),
   ('invites',            'created_by', 'name = ''x''',        'insert into public.invites (created_by, email, token_hash, expires_at) values (%L, ''x@x.test'', ''x'', now())'),
   ('search_index',       'user_id',    'content = ''x''',     null),
-  ('ai_reservations',    'user_id',    'status = ''released''', 'insert into public.ai_reservations (user_id, kind, amount_usd, expires_at) values (%L, ''chat'', 0.01, now())');
+  ('ai_reservations',    'user_id',    'status = ''released''', 'insert into public.ai_reservations (user_id, kind, amount_usd, expires_at) values (%L, ''chat'', 0.01, now())'),
+  ('fin_itens',          'user_id',    'nome = ''x''',        'insert into public.fin_itens (user_id, tipo, nome) values (%L, ''despesa'', ''x'')'),
+  ('fin_item_meses',     'user_id',    'valor = 2',           'insert into public.fin_item_meses (user_id, item_id, ano, mes, valor) values (%1$L, (select id from public.fin_itens where user_id = %1$L limit 1), 2026, 12, 1)'),
+  ('fin_gastos',         'user_id',    'valor = 2',           'insert into public.fin_gastos (user_id, ano, mes, dia, valor) values (%L, 2026, 11, 6, 1)'),
+  ('fin_config',         'user_id',    'dia_restante = 5',    'insert into public.fin_config (user_id) values (%L)');
 
 do $$
 declare c record; a text := '00000000-0000-0000-0000-00000000aaa1'; b text := '00000000-0000-0000-0000-00000000bbb1';
@@ -122,6 +131,12 @@ begin
   end loop;
   raise notice 'ok - % tabelas verificadas', total;
 end $$;
+
+-- A suíte cobre TODAS as tabelas do schema public: tabela nova sem caso aqui faz o teste falhar.
+select pg_temp.check(not exists (select 1 from pg_tables t where t.schemaname = 'public' and t.tablename not in (select c.t from iso_cases c)),
+  'toda tabela do schema public está na suíte de isolamento');
+select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public') = (select count(*) from iso_cases), 'a suíte não lista tabela que não existe');
+select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public' and t.tablename like 'fin\_%' and t.rowsecurity) = 4, 'as 4 tabelas fin_* existem e têm RLS ligado');
 
 -- Vínculos cruzados: B não usa um projeto, conversa ou agente de A nos próprios registros.
 select pg_temp.check(pg_temp.exec_as(:'B', format('insert into public.tasks (title, project_id) values (''x'', %s)', (select id from public.projects where user_id = :'A' limit 1))) = -1, 'tasks: B não cria tarefa dentro de projeto de A');

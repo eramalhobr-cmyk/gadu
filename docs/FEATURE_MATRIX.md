@@ -52,8 +52,17 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 ## 4. Financeiro
 | Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
 |---|---|---|---|---|
-| Especificação de referência | em desenvolvimento | P1 | PR #5: `docs/FEATURE-FINANCAS.md` | revisão e merge |
-| Contas, dia a dia, lançamento pela conversa, extratos, caixa, plano, simulador | planejado | P1 | — | tabelas `fin_*` com RLS (alto risco: banco) |
+| Especificação de referência | implementado (documento) | — | `docs/FEATURE-FINANCAS.md` (PR #5 integrado) | seção "Implementação" diz o que existe |
+| Tabelas `fin_itens`, `fin_item_meses`, `fin_gastos`, `fin_config` com RLS | em desenvolvimento | P1 | `supabase/migrations/20261122190001_financas_base.sql`, `supabase/tests/60_financas.test.sql`, `30_isolamento.test.sql` | branch `feat/financas-base`: testado localmente, **migração não aplicada**; aplicar exige aprovação |
+| Contas fixas e receitas por mês, marcar pago, vínculos (cartão, segue, via reserva) | em desenvolvimento | P1 | `src/components/FinanceiroPage.tsx`, `src/app/api/finance/itens/*`, `src/lib/finance/{summary,pagamento}.ts` | idem; validar em celular com pessoa logada |
+| Dia a dia: gastos por categoria e meio, editar e apagar | em desenvolvimento | P1 | `FinanceiroPage.tsx`, `src/app/api/finance/gastos/*` | sem teto por categoria (planejado) |
+| Resumo do mês: receitas, contas, dia a dia, sobra, por categoria, sem dupla contagem do crédito | em desenvolvimento | P1 | `src/lib/finance/summary.ts`, `src/app/api/finance/resumo/route.ts` | sem saldo do banco nem acumulado do ano |
+| Previsão até o próximo recebimento (dia 15 e dia 1) | em desenvolvimento | P2 | `src/lib/finance/previsao.ts`, `fin_config` | não é o fluxo de caixa completo |
+| Perguntar ao GaDu sobre gastos e contas (fonte `finance` do Core, [F1]…, Fontes) | em desenvolvimento | P1 | `src/lib/core/finance.ts`, `src/lib/core/plan.ts`, `src/app/api/chat/route.ts` | sem IA extra; `CORE_MVP=0` desliga |
+| Lançar gasto pela conversa (proposta que a pessoa confirma) | em desenvolvimento | P1 | `src/lib/finance/lancamento.ts`, `src/lib/meta.ts`, `src/components/GastoCard.tsx` | pela reserva/cota de sempre |
+| Interruptor de emergência `FINANCE_ENABLED=0` | em desenvolvimento | P1 | `src/lib/finance/flag.ts`, `src/app/api/finance/_guard.ts`, `test/finance*.integration.test.ts` | ligado por padrão |
+| Lançar por print, PDF de extrato e áudio; marcar pago por texto; log; "a confirmar" | planejado | P1 | — | fases 2 e 3 da especificação |
+| Caixa, plano (reserva e quitação), simulador bruto → líquido, ano e exportação | planejado | P2 | — | simulador bruto → líquido é o próximo item |
 
 ## 5. Tarefas, agenda e memórias
 | Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |

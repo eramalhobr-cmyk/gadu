@@ -23,7 +23,11 @@ import { collectAttention } from "@/lib/core/collect";
 import { coreEnabled } from "@/lib/core/flag";
 import { formatCoreBlock, toItem, type SourceItem } from "@/lib/core/format";
 import { googleReader } from "@/lib/core/google-adapter";
-import { detectIntent } from "@/lib/core/plan";
+import { detectFinanceIntent, detectIntent } from "@/lib/core/plan";
+import { collectFinance, financeProposalRules, formatFinanceBlock } from "@/lib/core/finance";
+import { financeEnabled } from "@/lib/finance/flag";
+import { hojeSP, isoDia } from "@/lib/finance/datas";
+import type { GastoProposta } from "@/lib/finance/lancamento";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,6 +52,7 @@ type Out =
   | { t: "reminders"; items: { id: number; text: string; dueAt: string }[] }
   | { t: "tasks"; items: { id: number; title: string; due: string | null }[] }
   | { t: "events"; items: { title: string; start: string; end: string; location: string | null }[] }
+  | { t: "gastos"; items: GastoProposta[] }
   | { t: "sources"; items: SourceItem[]; unavailable: string[] }
   | { t: "notice"; text: string; kind: "privacy" | "quota" | "engine" | "error" };
 
@@ -209,6 +214,31 @@ export async function POST(request: Request) {
             console.error("core falhou", e instanceof Error ? e.message.slice(0, 120) : "erro");
           }
         }
+        // Finanças (FINANCE_ENABLED, padrão ligado). Intenção simples, sem IA extra:
+        //  - perguntar ("quanto gastei", "como estão minhas contas"): a fonte `finance` do Core (precisa do CORE_MVP ligado) injeta o bloco [F1]…;
+        //  - lançar ("gastei 45 no mercado no pix"): só ensina o modelo a PROPOR; a pessoa confirma e quem grava é /api/finance/gastos, com a sessão dela.
+        // A pergunta de atenção do dia tem prioridade. Falha na leitura vira aviso ao modelo (nunca inventar valores).
+        const finIntent = !coreBlock && financeEnabled() ? detectFinanceIntent(message) : null;
+        let financeBlock = "";
+        if (finIntent?.kind === "gasto") {
+          financeBlock = financeProposalRules(isoDia(hojeSP()));
+        } else if (finIntent && coreEnabled()) {
+          const falha = "Não consegui ler seus dados financeiros agora.";
+          if (profile.error) {
+            financeBlock = `\n\nFinanças: ${falha} Diga isso com franqueza e não invente valores.`;
+            coreSources = { items: [], unavailable: [falha] };
+          } else {
+            try {
+              const fin = await collectFinance({ userId: user.id, db: supabase, blocked, intent: finIntent });
+              financeBlock = formatFinanceBlock(fin);
+              coreSources = { items: fin.facts.map(toItem), unavailable: fin.unavailable };
+            } catch (e) {
+              console.error("finance core falhou", e instanceof Error ? e.message.slice(0, 80) : "erro");
+              financeBlock = `\n\nFinanças: ${falha} Diga isso com franqueza e não invente valores.`;
+              coreSources = { items: [], unavailable: [falha] };
+            }
+          }
+        }
         // O Core já traz agenda e e-mails de hoje: não lê o Google duas vezes (exceto se pediu a semana).
         const google = coreBlock && !googleIntent(message).week ? "" : await googleContext(supabase, user.id, message, blocked, taskList);
         const lastTurn = turns[turns.length - 1];
@@ -219,7 +249,7 @@ export async function POST(request: Request) {
         let provider = "";
         let sent = 0;
         const system = systemPrompt();
-        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + (parsed.data.context ? contextLine(parsed.data.context) : "");
+        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + financeBlock + (parsed.data.context ? contextLine(parsed.data.context) : "");
         inputChars = system.length + context.length + turns.reduce((n, t) => n + t.content.length, 0);
         for await (const ev of routeChat({
           system,
@@ -251,7 +281,7 @@ export async function POST(request: Request) {
         }
 
         // 6. Grava a conversa e as memórias propostas (sempre pendentes).
-        const { body: answer, memories: proposals, reminders, tasks: taskProposals, events: eventProposals } = splitMeta(full);
+        const { body: answer, memories: proposals, reminders, tasks: taskProposals, events: eventProposals, gastos: gastoProposals } = splitMeta(full);
         await supabase.from("messages").insert([
           { conversation_id: conversationId, role: "user", content: message },
           {
@@ -311,6 +341,11 @@ export async function POST(request: Request) {
         // Eventos: só propostas. O app mostra e a pessoa confirma antes de criar na agenda.
         const okEvents = eventProposals.filter((e) => !isSensitive(e.title) && !blockedTerm(e.title, blocked));
         if (okEvents.length) send({ t: "events", items: okEvents });
+        // Gastos: só propostas (nada é gravado aqui). Só quando a mensagem tinha a intenção de lançar e Finanças está ligado.
+        // Descrição com termo bloqueado ou dado sensível é descartada; o valor e a categoria seguem.
+        if (finIntent?.kind === "gasto" && gastoProposals.length) {
+          send({ t: "gastos", items: gastoProposals.map((g) => (isSensitive(g.descricao) || blockedTerm(g.descricao, blocked) ? { ...g, descricao: "" } : g)) });
+        }
         if (coreSources) send({ t: "sources", ...coreSources });
         send({ t: "done", memories: added });
       } catch (e) {

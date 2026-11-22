@@ -308,7 +308,7 @@ test("assistente universal: o contexto da tela chega ao modelo como rótulo", as
   assert.match(providerCalls[0].context ?? "", /módulo Pessoal, tela Hoje/);
 
   reset();
-  await chat("oi", { context: { module: "financeiro", view: "financeiro" } });
+  await chat("oi", { context: { module: "metas", view: "metas" } });
   assert.match(providerCalls[0].context ?? "", /ainda está planejado/);
 
   reset();

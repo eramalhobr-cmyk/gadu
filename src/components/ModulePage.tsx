@@ -86,14 +86,14 @@ export function ModulePage({ id, onOpen }: { id: ModuleId; onOpen: (view: ViewId
 
 /** Tela Módulos (celular e computador): explora o produto por área, sem lista enorme.
  * As telas da barra de baixo (Hoje, Conversas, Tarefas) e a Plataforma (no menu da conta) não se repetem aqui. */
-export function ModulesHub({ onOpen, pending = 0 }: { onOpen: (view: ViewId) => void; pending?: number }) {
+export function ModulesHub({ onOpen, pending = 0, hide = [] }: { onOpen: (view: ViewId) => void; pending?: number; hide?: ModuleId[] }) {
   const skip: ViewId[] = ["hoje", "modulos", "conversa", "tarefas"];
   return (
     <main className="page" id="conteudo">
       <div className="wrap hub">
         <PageHeader title="Módulos" text="Tudo o que o GaDu faz, por área. O que ainda não existe aparece como planejado." />
         {AREAS.filter((a) => a.id !== "plataforma").map((a) => {
-          const mods = a.modules.map(moduleById);
+          const mods = a.modules.filter((id) => !hide.includes(id)).map(moduleById);
           const live = mods.filter((m) => m.status !== "planejado");
           const soon = mods.filter((m) => m.status === "planejado");
           type Tile = { key: string; view: ViewId; icon: string; name: string; text: string; m: ModuleDef };

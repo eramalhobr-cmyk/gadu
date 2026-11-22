@@ -53,11 +53,12 @@ export const MODULES: ModuleDef[] = [
     doc: "docs/METAS_CONQUISTAS.md",
   },
   {
-    id: "financeiro", name: "Financeiro", tagline: "Controle do mês pela conversa: lançar, classificar e prever o caixa.", icon: "coin", color: "green", status: "planejado",
+    id: "financeiro", name: "Financeiro", tagline: "Contas do mês e gastos do dia a dia, com o GaDu para perguntar e lançar.", icon: "coin", color: "green", status: "parcial",
     views: [{ id: "financeiro", label: "Financeiro", icon: "coin" }],
-    available: [],
-    planned: ["Contas, cartões e gastos do dia a dia", "Lançar por voz, texto, print ou extrato", "Previsão de caixa e teto por categoria", "Plano, reserva e simulador"],
-    needs: ["Especificação em revisão", "Tabelas próprias, isoladas por pessoa"],
+    available: ["Contas fixas e receitas por mês, com marcar como pago", "Gastos do dia a dia por categoria e meio de pagamento", "Resumo do mês: receitas, contas, dia a dia e sobra", "Previsão até o próximo recebimento", "Perguntar ao GaDu (\"quanto gastei com mercado\") e lançar gasto pela conversa, com a sua confirmação"],
+    planned: ["Lançar por print, PDF de extrato e áudio", "Caixa: saldo dia a dia e veredito", "Teto por categoria e acumulado do ano", "Reserva, quitação de dívida e simulador bruto → líquido"],
+    needs: ["Leitura de arquivos com deduplicação (fase 3 da especificação)", "Tabelas de INSS e IRRF versionadas por ano"],
+    doc: "docs/FEATURE-FINANCAS.md",
   },
   {
     id: "casa", name: "Casa Inteligente", brand: "GaDu Casa", tagline: "Sua casa conectada, por voz e texto, com segurança.", icon: "home", color: "blue", status: "planejado",
@@ -127,7 +128,7 @@ export function viewDef(view: ViewId): ViewDef {
 }
 /** Telas que só descrevem um módulo (planejado ou parcial); não têm dados nem ações. */
 export function isOverview(view: ViewId): boolean {
-  return view === "metas" || view === "financeiro" || view === "casa" || view === "office" || view === "studio" || view === "studio3d";
+  return view === "metas" || view === "casa" || view === "office" || view === "studio" || view === "studio3d";
 }
 /** Converte ?tab= em tela. Endereços antigos continuam válidos; admin só para quem pode. */
 export function parseView(tab: string | undefined, admin: boolean): ViewId | null {
