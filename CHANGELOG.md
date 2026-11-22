@@ -3,15 +3,29 @@
 Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em branch), **testado** (testes automáticos ou verificação executada, descrita na entrada), **publicado** (na `main` e em produção na Vercel, com migrações aplicadas quando houver). Datas são as do commit. Antes de 12/11 o histórico foi reconstruído a partir do `git log` e do ROADMAP; o que não tem evidência registrada aparece como "verificação não registrada".
 
 ## Em aberto (não publicado)
-- **Segurança P1 / fase 0 do Core** (branch `fix/seguranca-p1`, S-01, S-02, S-03 parcial, S-04, S-05 parcial, S-06, S-07, S-10, S-11, S-12). **Desenvolvido e testado localmente. NÃO publicado: migrações não aplicadas no Supabase, painel não alterado, sem push nem PR.**
+- **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`). Só documentação, não integrada.
+- **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
+
+## 2026-11-22 · `cc85040` · Segurança P1 / fase 0 do Core (PR #22) · publicada
+- **Publicado.** PR #22 integrado em 22/11/2026 às 14:54 (Brasília), merge commit `cc850400ff982d2463cf750de539fa194b04b5b6`. CI do PR verde: `verify`, `e2e-public`, `database`.
+- **Migrações aplicadas no Supabase de produção:** aditiva antes do deploy (versão `20261122175405`, `seguranca_p1_aditiva`); restritiva depois do deploy (versão `20261122175542`, `seguranca_p1_restritiva`).
+- **Deploy da Vercel** (`gadu-agent`) do merge commit: "Deployment has completed". Site: home 200, `/app` redireciona para `/login`, `/api/chat` sem sessão 401, `/api/health` ok.
+- **Prova de que o código novo está no ar:** uma tentativa de login com e-mail fictício gerou linhas em `private.rate_limits` (`password_ip` e `password_email`).
+- **Conferido no banco depois da restritiva:** `consume_quota` não existe; `authenticated` sem EXECUTE em `settle_ai_budget`; sem INSERT em `usage_events`; `anon` com 0 privilégios de tabela em `public`; `consume_daily_quota` e `budget_status` continuam para `authenticated`.
+- **Assessor de segurança do Supabase:** avisos de SECURITY DEFINER de 6 para 2 (`budget_status` e `consume_daily_quota`, intencionais). Senhas vazadas continua desligado (passo manual).
+- **e2e público** (6 testes) contra a produção: 6 passaram.
+- **Não verificado:** chat com uma pessoa logada em produção (e2e com login precisa de credenciais); encerramento de sessões ao bloquear em produção.
+- **S-09 pendente:** plano Supabase da organização é Free (sem backups automáticos baixáveis nem PITR); depende de decisão do Eduardo (plano Pro ou dump lógico agendado).
+- Detalhes do desenvolvimento (código, migrações, testes locais) na entrada a seguir.
+
+## 2026-11-22 · Segurança P1: desenvolvimento (branch `fix/seguranca-p1`)
+(S-01, S-02, S-03 parcial, S-04, S-05 parcial, S-06, S-07, S-10, S-11, S-12). Desenvolvido e testado localmente; publicação na entrada acima.
   - **Migrações** (nunca editou uma antiga): `20261122120001_seguranca_p1_aditiva.sql` (funções `server_*` de orçamento só para `service_role`, tabela e função do limite de tentativas, `server_revoke_user_sessions`, recusa de quem não está ativo em `consume_daily_quota` e `index_backlog`; compatível com o app de hoje) e `20261122120002_seguranca_p1_restritiva.sql` (revoga as funções antigas de orçamento, remove `consume_quota`, fecha insert em `usage_events`, tira `anon` do schema `public`). Ordem: aditiva → deploy → restritiva. Cada uma com rollback no topo.
   - **Código:** orçamento pelo cliente do servidor com o id da sessão (`src/lib/ai-budget.ts`); estimativa no cancelamento (`src/lib/partial-cost.ts`); chat sem contingência de cota; limite de tentativas (`src/lib/rate-limit.ts`, `client-ip.ts`) em `/api/auth/*` e `/api/invite/accept`, com 429 em português e fail open se o contador cair; agendador ignora bloqueados; bloqueio encerra sessões e protege admins (`src/lib/admin-guard.ts`; a tela de admin mostra a mensagem de recusa); proxy com 503 sem configuração.
   - **Testes:** `test:db` com `40_seguranca_p1.test.sql`, `compat/aditiva_compat.sql` (roda entre as duas migrações), corrida de 20 liquidações simultâneas e testes de cota e orçamento migrados para as funções do servidor; integração para chat (fail closed sem `consume_quota`, liquidação no servidor, `already`, estimativa no cancelamento), limite de tentativas, bloqueio de admin, agendador e proxy. A imitação do Supabase ganhou privilégios padrão de função e `auth.sessions`.
   - **Executado localmente** (Postgres 17 com pgvector, usuário normal): `bash scripts/test-db.sh` aprovado (303 verificações `ok`, 0 falhas); `GADU_AUDIT=1` mostra S-01, S-03 (contador), S-04, S-05 (custo e cota), S-07, S-10 e S-12 como CORRIGIDO e S-05 (escrita direta em tabelas) como AINDA PRESENTE; `npm run typecheck`; `npm test` (54 unitários e 51 de integração, 0 falhas); `npm run build`. Não há script de lint no projeto. Testes de interface (`test:e2e`) e CI do GitHub **não foram executados** nesta etapa.
   - **Docs:** `docs/SEGURANCA_P1_MANUAL.md` (ordem de implantação, conferências, senhas vazadas, backups, RPO e RTO, ensaio de restauração, Vercel Firewall), status por S-xx na auditoria, `PROJECT_STATUS.md` e `ROADMAP.md`.
-  - **Não executado:** aplicação das migrações no Supabase, encerramento de sessão no Auth real (testado só com imitação), qualquer mudança no painel do Supabase ou da Vercel.
-- **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`). Só documentação, não integrada.
-- **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
+  - **Não executado na época do desenvolvimento:** encerramento de sessão no Auth real (testado só com imitação). Depois, na publicação, foram aplicadas as migrações; o painel do Supabase e da Vercel não foi alterado.
 
 ## 2026-11-16 · `b992422` · Isolamento e preparação do Core (PR #20)
 - **Banco de teste completo:** `scripts/test-db.sh` aplica **todas** as 9 migrações, em ordem, inclusive a de pgvector. Antes eram 5. Sem pgvector, o teste falha em vez de pular tabelas. O shim ganhou o schema `extensions`.
