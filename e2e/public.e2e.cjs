@@ -110,6 +110,35 @@ describe("telas públicas", () => {
     assert.deepEqual(Object.values(st), Array(13).fill(401), JSON.stringify(st));
     await p.context().close();
   });
+  test("3D Studio: rota da API e tela recusam sem login; o motor isolado tem CSP própria e sem rede", async () => {
+    const p = await page(PHONE, { auth: false });
+    await p.goto(`${BASE}/`);
+    const st = await p.evaluate(async () => {
+      const post = (body) => fetch("/api/3d/generate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      return {
+        gerar: (await post({ modo: "novo", pedido: "uma caixa" })).status,
+        gerarForjado: (await post({ modo: "novo", pedido: "uma caixa", user_id: "00000000-0000-0000-0000-000000000001" })).status,
+        outroMetodo: (await fetch("/api/3d/generate")).status,
+        outraRota: (await fetch("/api/3d/qualquer")).status,
+      };
+    });
+    assert.deepEqual(st, { gerar: 401, gerarForjado: 401, outroMetodo: 401, outraRota: 401 }, JSON.stringify(st));
+    // A tela 3D sem login manda para o login (com o interruptor desligado ou ligado, ninguém vê nada sem sessão).
+    await p.goto(`${BASE}/app/3d`);
+    assert.match(p.url(), /\/login/);
+    // Motor isolado: CSP própria (sem rede, só WebAssembly deste endereço) e a das páginas sem 'wasm-unsafe-eval'.
+    const w = await p.request.get(`${BASE}/vendor/openscad/render-worker.js`);
+    assert.equal(w.status(), 200);
+    const wcsp = w.headers()["content-security-policy"] ?? "";
+    assert.match(wcsp, /connect-src 'none'/);
+    assert.match(wcsp, /script-src 'self' 'wasm-unsafe-eval'/);
+    const home = await p.request.get(`${BASE}/`);
+    assert.doesNotMatch(home.headers()["content-security-policy"] ?? "", /wasm-unsafe-eval/);
+    const lic = await p.request.get(`${BASE}/vendor/openscad/LICENSE.txt`);
+    assert.equal(lic.status(), 200);
+    assert.match(await lic.text(), /GNU GENERAL PUBLIC LICENSE/);
+    await p.context().close();
+  });
   test("cabeçalhos de segurança: CSP com nonce e sem iframe", async () => {
     const p = await page(PHONE, { auth: false });
     const r = await p.goto(`${BASE}/`);

@@ -101,13 +101,15 @@ export function ModulesHub(props: {
   onHistory: () => void;
   pending?: number;
   hide?: ModuleId[];
+  /** MODELING_3D_ENABLED=1: entrada "3D" (Beta) que abre /app/3d. Desligado, o 3D não aparece em Mais (nem em "Em breve"). */
+  show3d?: boolean;
   admin?: boolean;
   name?: string;
   email?: string;
 }) {
   const { onOpen, pending = 0, hide = [] } = props;
   const views = MAIN_VIEWS.filter((v) => !DOCK_VIEWS.includes(v) && !hide.includes(moduleOf(v).id));
-  const soon = MODULES.filter((m) => m.status === "planejado" && !hide.includes(m.id));
+  const soon = MODULES.filter((m) => m.status === "planejado" && !hide.includes(m.id) && m.id !== "studio3d");
   const initial = (props.name || props.email || "G").trim().charAt(0).toUpperCase();
   const tile = (key: string, icon: string, name: string, text: string, color: string, onClick: () => void, badge?: React.ReactNode) => (
     <button key={key} className="more-tile" style={{ ["--c" as string]: colorVar(color) }} onClick={onClick}>
@@ -126,6 +128,13 @@ export function ModulesHub(props: {
             return tile(v, d.icon, d.label, MORE_TEXT[v] ?? "", moduleOf(v).color, () => onOpen(v),
               v === "memoria" && pending > 0 ? <b className="nav-badge" aria-label={`${pending} memórias para revisar`}>{pending}</b> : undefined);
           })}
+          {props.show3d && (
+            <a className="more-tile" href="/app/3d" style={{ ["--c" as string]: colorVar("hot") }}>
+              <span className="hub-ico" aria-hidden="true"><Icon name="cube" size={24} /></span>
+              <span className="hub-t"><b>3D</b><small>Peças para imprimir na A1</small></span>
+              <span className="pill parcial">Beta</span>
+            </a>
+          )}
           {tile("historico", "history", "Conversas anteriores", "Abrir uma conversa antiga", "sig", props.onHistory)}
         </div>
         <div className="more-tiles">

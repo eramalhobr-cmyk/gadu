@@ -75,7 +75,11 @@ describe("app com login", () => {
     for (const name of ["Agenda", "Financeiro", "Metas", "Projetos", "Memória", "Agentes", "Conversas anteriores", "Configurações", "Ajuda"]) {
       assert.ok(tiles.some((t) => t.includes(name)), name);
     }
-    assert.ok(!tiles.some((t) => /Planejado|Beta/.test(t)), "sem selos técnicos nos blocos");
+    assert.ok(!tiles.filter((t) => !t.startsWith("3D")).some((t) => /Planejado|Beta/.test(t)), "sem selos técnicos nos blocos");
+    // 3D Studio (Beta): desligado por padrão (MODELING_3D_ENABLED só liga com 1). Sem a variável no servidor de teste, não aparece
+    // nem em "Em breve" como bloco; com E2E_3D=1 (servidor com a variável), aparece como "3D" e abre /app/3d.
+    const com3d = process.env.E2E_3D === "1";
+    assert.equal(tiles.some((t) => t.startsWith("3D")), com3d, "entrada 3D só com o interruptor ligado");
     await p.click(".more-soon >> text=Casa Inteligente");
     await p.waitForSelector(".mp-hero");
     assert.ok((await p.textContent(".honest")).includes("ainda não existe"));

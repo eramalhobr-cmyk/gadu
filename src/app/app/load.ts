@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { parseView } from "@/lib/modules";
 import { financeEnabled } from "@/lib/finance/flag";
 import { goalsEnabled } from "@/lib/goals/flag";
+import { modeling3dEnabled } from "@/lib/3d/flag";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 import { APP_VERSION } from "@/lib/config";
 import { accessOf } from "@/lib/access";
@@ -52,6 +53,7 @@ export async function loadApp({ google, tab, start }: AppParams = {}) {
       initialView: (() => { const v = parseView(tab, access.admin); return ((v === "financeiro" && !financeEnabled()) || (v === "metas" && !goalsEnabled()) ? null : v) ?? (google ? "conversa" : "hoje"); })(),
       financeEnabled: financeEnabled(),
       goalsEnabled: goalsEnabled(),
+      modeling3dEnabled: modeling3dEnabled(),
       initialTheme: parseTheme((await cookies()).get(THEME_COOKIE)?.value),
       admin: access.admin,
       seenTips: Array.isArray(settings.tips) ? settings.tips.map(String).slice(0, 20) : [],

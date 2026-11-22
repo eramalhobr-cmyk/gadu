@@ -89,8 +89,9 @@ export const MODULES: ModuleDef[] = [
     id: "studio3d", name: "3D Studio", tagline: "Encontrar, organizar e gerar modelos para impressão 3D.", icon: "cube", color: "hot", status: "planejado",
     views: [{ id: "studio3d", label: "3D Studio", icon: "cube" }],
     available: [],
-    planned: ["Busca de modelos gratuitos, respeitando licenças", "Biblioteca de modelos", "Geração de modelos realmente imprimíveis", "Exportação para o fatiador"],
-    needs: ["Especificação do módulo"],
+    planned: ["Busca de modelos gratuitos, respeitando licenças", "Biblioteca de modelos", "Figura a partir de foto (3D-2)", "Modelo de projeto A1 PLA 0.4 do Bambu Studio", "Salvar projetos e versões"],
+    needs: ["Beta da conversa → OpenSCAD pronto, desligado até MODELING_3D_ENABLED=1 (docs/FEATURE-3D.md)", "Modelo de projeto do Bambu Studio enviado pelo Eduardo"],
+    doc: "docs/FEATURE-3D.md",
   },
   {
     id: "plataforma", name: "Plataforma", tagline: "Perfil, aparência, conexões, custos e segurança.", icon: "gear", color: "pink", status: "disponivel",
