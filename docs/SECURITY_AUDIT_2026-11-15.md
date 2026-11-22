@@ -1,12 +1,35 @@
 # GaDu · Auditoria de segurança (somente leitura) · 15/11/2026
 
+**Atualização de 22/11/2026:** as correções de prioridade 1 e da fase 0 do Core foram **desenvolvidas e testadas localmente** na branch `fix/seguranca-p1`. **Nada foi publicado e nenhuma migração foi aplicada no Supabase.** Veja "Status das correções" abaixo. O texto original da auditoria (15/11) fica como histórico.
+
 Escopo: código da `main` (`ca1b2fd`) e banco de produção (Supabase `sa-east-1`). **Nada foi alterado** no banco, no RLS, na autenticação, nas permissões ou nas funções financeiras. As consultas ao banco foram só leitura (`select` em catálogos, políticas e definições de função, mais contagens agregadas, sem conteúdo de pessoas). A auditoria anterior citada numa migração (`SECURITY_AUDIT_2026-11-12.md`) não está no repositório; fica no PR #1, ainda não integrado.
 
 Legenda:
 - **Prioridade:** P0 imediato · P1 alta · P2 média · P3 baixa.
 - **Risco da correção** (docs/FAST_TRACK.md): banco, autenticação, permissões e custo são **alto risco** e só mudam com aprovação específica.
 
-## Resumo
+## Status das correções (22/11/2026)
+Branch `fix/seguranca-p1`. Estágio de todas: **desenvolvido e testado localmente; não publicado.** Migrações: `20261122120001_seguranca_p1_aditiva.sql` (aplicar antes do deploy) e `20261122120002_seguranca_p1_restritiva.sql` (aplicar depois do deploy). Ordem e conferências: [SEGURANCA_P1_MANUAL.md](SEGURANCA_P1_MANUAL.md).
+
+| ID | Status | O que foi feito | Prova (local) |
+|---|---|---|---|
+| S-01 | **Corrigido no código e nas migrações; falta publicar** | Funções `server_reserve/settle/release_ai_budget(p_user, ...)` só para `service_role`, chamadas pelo servidor com o id da sessão (`src/lib/ai-budget.ts`). Revoga o execute das antigas (restritiva). O servidor grava o custo real mesmo com `already` (o banco completa a diferença) ou reserva liberada; se a liquidação falhar, grava direto pelo cliente do servidor. `budget_status` continua para a pessoa | `40_seguranca_p1.test.sql`, `20_ai_budget.test.sql`, corrida de liquidação, `test/chat-route.integration.test.ts`; `audit:db`: CORRIGIDO |
+| S-02 | **Corrigido no código; falta publicar** | Resposta cortada ou cancelada com texto já enviado é liquidada por estimativa (entrada + caracteres recebidos ÷ 4, limitada ao reservado); só libera se nada saiu (`src/lib/partial-cost.ts`, `chat/route.ts`) | `src/lib/partial-cost.test.ts`, 4 testes de integração do chat |
+| S-03 | **Parcial: limite de tentativas corrigido no código; senhas vazadas é passo manual** | `private.rate_limits` + `auth_rate_limit_hit` (só `service_role`), janela de 10 min por IP e por e-mail (hash) em `/api/auth/*` e `/api/invite/accept`, 429 em português. Contador indisponível: **não trava o login** (fail open, com log). Senhas vazadas: painel, ver o manual | `test/auth-rate-limit.integration.test.ts`, `src/lib/client-ip.test.ts`, SQL do contador; **senhas vazadas: pendente (manual)** |
+| S-04 | **Corrigido no código e na migração aditiva; falta publicar** | `cron/tick` ignora quem tem `members.access <> 'active'` (lembretes, briefing, revisão, indexação, Google); `index_backlog` também. Sem linha em `members` (só `ALLOWED_EMAILS`) continua ativo, como em `access.ts`. Se a lista de bloqueados falhar, a tarefa falha (não processa às cegas) | `test/cron-tick.integration.test.ts`, SQL de `index_backlog` |
+| S-05 | **Parcial** | Feito: bloquear encerra as sessões (`server_revoke_user_sessions`; `auth.admin.signOut` do supabase-js exige o JWT da pessoa, não o id); reserva de orçamento e cota diária recusam quem não está ativo (o custo real de uma resposta em andamento ainda é gravado). **Não feito:** políticas de RLS de escrita por acesso (o `audit:db` mostra "AINDA PRESENTE, parcial") | `test/admin-block.integration.test.ts`, `40_seguranca_p1.test.sql`; encerramento de sessão testado só no banco local (conferir em produção, manual 1.3) |
+| S-06 | **Corrigido no código; falta publicar** | Admin não bloqueia a si mesmo, outro admin nem e-mail de `ADMIN_EMAILS` (`src/lib/admin-guard.ts`). A tabela de auditoria de ações de admin **não foi criada** (fora do escopo) | `src/lib/admin-guard.test.ts`, `test/admin-block.integration.test.ts` |
+| S-07 | **Corrigido no código e na migração restritiva; falta publicar** | Chat fail closed se `consume_daily_quota` falhar; `consume_quota(integer)` revogada e removida (restritiva) | `test/chat-route.integration.test.ts`, `10_daily_quota.test.sql`, `40_seguranca_p1.test.sql`; `audit:db`: CORRIGIDO |
+| S-08 | Aberto (fora do escopo) | — | — |
+| S-09 | Aberto: **confirmar no painel** | Passos no manual, seção 3. `private.backup_*` não foram apagadas | — |
+| S-10 | **Corrigido na migração restritiva; falta publicar** | Revoga insert/update/delete e remove a política de insert em `usage_events`. Todo código que gravava consumo (só `src/lib/ai-budget.ts`; embeddings, memória e insights não gravam) passa pelo servidor | `40_seguranca_p1.test.sql`; `audit:db`: CORRIGIDO |
+| S-11 | **Corrigido no código; falta publicar** | `proxy.ts` responde 503 nas rotas protegidas se faltar a configuração do Supabase; o público segue | `test/proxy.integration.test.ts`, `test/proxy-configured.integration.test.ts` |
+| S-12 | **Corrigido na migração restritiva; falta publicar** | `anon` sem privilégio em tabelas, sequências e funções do `public` (nada do app usa `anon` para ler tabelas); `authenticated` sem TRUNCATE, REFERENCES e TRIGGER; privilégios padrão de tabelas futuras; `search_similar` deixa de depender de `PUBLIC`. Funções futuras: o Postgres dá EXECUTE a `PUBLIC` e isso não se desfaz por schema; o teste de CI falha se alguma função do `public` ficar executável por `PUBLIC`/`anon` | `40_seguranca_p1.test.sql`; `audit:db`: CORRIGIDO |
+| S-13, S-14, S-15 | Abertos (fora do escopo) | — | — |
+
+Resultado do `npm run audit:db` com as duas migrações aplicadas no banco local: S-01, S-03 (contador), S-04, S-05 (custo e cota), S-07, S-10 e S-12 **CORRIGIDO**; S-05 (escrita direta em tabelas) **AINDA PRESENTE**, como esperado.
+
+## Resumo (texto original de 15/11)
 - **Isolamento entre pessoas está correto.** Todas as 18 tabelas públicas têm RLS. Todas as 31 políticas usam `user_id = (select auth.uid())` e são só para `authenticated`. As tabelas internas ficam em `private`, sem políticas e sem permissão para `anon` e `authenticated`.
 - **O ponto mais sério é de custo, não de vazamento** (S-01): uma pessoa logada pode chamar a função de liquidação de orçamento direto pela API do Supabase com custo 0 e escapar do teto mensal. Só a cota diária continua limitando.
 - **Autenticação no app está bem feita:** toda rota confere a sessão no servidor, o `user_id` vem da sessão, os convites usam hash e o token do Google é cifrado. As lacunas estão no Supabase Auth: limite de tentativas e proteção contra senhas vazadas desligada.

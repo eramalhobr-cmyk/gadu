@@ -33,7 +33,12 @@ export function AdminPage() {
   useEffect(() => { void load(); }, [load]);
 
   async function setAccess(p: Person, access: "active" | "blocked") {
-    await fetch("/api/admin/people", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId: p.id, access }) });
+    const r = await fetch("/api/admin/people", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId: p.id, access }) });
+    if (!r.ok) {
+      const j = (await r.json().catch(() => null)) as { message?: string } | null;
+      setErr(j?.message ?? "Não consegui alterar o acesso. Tente de novo.");
+      return;
+    }
     void load();
   }
   async function revoke(id: number) {
@@ -75,7 +80,7 @@ export function AdminPage() {
                     </div>
                     <div className="adm-foot">
                       <span className="muted small">Desde {d(p.since)} · último acesso {d(p.lastSeen)}</span>
-                      {!p.me && (p.access === "active"
+                      {!p.me && p.role !== "admin" && (p.access === "active"
                         ? <button className="btn btn-sm btn-quiet" onClick={() => setAccess(p, "blocked")}>Bloquear</button>
                         : <button className="btn btn-sm" onClick={() => setAccess(p, "active")}>Liberar</button>)}
                     </div>

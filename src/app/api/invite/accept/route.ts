@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { hashToken, TOKEN_RE } from "@/lib/invites";
 import { AGENT_PRESETS, businessAgent } from "@/lib/presets";
+import { limitAttempts } from "@/lib/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -17,6 +18,8 @@ const Body = z.object({
 export async function POST(request: Request) {
   const p = Body.safeParse(await request.json().catch(() => null));
   if (!p.success) return NextResponse.json({ error: "Confira o nome e use uma senha com pelo menos 10 caracteres." }, { status: 400 });
+  const limited = await limitAttempts(request, "invite", p.data.token);
+  if (limited) return limited;
   const db = supabaseAdmin();
   const { data: inv } = await db.from("invites").select("id, email, created_by, presets, expires_at, used_at").eq("token_hash", hashToken(p.data.token)).maybeSingle();
   if (!inv || inv.used_at || new Date(inv.expires_at as string).getTime() < Date.now()) {

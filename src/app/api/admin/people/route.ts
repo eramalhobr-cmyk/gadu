@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { refuseBlock } from "@/lib/admin-guard";
 import { adminOnly } from "../_admin";
 
 export const dynamic = "force-dynamic";
@@ -43,13 +44,34 @@ export async function GET() {
 
 const Patch = z.object({ userId: z.string().uuid(), access: z.enum(["active", "blocked"]) }).strict();
 
-// Bloqueia ou libera o acesso de alguém (nunca o próprio admin).
+// Bloqueia ou libera o acesso de alguém. Nunca o próprio admin, outro admin nem e-mail de ADMIN_EMAILS (S-06).
+// Ao bloquear, encerra as sessões da pessoa (S-05): o acesso já cai pelo members, e isto corta o refresh do login.
 export async function PATCH(request: Request) {
   const a = await adminOnly();
   if (!a) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const p = Patch.safeParse(await request.json().catch(() => null));
-  if (!p.success || p.data.userId === a.user.id) return NextResponse.json({ error: "invalid" }, { status: 400 });
-  const { error } = await supabaseAdmin().from("members").update({ access: p.data.access }).eq("user_id", p.data.userId);
+  if (!p.success) return NextResponse.json({ error: "invalid" }, { status: 400 });
+  // Nunca a si mesmo (bloquear ou liberar): evita o admin se trancar para fora.
+  if (p.data.userId === a.user.id) return NextResponse.json({ error: "invalid", message: "Você não pode alterar o próprio acesso." }, { status: 400 });
+  const db = supabaseAdmin();
+  if (p.data.access === "blocked") {
+    const [{ data: member }, { data: target }] = await Promise.all([
+      db.from("members").select("role").eq("user_id", p.data.userId).maybeSingle(),
+      db.auth.admin.getUserById(p.data.userId),
+    ]);
+    const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+    // Sem conseguir ler quem é o alvo, não bloqueia (a checagem de admin não pode ser pulada).
+    if (!member && !target?.user) return NextResponse.json({ error: "invalid" }, { status: 400 });
+    const refusal = refuseBlock(a.user.id, { id: p.data.userId, role: (member?.role as string | undefined) ?? null, email: target?.user?.email ?? null }, adminEmails);
+    if (refusal) return NextResponse.json({ error: refusal.status === 400 ? "invalid" : "forbidden", message: refusal.message }, { status: refusal.status });
+  }
+  const { error } = await db.from("members").update({ access: p.data.access }).eq("user_id", p.data.userId);
   if (error) return NextResponse.json({ error: "save" }, { status: 500 });
-  return NextResponse.json({ ok: true });
+  let sessionsRevoked = false;
+  if (p.data.access === "blocked") {
+    const { error: revokeError } = await db.rpc("server_revoke_user_sessions", { p_user: p.data.userId });
+    sessionsRevoked = !revokeError;
+    if (revokeError) console.error("encerrar sessões do bloqueado falhou (o acesso já está bloqueado)");
+  }
+  return NextResponse.json({ ok: true, sessionsRevoked });
 }

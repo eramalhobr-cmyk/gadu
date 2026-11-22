@@ -1,6 +1,9 @@
 // Teste de integração da rota POST /api/chat: a rota real roda com Supabase e provedor de IA simulados.
 // Garante: o provedor NÃO é chamado quando os limites não podem ser validados (fail closed); a ordem
 // limites → reserva de orçamento → cota → IA; a reserva é liquidada pelo custo real ou liberada.
+// S-01: reserva, liquidação e liberação só pelo cliente do servidor (funções server_*), nunca pelo cliente da pessoa.
+// S-02: resposta cortada com texto já enviado é liquidada por estimativa; sem texto, a reserva é liberada.
+// S-07: sem contingência na cota (consume_quota não existe mais): falhou, bloqueou.
 import assert from "node:assert/strict";
 import { beforeEach, mock, test } from "node:test";
 
@@ -11,10 +14,12 @@ const RID = "3f2b1c9e-8d7a-4b6c-9e5f-1a2b3c4d5e6f";
 // Estado controlado por cada teste.
 let rpcs: Record<string, (args?: Record<string, unknown>) => Promise<Rpc>> = {};
 let tables: string[] = [];
+let adminTables: string[] = [];
 let inserts: { table: string; row: unknown }[] = [];
 let providerCalls: { skip: string[]; context?: string }[] = [];
-let rpcCalls: { name: string; args?: Record<string, unknown> }[] = [];
-let providerMode: "ok" | "throw" = "ok";
+let rpcCalls: { name: string; args?: Record<string, unknown>; client: "user" | "admin" }[] = [];
+let providerMode: "ok" | "throw" | "partial" | "abort" = "ok";
+let abortCtl = new AbortController();
 
 const ok = (data: unknown) => async () => ({ data, error: null });
 const err = async () => ({ data: null, error: { message: "database unavailable" } });
@@ -22,10 +27,10 @@ const boom = async (): Promise<Rpc> => { throw new Error("fetch failed"); };
 const missing = async () => ({ data: null, error: { code: "PGRST202", message: "Could not find the function" } });
 const healthy = () => ({
   month_spend_by_provider: ok([]),
-  reserve_ai_budget: ok({ allowed: true, reservation_id: RID, amount: 0.25, spent: 1, reserved: 0.25, limit: 20 }),
+  server_reserve_ai_budget: ok({ allowed: true, reservation_id: RID, amount: 0.25, spent: 1, reserved: 0.25, limit: 20 }),
   consume_daily_quota: ok({ allowed: true, used: 1, limit: 150 }),
-  settle_ai_budget: ok({ ok: true, cost: 0.01, over: false }),
-  release_ai_budget: ok({ ok: true, released: true }),
+  server_settle_ai_budget: ok({ ok: true, cost: 0.01, over: false }),
+  server_release_ai_budget: ok({ ok: true, released: true }),
 });
 const called = (name: string) => rpcCalls.filter((c) => c.name === name);
 
@@ -47,8 +52,17 @@ mock.module(src("lib/supabase/server.ts"), {
   namedExports: {
     supabaseServer: async () => ({
       auth: { getUser: async () => ({ data: { user: { id: "user-test", email: "teste@exemplo.com" } } }) },
-      rpc: (name: string, args?: Record<string, unknown>) => { rpcCalls.push({ name, args }); return (rpcs[name] ?? err)(args); },
+      rpc: (name: string, args?: Record<string, unknown>) => { rpcCalls.push({ name, args, client: "user" }); return (rpcs[name] ?? err)(args); },
       from: (table: string) => { tables.push(table); return query(table); },
+    }),
+  },
+});
+// Cliente com a chave secreta (só o servidor): orçamento e consumo passam por aqui.
+mock.module(src("lib/supabase/admin.ts"), {
+  namedExports: {
+    supabaseAdmin: () => ({
+      rpc: (name: string, args?: Record<string, unknown>) => { rpcCalls.push({ name, args, client: "admin" }); return (rpcs[name] ?? err)(args); },
+      from: (table: string) => { adminTables.push(table); return { insert: async (row: unknown) => { inserts.push({ table, row }); return { error: null }; } }; },
     }),
   },
 });
@@ -73,6 +87,9 @@ mock.module(src("lib/llm/router.ts"), {
       if (providerMode === "throw") throw new AllProvidersFailed("down");
       yield { type: "provider", name: "Claude", id: "anthropic" };
       yield { type: "text", text: "Olá!" };
+      // Resposta cortada no meio: sem relatório final de uso (onUsage só vem no fim).
+      if (providerMode === "partial") throw new Error("conexão caiu no meio");
+      if (providerMode === "abort") { abortCtl.abort(); throw new Error("aborted"); }
       req.onUsage?.({ provider: "anthropic", model: "claude-opus-5-5", input_tokens: 1000, output_tokens: 100 });
     },
   },
@@ -82,14 +99,14 @@ mock.module("next/server", { namedExports: { after: () => {} } });
 const { POST } = await import(src("app/api/chat/route.ts"));
 
 async function chat(message = "oi", extra: Record<string, unknown> = {}) {
-  const res: Response = await POST(new Request("http://localhost/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message, ...extra }) }));
+  const res: Response = await POST(new Request("http://localhost/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message, ...extra }), signal: abortCtl.signal }));
   if (res.status !== 200) return [{ t: "http", kind: String(res.status) }];
   const text = await res.text();
   return text.trim().split("\n").filter(Boolean).map((l) => JSON.parse(l) as { t: string; kind?: string; text?: string });
 }
 
 function reset(over: Record<string, (args?: Record<string, unknown>) => Promise<Rpc>> = {}) {
-  rpcs = { ...healthy(), ...over }; tables = []; inserts = []; providerCalls = []; rpcCalls = []; providerMode = "ok";
+  rpcs = { ...healthy(), ...over }; tables = []; adminTables = []; inserts = []; providerCalls = []; rpcCalls = []; providerMode = "ok"; abortCtl = new AbortController();
 }
 beforeEach(() => reset());
 
@@ -106,36 +123,37 @@ test("caminho feliz: reserva, cota, IA e liquidação pelo custo real", async ()
   const events = await chat();
   assert.equal(providerCalls.length, 1);
   assert.ok(events.some((e) => e.t === "delta" && e.text === "Olá!"));
-  assert.deepEqual(rpcCalls.map((c) => c.name).slice(0, 3), ["month_spend_by_provider", "reserve_ai_budget", "consume_daily_quota"], "ordem: limites → reserva → cota");
-  const settle = called("settle_ai_budget");
+  assert.deepEqual(rpcCalls.map((c) => c.name).slice(0, 3), ["month_spend_by_provider", "server_reserve_ai_budget", "consume_daily_quota"], "ordem: limites → reserva → cota");
+  const settle = called("server_settle_ai_budget");
   assert.equal(settle.length, 1, "liquida uma vez");
   assert.equal(settle[0].args?.p_reservation, RID);
+  assert.equal(settle[0].args?.p_user, "user-test", "o id vem da sessão");
   assert.ok((settle[0].args?.p_cost_usd as number) > 0, "custo real calculado");
-  assert.equal(called("release_ai_budget").length, 0, "reserva liquidada não é liberada");
+  assert.equal(called("server_release_ai_budget").length, 0, "reserva liquidada não é liberada");
   assert.ok(!inserts.some((i) => i.table === "usage_events"), "consumo é gravado pela liquidação, não direto");
 });
 
 test("reserva: estimativa enviada é positiva e limitada", async () => {
   await chat();
-  const est = called("reserve_ai_budget")[0].args?.p_estimate_usd as number;
+  const est = called("server_reserve_ai_budget")[0].args?.p_estimate_usd as number;
   assert.ok(est > 0 && est < 5, `estimativa razoável (${est})`);
-  assert.equal(called("reserve_ai_budget")[0].args?.p_kind, "chat");
+  assert.equal(called("server_reserve_ai_budget")[0].args?.p_kind, "chat");
 });
 
 test("teto mensal atingido na reserva: avisa, não chama a IA e não gasta cota", async () => {
-  reset({ reserve_ai_budget: ok({ allowed: false, reason: "monthly", spent: 19.9, reserved: 0, limit: 20 }) });
+  reset({ server_reserve_ai_budget: ok({ allowed: false, reason: "monthly", spent: 19.9, reserved: 0, limit: 20 }) });
   assertBlocked(await chat(), "quota", /teto de gasto do mês \(US\$ 20\.00\)/);
   assert.equal(called("consume_daily_quota").length, 0);
 });
 
 test("teto global da conta atingido: avisa sem chamar a IA", async () => {
-  reset({ reserve_ai_budget: ok({ allowed: false, reason: "global" }) });
+  reset({ server_reserve_ai_budget: ok({ allowed: false, reason: "global" }) });
   assertBlocked(await chat(), "quota", /limite de gasto com IA da conta/);
 });
 
 test("reserva indisponível (falha, erro, formato inválido) bloqueia", async () => {
   for (const r of [boom, err, ok(null), ok({ allowed: true }), ok({ allowed: false, reason: "auth" })]) {
-    reset({ reserve_ai_budget: r });
+    reset({ server_reserve_ai_budget: r });
     assertBlocked(await chat(), "error", /orçamento de IA/);
     assert.equal(called("consume_daily_quota").length, 0);
   }
@@ -144,15 +162,15 @@ test("reserva indisponível (falha, erro, formato inválido) bloqueia", async ()
 test("cota esgotada depois da reserva: libera a reserva", async () => {
   reset({ consume_daily_quota: ok({ allowed: false, used: 40, limit: 40 }) });
   assertBlocked(await chat(), "quota", /limite de 40 mensagens de hoje/);
-  assert.equal(called("release_ai_budget").length, 1);
-  assert.equal(called("release_ai_budget")[0].args?.p_reservation, RID);
+  assert.equal(called("server_release_ai_budget").length, 1);
+  assert.equal(called("server_release_ai_budget")[0].args?.p_reservation, RID);
 });
 
 test("cota: falha de comunicação, erro ou resposta inválida bloqueiam e liberam a reserva", async () => {
   for (const r of [boom, err, ok(null), ok(true), ok({ allowed: "sim", used: 1, limit: 2 })]) {
     reset({ consume_daily_quota: r });
     assertBlocked(await chat(), "error", /limite de mensagens/);
-    assert.equal(called("release_ai_budget").length, 1);
+    assert.equal(called("server_release_ai_budget").length, 1);
   }
 });
 
@@ -160,22 +178,22 @@ test("provedor falhou: reserva liberada, nada liquidado", async () => {
   reset(); providerMode = "throw";
   await chat();
   assert.equal(providerCalls.length, 1);
-  assert.equal(called("settle_ai_budget").length, 0);
-  assert.equal(called("release_ai_budget").length, 1);
+  assert.equal(called("server_settle_ai_budget").length, 0);
+  assert.equal(called("server_release_ai_budget").length, 1);
 });
 
 test("liquidação falhou: consumo gravado direto e reserva liberada", async () => {
-  reset({ settle_ai_budget: err });
+  reset({ server_settle_ai_budget: err });
   await chat();
   assert.ok(inserts.some((i) => i.table === "usage_events"), "o custo não se perde");
-  assert.equal(called("release_ai_budget").length, 1);
+  assert.equal(called("server_release_ai_budget").length, 1);
 });
 
 test("limites por provedor: falha ou linha inválida bloqueiam antes da reserva", async () => {
   for (const r of [boom, err, ok(null), ok([{ provider: "anthropic", cost_usd: null }])]) {
     reset({ month_spend_by_provider: r });
     assertBlocked(await chat(), "error", /limites dos motores/);
-    assert.equal(called("reserve_ai_budget").length, 0);
+    assert.equal(called("server_reserve_ai_budget").length, 0);
   }
 });
 
@@ -185,32 +203,99 @@ test("provedor que passou do limite fica de fora desta resposta", async () => {
   assert.deepEqual(providerCalls[0].skip, ["anthropic"]);
 });
 
-test("transição: banco sem a migração de orçamento usa a leitura de month_spend", async () => {
-  reset({ reserve_ai_budget: missing, month_spend: ok(1.25) });
-  await chat();
-  assert.equal(called("month_spend").length, 1);
-  assert.equal(providerCalls.length, 1, "o chat continua funcionando");
-  assert.equal(called("settle_ai_budget").length, 0, "sem reserva, não há liquidação");
-  assert.ok(inserts.some((i) => i.table === "usage_events"), "consumo gravado como hoje");
+test("sem a função de reserva no banco: bloqueia, sem caminho antigo (fail closed)", async () => {
+  reset({ server_reserve_ai_budget: missing, month_spend: ok(1.25) });
+  assertBlocked(await chat(), "error", /orçamento de IA/);
+  assert.equal(called("month_spend").length, 0, "não volta para a leitura antiga");
+  assert.equal(called("server_settle_ai_budget").length, 0);
+});
 
-  for (const [r, kind, words] of [[ok(20), "quota", /teto de gasto do mês/], [err, "error", /orçamento de IA/], [ok("abc"), "error", /orçamento de IA/]] as const) {
-    reset({ reserve_ai_budget: missing, month_spend: r });
-    assertBlocked(await chat(), kind, words);
+test("S-07: sem consume_quota. Cota que falha ou não existe bloqueia e nunca chama a função antiga", async () => {
+  for (const r of [missing, err, boom, async () => ({ data: null, error: { code: "PGRST301", message: "JWT expired" } })]) {
+    reset({ consume_daily_quota: r, consume_quota: ok(true) });
+    assertBlocked(await chat(), "error", /limite de mensagens/);
+    assert.equal(called("consume_quota").length, 0, "consume_quota não é mais chamada");
+    assert.equal(called("server_release_ai_budget").length, 1, "a reserva é liberada");
   }
 });
 
-test("transição: sem a função nova de cota, usa a antiga com o limite do servidor", async () => {
-  reset({ consume_daily_quota: missing, consume_quota: ok(true) });
-  await chat();
-  assert.equal(called("consume_quota").length, 1);
-  assert.equal(providerCalls.length, 1);
-
-  reset({ consume_daily_quota: missing, consume_quota: ok(false) });
+test("cota esgotada: aviso com o limite do banco e nenhuma chamada de contingência", async () => {
+  reset({ consume_daily_quota: ok({ allowed: false, used: 150, limit: 150 }), consume_quota: ok(true) });
   assertBlocked(await chat(), "quota", /limite de 150 mensagens de hoje/);
+  assert.equal(called("consume_quota").length, 0);
+});
 
-  reset({ consume_daily_quota: async () => ({ data: null, error: { code: "PGRST301", message: "JWT expired" } }), consume_quota: ok(true) });
-  assertBlocked(await chat(), "error", /limite de mensagens/);
-  assert.equal(called("consume_quota").length, 0, "outros erros não caem na função antiga");
+test("S-01: reserva, liquidação e liberação só pelo cliente do servidor, com o id da sessão", async () => {
+  await chat();
+  reset(); providerMode = "throw"; await chat();
+  const budget = rpcCalls.filter((c) => /ai_budget/.test(c.name));
+  assert.ok(budget.length > 0);
+  for (const c of budget) {
+    assert.match(c.name, /^server_/, "só as funções server_*");
+    assert.equal(c.client, "admin", "só o cliente do servidor");
+    assert.equal(c.args?.p_user, "user-test");
+  }
+  assert.equal(rpcCalls.filter((c) => c.client === "user" && /budget/.test(c.name)).length, 0, "o cliente da pessoa não toca no orçamento");
+});
+
+test("S-01: liquidação que volta 'already' conta como liquidada (o banco completa o custo real) e não libera", async () => {
+  reset({ server_settle_ai_budget: ok({ ok: true, already: true, cost: 0, adjusted: 0.0124 }) });
+  await chat();
+  assert.equal(called("server_settle_ai_budget").length, 1);
+  assert.ok((called("server_settle_ai_budget")[0].args?.p_cost_usd as number) > 0, "o servidor sempre manda o custo real");
+  assert.equal(called("server_release_ai_budget").length, 0);
+});
+
+test("liquidação falhou: o consumo vai direto pelo cliente do servidor, com o id da sessão", async () => {
+  reset({ server_settle_ai_budget: boom });
+  await chat();
+  const direct = inserts.filter((i) => i.table === "usage_events");
+  assert.equal(direct.length, 1);
+  assert.equal((direct[0].row as { user_id: string }).user_id, "user-test");
+  assert.ok(adminTables.includes("usage_events"), "pelo cliente do servidor");
+  assert.ok(!tables.includes("usage_events"), "nunca pelo cliente da pessoa (S-10)");
+});
+
+test("S-02: resposta cortada depois de sair texto é liquidada por estimativa, não liberada", async () => {
+  reset(); providerMode = "partial";
+  const events = await chat();
+  assert.ok(events.some((e) => e.t === "delta" && e.text === "Olá!"), "a pessoa recebeu texto");
+  const settle = called("server_settle_ai_budget");
+  assert.equal(settle.length, 1, "liquida uma vez");
+  assert.equal(settle[0].args?.p_reservation, RID);
+  assert.equal(settle[0].args?.p_provider, "anthropic");
+  const cost = settle[0].args?.p_cost_usd as number;
+  assert.ok(cost > 0 && cost <= 0.25, `custo estimado positivo e limitado ao reservado (${cost})`);
+  assert.ok((settle[0].args?.p_input_tokens as number) > 0 && (settle[0].args?.p_output_tokens as number) > 0);
+  assert.equal(called("server_release_ai_budget").length, 0, "não libera quem já gastou");
+});
+
+test("S-02: a estimativa nunca passa do valor reservado", async () => {
+  reset({ server_reserve_ai_budget: ok({ allowed: true, reservation_id: RID, amount: 0.000001, spent: 0, reserved: 0.000001, limit: 20 }) });
+  providerMode = "partial";
+  await chat("a".repeat(3000));
+  assert.ok((called("server_settle_ai_budget")[0].args?.p_cost_usd as number) <= 0.000001);
+});
+
+test("S-02: cancelamento (aborto) no meio da resposta também liquida por estimativa", async () => {
+  reset(); providerMode = "abort";
+  await chat();
+  assert.equal(called("server_settle_ai_budget").length, 1);
+  assert.equal(called("server_release_ai_budget").length, 0);
+});
+
+test("S-02: estimativa cujo registro falha: grava o consumo direto e libera a reserva", async () => {
+  reset({ server_settle_ai_budget: err }); providerMode = "partial";
+  await chat();
+  assert.equal(inserts.filter((i) => i.table === "usage_events").length, 1, "o custo não se perde");
+  assert.equal(called("server_release_ai_budget").length, 1);
+});
+
+test("S-02: nada saiu (falha antes do primeiro texto): libera, sem estimar custo", async () => {
+  reset(); providerMode = "throw";
+  await chat();
+  assert.equal(called("server_settle_ai_budget").length, 0);
+  assert.equal(called("server_release_ai_budget").length, 1);
 });
 
 test("o app nunca envia o limite da cota ao banco", async () => {

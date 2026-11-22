@@ -15,8 +15,10 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Conversa em streaming, com o motor que respondeu | implementado | — | `src/app/api/chat/route.ts`, `src/components/GaduApp.tsx` | — |
 | Contingência de motor (Gateway Claude → Gemini) e limite por motor | implementado | — | `src/lib/llm/*` | — |
 | Chat fail closed (cota, teto e limites ilegíveis bloqueiam) | implementado | — | `src/lib/chat-budget-guard.ts` | PR #2 |
-| Cota diária atômica (150/dia, dia de Brasília) | implementado | — | `supabase/migrations/20261113120001_daily_quota_atomic.sql` | remover `consume_quota` na etapa 2 |
-| Teto mensal com reserva e reconciliação | implementado | — | `src/lib/ai-budget.ts`, migração `20261113140001` | validado no uso real (PR #6) |
+| Cota diária atômica (150/dia, dia de Brasília) | implementado; etapa 2 (remover `consume_quota`) **desenvolvida e testada localmente, não publicada** | — | `supabase/migrations/20261113120001_daily_quota_atomic.sql`, `20261122120002_seguranca_p1_restritiva.sql` | publicar a segurança P1 (manual) |
+| Teto mensal com reserva e reconciliação | implementado; reserva só pelo servidor e estimativa no cancelamento **desenvolvidas e testadas localmente, não publicadas** | — | `src/lib/ai-budget.ts`, `src/lib/partial-cost.ts`, migrações `20261113140001` e `20261122120001` | validado no uso real (PR #6); S-01 e S-02 aguardam publicação |
+| Limite de tentativas de login e convite (IP e e-mail) | **desenvolvido e testado localmente, não publicado** | P1 | `src/lib/rate-limit.ts`, `src/lib/client-ip.ts`, `20261122120001_seguranca_p1_aditiva.sql` | senhas vazadas: passo manual no painel |
+| Bloqueio de pessoa encerra sessões; admin não bloqueia admin | **desenvolvido e testado localmente, não publicado** | P1 | `src/app/api/admin/people/route.ts`, `src/lib/admin-guard.ts` | S-05 (RLS por acesso) segue aberto |
 | Gastos, reservas e limite visíveis no app | implementado | — | `src/components/SettingsPage.tsx`, `src/app/api/usage/route.ts` | em Ajustes (PR #9); levar ao Hoje (P2) |
 | Mensagens de erro em português e tela de erro própria | implementado | — | `src/lib/errors.ts`, `src/app/error.tsx`, `global-error.tsx`, `not-found.tsx` | PR #9 |
 | Lista de conversas (abrir, buscar, apagar) | implementado | — | `src/components/ConversationsDrawer.tsx` | — |

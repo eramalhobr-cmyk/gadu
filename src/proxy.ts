@@ -35,7 +35,14 @@ export async function proxy(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isProtected = path.startsWith("/app") || (path.startsWith("/api/") && !path.startsWith("/api/auth") && !path.startsWith("/api/health") && !path.startsWith("/api/cron") && !path.startsWith("/api/invite"));
-  if (!SUPABASE_URL || !SUPABASE_KEY) return response;
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    // S-11: sem a configuração do Supabase não dá para saber quem é a pessoa. Rota protegida NÃO passa (fail closed).
+    if (!isProtected) return response;
+    console.error("proxy: configuração do Supabase ausente; rota protegida recusada");
+    const headers = { "cache-control": "no-store", "Content-Security-Policy": csp };
+    if (path.startsWith("/api/")) return NextResponse.json({ error: "Serviço indisponível no momento. Tente de novo em instantes." }, { status: 503, headers });
+    return new NextResponse("Serviço indisponível no momento. Tente de novo em instantes.", { status: 503, headers: { ...headers, "content-type": "text/plain; charset=utf-8", "retry-after": "60" } });
+  }
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
     cookies: {
