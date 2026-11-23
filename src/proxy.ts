@@ -2,20 +2,21 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/config";
 import { accessOf } from "@/lib/access";
+import { supabaseConnectSources } from "@/lib/csp-connect";
 
 // Roda antes de cada página: renova a sessão, aplica a CSP com nonce
 // e bloqueia quem não está logado ou não está na lista de acesso.
 export async function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isDev = process.env.NODE_ENV === "development";
-  const supa = SUPABASE_URL ? new URL(SUPABASE_URL).host : "";
+  const supaSources = supabaseConnectSources(SUPABASE_URL);
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://lh3.googleusercontent.com",
     "font-src 'self'",
-    `connect-src 'self'${supa ? ` https://${supa} wss://${supa}` : ""}`,
+    ["connect-src 'self'", ...supaSources].join(" "),
     "media-src 'self' blob:",
     "worker-src 'self'",
     "manifest-src 'self'",
