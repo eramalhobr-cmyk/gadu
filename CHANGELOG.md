@@ -11,6 +11,12 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **Feito por:** Claude Code. Migração aditiva `20261123110001_telemetria_erros.sql`: só o servidor escreve, só administrador lê, sem texto de mensagem nem dados pessoais. **MIGRAÇÃO PENDENTE** (o Cursor aplica pelo MCP).
 - **Testes:** `bash scripts/test-db.sh` passou (novo `80_telemetria.test.sql` e a tabela em `30_isolamento`).
 
+## 2026-11-23 · 3D: peças e versões salvas · publicado
+- **Feito por:** Cursor (Grok Bot), pedido do Eduardo às 10:54 (o histórico sumia ao fechar o app).
+- Cada peça gerada fica salva com as últimas 30 versões e as medidas dos controles; "Suas peças" na tela 3D (abrir, apagar, nova peça); "abre a minha última peça" pela conversa, com confirmação.
+- **Migração aditiva** `20261123140001_pecas_3d` (PR #78), aplicada pelo MCP; RLS só da própria pessoa. Também aplicada a `20261123110001_telemetria_erros` (PR #76, do Claude Code).
+- **Testes:** `supabase/tests/90_pecas_3d.test.sql` e `30_isolamento`; `src/lib/3d/pecas.test.ts`; `test/studio3d-pecas.integration.test.ts` (401, interruptor, isolamento, 30 versões, cascata); voz em `acoes`, `chat-actions` e `acoes-resolver`.
+
 ## 2026-11-23 · 3D Studio (Beta) ligado em produção
 - O Eduardo definiu `MODELING_3D_ENABLED=1` na Vercel por volta das 09:37 (Brasília) e fez o redeploy. Sem mudança de código. Registrado por Cursor (Grok Bot).
 

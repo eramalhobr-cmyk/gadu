@@ -57,3 +57,9 @@
   .s3d-grid { grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); align-items: start; }
   .s3d-canvas { aspect-ratio: 16 / 10; }
 }
+
+.s3d-pecas { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.s3d-pecas li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--line, rgba(127,127,127,.25)); border-radius: 12px; }
+.s3d-pecas li.on { border-color: var(--accent, currentColor); }
+.s3d-pecas li > div:first-child { display: grid; gap: 2px; min-width: 0; }
+.s3d-pecas b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

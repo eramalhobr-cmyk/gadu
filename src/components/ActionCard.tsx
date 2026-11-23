@@ -127,7 +127,7 @@ async function execute(a: ChatAction): Promise<Result> {
     if (a.kind === "memoria_recusar") return saved(await supabaseBrowser().from("memories").delete().eq("id", a.id).eq("status", "pending").select("id"));
     if (a.kind === "memoria_esquecer") return saved(await supabaseBrowser().from("memories").delete().eq("id", a.id).eq("status", "approved").select("id"));
     if (a.kind === "registro_apagar") return api(await fetch(`/api/goals/${a.goalId}/progresso/${a.registroId}`, { method: "DELETE" }), "Não consegui apagar o registro.");
-    // nova_conversa, conversa_abrir e navegar são tratados pelo app (GaduApp), não gravam nada.
+    // nova_conversa, conversa_abrir, peca3d_abrir e navegar são tratados pelo app (GaduApp), não gravam nada.
     if (a.kind === "marco") return api(await fetch(`/api/goals/${a.goalId}/marcos`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ titulo: a.titulo, data_alvo: a.data }) }), "Não consegui adicionar o marco.");
     if (a.kind === "marco_ok") return api(await fetch(`/api/goals/${a.goalId}/marcos/${a.marcoId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ concluido: true }) }), "Não consegui concluir o marco.");
     if (a.kind === "meta_tarefa") {

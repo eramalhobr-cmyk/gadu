@@ -93,7 +93,8 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 ## 8. 3D Studio e impressão 3D
 | Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
 |---|---|---|---|---|
-| Peça por conversa → OpenSCAD (WASM no navegador) → STL e 3MF comum (3D-1) | **desenvolvido e testado localmente** (Beta; `MODELING_3D_ENABLED=1`, desligado por padrão; não publicado) | P1 | `src/app/api/3d/generate/route.ts`, `src/lib/3d/*`, `src/components/studio3d/*`, `src/app/app/3d/page.tsx`, `public/vendor/openscad/*` | testar com a IA real; refino por voz e imagem; salvar versões (migração com aprovação) |
+| Peça por conversa → OpenSCAD (WASM no navegador) → STL e 3MF comum (3D-1) | publicado (PR #40) e **ligado em produção** em 23/11/2026 (`MODELING_3D_ENABLED=1`) | P1 | `src/app/api/3d/generate/route.ts`, `src/lib/3d/*`, `src/components/studio3d/*`, `src/app/app/3d/page.tsx`, `public/vendor/openscad/*` | refino por voz e imagem |
+| Peças e versões salvas (lista "Suas peças", abrir, apagar, medidas guardadas; 30 versões por peça) e "abre a minha última peça" por voz | publicado em 23/11/2026 (PRs #78 e o deste branch), migração `pecas_3d` aplicada | P1 | `src/app/api/3d/pecas/**`, `src/lib/3d/pecas.ts`, `Studio3D.tsx`, `supabase/migrations/20261123140001_pecas_3d.sql` | testar no aparelho com login |
 | 3MF "A1 PLA 0.4" (projeto do Bambu Studio) | função pronta (`injectIntoTemplate`), botão **desativado** | P1 | `src/lib/3d/threemf.ts` | modelo de projeto salvo pelo Eduardo (docs/FEATURE-3D.md) |
 | Figura a partir de foto com modelos abertos gratuitos e reparo de malha (3D-2) | planejado | P2 | `docs/FEATURE-3D.md` | token do Hugging Face; limites diários do ZeroGPU; licenças |
 | Envio direto para a A1 pela rede local (3D-3) | planejado | P3 | `docs/FEATURE-3D.md` | ponte local; depois |
@@ -177,6 +178,7 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Finanças | apagar gasto | sim | `gasto_apagar` (confirmação explícita; não dá para desfazer) | — |
 | Finanças | quanto fica líquido um salário de X (com dependentes) | sim | `salario_simular` (o servidor calcula com `calcularSalario`; o modelo não escreve valores; cartão só de informação, sem botões e fora da confirmação falada; o servidor também propõe o cartão se o modelo não propuser, com o valor e os dependentes que a pessoa disse) | quem está falando ouve a resposta do modelo; o cartão tem o passo a passo |
 | Finanças | guardar o líquido como salário do mês | sim | `salario_simular` com `salvar: true` (cartão + "sim"; grava na receita principal da própria pessoa pela rota `PUT /api/finance/itens/:id/mes`, com Desfazer; sem receita principal definida, só mostra o cálculo e avisa) | — |
+| 3D Studio | abrir uma peça salva ("abre a minha última peça") | sim | `peca3d_abrir` (cartão com confirmação; abre `/app/3d?peca=`) | Cursor, 23/11 |
 | Finanças | criar conta, configurar a receita principal | sim | `conta_criar`, `receita_principal` (cartão com confirmação; criar tem Desfazer) | Cursor, 23/11 |
 | Metas | criar (número, percentual, marcos, tarefas) | sim | `meta_criar` | — |
 | Metas | registrar progresso, concluir | sim | `meta_registrar`, `meta_concluir` (pelo nome) e `"metas"` (pela etiqueta [M1]) | — |

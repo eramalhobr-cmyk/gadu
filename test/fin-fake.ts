@@ -4,11 +4,14 @@
 type Row = Record<string, unknown>;
 export type FinStore = Record<string, Row[]>;
 
+let seq = 0;
 // Padrões que o banco aplicaria (colunas com default). Só para as tabelas de Metas.
 const DEFAULTS: Record<string, () => Row> = {
   goals: () => ({ status: "ativa", concluida_em: null, created_at: new Date().toISOString() }),
   goal_progress: () => ({ created_at: new Date().toISOString() }),
   goal_milestones: () => ({ ordem: 0, concluido_em: null }),
+  pecas_3d: () => ({ valores: {}, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }),
+  pecas_3d_versoes: () => ({ created_at: new Date(Date.now() + seq++).toISOString() }),
 };
 const UNIQUE: Record<string, string[]> = { goal_tasks: ["goal_id", "task_id"] };
 const KEYS: Record<string, string[]> = { fin_item_meses: ["item_id", "ano", "mes"], fin_config: ["user_id"] };
@@ -64,6 +67,10 @@ export function makeFinDb(store: FinStore, user: () => string | null, log: { tab
           const ids = new Set(hit.map((r) => r.id));
           store.fin_item_meses = (store.fin_item_meses ?? []).filter((m) => !ids.has(m.item_id));
           for (const r of store.fin_itens) for (const c of ["cartao_id", "segue_id"]) if (ids.has(r[c])) r[c] = null;
+        }
+        if (table === "pecas_3d") {
+          const ids = new Set(hit.map((r) => r.id));
+          store.pecas_3d_versoes = (store.pecas_3d_versoes ?? []).filter((r) => !ids.has(r.peca_id));
         }
         if (table === "goals") {
           const ids = new Set(hit.map((r) => r.id));

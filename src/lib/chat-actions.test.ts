@@ -177,3 +177,10 @@ test("cartão e pergunta de conta nova e receita principal", async () => {
   assert.equal(actionQuestion(c, NOW), "Crio a conta Água, de 90 reais por mês, no dia 10?");
   assert.equal(actionQuestion({ kind: "receita_principal", itemId: "i1", nome: "Salário" }, NOW), "Defino Salário como sua receita principal?");
 });
+
+test("cartão e pergunta de abrir peça do 3D", async () => {
+  const { actionQuestion, describe: d } = await import("./chat-actions.ts");
+  const a: ChatAction = { kind: "peca3d_abrir", id: "p1", titulo: "Suporte de celular", quando: "22/11" };
+  assert.equal(d(a).confirm, "Abrir peça");
+  assert.equal(actionQuestion(a, NOW), "Abro a peça Suporte de celular no 3D?");
+});
