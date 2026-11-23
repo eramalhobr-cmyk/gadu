@@ -124,7 +124,8 @@ describe("app com login", () => {
     assert.equal(patches.length, 2, "gravou e desfez");
     assert.equal(patches[0].status, "done");
     assert.equal(patches[1].status, "open");
-    // Lembretes: o número abre a lista aqui mesmo.
+    // Lembretes: ficam em "Mais opções" (UX-4); o número abre a lista aqui mesmo.
+    await p.click(".more-opts > summary");
     await p.click(".see-i[aria-controls=rem-list]");
     await p.waitForSelector("#rem-list");
     await p.context().close();
