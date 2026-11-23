@@ -159,7 +159,7 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 
 **UX-5 (23/11/2026):** toda tela de módulo vazia convida a falar: mostra uma frase de exemplo (só de ações que já existem nesta matriz) e o botão "Falar com o GaDu", que abre a tela de escuta num toque. Agentes: o convite sugere "Cria um agente para me ajudar com os estudos" (ação `agente_criar`). A confirmação falada mostra o mesmo cartão da conversa.
 
-**Painéis de resumo (23/11/2026, tema JARVIS):** Hoje, Finanças, Metas, Tarefas e Agentes ganharam painel com números e gráficos (SVG/CSS) só de dados reais, com estado vazio. Pela voz ou texto, "mostra meu resumo de finanças" (ou de metas, tarefas, agentes, do dia) abre a tela e leva o painel para a vista, entendido no aparelho (sem modelo). Só leitura: não há ação nova de gravação.
+**Painéis de resumo (23/11/2026, tema JARVIS):** Hoje (com o gasto do mês quando o Financeiro está ligado), Finanças, Metas, Tarefas e Agentes ganharam painel com números e gráficos (SVG/CSS) só de dados reais, com estado vazio. Pela voz ou texto, "mostra meu resumo de finanças" (ou de metas, tarefas, agentes, do dia) abre a tela e leva o painel para a vista, entendido no aparelho (sem modelo). Só leitura: não há ação nova de gravação.
 
 **UX-7 M6 (23/11/2026):** paleta do computador (Ctrl+K) com telas, comandos, frases da tela e "perguntar ao GaDu", e microfone para falar; "recolhe o menu" / "expande o menu" pela voz ou texto no computador (comando local, sem modelo).
 
