@@ -964,7 +964,7 @@ export function GaduApp(props: {
                 {!messages.some((m) => m.role !== "notice") && (
                   <div className="chat-empty">
                     <h2>Oi{name ? `, ${name}` : ""}. Como posso ajudar?</h2>
-                    <p>Escreva ou toque no microfone do campo abaixo. Tudo o que eu aprender sobre você passa pela sua aprovação antes de virar memória.</p>
+                    <p>Fale pelo microfone ou escreva abaixo. Tudo o que eu aprender sobre você passa pela sua aprovação antes de virar memória.</p>
                     <div className="sug-grid" aria-label="Sugestões">
                       {[...QUICK, "Anota aí: "].map((q) => (
                         <button key={q} className="sug" disabled={busy} onClick={() => { speaker?.unlock(); if (q.endsWith(" ")) { setDraft(q); document.getElementById("msg")?.focus(); } else void send(q); }}>
@@ -990,7 +990,7 @@ export function GaduApp(props: {
               <form className="chat-form" onSubmit={(e) => { e.preventDefault(); void send(draft); }}>
                 {listening && <div className="listening-bar" role="status"><span className="dot-rec" aria-hidden="true" />Escutando… fale e eu escrevo aqui.<button type="button" className="link-btn" onClick={micClick}>Parar</button></div>}
                 <div className="chat-box">
-                  <button type="button" className={`round ${listening ? "on" : ""}`} onClick={micClick} aria-label={listening ? "Parar de ouvir" : busy || mode === "speaking" ? "Parar resposta" : "Falar"} aria-pressed={listening}>
+                  <button type="button" className={`round ${listening ? "on" : busy || mode === "speaking" ? "" : "idle"}`} onClick={micClick} aria-label={listening ? "Parar de ouvir" : busy || mode === "speaking" ? "Parar resposta" : "Falar"} aria-pressed={listening}>
                     <Icon name={(busy || mode === "speaking") && !listening ? "stop" : "mic"} />
                   </button>
                   <label className="sr" htmlFor="msg">Mensagem</label>

@@ -252,9 +252,24 @@ describe("app com login", () => {
     await p.context().close();
   });
 
+  test("um microfone só no celular (UX-7 R3): o do campo aparece ao escrever", async () => {
+    const p = await page(PHONE, { voice: "hang" });
+    await p.goto(`${BASE}/app?tab=conversa`);
+    await p.waitForSelector(".dock-mic");
+    assert.equal(await p.isVisible(".chat-box [aria-label=Falar]"), false, "sem microfone duplicado em repouso");
+    await p.focus("#msg");
+    assert.equal(await p.isVisible(".chat-box [aria-label=Falar]"), true, "ditado ao escrever");
+    await p.context().close();
+    const d = await page(DESK, { voice: "hang" });
+    await d.goto(`${BASE}/app?tab=conversa`);
+    assert.equal(await d.isVisible(".chat-box [aria-label=Falar]"), true, "no computador o microfone do campo fica");
+    await d.context().close();
+  });
+
   test("voz: microfone negado mostra aviso claro", async () => {
     const p = await page(PHONE, { voice: "deny" });
     await p.goto(`${BASE}/app?tab=conversa`);
+    await p.focus("#msg"); // UX-7 R3: no celular o microfone do campo só aparece ao escrever (ditado para revisar)
     await p.click(".chat-box [aria-label=Falar]");
     await p.waitForSelector("text=O microfone está bloqueado");
     await p.context().close();
@@ -264,6 +279,7 @@ describe("app com login", () => {
     const p = await page(PHONE, { voice: "final" });
     const calls = await mockChat(p);
     await p.goto(`${BASE}/app?tab=conversa`);
+    await p.focus("#msg"); // UX-7 R3: no celular o microfone do campo só aparece ao escrever (ditado para revisar)
     await p.click(".chat-box [aria-label=Falar]");
     await p.waitForTimeout(600);
     assert.equal(await p.inputValue("#msg"), "teste de voz");
@@ -274,6 +290,7 @@ describe("app com login", () => {
   test("voz: escuta para sozinha em até 20 s", async () => {
     const p = await page(PHONE, { voice: "hang" });
     await p.goto(`${BASE}/app?tab=conversa`);
+    await p.focus("#msg"); // UX-7 R3: no celular o microfone do campo só aparece ao escrever (ditado para revisar)
     await p.click(".chat-box [aria-label=Falar]");
     assert.equal(await p.getAttribute(".chat-box .round", "aria-pressed"), "true");
     await p.waitForTimeout(20_800);
@@ -299,6 +316,7 @@ describe("app com login", () => {
   test("voz: trocar de tela com o microfone aberto e sem controle visível para a escuta", async () => {
     const p = await page(PHONE, { voice: "hang" });
     await p.goto(`${BASE}/app?tab=conversa`);
+    await p.focus("#msg"); // UX-7 R3: no celular o microfone do campo só aparece ao escrever (ditado para revisar)
     await p.click(".chat-box [aria-label=Falar]");
     await p.click(".dock-item >> text=Hoje");
     await p.waitForTimeout(200);

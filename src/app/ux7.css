@@ -118,3 +118,11 @@ button.tl-tag.link-chip { cursor: pointer; min-height: 26px; }
   .today2 > .band-agora, .today2 > .more-opts { grid-column: 1 / -1; }
 }
 @media (prefers-reduced-motion: reduce) { .say-chip { transition: none; } }
+
+/* ---------- Um microfone só no celular (UX-7 · R3) ----------
+   Com a barra de baixo (abaixo de 1024 px), o microfone central é o único em repouso. O do campo volta quando a pessoa
+   está escrevendo (ditado para revisar) e sempre que vira "Parar" (ouvindo ou respondendo). */
+@media (max-width: 1023px) {
+  .chat-box:not(:focus-within) .round.idle { display: none; }
+  .chat-box:not(:focus-within) textarea { padding-left: var(--s-3); }
+}
