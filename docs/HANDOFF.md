@@ -66,6 +66,12 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 14:35 · Cursor (Grok Bot), dado sensível brasileiro (fila, item 3)
+- `privacy.ts` passa a detectar o dado (CPF/CNPJ com DV, Luhn, agência e conta, Pix, senha com valor, tokens) no lugar das palavras-chave. Saúde fica por palavra. Usado em todo lugar que já chamava `isSensitive` (chat, Core, memórias, lembretes, tarefas, eventos, gastos, Google).
+- **Decisão a registrar:** é uma regra menos restritiva para conversa comum ("como troco minha senha?" agora passa); o dado em si continua bloqueado. CPF formatado bloqueia mesmo com DV errado.
+- **A revisar por outra IA:** os regex de agência/conta e de senha em `src/lib/privacy.ts`.
+- **Fila 1–3 concluída.** Depois: sobras do 3D e o token da telemetria (manual do Eduardo).
+
 ### 23/11/2026 14:20 · Cursor (Grok Bot), agentes com ferramentas e teto (fila, item 2)
 - Migração `agentes_ferramentas_teto` (PR #91): merge às 14:15, **aplicada** via MCP às 14:16 (versão `20261123171612`) e conferida (RLS, só leitura da dona em `agent_uso`, função só do servidor). `agent_uso` não tem escrita pelo cliente, então não precisa das restritivas S-05.
 - App: teto do agente antes de `reserveBudget` (`limitesDoAgente` no `/api/chat`), gating de contexto e de ações por ferramenta, `server_add_agent_usage` depois da liquidação; tela Agentes e voz `agente_editar` (`liberar`, `bloquear`, `teto`).
