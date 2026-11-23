@@ -9,7 +9,9 @@ import { actionQuestion, describe, splitNavegacao } from "@/lib/chat-actions";
 import { GIVE_UP_LINE, parseAnswer, resultLine, RETRY_LINE } from "@/lib/voice-confirm";
 import { SourcesDetail, type SourcesData } from "./SourcesDetail";
 import { SayHere } from "./SayHere";
-import { parseSayHelp, sayHereSpoken } from "@/lib/o-que-dizer";
+import { parseSayHelp, sayHere, sayHereSpoken } from "@/lib/o-que-dizer";
+import { CommandPalette } from "./CommandPalette";
+import { isPaletaKey, parseMenuCommand, type PaletaItem } from "@/lib/paleta";
 import { navSpoken, parseNavIntent, pushTab } from "@/lib/nav-intent";
 import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
@@ -114,6 +116,8 @@ export function GaduApp(props: {
   const [tab, setTabState] = useState<ViewId>(props.initialView);
   const [assist, setAssist] = useState(false);
   const [sayOpen, setSayOpen] = useState(false);
+  const [paleta, setPaleta] = useState(false);
+  const menuRef = useRef<(m: "mini" | "full") => void>(() => {});
   const navHiddenRef = useRef<(v: ViewId) => boolean>(() => false);
   const setTabRef = useRef<(v: ViewId) => void>(() => {});
   /** Largura do painel do assistente no computador (arrastável), em px. */
@@ -313,6 +317,14 @@ export function GaduApp(props: {
       setDraft("");
       setSayOpen(true);
       if (opts.voice && prefsRef.current.voice) speaker?.announce(sayHereSpoken(tabRef.current));
+      return;
+    }
+    // "Recolhe o menu" / "expande o menu" no computador (UX-7 M6). No celular, "abre o menu" continua abrindo o Mais.
+    const menu = message && window.innerWidth >= 1024 ? parseMenuCommand(message) : null;
+    if (menu) {
+      setDraft("");
+      menuRef.current(menu);
+      if (opts.voice && prefsRef.current.voice) speaker?.announce(menu === "mini" ? "Menu recolhido." : "Menu expandido.");
       return;
     }
     // "Abre finanças", "vai para as metas", "volta": navegação entendida aqui, sem modelo e sem custo (UX-7 G2).
@@ -786,6 +798,27 @@ export function GaduApp(props: {
   const tip = view ? TIP_OF[view] : undefined;
   const showAssist = assist && view !== "conversa";
   const closeSay = useCallback(() => setSayOpen(false), []);
+  // Paleta do computador (UX-7 M6): Ctrl+K / ⌘K de qualquer tela.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (isPaletaKey(e)) { e.preventDefault(); setPaleta((o) => !o); } };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  const PALETA_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "projetos", "memoria", "agentes", "studio3d", "ajustes", "perfil", "integracoes", "modulos"];
+  const runPaleta = (it: PaletaItem) => {
+    setPaleta(false);
+    if (it.kind === "tela") { if (it.view === "studio3d") window.location.href = "/app/3d"; else setTab(it.view); return; }
+    if (it.kind === "frase") { pickSay(it.text); return; }
+    if (it.kind === "perguntar") { if (view !== "conversa") openAssist(true); void send(it.text); return; }
+    switch (it.cmd) {
+      case "voz": dockTalk(); break;
+      case "nova_conversa": newConversation(); setTab("conversa"); break;
+      case "assistente": if (view === "conversa") setTab("hoje"); openAssist(!assist); break;
+      case "menu": toggleNavMini(); break;
+      case "tema": toggleTheme(); break;
+      case "guia": window.location.href = "/app/guia"; break;
+    }
+  };
   // Frase escolhida vai para o campo (fora da Conversa, abre o assistente desta tela) para conferir antes de enviar.
   const pickSay = (s: string) => {
     setSayOpen(false);
@@ -863,6 +896,7 @@ export function GaduApp(props: {
       try { recRef.current?.abort(); } catch {}
     };
   }, [speaker]);
+  menuRef.current = (m) => { if ((m === "mini") !== navMini) toggleNavMini(); };
   function toggleNavMini() {
     setNavMini((v) => { try { localStorage.setItem(LS_NAV_MINI, v ? "0" : "1"); } catch {} return !v; });
   }
@@ -975,6 +1009,7 @@ export function GaduApp(props: {
           <div className="bar-actions">
             {/* Estado só quando há algo acontecendo (escutando, pensando, respondendo). */}
             {active && <span className={`mono state ${mode === "thinking" ? "hot" : ""}`} role="status"><i />{stateLabel}</span>}
+            <button className="pal-btn desk-only" onClick={() => setPaleta(true)} aria-label="Abrir a paleta de comandos (Ctrl+K)" aria-keyshortcuts="Control+K Meta+K"><Icon name="spark" size={16} /><span>Ir, fazer ou perguntar…</span><kbd>Ctrl K</kbd></button>
             <button className={`icon-btn say-btn ${sayOpen ? "on" : ""}`} onClick={() => setSayOpen((o) => !o)} aria-label="O que posso dizer aqui?" title="O que posso dizer aqui?" aria-expanded={sayOpen}><Icon name="chat" /></button>
             <button className="icon-btn desk-only" onClick={() => toggleTheme()} aria-label={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"}><Icon name={theme === "dark" ? "sun" : "moon"} /></button>
             {view !== "conversa" && (
@@ -984,6 +1019,8 @@ export function GaduApp(props: {
           </div>
         </header>
         {sayOpen && <SayHere view={view ?? tab} onClose={closeSay} onPick={pickSay} />}
+        {paleta && <CommandPalette views={PALETA_VIEWS.filter((v) => !navHiddenRef.current(v))} frases={sayHere(view ?? tab)} navMini={navMini} theme={theme} voiceOk={voiceOk}
+          onRun={runPaleta} onVoice={() => { setPaleta(false); dockTalk(); }} onClose={() => setPaleta(false)} />}
         {!online && <div className="banner" role="status">{MSG.offlineBanner}</div>}
         {tip && !seen.has(tip) && <TipCard key={`tip-${tip}`} id={tip} onDone={() => markTip(tip)} />}
         {pageOpen && <main className="page doc-page" id="conteudo">{props.page}</main>}

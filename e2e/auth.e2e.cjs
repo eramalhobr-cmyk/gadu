@@ -302,6 +302,33 @@ describe("app com login", () => {
     await d.context().close();
   });
 
+  test("paleta Ctrl+K e menu compacto (UX-7 M6), sem chamar o modelo", async () => {
+    const d = await page(DESK);
+    let chats = 0;
+    d.on("request", (r) => { if (r.url().includes("/api/chat")) chats++; });
+    await d.goto(`${BASE}/app?tab=hoje`);
+    await d.waitForSelector(".pal-btn");
+    await d.keyboard.press("Control+k");
+    await d.waitForSelector(".pal [role=combobox]");
+    await d.keyboard.type("agen");
+    await d.keyboard.press("Enter");
+    await d.waitForURL(/tab=agenda/);
+    assert.equal(await d.$(".pal"), null, "fecha ao executar");
+    await d.keyboard.press("Control+k");
+    await d.keyboard.type("recolher");
+    await d.keyboard.press("Enter");
+    await d.waitForSelector(".app.nav-mini");
+    await d.click("[aria-label='Abrir o assistente']");
+    await d.fill("#assist-msg", "expande o menu");
+    await d.click(".assist-composer [aria-label=Enviar]");
+    await d.waitForSelector(".app:not(.nav-mini)");
+    await d.keyboard.press("Control+k");
+    await d.keyboard.press("Escape");
+    assert.equal(await d.$(".pal"), null, "Esc fecha");
+    assert.equal(chats, 0, "sem chamar o modelo");
+    await d.context().close();
+  });
+
   test("voz: microfone negado mostra aviso claro", async () => {
     const p = await page(PHONE, { voice: "deny" });
     await p.goto(`${BASE}/app?tab=conversa`);

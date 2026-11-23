@@ -146,3 +146,21 @@ button.tl-tag.link-chip { cursor: pointer; min-height: 26px; }
 .say-foot { margin: var(--s-3) 0 0; font-size: var(--fs-xs); color: var(--ink-3); line-height: 1.45; }
 @keyframes say-in { from { opacity: 0; transform: translateY(-4px); } }
 @media (prefers-reduced-motion: reduce) { .say-pop { animation: none; } }
+
+/* M6 · Paleta do computador (Ctrl+K): um campo para ir a uma tela, rodar um comando ou perguntar ao GaDu, com microfone. */
+.pal-btn { display: inline-flex; align-items: center; gap: var(--s-2); height: 36px; padding: 0 var(--s-2) 0 var(--s-3); border-radius: var(--r-pill); border: 1px solid var(--line-2); background: var(--surface-2); color: var(--ink-3); font-size: var(--fs-sm); cursor: pointer; min-width: 240px; }
+.pal-btn span { flex: 1; text-align: left; }
+.pal-btn:hover, .pal-btn:focus-visible { border-color: rgb(var(--sig-rgb) / .55); color: var(--ink-2); }
+.pal-btn kbd, .pal kbd { font: 600 11px/1 var(--mono, ui-monospace, monospace); padding: 3px 6px; border-radius: 6px; border: 1px solid var(--line-2); background: var(--panel); color: var(--ink-3); }
+.pal-back { position: fixed; inset: 0; z-index: 80; background: rgb(10 17 30 / .38); display: grid; justify-items: center; align-items: start; padding-top: 12vh; animation: say-in 140ms ease-out; }
+.pal { width: min(640px, calc(100vw - 32px)); background: var(--panel); color: var(--ink); border: 1px solid var(--line-2); border-radius: var(--r-xl); box-shadow: 0 30px 70px rgb(var(--deep-rgb) / .45); overflow: hidden; }
+.pal-in { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-4); border-bottom: 1px solid var(--line); color: var(--sig); }
+.pal-in input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: var(--fs-lg); padding: var(--s-2) 0; }
+.pal ul { list-style: none; margin: 0; padding: var(--s-2); max-height: 52vh; overflow: auto; }
+.pal-i { display: flex; align-items: center; gap: var(--s-3); min-height: 44px; padding: 0 var(--s-3); border-radius: var(--r-md); cursor: pointer; color: var(--ink-3); }
+.pal-i .pal-l { flex: 1; color: var(--ink); font-size: var(--fs-md); }
+.pal-i .pal-h { font-size: var(--fs-xs); }
+.pal-i.on { background: rgb(var(--sig-rgb) / .1); color: var(--sig); }
+.pal-foot { margin: 0; padding: var(--s-2) var(--s-4) var(--s-3); border-top: 1px solid var(--line); font-size: var(--fs-xs); color: var(--ink-3); display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+@media (max-width: 1279px) { .pal-btn { min-width: 0; } .pal-btn span, .pal-btn kbd { display: none; } }
+@media (prefers-reduced-motion: reduce) { .pal-back { animation: none; } }
