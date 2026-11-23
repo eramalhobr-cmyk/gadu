@@ -24,6 +24,7 @@ Este é o caderno de passagem de bastão entre as IAs que programam o GaDu (Clau
 | Metas fase 2 (projetos e agenda) | Claude Code e Cursor | — | **publicada** em 23/11: #85 migração (aplicada 13:11), #86 projetos (13:29), #87 agenda (13:43). Falta validar com Google real e no aparelho. Antes: migração `20261123170001` **aplicada** (Cursor, 23/11). Etapa 2a (projetos: tela, rotas, `meta_projeto`, Core) em PR; etapa 2b (agenda: `meta_agenda`) em seguida |
 | Revisão cruzada (Cursor → Claude Code) e segurança S-05/S-08 | Claude Code e Cursor | `fix/s05-escrita-por-acesso` | revisão (#72), auditoria (#73) e S-08 desenho (#75) **publicados**; S-05 (#74) **aprovado pelo Eduardo às 11:17** (bloqueado pode apagar os próprios dados) e **aplicado em produção às 11:31** pelo Cursor |
 | Observabilidade (8a) e e2e com login no CI (8b) | Claude Code | `feat/telemetria-erros` | **Migração `20261123110001_telemetria_erros.sql` APLICADA** pelo Cursor via MCP em 23/11 ~10:57 (conferido: `error_events` com RLS e 1 política). O código (rota `/api/telemetria/erro`, página no Admin, alerta) pode seguir. **8b (e2e com login no CI): PR #77**, 17/17 |
+| UX-7 · visual, navegação e palco de voz (proposta aprovada 23/11 14:06) | Cursor (Grok Bot) | `feat/ux7-*` no worktree `/workspace/gadu-ux` | Em andamento: palco de voz (PR 1). Depois: Mais/menu por áreas, ligações e mapa, Hoje em três faixas, resto dos 17 itens. Arquivos: `ListenSheet`, `Assistant`, `GaduApp` (só o necessário), `ModulePage`, `TodayPage`, `src/app/ux7.css`. **Não mexe** em agentes (limites), privacidade (dado sensível) nem percepções |
 | 3D-1 (conversa → OpenSCAD) | Claude Code | `feat/3d-1-openscad` (PR #40, integrado) | **publicado** em 22/11/2026 às 20:55 (Brasília), PR #40, merge `6d87a5f`, CI verde (verify, e2e-public, database), deploy de produção da Vercel concluído. No ar: `/api/3d/generate` sem sessão 401, `/vendor/openscad/render-worker.js` 200 com a CSP própria, e2e público contra a produção 10/10. **Ligado em produção:** o Eduardo definiu `MODELING_3D_ENABLED=1` na Vercel em 23/11/2026 por volta das 09:37 (Brasília) e fez o redeploy; ele confirmou que funcionou. Falta: testar com a IA real (custo por ajuste), e2e com login (`E2E_3D=1`), WebKit/iPhone. Próximas fases do 3D só depois das outras frentes |
 
 ## A revisar por outra IA
@@ -71,6 +72,12 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - **Decisão a registrar:** é uma regra menos restritiva para conversa comum ("como troco minha senha?" agora passa); o dado em si continua bloqueado. CPF formatado bloqueia mesmo com DV errado.
 - **A revisar por outra IA:** os regex de agência/conta e de senha em `src/lib/privacy.ts`.
 - **Fila 1–3 concluída.** Depois: sobras do 3D e o token da telemetria (manual do Eduardo).
+
+### 23/11/2026 14:20 · Cursor (Grok Bot), UX-7 PR 1: palco de voz
+- **Pedido do Eduardo (14:06):** aplicar a proposta visual inteira (17 itens) em PRs pequenos. Ordem: palco de voz, Mais/menu por áreas, ligações e mapa, Hoje em três faixas, o resto.
+- **Feito:** avatar grande na tela de escuta (tela cheia no celular), na Conversa do celular (até 190 px vazia ou em voz, encolhe ao digitar), no computador (340/420 px) e no painel do assistente (136/168 px ao ouvir, pensar e falar). Nível real da voz: `src/lib/voice-level.ts` (testado), `src/lib/mic-meter.ts` (computador, só com permissão já dada, nada gravado), trechos reconhecidos e `onboundary` da fala. CSS do ciclo em `src/app/ux7.css`.
+- **A revisar por outra IA:** `mic-meter.ts` (abre um segundo `getUserMedia` junto do reconhecimento só fora do celular; conferir no Safari do Mac); o seletor `:has(#msg:focus)` em `ux7.css`.
+- **Próximo passo:** PR 2, Mais e menu agrupados por áreas.
 
 ### 23/11/2026 14:20 · Cursor (Grok Bot), agentes com ferramentas e teto (fila, item 2)
 - Migração `agentes_ferramentas_teto` (PR #91): merge às 14:15, **aplicada** via MCP às 14:16 (versão `20261123171612`) e conferida (RLS, só leitura da dona em `agent_uso`, função só do servidor). `agent_uso` não tem escrita pelo cliente, então não precisa das restritivas S-05.

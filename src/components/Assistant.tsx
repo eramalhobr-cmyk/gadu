@@ -3,6 +3,7 @@ import { RETRY_LABEL } from "@/lib/errors";
 import { stripSourceTags } from "@/lib/speech";
 import { useEffect, useRef, useState } from "react";
 import type { FaceMode } from "./robot-engine";
+import { Avatar } from "./RobotFace";
 import { ActionCard, type CardState } from "./ActionCard";
 import type { ChatAction } from "@/lib/chat-actions";
 import { SourcesDetail } from "./SourcesDetail";
@@ -88,7 +89,7 @@ export function Assistant(props: {
   const sugs = SUGGEST[props.context.view] ?? [];
 
   return (
-    <aside className={`assist ${props.open ? "open" : ""} ${kb ? "kb" : ""}`} aria-label="Assistente GaDu" aria-hidden={!props.open} inert={!props.open}
+    <aside className={`assist ${props.open ? "open" : ""} ${kb ? "kb" : ""} ${active && !kb ? "voice" : ""}`} aria-label="Assistente GaDu" aria-hidden={!props.open} inert={!props.open}
       style={kb ? { bottom: kb.inset + 8, height: Math.min(kb.height - 16, 520) } : undefined}>
       <div className="assist-resize" role="separator" aria-orientation="vertical" aria-label="Largura do painel do assistente" aria-valuemin={320} aria-valuemax={640} aria-valuenow={props.width} tabIndex={0}
         onPointerDown={props.onResizeStart}
@@ -100,8 +101,11 @@ export function Assistant(props: {
       </button>
       <header className="assist-head">
         <span className={`assist-ava s-${props.listening ? "listening" : props.mode}`} aria-hidden="true">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/avatar/gadu-480.webp" alt="" width={36} height={36} />
+          {/* Palco de voz (UX-7): em repouso, a foto pequena; ouvindo, pensando ou falando, o avatar animado cresce. */}
+          {active ? <Avatar mode={props.listening ? "listening" : props.mode} compact label="" /> : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src="/avatar/gadu-480.webp" alt="" width={36} height={36} />
+          )}
         </span>
         <div className="t">
           <b>GaDu {state && <span className={`assist-state ${props.mode === "thinking" ? "hot" : ""}`} role="status">· {state}</span>}</b>

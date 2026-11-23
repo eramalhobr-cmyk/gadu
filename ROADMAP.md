@@ -453,6 +453,14 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa. A
 - [ ] Teste no aparelho com o Eduardo e com uma pessoa não digital, com 5 tarefas: ver o dia, lançar um gasto por voz, criar um lembrete, concluir uma tarefa, achar o Financeiro. Medir toques até falar (hoje 3, meta 1) e onde a pessoa travou
 - [ ] Rodar junto o checklist do celular (docs/CHECKLIST_CELULAR.md)
 
+### UX-7 · Visual, navegação e palco de voz (aprovado pelo Eduardo em 23/11/2026, 14:06) · Cursor (Grok Bot)
+Proposta completa (17 itens), com o levantamento das skills de design no GitHub, na Page "GaDu: revisão de UX e proposta visual". Ordem combinada:
+- [x] **R1/R2 · Palco de voz:** avatar grande na tela de escuta (tela cheia no celular), Conversa do celular com avatar de até 190 px quando vazia ou em voz (encolhe ao digitar), palco maior no computador (340 → 420 px em voz), avatar animado no painel do assistente ao ouvir, pensar e falar; o avatar reage ao som real (medidor do microfone no computador, só com permissão já dada; trechos reconhecidos no celular; palavras faladas pela voz do aparelho) e volta à animação própria sem sinal
+- [ ] **R4/R5 · Mais e menu agrupados por áreas**, com status e contadores; 3D no menu do computador quando ligado
+- [ ] **M2 · Ligações visíveis** entre Metas, Projetos, Tarefas, Agenda e Finanças, e o mapa do GaDu no Guia
+- [ ] **M3 · Hoje em três faixas** (Agora, Depois, Progresso)
+- [ ] **R3** um microfone só no celular · **R6/M1** skills de design revisadas e DESIGN.md · **R7** apagar os motores de rosto sem uso · **M4** telas mais visuais (Finanças, Metas, Agentes) · **M5** "o que posso dizer aqui" · **M6** computador (menu compacto, Ctrl+K) · **G1** modo voz imersivo · **G2** navegação por voz · **G3** design system v2 com testes visuais · **G4** logo novo (espera o arquivo)
+
 ## Próximo ciclo (prioridades, em ordem; revisado em 22/11/2026)
 1. Validar com pessoa logada, em aparelho, o que foi publicado em 22/11 (Hoje e Fontes, Financeiro, Metas, voz, notificações) e fechar os passos manuais da segurança (senhas vazadas, S-09).
 2. ~~UX-1 a UX-3~~ (navegação, Hoje, voz): **publicados em 22/11** (PRs #34, #35, #36, #38, #39). **Tudo por voz** publicado em 22/11 (PR #42); fechar as lacunas da matriz (FEATURE_MATRIX, seção 11).

@@ -1,0 +1,45 @@
+/* GaDu · UX-7 (23/11/2026). Palco de voz: o avatar animado cresce quando o GaDu ouve, pensa ou fala.
+   Arquivo próprio do ciclo UX-7 para não conflitar com as outras frentes; mesmos tokens de v2.css. */
+
+/* ---------- Tela de escuta: avatar grande no topo ---------- */
+.listen-ava { position: relative; flex: none; width: min(62vw, 260px); aspect-ratio: 1; border-radius: 50%; overflow: hidden; background: radial-gradient(circle at 50% 45%, rgb(var(--sig-rgb) / 0.16), transparent 70%), var(--deep); box-shadow: 0 0 0 1px rgb(var(--sig-rgb) / 0.25), 0 18px 48px rgb(var(--shadow-rgb) / 0.35); transition: box-shadow var(--dur) var(--ease); }
+.listen-ava.on { box-shadow: 0 0 0 2px rgb(var(--sig-rgb) / 0.6), 0 0 48px rgb(var(--sig-rgb) / 0.25); }
+@media (max-width: 719px) {
+  /* No celular a escuta ocupa a tela toda: o rosto do GaDu é o centro da conversa por voz. */
+  .listen-wrap { place-items: stretch; }
+  .listen { min-height: 100dvh; justify-content: center; border-radius: 0; border: 0; }
+}
+@media (max-height: 640px) { .listen-ava { width: min(40vw, 150px); } }
+@media (min-width: 720px) { .listen-ava { width: 240px; } }
+
+/* ---------- Conversa no celular: palco grande quando vazia ou em voz; encolhe ao digitar ---------- */
+@media (max-width: 1023px) {
+  .chat-ava, .chat-stage { transition: width 0.25s var(--ease), height 0.25s var(--ease), padding 0.25s var(--ease); }
+  .chat2.stage-big:not(:has(#msg:focus)) .chat-stage { position: relative; flex-direction: column; justify-content: center; gap: var(--s-2); padding: var(--s-4) var(--s-4) var(--s-3); background: radial-gradient(circle at 50% 40%, rgb(var(--sig-rgb) / 0.14), transparent 65%), var(--panel); }
+  .chat2.stage-big:not(:has(#msg:focus)) .chat-ava { width: min(46vw, 190px); height: min(46vw, 190px); box-shadow: 0 0 0 1px rgb(var(--sig-rgb) / 0.3); }
+  .chat2.stage-big:not(:has(#msg:focus)) .chat-stage .meta { flex: none; justify-content: center; text-align: center; }
+  .chat2.stage-big:not(:has(#msg:focus)) .chat-stage .acts { position: absolute; top: var(--s-2); right: var(--s-2); }
+  .chat2.stage-big:not([data-mode="idle"]):not(:has(#msg:focus)) .chat-ava { box-shadow: 0 0 0 2px rgb(var(--sig-rgb) / 0.6), 0 0 40px rgb(var(--sig-rgb) / 0.3); }
+}
+@media (max-width: 1023px) and (max-height: 700px) {
+  .chat2.stage-big:not(:has(#msg:focus)) .chat-ava { width: 120px; height: 120px; }
+}
+
+/* ---------- Conversa no computador: palco maior, e ainda maior em voz ---------- */
+@media (min-width: 1024px) {
+  .chat-ava { width: min(100%, 340px); max-height: 50dvh; transition: width 0.3s var(--ease); }
+  .chat2:not([data-mode="idle"]) .chat-ava { width: min(100%, 420px); max-height: 58dvh; }
+}
+
+/* ---------- Painel do assistente: o avatar cresce ao ouvir, pensar e falar ---------- */
+.assist-ava { transition: width 0.25s var(--ease), height 0.25s var(--ease); }
+.assist-ava .avatar img { width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); border-radius: 0; }
+.assist.voice .assist-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; row-gap: var(--s-2); }
+.assist.voice .assist-ava { grid-column: 1 / -1; justify-self: center; width: min(34vw, 136px); height: min(34vw, 136px); border-radius: 50%; background: var(--deep); }
+.assist.voice .assist-ava .avatar { border-radius: 50%; }
+@media (min-width: 1024px) { .assist.voice .assist-ava { width: 168px; height: 168px; } }
+@media (max-height: 640px) { .assist.voice .assist-ava { width: 96px; height: 96px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .listen-ava, .chat-ava, .chat-stage, .assist-ava { transition: none; }
+}
