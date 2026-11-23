@@ -23,7 +23,8 @@ jobs:
     steps:
       - name: Sem token, sem alerta
         if: env.TELEMETRIA_TOKEN == ''
-        run: echo "::notice::Alerta de erros desligado: falta o segredo TELEMETRIA_TOKEN (docs/OBSERVABILIDADE.md)."
+        run: |
+          echo "::notice::Alerta de erros desligado, falta o segredo TELEMETRIA_TOKEN (docs/OBSERVABILIDADE.md)."
       - name: Lê o resumo e abre a issue
         if: env.TELEMETRIA_TOKEN != ''
         run: |
