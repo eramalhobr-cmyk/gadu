@@ -10,11 +10,13 @@ import { AttentionCard } from "./AttentionCard";
 import { PercepcoesCard } from "./PercepcoesCard";
 import type { Insight } from "@/lib/insights";
 import type { ViewId } from "@/lib/modules";
+import { dayProgress, laterToday, progressText, startOfTodayIso } from "@/lib/hoje-faixas";
 
 type Ev = { title: string; start: string; end: string; allDay: boolean; where?: string; meet: boolean };
 type Mail = { thread?: string; from: string; subject: string; snippet: string; important: boolean };
 type Today = { connected: boolean; events?: Ev[]; emails?: Mail[]; insights?: Insight[]; error?: string };
 type Reminder = { id: number; text: string; due_at: string; status: "pending" | "sent" | "done" | "cancelled" };
+type GoalSum = { ativas: number; atrasadas: number; atencao: { id: string; titulo: string; pct: number; semDados: boolean; texto: string }[] };
 type LateTask = { id: number; title: string; due_date: string | null };
 
 const TZ = "America/Sao_Paulo";
@@ -75,6 +77,8 @@ export function TodayPage(props: {
   const [now, setNow] = useState(() => new Date());
   const [review, setReview] = useState(false);
   const [attnKey, setAttnKey] = useState(0);
+  const [doneToday, setDoneToday] = useState<number | null>(null);
+  const [goals, setGoals] = useState<GoalSum | null>(null);
   const db = supabaseBrowser();
 
   const loadToday = useCallback(async () => {
@@ -96,6 +100,22 @@ export function TodayPage(props: {
     void db.from("tasks").select("id", { count: "exact", head: true }).eq("status", "open").lte("due_date", todayKey())
       .then(({ count }: { count: number | null }) => setOpenTasks(count ?? 0));
   }, [db, attnKey]);
+  useEffect(() => {
+    void db.from("tasks").select("id", { count: "exact", head: true }).eq("status", "done").gte("done_at", startOfTodayIso(new Date()))
+      .then(({ count }: { count: number | null }) => setDoneToday(count ?? 0));
+  }, [db, attnKey]);
+  useEffect(() => {
+    if (!props.goalsEnabled) return;
+    let alive = true;
+    (async () => {
+      try {
+        const r = await fetch("/api/goals/resumo", { cache: "no-store" });
+        const j = r.ok ? await r.json() : null;
+        if (alive && j?.enabled) setGoals({ ativas: j.ativas ?? 0, atrasadas: j.atrasadas ?? 0, atencao: Array.isArray(j.atencao) ? j.atencao : [] });
+      } catch { /* sem metas: a faixa mostra só as tarefas */ }
+    })();
+    return () => { alive = false; };
+  }, [props.goalsEnabled, attnKey]);
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 60_000); return () => clearInterval(id); }, []);
 
   async function setStatus(id: number, status: "done" | "cancelled") {
@@ -130,10 +150,15 @@ export function TodayPage(props: {
   const nextEv = upcoming.find((e) => !e.allDay);
   const summary = attn === null ? "" : attn === 0 ? "Nada pendente por enquanto." : `${attn} ${attn === 1 ? "coisa pede" : "coisas pedem"} sua atenção.`;
   const showReview = props.review || review;
+  const later = laterToday(events, rems ?? [], now, nextEv?.start);
+  const pct = doneToday === null || openTasks === null ? null : dayProgress(doneToday, openTasks);
 
   return (
     <main className="page" id="conteudo">
       <div className="wrap dash today2">
+        {/* Faixa 1 · Agora (UX-7): saudação, próximo compromisso e a lista do que pede atenção. */}
+        <section className="band band-agora" aria-labelledby="band-agora">
+        <h2 id="band-agora" className="band-t"><i aria-hidden="true" />Agora</h2>
         {/* (1) Saudação: o botão principal é falar. A ação do momento fica ao lado. */}
         <section className="greet" aria-label="Saudação">
           <div className="greet-ava on-dark" aria-hidden="true"><Avatar mode={props.busy ? "thinking" : "idle"} compact /></div>
@@ -178,8 +203,50 @@ export function TodayPage(props: {
         {/* (3) Uma lista só: tarefas, lembretes, compromissos, e-mails, metas e memórias, com Feito/Adiar no item. */}
         <AttentionCard key={attnKey} busy={props.busy} onOpen={props.onOpen} onAsk={props.onAsk} goalsEnabled={props.goalsEnabled} financeEnabled={props.financeEnabled} pendingMemories={props.pendingMemories} onCount={setAttn} />
 
-        {/* Percepções do dia (sem IA) com Aceitar/Ignorar e Desfazer. */}
-        <PercepcoesCard items={today?.insights ?? []} onOpen={props.onOpen} onChanged={() => setAttnKey((k) => k + 1)} />
+        </section>
+
+        {/* Faixa 2 · Depois: o que ainda vem hoje e as percepções do dia. */}
+        <section className="band band-depois" aria-labelledby="band-depois">
+          <h2 id="band-depois" className="band-t"><i aria-hidden="true" />Depois</h2>
+          {later.length ? (
+            <ol className="later">
+              {later.map((i) => (
+                <li key={`${i.kind}-${i.at}-${i.title}`} className="later-i">
+                  <time dateTime={i.at}>{hm(i.at)}</time>
+                  <Icon name={i.kind === "evento" ? "calendar" : "bell"} size={16} />
+                  <span>{i.title}</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="muted band-empty">Nada marcado para mais tarde. Diga: “Me lembra às 18h de…”</p>
+          )}
+          {/* Percepções do dia (sem IA) com Aceitar/Ignorar e Desfazer. */}
+          <PercepcoesCard items={today?.insights ?? []} onOpen={props.onOpen} onChanged={() => setAttnKey((k) => k + 1)} />
+          <button className="say-chip" disabled={props.busy} onClick={() => props.onAsk("O que tenho mais tarde hoje?")}><Icon name="mic" size={14} />“O que tenho mais tarde hoje?”</button>
+        </section>
+
+        {/* Faixa 3 · Progresso: tarefas feitas hoje e metas que pedem atenção. */}
+        <section className="band band-prog" aria-labelledby="band-prog">
+          <h2 id="band-prog" className="band-t"><i aria-hidden="true" />Progresso</h2>
+          <div className="prog-day">
+            <div className="prog-ring" role="img" aria-label={pct === null ? "Sem tarefas para hoje" : `${pct}% das tarefas de hoje feitas`} style={{ ["--p" as string]: `${pct ?? 0}` }}><b>{pct === null ? "–" : `${pct}%`}</b></div>
+            <p>{doneToday === null || openTasks === null ? "Carregando…" : progressText(doneToday, openTasks)}</p>
+          </div>
+          {goals && (
+            <div className="prog-goals">
+              {goals.atencao.slice(0, 2).map((g) => (
+                <button key={g.id} className="prog-goal" onClick={() => props.onOpen("metas")}>
+                  <span className="t">{g.titulo}</span>
+                  {!g.semDados && <span className="bar" aria-hidden="true"><i style={{ width: `${Math.max(0, Math.min(100, g.pct))}%` }} /></span>}
+                  <span className="s">{g.texto}</span>
+                </button>
+              ))}
+              {goals.atencao.length === 0 && <p className="muted">{goals.ativas ? `${goals.ativas} ${goals.ativas === 1 ? "meta ativa" : "metas ativas"}, todas no ritmo.` : "Nenhuma meta ativa. Diga: “Quero correr 50 km este mês”."}</p>}
+            </div>
+          )}
+          <button className="say-chip" disabled={props.busy} onClick={() => props.onAsk(goals ? "Como estou nas minhas metas?" : "Como foi o meu dia até agora?")}><Icon name="mic" size={14} />{goals ? "“Como estou nas minhas metas?”" : "“Como foi o meu dia até agora?”"}</button>
+        </section>
 
         {/* Só 1 ação principal e até 2 secundárias à vista (UX-4): o resto fica em "Mais opções". */}
         <details className="more-opts">

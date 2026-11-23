@@ -118,6 +118,8 @@ describe("app com login", () => {
     await p.waitForSelector(".attn-i >> text=Tarefa fictícia de teste");
     const blocks = await p.$$eval(".today2 > section, .today2 > .panel", (els) => els.length);
     assert.ok(blocks <= 6, `blocos no Hoje: ${blocks}`);
+    for (const band of ["Agora", "Depois", "Progresso"]) assert.ok(await p.$(`.band-t >> text=${band}`), `faixa ${band} (UX-7)`);
+    assert.ok(await p.$(".band-prog .prog-ring"), "progresso do dia");
     for (const gone of ["Módulos do GaDu", "Precisa de atenção", "Recomendações do GaDu"]) assert.equal(await p.$(`text=${gone}`), null, gone);
     assert.ok(await p.$(".talk-big >> text=Falar com o GaDu"), "botão grande de falar");
     await p.click(".attn-i [aria-label^='Feito']");

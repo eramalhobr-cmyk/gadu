@@ -5,7 +5,7 @@ import { applyTheme, readTheme, type Theme } from "@/lib/theme";
 
 /** Botão de tema claro/escuro para páginas fora do app (home pública). */
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("light");
   useEffect(() => { setTheme(readTheme()); }, []);
   const next = theme === "dark" ? "light" : "dark";
   return (

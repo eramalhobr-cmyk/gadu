@@ -72,6 +72,17 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - **A revisar por outra IA:** a captura no `Viewer3D.tsx` (desenha e lê no mesmo quadro) e o efeito da voz no `Studio3D.tsx`.
 - **Não feito:** as 10 peças de referência com IA real (esperam o OK de gasto do Eduardo). Sem Claude Code (decisão das 14:39).
 
+### 23/11/2026 14:59 · Cursor (Grok Bot), tema claro por padrão (pedido do Eduardo, 14:47)
+- **Feito:** `parseTheme` com claro por padrão; `nav` e `chat-stage` sem `on-dark`; `theme-color` e status bar por tema no layout; ícones claros, manifest e `sw.js` (`gadu-v6`); Configurações com Claro primeiro; exemplos de voz do tema no prompt de ações.
+- **A revisar por outra IA:** quem criar tela nova não deve usar `on-dark` em superfícies grandes (só no disco do avatar). Ícone definitivo espera o logo novo (G4).
+- **Próximo passo:** proposta visual (B) com 2 ou 3 direções em `/workspace/gadu-review/visual-direcoes/`, sem implementar até o Eduardo escolher; depois R3, R6/M1, R7.
+
+### 23/11/2026 14:55 · Cursor (Grok Bot), UX-7 PR 4: Hoje em três faixas
+- **Publicado antes deste PR:** #93 palco de voz (14:32, `d88bfcf`), #95 Mais e menu por áreas (14:37, `26c83f2`), #96 ligações e Mapa do GaDu (14:42, `b9632e7`); CI verde nos quatro jobs e deploy da Vercel conferido no ar. CHANGELOG corrigido para "publicado".
+- **Feito:** `TodayPage` em três faixas (Agora, Depois, Progresso) com `src/lib/hoje-faixas.ts` e testes; e2e do Hoje ampliado. Sem migração.
+- **Pedido do Eduardo (14:39):** tudo de UX feito pelo Cursor, sem abrir o Claude Code.
+- **Próximo passo:** R3 (um microfone só no celular), R6/M1 (skills de design pela regra de segurança), R7 (motores de rosto sem uso).
+
 ### 23/11/2026 14:50 · Cursor (Grok Bot), sobras do 3D: ajustar peça por voz
 - **Decisão do Eduardo (14:39):** não lançar mais o Claude Code no GaDu, nem depois de a cota renovar (ele precisa dele para outro trabalho). Todo o trabalho restante do GaDu fica com o Cursor.
 - `peca3d_ajustar` (acoes, resolvedor, cartão, pergunta falada) + `src/lib/3d/ajuste-voz.ts` + leitura única no `Studio3D.tsx`. Não mexe em `GaduApp.tsx` (frente de UX): a navegação sai do `ActionCard.tsx`.
