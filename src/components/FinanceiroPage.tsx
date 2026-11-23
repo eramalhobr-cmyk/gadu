@@ -7,6 +7,7 @@ import type { ItemComMes } from "@/lib/finance/month";
 import type { PrevisaoRecebimento } from "@/lib/finance/previsao";
 import type { ResumoMensal } from "@/lib/finance/summary";
 import { CATEGORIAS, GRUPOS, MEIOS, MEIO_LABEL, MESES, type Config, type Gasto, type Meio } from "@/lib/finance/types";
+import { ConfirmCard } from "./ConfirmCard";
 import { EmptyState, ModuleScreen, Panel, PrimaryAction } from "./kit";
 import { showUndo } from "@/lib/undo";
 import { Icon, todayKey } from "./ui";
@@ -296,10 +297,9 @@ function ItemEditor({ item, itens, ano, mes, run, onClose }: { item: ItemComMes;
         <button className="btn btn-pri" type="submit">Salvar</button>
         <button className="btn" type="button" onClick={onClose}>Cancelar</button>
         {item.mes && <button className="btn" type="button" onClick={async () => { if (await run(api(`/api/finance/itens/${item.id}/mes`, { method: "PUT", body: JSON.stringify({ ano, mes, valor: 0 }) }), "Item tirado deste mês.")) onClose(); }}>Não tem neste mês</button>}
-        {!confirma
-          ? <button className="btn btn-bad" type="button" onClick={() => setConfirma(true)}>Apagar</button>
-          : <button className="btn btn-bad" type="button" onClick={async () => { if (await run(api(`/api/finance/itens/${item.id}`, { method: "DELETE" }), "Item apagado, com todos os meses.")) onClose(); }}>Confirmar: apagar em todos os meses</button>}
+        {!confirma && <button className="btn btn-bad" type="button" onClick={() => setConfirma(true)}>Apagar</button>}
       </div>
+      {confirma && <ConfirmCard danger icon="coin" title="Apagar esta conta ou receita?" detail="Some de todos os meses." confirmLabel="Apagar" onConfirm={async () => { if (await run(api(`/api/finance/itens/${item.id}`, { method: "DELETE" }), "Item apagado, com todos os meses.")) onClose(); }} onCancel={() => setConfirma(false)} />}
     </form>
   );
 }
@@ -419,10 +419,9 @@ function GastoEditor({ g, run, onClose }: { g: Gasto; run: Run; onClose: () => v
       <div className="form-actions">
         <button className="btn btn-pri" type="submit">Salvar</button>
         <button className="btn" type="button" onClick={onClose}>Cancelar</button>
-        {!confirma
-          ? <button className="btn btn-bad" type="button" onClick={() => setConfirma(true)}>Apagar</button>
-          : <button className="btn btn-bad" type="button" onClick={async () => { if (await run(api(`/api/finance/gastos/${g.id}`, { method: "DELETE" }), "Gasto apagado.", () => api("/api/finance/gastos", { method: "POST", body: JSON.stringify({ ano: g.ano, mes: g.mes, dia: g.dia, valor: g.valor, categoria: g.categoria, descricao: g.descricao, meio: g.meio, origem: g.origem }) }))) onClose(); }}>Confirmar: apagar</button>}
+        {!confirma && <button className="btn btn-bad" type="button" onClick={() => setConfirma(true)}>Apagar</button>}
       </div>
+      {confirma && <ConfirmCard danger icon="coin" title="Apagar este gasto?" detail="Dá para desfazer logo depois." confirmLabel="Apagar" onConfirm={async () => { if (await run(api(`/api/finance/gastos/${g.id}`, { method: "DELETE" }), "Gasto apagado.", () => api("/api/finance/gastos", { method: "POST", body: JSON.stringify({ ano: g.ano, mes: g.mes, dia: g.dia, valor: g.valor, categoria: g.categoria, descricao: g.descricao, meio: g.meio, origem: g.origem }) }))) onClose(); }} onCancel={() => setConfirma(false)} />}
     </form>
   );
 }

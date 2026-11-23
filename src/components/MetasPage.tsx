@@ -9,6 +9,7 @@ import {
   CATEGORIAS, CATEGORIA_LABEL, MEDICAO_LABEL, MEDICOES, ORIGEM_LABEL, SITUACAO_LABEL,
   type Categoria, type Marco, type Medicao, type MetaView, type Registro, type Status, type TarefaVinculada,
 } from "@/lib/goals/types";
+import { ConfirmCard } from "./ConfirmCard";
 import { EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
 import { showUndo } from "@/lib/undo";
 import { Icon, todayKey } from "./ui";
@@ -196,9 +197,12 @@ function MetaDetalhe(props: { id: string; onBack: () => void; onChanged: () => v
           {g.status === "ativa" && m.ritmo.situacao !== "batida" && <button className="btn" onClick={() => void status("concluida", "Meta concluída.")}>Marcar como concluída</button>}
           {g.status === "concluida" && <button className="btn" onClick={() => void status("ativa", "Meta reaberta.")}>Reabrir</button>}
           {g.status === "arquivada" ? <button className="btn" onClick={() => void status("ativa", "Meta restaurada.")}>Restaurar</button>
-            : confirma !== "arquivar" ? <button className="btn btn-bad" onClick={() => setConfirma("arquivar")}>Arquivar</button>
-            : <button className="btn btn-bad" onClick={async () => { if (await status("arquivada", "Meta arquivada.")) props.onBack(); }}>Confirmar: arquivar (some das listas, nada é apagado)</button>}
+            : confirma !== "arquivar" && <button className="btn btn-bad" onClick={() => setConfirma("arquivar")}>Arquivar</button>}
         </div>
+        {confirma === "arquivar" && g.status !== "arquivada" && (
+          <ConfirmCard danger icon="folder" title="Arquivar esta meta?" detail="Some das listas. Nada é apagado e dá para restaurar." confirmLabel="Arquivar"
+            onConfirm={async () => { if (await status("arquivada", "Meta arquivada.")) props.onBack(); }} onCancel={() => setConfirma(null)} />
+        )}
         <button className="btn btn-sm" onClick={() => props.onAsk(`Como está minha meta de ${g.titulo.slice(0, 40)}?`)}><Icon name="spark" size={16} />Perguntar ao GaDu sobre esta meta</button>
       </div>
     </main>

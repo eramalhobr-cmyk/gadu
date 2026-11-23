@@ -273,7 +273,8 @@ button.pj-card:hover { border-color: color-mix(in srgb, var(--c) 55%, transparen
 .hist-del { flex: none; color: var(--ink-3); }
 .hist-del:hover { color: var(--bad); }
 @media (hover: hover) { .hist-item .hist-del { opacity: 0; } .hist-item:hover .hist-del, .hist-del:focus-visible { opacity: 1; } }
-.hist-confirm { position: absolute; inset: 4px; display: flex; align-items: center; justify-content: flex-end; gap: var(--s-2); padding: 0 var(--s-2); border-radius: var(--r-md); background: var(--panel); box-shadow: 0 0 0 1px var(--line-2); }
+.hist-confirm { flex: 1 0 100%; padding: var(--s-1) var(--s-2) var(--s-2) 0; }
+.hist-item:has(.hist-confirm) { flex-wrap: wrap; }
 .hist-foot { display: flex; gap: var(--s-2); padding-top: var(--s-3); border-top: 1px solid var(--line); }
 .hist-foot a { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--touch); border-radius: var(--r-md); background: var(--wash); color: var(--ink-2); font-size: var(--fs-sm); text-decoration: none; }
 .hist-foot a:hover { color: var(--sig); }
@@ -431,3 +432,10 @@ button.pj-card:hover { border-color: color-mix(in srgb, var(--c) 55%, transparen
 .empty-say { color: var(--ink-2); }
 .empty-say q { color: var(--ink); font-style: italic; quotes: "“" "”"; }
 .empty-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-1); }
+
+/* Cartão de confirmação único (UX-5): variante de perigo e uso dentro de formulários e listas */
+.evc.danger { border-left-color: var(--bad); }
+.evc.danger .evc-ico, .evc.danger .evc-label { color: var(--bad); }
+.evc.danger .evc-ico { background: color-mix(in srgb, var(--bad) 12%, transparent); }
+.hist-confirm .evc, .form-actions + .evc { max-width: none; }
+.confirm-sheet .evc { align-self: stretch; max-width: none; text-align: left; }

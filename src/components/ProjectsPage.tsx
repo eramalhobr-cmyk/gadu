@@ -3,6 +3,7 @@ import { MSG, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
+import { ConfirmCard } from "./ConfirmCard";
 import { TasksPanel } from "./TasksPanel";
 import { COLORS, colorVar, Icon } from "./ui";
 
@@ -201,17 +202,9 @@ function ProjectDetail({ project, onBack, onSaved, onTalk }: { project: Project;
                 ? <p className="pre">{project.next_steps}</p>
                 : <EmptyState icon="spark" title="Sem próximos passos" text="Toque em Editar para escrever, ou peça ao GaDu numa conversa." />}
             </Panel>
-            <Panel className="danger">
-              {confirm ? (
-                <>
-                  <p className="muted small">Apagar este projeto? As tarefas ficam, sem projeto.</p>
-                  <div className="form-actions">
-                    <button className="btn btn-sm btn-bad" onClick={remove}>Apagar projeto</button>
-                    <button className="btn btn-sm" onClick={() => setConfirm(false)}>Cancelar</button>
-                  </div>
-                </>
-              ) : <button className="btn btn-sm btn-quiet" onClick={() => setConfirm(true)}>Apagar projeto</button>}
-            </Panel>
+            {confirm
+              ? <ConfirmCard danger title="Apagar este projeto?" detail="As tarefas ficam, sem projeto." confirmLabel="Apagar projeto" onConfirm={remove} onCancel={() => setConfirm(false)} />
+              : <button className="btn btn-sm btn-quiet" onClick={() => setConfirm(true)}>Apagar projeto</button>}
           </aside>
         </div>
       </div>

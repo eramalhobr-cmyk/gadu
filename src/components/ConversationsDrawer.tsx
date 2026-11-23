@@ -3,6 +3,7 @@ import { actionFailed, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { EmptyState } from "./kit";
+import { ConfirmCard } from "./ConfirmCard";
 import { Icon } from "./ui";
 
 type Conv = { id: number; title: string | null; summary: string | null; updated_at: string; message_count: number | null };
@@ -95,10 +96,7 @@ export function ConversationsDrawer(props: {
                   <span className="hist-count">{c.message_count ?? 0} mensagens</span>
                 </button>
                 {confirm === c.id ? (
-                  <div className="hist-confirm">
-                    <button className="btn btn-sm btn-bad" onClick={() => remove(c.id)}>Apagar de vez</button>
-                    <button className="btn btn-sm" onClick={() => setConfirm(null)}>Cancelar</button>
-                  </div>
+                  <div className="hist-confirm"><ConfirmCard danger title="Apagar esta conversa?" detail="Não dá para voltar." confirmLabel="Apagar de vez" onConfirm={() => remove(c.id)} onCancel={() => setConfirm(null)} /></div>
                 ) : (
                   <button className="icon-btn hist-del" onClick={() => setConfirm(c.id)} aria-label={`Apagar conversa ${c.title ?? ""}`}><Icon name="x" size={16} /></button>
                 )}
