@@ -79,15 +79,16 @@ export function Meter(props: { value: number; max: number; label: string; fmt: (
 }
 
 /** Barra empilhada (ex.: feitas × abertas × atrasadas). */
-export function Stack(props: { parts: { n: number; label: string; tone: "ok" | "sig" | "hot" | "bad" | "mut" }[]; label: string }) {
+export function Stack(props: { parts: { n: number; label: string; tone: "ok" | "sig" | "hot" | "bad" | "mut" }[]; label: string; fmt?: (n: number) => string }) {
+  const f = props.fmt ?? String;
   const total = props.parts.reduce((a, p) => a + p.n, 0);
   if (total <= 0) return null;
   return (
     <div className="stack-c">
-      <div className="stack-b" role="img" aria-label={`${props.label}: ${props.parts.map((p) => `${p.n} ${p.label}`).join(", ")}`}>
+      <div className="stack-b" role="img" aria-label={`${props.label}: ${props.parts.map((p) => `${f(p.n)} ${p.label}`).join(", ")}`}>
         {props.parts.filter((p) => p.n > 0).map((p) => <i key={p.label} className={p.tone} style={{ ["--g" as string]: p.n }} />)}
       </div>
-      <ul className="stack-l" aria-hidden="true">{props.parts.map((p) => <li key={p.label}><i className={p.tone} />{p.label} <b className="num">{p.n}</b></li>)}</ul>
+      <ul className="stack-l" aria-hidden="true">{props.parts.map((p) => <li key={p.label}><i className={p.tone} />{p.label} <b className="num">{f(p.n)}</b></li>)}</ul>
     </div>
   );
 }
