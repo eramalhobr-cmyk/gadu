@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { analyze, checkBase, checkManifold, checkOverhang, checkSize, checkWall, contactArea, declaredWallIssues, edgeStats, estimateMinWall } from "./checks.ts";
+import { analyze, checkBase, checkManifold, checkMedidas, checkOverhang, checkPartes, checkSize, checkWall, contactArea, declaredWallIssues, edgeStats, estimateMinWall, partesConectadas } from "./checks.ts";
 import { box, boxTris, cup } from "./fixtures.ts";
 import { boundingBox, placeOnBed } from "./mesh.ts";
 import { parseParams } from "./params.ts";
@@ -78,10 +78,38 @@ test("balanço: peça com topo mais largo avisa; cubo não", () => {
 
 test("analyze reúne tudo", () => {
   const r = analyze(box(30, 20, 10));
-  assert.equal(r.checks.length, 5);
+  assert.equal(r.checks.length, 7);
   assert.equal(r.erros, 0);
   assert.equal(r.ok, true);
   assert.equal(analyze(box(300, 20, 10)).ok, false);
   const bb = boundingBox(placeOnBed(box(30, 20, 10)))!;
   assert.deepEqual([bb.min[2], (bb.min[0] + bb.max[0]) / 2, (bb.min[1] + bb.max[1]) / 2], [0, 128, 128]);
+});
+
+test("partes: um corpo ok; dois na mesa avisam; parte no ar é erro", () => {
+  assert.equal(checkPartes(box(20, 10, 10)).status, "ok");
+  assert.equal(partesConectadas(box(20, 10, 10)).length, 1);
+  const dois = { positions: Float32Array.from([...boxTris(0, 0, 0, 10, 10, 10), ...boxTris(20, 0, 0, 30, 10, 10)]) };
+  assert.equal(partesConectadas(dois).length, 2);
+  const aviso = checkPartes(dois);
+  assert.equal(aviso.status, "aviso");
+  assert.match(aviso.mensagem, /2 corpos/);
+  const tres = { positions: Float32Array.from([...boxTris(0, 0, 0, 10, 10, 10), ...boxTris(20, 0, 0, 30, 10, 10), ...boxTris(40, 0, 0, 50, 10, 10)]) };
+  assert.equal(checkPartes(tres).status, "erro");
+  const ar = { positions: Float32Array.from([...boxTris(0, 0, 0, 10, 10, 10), ...boxTris(20, 0, 20, 30, 10, 30)]) };
+  const e = checkPartes(ar);
+  assert.equal(e.status, "erro");
+  assert.match(e.mensagem, /não encosta/);
+  assert.ok(e.sugestao);
+});
+
+test("medidas: pega altura 40 no controle com malha de 28 mm (caixa com tampa)", () => {
+  const params = parseParams("comprimento = 80; // [40:1:200] Comprimento externo da caixa\nprofundidade = 60; // [30:1:200] Profundidade externa da caixa\naltura = 40; // [20:1:150] Altura externa da caixa\nparede = 2; // [1.2:0.1:5] Espessura da parede\ncube(1);");
+  const errado = checkMedidas(box(80, 60, 28), params, { comprimento: 80, profundidade: 60, altura: 40, parede: 2 });
+  assert.equal(errado.status, "aviso");
+  assert.match(errado.mensagem, /altura/i);
+  assert.match(errado.mensagem, /40/);
+  assert.match(errado.mensagem, /28/);
+  const ok = checkMedidas(box(80, 60, 40), params, { comprimento: 80, profundidade: 60, altura: 40, parede: 2 });
+  assert.equal(ok.status, "ok");
 });

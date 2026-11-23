@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
   const p = GenerateBody.safeParse(await request.json().catch(() => null));
   if (!p.success) return fail(400, "invalid", p.error.issues[0]?.message ?? "Confira os dados.");
-  const { modo, pedido, scad, erro } = p.data;
+  const { modo, pedido, scad, erro, causa } = p.data;
   // 3D-1b: render atual da peça junto do ajuste. Conferido pelo cabeçalho real e pelo tamanho; inválido = 400.
   const imagem = p.data.imagem ? lerImagem(p.data.imagem) : null;
   if (p.data.imagem && !imagem) return fail(400, "invalid", "A imagem da peça veio num formato que não reconheço.");
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   if ((spend.spentBy.anthropic ?? 0) >= budgets.anthropic) skip.add("anthropic");
   if ((spend.spentBy.gateway ?? 0) >= budgets.gateway) skip.add("gateway");
 
-  const prompt = buildPrompt({ modo, pedido, scad, erro, comImagem: Boolean(imagem) });
+  const prompt = buildPrompt({ modo, pedido, scad, erro, causa, comImagem: Boolean(imagem) });
   const cfg = serverConfig();
   // Reserva atômica do teto mensal, só pelo servidor, com o id da SESSÃO (nunca do corpo).
   // A reserva cobre também a nova tentativa automática (código cortado), para o teto valer mesmo no pior caso.
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     // Código cortado (limite de saída) ou que não terminou: UMA nova tentativa automática, mais curta, se houver tempo.
     if ((r.cortada || scadIncompleto(code)) && deadline - Date.now() > 20_000) {
       try {
-        const r2 = await chamar(buildRetryPrompt({ modo, pedido, scad, erro, comImagem: Boolean(imagem) }));
+        const r2 = await chamar(buildRetryPrompt({ modo, pedido, scad, erro, causa, comImagem: Boolean(imagem) }));
         // A reserva já foi liquidada pela primeira chamada: a segunda grava o consumo direto (custo nunca fica de fora).
         await settleBudget(user.id, null, "chat", r2);
         code = extractScad(r2.text);

@@ -25,7 +25,7 @@ Este é o caderno de passagem de bastão entre as IAs que programam o GaDu (Clau
 | Revisão cruzada (Cursor → Claude Code) e segurança S-05/S-08 | Claude Code e Cursor | `fix/s05-escrita-por-acesso` | revisão (#72), auditoria (#73) e S-08 desenho (#75) **publicados**; S-05 (#74) **aprovado pelo Eduardo às 11:17** (bloqueado pode apagar os próprios dados) e **aplicado em produção às 11:31** pelo Cursor |
 | Observabilidade (8a) e e2e com login no CI (8b) | Claude Code | `feat/telemetria-erros` | **Migração `20261123110001_telemetria_erros.sql` APLICADA** pelo Cursor via MCP em 23/11 ~10:57 (conferido: `error_events` com RLS e 1 política). O código (rota `/api/telemetria/erro`, página no Admin, alerta) pode seguir. **8b (e2e com login no CI): PR #77**, 17/17 |
 | UX-7 · visual, navegação e palco de voz (proposta aprovada 23/11 14:06) | Cursor (Grok Bot) | `feat/ux7-*` no worktree `/workspace/gadu-ux` | Em andamento: palco de voz (PR 1). Depois: Mais/menu por áreas, ligações e mapa, Hoje em três faixas, resto dos 17 itens. Arquivos: `ListenSheet`, `Assistant`, `GaduApp` (só o necessário), `ModulePage`, `TodayPage`, `src/app/ux7.css`. **Não mexe** em agentes (limites), privacidade (dado sensível) nem percepções |
-| 3D-1 (conversa → OpenSCAD) | Claude Code | `feat/3d-1-openscad` (PR #40, integrado) | **publicado** em 22/11/2026 às 20:55 (Brasília), PR #40, merge `6d87a5f`, CI verde (verify, e2e-public, database), deploy de produção da Vercel concluído. No ar: `/api/3d/generate` sem sessão 401, `/vendor/openscad/render-worker.js` 200 com a CSP própria, e2e público contra a produção 10/10. **Ligado em produção:** o Eduardo definiu `MODELING_3D_ENABLED=1` na Vercel em 23/11/2026 por volta das 09:37 (Brasília) e fez o redeploy; ele confirmou que funcionou. Falta: testar com a IA real (custo por ajuste), e2e com login (`E2E_3D=1`), WebKit/iPhone. Próximas fases do 3D só depois das outras frentes |
+| 3D-1 (conversa → OpenSCAD) | Cursor (Grok Bot) e Claude Code | `fix/3d-qualidade-ajustes` | **publicado** (PR #40) e ligado em produção em 23/11. PR #114 (18:26) corrigiu prazo, código cortado, eixo Z e fontes. 2ª rodada 18:28–18:33: 10/10 geraram; restaram qualidade (altura da aba, caixa 28 vs 40, L com parede 0 mm, traço de texto fino) e o toque em **Abrir** no celular (18:35). Correções desta branch (ver entrada 18:50). Falta: nova rodada com IA real no navegador, WebKit/iPhone |
 
 ## A revisar por outra IA
 Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
@@ -67,6 +67,13 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - [ ] **Validação com login no aparelho** de tudo o que foi publicado em 22/11 (pendência humana, com o Eduardo).
 
 ## Diário (mais recente no topo)
+
+### 23/11/2026 19:12 · Cursor (Grok Bot) e Claude Code, 3D: qualidade da 2ª rodada e Abrir no celular
+- Branch `fix/3d-qualidade-ajustes` (rebase em `origin/main` após os PRs #116 e #118). 2ª rodada (18:28–18:33, 10/10 geradas): o suporte só subiu 1,8 mm (aba 14→16); a caixa 80×60×40 tinha slider 40 e malha 28 (`altura - altura_tampa`); o L tinha reforço deslocado e parede ~0 mm (checagem de malha passava); gancho, chaveiro e placa avisavam parede 0,5–0,9 mm (traço do texto / ponta). Eduardo (18:35): tocar **Abrir** em Suas peças no celular parecia não fazer nada — a prévia carregava abaixo da lista, sem rolar até ela.
+- **Feito:** regras mais claras no prompt (Z total, medidas externas, union com sobreposição, traço de texto ≥ 1,2 mm); checagens `partes` e `medidas`; correção automática **uma vez** depois de montar (`qualidade.ts`, `causa: "qualidade"`); Abrir e `?peca=` rolam até `#s3d-peca`; pedido e versões visíveis; e2e a 390 px; voz “abre a peça do chaveiro” (`buscaPeca3d`).
+- **Testado:** unitários novos (checagens, qualidade, prompt, voz); `npm run test:unit` 429/429 e `tsc` ok depois do rebase. e2e auth escrito (CI com `MODELING_3D_ENABLED=1` e `E2E_3D=1`); não rodado aqui (precisa Docker).
+- **A revisar por outra IA:** a regra dos 2 corpos na mesa (caixa e tampa) vs peça única; o retry automático não pode entrar em laço (já zera `pendente` na correção).
+- **Próximo passo:** CI verde, merge, e uma 3ª rodada das 10 no navegador com a IA real.
 
 ### 23/11/2026 19:10 · Cursor (Grok Bot), publicação do simulador de salário ampliado
 - **Feito por (IA):** Claude Code (código); Cursor (Grok Bot) (revisão, merge e conferência no ar).
