@@ -67,6 +67,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 15:15 · Cursor (Grok Bot), UX-7 R6/M1: DESIGN.md e guias de design revisados
+- **Feito:** `DESIGN.md`; `docs/design/` com 4 textos de terceiros (licença, commit fixado, SHA-256, revisão registrada); crítica de Hoje, Conversa e Mais. Recusados: skill Impeccable (scripts/hooks) e skill `web-design-guidelines` (curl).
+- **Regra para todas as IAs:** não instalar skills de design; consultar `DESIGN.md` e `docs/design/`.
+- **Próximo passo:** M5 ("o que posso dizer aqui"), M6 (Ctrl+K), M4, G1 a G3. A direção visual espera a escolha do Eduardo.
+
 ### 23/11/2026 15:05 · Cursor (Grok Bot), 3D-1b: render junto do ajuste
 - Aprovado pelo Eduardo às 15:01. `src/lib/3d/render-imagem.ts` (conferência e tamanho), `complete()` aceita `image`, rota `/api/3d/generate` com `imagem` só no `refinar`, captura no `Viewer3D.tsx`, `Studio3D.tsx` manda a imagem (campo e voz). Custo extra ≈ US$ 0,00004 por ajuste.
 - **A revisar por outra IA:** a captura no `Viewer3D.tsx` (desenha e lê no mesmo quadro) e o efeito da voz no `Studio3D.tsx`.

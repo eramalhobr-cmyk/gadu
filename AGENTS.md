@@ -65,6 +65,7 @@ Ficam ligados por padrão. Com valor `0`, a função é desligada sem novo deplo
 - Textos em português do Brasil, com frases curtas e linguagem simples (o GaDu precisa servir até quem não é digital).
 - Botão Voltar do Android: cada camada aberta (painel, folha, tela de escuta) ocupa uma entrada no histórico. Não quebre esse comportamento; o e2e mobile cobre isso.
 - Tokens e componentes: [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md).
+- Antes de desenhar ou mudar uma tela: [DESIGN.md](DESIGN.md) (princípios, tokens dos dois temas, movimento, piso de qualidade e processo com crítica). Guias de terceiros só em texto, revisados e com licença, em [docs/design/](docs/design/README.md): nunca instalar skills de design nem rodar instaladores ou scripts delas.
 
 ## 8.1 Tudo por voz (obrigatório para toda função nova)
 Princípio do Eduardo (22/11/2026): **tudo no GaDu precisa poder ser feito pela conversa, falando ou escrevendo; a conversa com a IA é o centro do app.**
