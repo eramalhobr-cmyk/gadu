@@ -151,8 +151,8 @@ export function TasksPanel(props: { mode: Mode; projectId?: number; title?: stri
       {err && <div className="notice" role="alert">{err}</div>}
       {items === null ? <p className="muted" role="status">Carregando tarefas…</p> : list.length === 0 ? (
         compact
-          ? <EmptyState icon="check" title="Nada urgente" text="Diga “anota aí: …” para criar uma tarefa." />
-          : <EmptyState icon="check" title="Nenhuma tarefa aberta" text={props.mode === "project" ? "Adicione a primeira tarefa deste projeto acima." : "Escreva acima ou diga ao GaDu: “anota aí: …”."} />
+          ? <EmptyState icon="check" title="Nada urgente" text="As tarefas com prazo para hoje aparecem aqui." phrase="Anota aí: renovar o seguro até sexta" />
+          : <EmptyState icon="check" title="Nenhuma tarefa aberta" text={props.mode === "project" ? "Adicione a primeira tarefa deste projeto acima." : "Escreva acima ou fale com o GaDu."} phrase={props.mode === "project" ? undefined : "Anota aí: renovar o seguro até sexta"} />
       ) : compact ? (
         <ul className="tl">{list.map(row)}</ul>
       ) : (

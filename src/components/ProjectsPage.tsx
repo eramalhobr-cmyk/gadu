@@ -2,7 +2,7 @@
 import { MSG, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { EmptyState, PageHeader, Panel } from "./kit";
+import { EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
 import { TasksPanel } from "./TasksPanel";
 import { COLORS, colorVar, Icon } from "./ui";
 
@@ -25,30 +25,11 @@ export function ProjectsPage(props: { initialView?: "tarefas" | "projetos"; onTa
 function TasksScreen() {
   const [stats, setStats] = useState<{ open: number; done: number } | null>(null);
   return (
-    <main className="page" id="conteudo">
-      <div className="wrap">
-        <PageHeader title="Tarefas" text="Tudo o que você precisa fazer, das atrasadas às sem prazo." />
-        <div className="split">
-          <TasksPanel mode="all" title="Suas tarefas" onChange={(open, done) => setStats({ open, done })} />
-          <aside className="split-side">
-            <Panel title="Resumo" icon="spark">
-              <div className="stats">
-                <div className="stat"><span className="n">{stats ? stats.open : "–"}</span><span className="l">para hoje ou sem prazo</span></div>
-                <div className="stat ok"><span className="n">{stats ? stats.done : "–"}</span><span className="l">concluídas hoje</span></div>
-              </div>
-            </Panel>
-            <Panel title="Pela voz" icon="mic">
-              <ul className="hints">
-                <li>“Anota aí: renovar o seguro até sexta”</li>
-                <li>“Quais tarefas estão atrasadas?”</li>
-                <li>“Me ajuda a priorizar o dia”</li>
-              </ul>
-              <p className="muted small">As urgentes também aparecem no Hoje.</p>
-            </Panel>
-          </aside>
-        </div>
-      </div>
-    </main>
+    <ModuleScreen title="Tarefas" text="Tudo o que você precisa fazer, das atrasadas às sem prazo."
+      action={<PrimaryAction onClick={() => document.getElementById("task-all-0")?.focus()}>Nova tarefa</PrimaryAction>}
+      summary={<Summary items={[{ n: stats ? stats.open : "–", label: "para hoje ou sem prazo" }, { n: stats ? stats.done : "–", label: "concluídas hoje", tone: "ok" }]} />}>
+      <TasksPanel mode="all" title="Suas tarefas" onChange={(open, done) => setStats({ open, done })} />
+    </ModuleScreen>
   );
 }
 
@@ -74,11 +55,11 @@ function ProjectsScreen({ onTalk }: { onTalk: (project: { id: number; name: stri
     .map((s) => ({ s, list: (items ?? []).filter((p) => p.status === s) }))
     .filter((g) => g.list.length > 0);
 
+  const count = (st: Project["status"]) => (items ?? []).filter((p) => p.status === st).length;
   return (
-    <main className="page" id="conteudo">
-      <div className="wrap">
-        <PageHeader title="Projetos" text="Junte tarefas, conversas e próximos passos de algo que você quer tirar do papel."
-          actions={!creating && <button className="btn btn-pri" onClick={() => setCreating(true)}><Icon name="plus" size={18} />Novo projeto</button>} />
+    <ModuleScreen title="Projetos" text="Junte tarefas, conversas e próximos passos de algo que você quer tirar do papel."
+      action={!creating && <PrimaryAction onClick={() => setCreating(true)}>Novo projeto</PrimaryAction>}
+      summary={items && items.length > 0 ? <Summary items={[{ n: count("active"), label: "em andamento" }, { n: count("paused"), label: "pausados", tone: "hot" }, { n: count("done"), label: "concluídos", tone: "ok" }]} /> : undefined}>
         {err && <div className="notice" role="alert">{err}</div>}
         {creating && <ProjectForm onDone={(saved) => { setCreating(false); if (saved) void load(); }} />}
         {items === null ? (
@@ -87,7 +68,7 @@ function ProjectsScreen({ onTalk }: { onTalk: (project: { id: number; name: stri
           !creating && (
             <Panel>
               <EmptyState icon="folder" title="Nenhum projeto ainda" text="Um projeto reúne objetivo, tarefas e conversas. Ex.: reforma da varanda, mudança, um curso."
-                action={<button className="btn btn-pri" onClick={() => setCreating(true)}><Icon name="plus" size={18} />Criar o primeiro projeto</button>} />
+                phrase="Cria um projeto reforma da varanda" />
             </Panel>
           )
         ) : groups.map((g) => (
@@ -114,8 +95,7 @@ function ProjectsScreen({ onTalk }: { onTalk: (project: { id: number; name: stri
             </div>
           </section>
         ))}
-      </div>
-    </main>
+    </ModuleScreen>
   );
 }
 

@@ -9,7 +9,7 @@ import {
   CATEGORIAS, CATEGORIA_LABEL, MEDICAO_LABEL, MEDICOES, ORIGEM_LABEL, SITUACAO_LABEL,
   type Categoria, type Marco, type Medicao, type MetaView, type Registro, type Status, type TarefaVinculada,
 } from "@/lib/goals/types";
-import { EmptyState, PageHeader, Panel } from "./kit";
+import { EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
 import { showUndo } from "@/lib/undo";
 import { Icon, todayKey } from "./ui";
 
@@ -48,14 +48,16 @@ export function MetasPage(props: { onAsk: (q: string) => void; onOpenTasks: () =
 
   if (aberta) return <MetaDetalhe id={aberta} onBack={() => { setAberta(null); void load(); }} onChanged={load} say={say} toast={toast} onOpenTasks={props.onOpenTasks} onAsk={props.onAsk} />;
 
+  const todas = metas ?? [];
+  const resumo = [
+    { n: todas.filter((m) => m.goal.status === "ativa").length, label: "ativas" },
+    { n: todas.filter((m) => m.goal.status === "ativa" && (m.ritmo.situacao === "atrasada" || m.ritmo.situacao === "vencida")).length, label: "atrasadas", tone: "hot" as const },
+    { n: todas.filter((m) => m.goal.status === "concluida").length, label: "concluídas", tone: "ok" as const },
+  ];
   return (
-    <main className="page" id="conteudo">
-      <div className="wrap stack">
-        <PageHeader title="Metas" text="Objetivos com prazo, ritmo e progresso real: só conta o que você registra."
-          actions={<>
-            <button className="btn btn-sm" onClick={() => props.onAsk("Como estão minhas metas?")}><Icon name="spark" size={16} />Perguntar ao GaDu</button>
-            <button className="btn btn-sm btn-pri" onClick={() => setCriando(true)}><Icon name="plus" size={16} />Nova meta</button>
-          </>} />
+    <ModuleScreen title="Metas" text="Objetivos com prazo, ritmo e progresso real: só conta o que você registra."
+      action={<PrimaryAction onClick={() => setCriando(true)}>Nova meta</PrimaryAction>}
+      summary={metas && metas.length > 0 && aba !== "arquivada" ? <Summary items={resumo} /> : undefined}>
         {toast && <p className={`fin-toast ${toast.err ? "err" : ""}`} role="status">{toast.text}</p>}
         {criando && (
           <Panel title="Nova meta" icon="target">
@@ -76,7 +78,7 @@ export function MetasPage(props: { onAsk: (q: string) => void; onOpenTasks: () =
           : lista.length === 0 ? (
             <Panel>
               {aba === "ativa" && (metas ?? []).filter((m) => m.goal.status !== "arquivada").length === 0
-                ? <EmptyState icon="target" title="Você ainda não tem metas" text="Crie a primeira: um número com prazo (ler 12 livros), marcos de um plano ou tarefas ligadas ao objetivo. O progresso só aparece quando você registra." action={<button className="btn btn-pri btn-sm" onClick={() => setCriando(true)}>Criar uma meta</button>} />
+                ? <EmptyState icon="target" title="Você ainda não tem metas" text="Crie a primeira: um número com prazo (ler 12 livros), marcos de um plano ou tarefas ligadas ao objetivo. O progresso só aparece quando você registra." phrase="Cria uma meta de ler 12 livros até dezembro" />
                 : <EmptyState icon="target" title={aba === "ativa" ? "Nenhuma meta ativa aqui" : aba === "pausada" ? "Nenhuma meta pausada" : aba === "concluida" ? "Nenhuma meta concluída ainda" : "Nenhuma meta arquivada"} text={cat !== "todas" ? "Tente outra categoria." : undefined} />}
             </Panel>
           ) : (
@@ -84,8 +86,7 @@ export function MetasPage(props: { onAsk: (q: string) => void; onOpenTasks: () =
               {lista.map((m) => <CartaoMeta key={m.goal.id} m={m} onOpen={() => setAberta(m.goal.id)} />)}
             </div>
           )}
-      </div>
-    </main>
+    </ModuleScreen>
   );
 }
 

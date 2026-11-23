@@ -23,6 +23,7 @@ import { ProjectsPage } from "./ProjectsPage";
 import { AgendaView } from "./AgendaView";
 import { FinanceiroPage } from "./FinanceiroPage";
 import { MetasPage } from "./MetasPage";
+import { TalkProvider } from "./kit";
 import type { MetaDraft } from "@/lib/goals/types";
 import { Icon } from "./ui";
 import { TipCard } from "./TipCard";
@@ -968,6 +969,7 @@ export function GaduApp(props: {
           </main>
         )}
 
+        <TalkProvider value={dockTalk}>
         {view === "hoje" && (
           <TodayPage review={review} onReviewDone={() => setReview(false)} onDock={dockTalk} onWrite={() => openAssist(true)} name={name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk}
             onOpenMemory={() => setTab("memoria")} onOpenTasks={() => setTab("tarefas")} onOpen={setTab} goalsEnabled={props.goalsEnabled}
@@ -978,7 +980,7 @@ export function GaduApp(props: {
         {view === "modulos" && <ModulesHub onOpen={setTab} onHistory={() => setDrawer(true)} pending={pending} admin={props.admin} name={name} email={props.email}
           hide={[...(props.financeEnabled ? [] : ["financeiro" as const]), ...(props.goalsEnabled ? [] : ["metas" as const])]} show3d={Boolean(props.modeling3dEnabled)} />}
         {view === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
-        {view === "financeiro" && props.financeEnabled && <FinanceiroPage onAsk={(q) => { if (q.endsWith(" ")) { setDraft(q); openAssist(true); } else { speaker?.unlock(); openAssist(true); void send(q); } }} />}
+        {view === "financeiro" && props.financeEnabled && <FinanceiroPage />}
         {view === "metas" && props.goalsEnabled && <MetasPage onAsk={(q) => { if (q.endsWith(" ")) { setDraft(q); openAssist(true); } else { speaker?.unlock(); openAssist(true); void send(q); } }} onOpenTasks={() => setTab("tarefas")} />}
         {view && isOverview(view) && <ModulePage id={moduleOf(view).id} onOpen={setTab} />}
         {view === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
@@ -988,6 +990,7 @@ export function GaduApp(props: {
             section={view} theme={theme} onTheme={toggleTheme} admin={props.admin} onOpen={setTab}
             onNew={() => { newConversation(); setTab("conversa"); }} initialBlocked={props.initialBlocked} morningLink={props.morningLink} onResetTips={resetTips} onGuide={openGuide} />
         )}
+        </TalkProvider>
       </div>
 
       <Assistant
