@@ -67,6 +67,10 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 17:35 · Cursor (Grok Bot), plano do Spotify (só plano)
+- Pedido do Eduardo (17:15): plano, sem código. Está em `docs/PLANO-SPOTIFY.md`: Development Mode com Premium do dono e até 5 usuários na allowlist, PKCE no servidor, Spotify Connect como caminho principal no S26 Ultra e link do episódio como reserva, tokens criptografados em `spotify_connections` (RLS, gravação só pelo servidor), voz, ~18 h em 5 PRs, riscos.
+- **Espera o Eduardo:** Premium, app criado no painel do Spotify (redirect URIs do plano) e o Client ID; aprovação da migração aditiva e da chave `SPOTIFY_TOKEN_KEY`.
+
 ### 23/11/2026 17:05 · Cursor (Grok Bot), painéis de resumo
 - Tema JARVIS publicado (PR #107, merge às 17:03). Painéis de resumo com gráficos leves em Hoje, Finanças, Metas, Tarefas e Agentes (`charts.tsx`, `paineis.css`, `painel.ts`), só dados reais; voz "mostra meu resumo de finanças" (`nav-intent.ts`, `painel: true`, rola até `#painel`). Classes com prefixo próprio (`gkpi`, `gring`, `pnl-*`) porque `.kpi`, `.ring` e `.dash` já existiam no CSS antigo.
 - **Próximos:** M4, G1 (voz imersiva com anéis reagindo à voz), G3 (design system v2 com testes visuais).
