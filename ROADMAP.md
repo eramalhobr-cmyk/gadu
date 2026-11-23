@@ -248,6 +248,7 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [x] Painel Hoje, Conversa, Perfil e ajustes e home pública redesenhados
 - [x] Projetos, Agentes, Memória, Admin, Guia e Agenda no desenho da v2 (v2.1, PR #14)
 - [x] Auditoria de contraste do tema claro (v2.1: todos os pares AA)
+- [x] Tema claro por padrão (23/11/2026, pedido do Eduardo): escuro como opção salva; menu e palco sem superfícies escuras; `theme-color` e status bar por tema; ícone do app com fundo claro
 - [ ] Relacionar informações entre módulos (depende de permissões, isolamento e auditoria de segurança)
 
 ## Sprint UX/UI v2.1 (14/11, PR #14)

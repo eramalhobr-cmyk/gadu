@@ -130,11 +130,16 @@ for (const prof of PROFILES) {
       await p.context().close();
     });
 
-    test("tema: theme-color claro e escuro, cor-esquema e sem destaque cinza no toque", async () => {
+    test("tema: claro por padrão, theme-color do tema em uso, cor-esquema e sem destaque cinza no toque", async () => {
       const p = await open(prof);
       await p.goto(`${BASE}/login`);
-      const metas = await p.$$eval('meta[name="theme-color"]', (els) => els.map((e) => [e.media, e.content]));
-      assert.deepEqual(metas, [["(prefers-color-scheme: dark)", "#0a111e"], ["(prefers-color-scheme: light)", "#f1f5fa"]]);
+      assert.equal(await p.getAttribute("html", "data-theme"), "light", "claro é o padrão");
+      const metas = await p.$$eval('meta[name="theme-color"]', (els) => els.map((e) => e.content));
+      assert.deepEqual(metas, ["#f1f5fa"]);
+      await p.context().addCookies([{ name: "gadu_theme", value: "dark", url: BASE }]);
+      await p.goto(`${BASE}/login`);
+      assert.equal(await p.getAttribute("html", "data-theme"), "dark", "a escolha salva vale");
+      assert.deepEqual(await p.$$eval('meta[name="theme-color"]', (els) => els.map((e) => e.content)), ["#0a111e"]);
       const tap = await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("-webkit-tap-highlight-color"));
       if (prof.engine === "chromium") assert.match(tap, /transparent|rgba\(0, 0, 0, 0\)/);
       const ob = await p.evaluate(() => getComputedStyle(document.body).overscrollBehaviorY);
@@ -158,6 +163,7 @@ for (const prof of PROFILES) {
       assert.equal(m.scope, "/");
       assert.ok(m.start_url.startsWith(m.scope), "start_url dentro do escopo");
       assert.match(m.theme_color, /^#[0-9a-f]{6}$/i);
+      assert.equal(m.background_color, "#f1f5fa", "ícone e abertura do app com fundo claro");
       const sizes = new Set(m.icons.filter((i) => !i.purpose || i.purpose === "any").map((i) => i.sizes));
       assert.ok(sizes.has("192x192") && sizes.has("512x512"), "ícones 192 e 512");
       const mask = m.icons.find((i) => i.purpose === "maskable");

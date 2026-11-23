@@ -112,11 +112,11 @@ export function SettingsPage(props: {
             <section className="card">
               <h2>Tema</h2>
               <div className="theme-opts">
-                {(["dark", "light"] as const).map((t) => (
+                {(["light", "dark"] as const).map((t) => (
                   <button key={t} className="theme-opt" aria-pressed={props.theme === t} onClick={() => props.onTheme(t)}>
                     <span className={`theme-swatch ${t}`} aria-hidden="true"><i /><i /></span>
                     <b>{t === "dark" ? "Escuro" : "Claro"}</b>
-                    <span className="muted fs-sm">{t === "dark" ? "Identidade do GaDu. Melhor à noite." : "Mais legível em ambientes claros."}</span>
+                    <span className="muted fs-sm">{t === "dark" ? "Melhor à noite. Diga: “muda para o tema escuro”." : "Padrão. Mais legível de dia. Diga: “muda para o tema claro”."}</span>
                   </button>
                 ))}
               </div>
