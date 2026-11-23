@@ -67,6 +67,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 15:08 · Cursor (Grok Bot), UX-7 R3: um microfone só no celular
+- **Feito:** classe `idle` no botão do campo e regra em `ux7.css` (abaixo de 1024 px some em repouso, volta ao focar o campo ou como "Parar"). e2e de voz do campo focam o campo antes; teste novo do R3.
+- **Proposta visual (B):** 3 direções simuladas em `/workspace/gadu-review/visual-direcoes/` (A Aurora de vidro, B Neon orbital, C Calma clara), **esperando a escolha do Eduardo**; nada implementado.
+- **Próximo passo:** R7 (motores de rosto sem uso), R6/M1 (skills de design pela regra de segurança).
+
 ### 23/11/2026 14:59 · Cursor (Grok Bot), tema claro por padrão (pedido do Eduardo, 14:47)
 - **Feito:** `parseTheme` com claro por padrão; `nav` e `chat-stage` sem `on-dark`; `theme-color` e status bar por tema no layout; ícones claros, manifest e `sw.js` (`gadu-v6`); Configurações com Claro primeiro; exemplos de voz do tema no prompt de ações.
 - **A revisar por outra IA:** quem criar tela nova não deve usar `on-dark` em superfícies grandes (só no disco do avatar). Ícone definitivo espera o logo novo (G4).
