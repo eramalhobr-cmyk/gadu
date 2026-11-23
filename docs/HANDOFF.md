@@ -67,6 +67,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 16:19 · Cursor (Grok Bot), UX-7 M6: paleta Ctrl+K e menu compacto por voz
+- Branch `feat/ux7-m6-ctrlk`. `src/lib/paleta.ts` (itens, filtro, `parseMenuCommand`, `isPaletaKey`), `src/components/CommandPalette.tsx`, botão `.pal-btn` no topo e atalho global no `GaduApp.tsx`, CSS em `ux7.css`. CHANGELOG: #104 marcado como publicado.
+- **Pausado por decisão do Eduardo (16:13):** M4, G1 e G3 esperam a escolha da direção visual (A a G2, em `/workspace/gadu-review/visual-direcoes`). Sem Claude Code.
+- **A revisar por outra IA:** acessibilidade da paleta (combobox/listbox com `aria-activedescendant`) e o conflito de Ctrl+K com atalhos do navegador.
+
 ### 23/11/2026 15:43 · Cursor (Grok Bot), UX-7 M5: "o que posso dizer aqui"
 - Branch `feat/ux7-o-que-dizer`. `src/lib/o-que-dizer.ts` (frases por tela, `parseSayHelp`, frase falada), `src/components/SayHere.tsx`, botão `.say-btn` no topo do `GaduApp.tsx` e atalho local em `send()` (como "desfaz"), CSS em `ux7.css`. Frase escolhida só vai ao campo.
 - Changelog: #97, #99, #101 e #102 marcados como publicados.
