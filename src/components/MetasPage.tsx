@@ -9,6 +9,7 @@ import {
   type Categoria, type Marco, type Medicao, type MetaView, type Registro, type Status, type TarefaVinculada,
 } from "@/lib/goals/types";
 import { EmptyState, PageHeader, Panel } from "./kit";
+import { showUndo } from "@/lib/undo";
 import { Icon, todayKey } from "./ui";
 
 type Detalhe = { meta: MetaView; registros: Registro[]; marcos: Marco[]; tarefas: TarefaVinculada[]; tarefasAbertas: { id: number; title: string; due_date: string | null }[] };
@@ -125,15 +126,18 @@ function MetaDetalhe(props: { id: string; onBack: () => void; onChanged: () => v
   useEffect(() => { void load(); }, [load]);
 
   /** Executa uma gravação, avisa o resultado e recarrega. */
-  async function run(p: Promise<{ ok: boolean; json: Record<string, unknown> }>, okText: string): Promise<boolean> {
+  async function run(p: Promise<{ ok: boolean; json: Record<string, unknown> }>, okText: string, undo?: () => Promise<{ ok: boolean; json: Record<string, unknown> }>): Promise<boolean> {
     const r = await p;
     if (!r.ok) { say(typeof r.json.message === "string" ? r.json.message : "Não consegui salvar. Tente de novo.", true); return false; }
-    say(okText);
+    // Com como desfazer: o aviso único "Feito · Desfazer". Sem: o aviso simples desta tela.
+    if (undo) showUndo(okText, async () => { const u = await undo(); await load(); props.onChanged(); return u; });
+    else say(okText);
     await load();
     props.onChanged();
     return true;
   }
-  const status = (s: Status, texto: string) => run(api(`/api/goals/${id}`, { method: "PATCH", body: JSON.stringify({ status: s }) }), texto);
+  const patchStatus = (s: Status) => api(`/api/goals/${id}`, { method: "PATCH", body: JSON.stringify({ status: s }) });
+  const status = (s: Status, texto: string) => { const antes = d?.meta.goal.status; return run(patchStatus(s), texto, antes ? () => patchStatus(antes as Status) : undefined); };
 
   if (erro) return <main className="page" id="conteudo"><div className="wrap stack"><button className="btn btn-sm mt-back" onClick={props.onBack}><Icon name="chevron" size={16} />Metas</button><Panel><p className="muted">{erro} <button className="link-btn" onClick={load}>Tentar de novo</button></p></Panel></div></main>;
   if (!d) return <main className="page" id="conteudo"><div className="wrap stack"><button className="btn btn-sm mt-back" onClick={props.onBack}><Icon name="chevron" size={16} />Metas</button><Panel><p className="muted">Carregando…</p></Panel></div></main>;
@@ -199,7 +203,7 @@ function MetaDetalhe(props: { id: string; onBack: () => void; onChanged: () => v
   );
 }
 
-type Run = (p: Promise<{ ok: boolean; json: Record<string, unknown> }>, okText: string) => Promise<boolean>;
+type Run = (p: Promise<{ ok: boolean; json: Record<string, unknown> }>, okText: string, undo?: () => Promise<{ ok: boolean; json: Record<string, unknown> }>) => Promise<boolean>;
 
 function FormRegistro({ d, run, id }: { d: Detalhe; run: Run; id: string }) {
   const g = d.meta.goal;
@@ -236,7 +240,7 @@ function PanelMarcos({ d, run, id }: { d: Detalhe; run: Run; id: string }) {
       <div className="rows">
         {d.marcos.map((mc) => (
           <div className={`fin-row ${mc.concluido_em ? "paid" : ""}`} key={mc.id}>
-            <label className="fin-chk grow"><input type="checkbox" checked={Boolean(mc.concluido_em)} onChange={(e) => void run(api(`/api/goals/${id}/marcos/${mc.id}`, { method: "PATCH", body: JSON.stringify({ concluido: e.target.checked }) }), e.target.checked ? "Marco concluído." : "Marco reaberto.")} />
+            <label className="fin-chk grow"><input type="checkbox" checked={Boolean(mc.concluido_em)} onChange={(e) => { const novo = e.target.checked; const marco = (concluido: boolean) => api(`/api/goals/${id}/marcos/${mc.id}`, { method: "PATCH", body: JSON.stringify({ concluido }) }); void run(marco(novo), novo ? "Marco concluído." : "Marco reaberto.", () => marco(!novo)); }} />
               <span className="grow"><span className="t">{mc.titulo}</span>{mc.concluido_em && <span className="s">Concluído em {dataBR(mc.concluido_em.slice(0, 10))}</span>}</span></label>
             <button className="btn btn-sm btn-quiet" onClick={() => void run(api(`/api/goals/${id}/marcos/${mc.id}`, { method: "DELETE" }), "Marco apagado.")} aria-label={`Apagar o marco ${mc.titulo}`}>Apagar</button>
           </div>

@@ -5,7 +5,7 @@ import { ActionCard, initialCard, runAction, undoAction, type CardState } from "
 import { ConfirmSheet } from "./ConfirmSheet";
 import type { ChatAction, EventDraft, GastoDraft } from "@/lib/chat-actions";
 import type { Ajuste } from "@/lib/acoes";
-import { actionQuestion, splitNavegacao } from "@/lib/chat-actions";
+import { actionQuestion, describe, splitNavegacao } from "@/lib/chat-actions";
 import { GIVE_UP_LINE, parseAnswer, resultLine, RETRY_LINE } from "@/lib/voice-confirm";
 import { SourcesDetail, type SourcesData } from "./SourcesDetail";
 import { AdminPage } from "./AdminPage";
@@ -29,6 +29,8 @@ import { TipCard } from "./TipCard";
 import { TIP_IDS, type TipId } from "@/lib/tips";
 import { Assistant } from "./Assistant";
 import { ListenSheet } from "./ListenSheet";
+import { UndoToast } from "./UndoToast";
+import { parseUndoCommand, showUndo, undoBus } from "@/lib/undo";
 import { ModulePage, ModulesHub, StatusPill } from "./ModulePage";
 import { contextOf } from "@/lib/assistant-context";
 import { canonicalView, isOverview, MAIN_VIEWS, MODULES, moduleOf, parseView, viewDef, type ViewId } from "@/lib/modules";
@@ -258,6 +260,12 @@ export function GaduApp(props: {
 
   const send = useCallback(async (text: string, opts: { voice?: boolean } = {}) => {
     const message = text.trim();
+    // "Desfaz": desfaz a última ação enquanto o aviso "Feito · Desfazer" está à mão. Sem modelo e sem custo.
+    if (message && parseUndoCommand(message) && undoBus.active) {
+      setDraft("");
+      void undoBus.undo().then((ok) => { if (ok && opts.voice && prefsRef.current.voice) speaker?.announce("Desfeito."); });
+      return;
+    }
     if (!message || busy) return;
     if (!navigator.onLine) {
       setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "Você está sem internet. A mensagem ficou no rascunho para enviar depois." }]);
@@ -494,6 +502,15 @@ export function GaduApp(props: {
     const r = op === "confirm" ? await runAction(a) : await undoAction(a);
     if (!r.ok) { set({ state: "error", msg: r.msg }); return false; }
     set(op === "confirm" ? { state: "created", link: r.link } : { state: "discarded", undone: true });
+    // "Feito · Desfazer": o aviso único por alguns segundos, quando a ação dá para desfazer sem perder nada.
+    if (op === "confirm" && r.undo) {
+      const undo = r.undo;
+      showUndo(`${describe(a).done}.`, async () => {
+        const u = await undo();
+        if (u.ok) { set({ state: "discarded", undone: true }); if (a.kind === "memoria_aprovar") void refreshPending(); }
+        return u;
+      });
+    }
     if (op === "confirm") {
       if (a.kind === "nova_conversa") { newConversation(); setTab("conversa"); }
       else if (a.kind === "memoria_aprovar" || a.kind === "memoria_recusar" || a.kind === "memoria_esquecer") void refreshPending();
@@ -945,6 +962,7 @@ export function GaduApp(props: {
         </button>
       </nav>
 
+      <UndoToast />
       {voiceSheet && (
         <ListenSheet listening={listening} text={draft} pending={heard} handsFree={prefs.handsFree}
           onHandsFree={(on) => setPrefs({ ...prefs, handsFree: on })}

@@ -7,6 +7,7 @@ import type { PrevisaoRecebimento } from "@/lib/finance/previsao";
 import type { ResumoMensal } from "@/lib/finance/summary";
 import { CATEGORIAS, GRUPOS, MEIOS, MEIO_LABEL, MESES, type Config, type Gasto, type Meio } from "@/lib/finance/types";
 import { EmptyState, PageHeader, Panel } from "./kit";
+import { showUndo } from "@/lib/undo";
 import { Icon, todayKey } from "./ui";
 
 type Payload = { enabled: boolean; config: Config; configSalva: boolean; itens: ItemComMes[]; gastos: Gasto[]; resumo: ResumoMensal; previsao: PrevisaoRecebimento | null };
@@ -40,10 +41,12 @@ export function FinanceiroPage(props: { onAsk: (q: string) => void }) {
 
   const say = (text: string, err = false) => { setToast({ text, err }); window.setTimeout(() => setToast(null), 4000); };
   /** Executa uma gravação, avisa o resultado e recarrega. */
-  async function run(p: Promise<{ ok: boolean; json: Record<string, unknown> }>, okText: string): Promise<boolean> {
+  async function run(p: Promise<{ ok: boolean; json: Record<string, unknown> }>, okText: string, undo?: () => Promise<{ ok: boolean; json: Record<string, unknown> }>): Promise<boolean> {
     const r = await p;
     if (!r.ok) { say(typeof r.json.message === "string" ? r.json.message : "Não consegui salvar. Tente de novo.", true); return false; }
-    say(okText);
+    // Com como desfazer: o aviso único "Feito · Desfazer". Sem: o aviso simples desta tela.
+    if (undo) showUndo(okText, async () => { const u = await undo(); await load(); return u; });
+    else say(okText);
     await load();
     return true;
   }
@@ -136,7 +139,7 @@ function Resumo({ r, previsao }: { r: ResumoMensal; previsao: PrevisaoRecebiment
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-type Run = (p: Promise<{ ok: boolean; json: Record<string, unknown> }>, okText: string) => Promise<boolean>;
+type Run = (p: Promise<{ ok: boolean; json: Record<string, unknown> }>, okText: string, undo?: () => Promise<{ ok: boolean; json: Record<string, unknown> }>) => Promise<boolean>;
 
 function Contas({ data, ano, mes, run }: { data: Payload; ano: number; mes: number; run: Run }) {
   const [filtro, setFiltro] = useState<Filtro>("todas");
@@ -153,7 +156,8 @@ function Contas({ data, ano, mes, run }: { data: Payload; ano: number; mes: numb
     return [...m.entries()];
   }, [raiz]);
 
-  const togglePago = (i: ItemComMes) => run(api(`/api/finance/itens/${i.id}/mes`, { method: "PUT", body: JSON.stringify({ ano, mes, pago: !i.mes!.pago }) }), i.mes!.pago ? "Marcada em aberto." : i.tipo === "receita" ? "Receita marcada como recebida." : "Conta marcada como paga.");
+  const marcar = (id: string, pago: boolean) => api(`/api/finance/itens/${id}/mes`, { method: "PUT", body: JSON.stringify({ ano, mes, pago }) });
+  const togglePago = (i: ItemComMes) => run(marcar(i.id, !i.mes!.pago), i.mes!.pago ? "Marcada em aberto." : i.tipo === "receita" ? "Receita marcada como recebida." : "Conta marcada como paga.", () => marcar(i.id, Boolean(i.mes!.pago)));
 
   // Função (não componente): o formulário aberto não pode ser remontado a cada aviso na tela.
   const renderRow = (i: ItemComMes, sub?: boolean): React.ReactNode => (
@@ -415,7 +419,7 @@ function GastoEditor({ g, run, onClose }: { g: Gasto; run: Run; onClose: () => v
         <button className="btn" type="button" onClick={onClose}>Cancelar</button>
         {!confirma
           ? <button className="btn btn-bad" type="button" onClick={() => setConfirma(true)}>Apagar</button>
-          : <button className="btn btn-bad" type="button" onClick={async () => { if (await run(api(`/api/finance/gastos/${g.id}`, { method: "DELETE" }), "Gasto apagado.")) onClose(); }}>Confirmar: apagar</button>}
+          : <button className="btn btn-bad" type="button" onClick={async () => { if (await run(api(`/api/finance/gastos/${g.id}`, { method: "DELETE" }), "Gasto apagado.", () => api("/api/finance/gastos", { method: "POST", body: JSON.stringify({ ano: g.ano, mes: g.mes, dia: g.dia, valor: g.valor, categoria: g.categoria, descricao: g.descricao, meio: g.meio, origem: g.origem }) }))) onClose(); }}>Confirmar: apagar</button>}
       </div>
     </form>
   );

@@ -4,6 +4,7 @@ import { EXPORT_PROMPT, IMPORT_MAX_CHARS } from "@/lib/importer";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { when } from "./ConversationsDrawer";
 import { EmptyState, PageHeader, Panel } from "./kit";
+import { showNotice, showUndo, UNDO_TEXT } from "@/lib/undo";
 import { Icon } from "./ui";
 
 type Memory = { id: number; content: string; area: string; origin: string; status: "pending" | "approved" };
@@ -62,11 +63,16 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
   const approved = (items ?? []).filter((m) => m.status === "approved");
   const approvable = pending.filter((m) => !hit(m.content));
 
-  async function act(fn: () => PromiseLike<{ error: unknown }>) {
+  /** Grava e, quando dá para voltar atrás, mostra "Feito · Desfazer". Apagar uma memória não volta: pede o toque de "Descartar"/"Esquecer". */
+  async function act(fn: () => PromiseLike<{ error: unknown }>, undo?: { text: string; revert: () => PromiseLike<{ error: unknown }> }) {
     const { error } = await fn();
-    if (error) setError("A alteração não foi salva. Tente de novo.");
+    if (error) { setError("A alteração não foi salva. Tente de novo."); showNotice(UNDO_TEXT.failSave); }
+    else if (undo) showUndo(undo.text, async () => { const r = await undo.revert(); await load(); return r; });
     await load();
   }
+  const aprovar = (ids: number[]) => act(
+    () => db.from("memories").update({ status: "approved" }).in("id", ids),
+    { text: ids.length > 1 ? "Memórias aprovadas." : "Memória aprovada.", revert: () => db.from("memories").update({ status: "pending" }).in("id", ids) });
 
   const KIND = { memoria: "Memória", conversa: "Conversa", mensagem: "Mensagem", tarefa: "Tarefa", projeto: "Projeto" } as const;
   const byArea = approved.reduce<Record<string, Memory[]>>((acc, m) => { (acc[m.area] ??= []).push(m); return acc; }, {});
@@ -107,7 +113,7 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
         <div className="mem-cols">
           <div className="col">
             <Panel className="mem-review o1" title={`Para revisar${pending.length ? ` · ${pending.length}` : ""}`} icon="bell"
-              action={approvable.length > 1 && <button className="btn btn-sm" onClick={() => act(() => db.from("memories").update({ status: "approved" }).in("id", approvable.map((m) => m.id)))}>Aprovar todas ({approvable.length})</button>}>
+              action={approvable.length > 1 && <button className="btn btn-sm" onClick={() => aprovar(approvable.map((m) => m.id))}>Aprovar todas ({approvable.length})</button>}>
               {items === null ? <p className="muted" role="status">Carregando…</p> : pending.length === 0 ? (
                 <EmptyState icon="check" title="Nada para revisar" text="Quando o GaDu aprender algo numa conversa, aparece aqui para o seu sim." />
               ) : (
@@ -118,7 +124,7 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
                       <span className="mem-meta">{m.area} · origem: {m.origin}</span>
                       {hit(m.content) && <p className="mem-warn" role="note">Contém o termo bloqueado “{hit(m.content)}”. Não pode ser aprovada.</p>}
                       <div className="form-actions">
-                        <button className="btn btn-sm btn-pri" disabled={Boolean(hit(m.content))} onClick={() => act(() => db.from("memories").update({ status: "approved" }).eq("id", m.id))}><Icon name="check" size={16} />Aprovar</button>
+                        <button className="btn btn-sm btn-pri" disabled={Boolean(hit(m.content))} onClick={() => aprovar([m.id])}><Icon name="check" size={16} />Aprovar</button>
                         <button className="btn btn-sm" onClick={() => act(() => db.from("memories").delete().eq("id", m.id))}>Descartar</button>
                       </div>
                     </div>

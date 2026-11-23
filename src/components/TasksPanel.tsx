@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { showNotice, showUndo, UNDO_TEXT } from "@/lib/undo";
 import { EmptyState, Panel } from "./kit";
 import { colorVar, Icon, shortDate, todayKey } from "./ui";
 
@@ -60,14 +61,19 @@ export function TasksPanel(props: { mode: Mode; projectId?: number; title?: stri
   useEffect(() => { void load(); }, [load]);
 
   async function toggle(t: Task) {
-    const next = t.status === "open" ? { status: "done", done_at: new Date().toISOString() } : { status: "open", done_at: null };
+    const reopen = t.status !== "open";
+    const next = reopen ? { status: "open", done_at: null } : { status: "done", done_at: new Date().toISOString() };
+    const back = reopen ? { status: "done", done_at: t.done_at ?? new Date().toISOString() } : { status: "open", done_at: null };
     setItems((xs) => xs?.filter((x) => x.id !== t.id) ?? null);
     const { error } = await db.from("tasks").update(next).eq("id", t.id);
-    if (error) setErr("Não salvou. Tente de novo.");
+    if (error) { setErr("Não salvou. Tente de novo."); showNotice(UNDO_TEXT.failSave); }
+    else showUndo(reopen ? "Tarefa reaberta." : UNDO_TEXT.done, async () => { const r = await db.from("tasks").update(back).eq("id", t.id); void load(); return r; });
     void load();
   }
   async function remove(t: Task) {
-    await db.from("tasks").update({ status: "cancelled" }).eq("id", t.id);
+    const { error } = await db.from("tasks").update({ status: "cancelled" }).eq("id", t.id);
+    if (error) showNotice(UNDO_TEXT.failSave);
+    else showUndo("Tarefa removida.", async () => { const r = await db.from("tasks").update({ status: "open" }).eq("id", t.id); void load(); return r; });
     void load();
   }
   async function add(e: React.FormEvent) {

@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { showNotice, showUndo, UNDO_TEXT } from "@/lib/undo";
 import { Avatar } from "./RobotFace";
 import { Icon, todayKey } from "./ui";
 import { EmptyState, Panel } from "./kit";
@@ -95,7 +96,14 @@ export function TodayPage(props: {
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 60_000); return () => clearInterval(id); }, []);
 
   async function setStatus(id: number, status: "done" | "cancelled") {
-    await db.from("reminders").update({ status }).eq("id", id);
+    const prev = rems?.find((r) => r.id === id)?.status ?? "pending";
+    const { error } = await db.from("reminders").update({ status }).eq("id", id);
+    if (error) showNotice(UNDO_TEXT.failSave);
+    else showUndo(status === "done" ? UNDO_TEXT.done : "Lembrete cancelado.", async () => {
+      const r = await db.from("reminders").update({ status: prev }).eq("id", id);
+      void loadRems(); setAttnKey((k) => k + 1);
+      return r;
+    });
     void loadRems();
     setAttnKey((k) => k + 1);
   }
@@ -247,13 +255,23 @@ function ReviewCard({ onDone }: { onDone: () => void }) {
   const tomorrow = new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA", { timeZone: TZ });
   async function act(t: LateTask, kind: "done" | "tomorrow" | "nodate") {
     const patch = kind === "done" ? { status: "done", done_at: new Date().toISOString() } : kind === "tomorrow" ? { due_date: tomorrow } : { due_date: null };
+    const back = kind === "done" ? { status: "open", done_at: null } : { due_date: t.due_date };
     setItems((xs) => xs?.filter((x) => x.id !== t.id) ?? null);
-    await db.from("tasks").update(patch).eq("id", t.id);
+    const { error } = await db.from("tasks").update(patch).eq("id", t.id);
+    if (error) { showNotice(UNDO_TEXT.failSave); void load(); return; }
+    showUndo(kind === "done" ? UNDO_TEXT.done : kind === "tomorrow" ? UNDO_TEXT.later : "Ficou sem prazo.", async () => { const r = await db.from("tasks").update(back).eq("id", t.id); void load(); return r; });
   }
   async function allTomorrow() {
     if (!items?.length) return;
-    await db.from("tasks").update({ due_date: tomorrow }).in("id", items.map((t) => t.id));
+    const before = items.map((t) => ({ id: t.id, due_date: t.due_date }));
+    const { error } = await db.from("tasks").update({ due_date: tomorrow }).in("id", before.map((t) => t.id));
+    if (error) return showNotice(UNDO_TEXT.failSave);
     setItems([]);
+    showUndo("Tudo passou para amanhã.", async () => {
+      const rs = await Promise.all(before.map((t) => db.from("tasks").update({ due_date: t.due_date }).eq("id", t.id)));
+      void load();
+      return rs.find((r) => r.error) ?? { ok: true };
+    });
   }
 
   return (
