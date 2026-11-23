@@ -1,0 +1,16 @@
+/* UX-7 · G3 · Vitrine do design system v2 (/design, desligada em produção). */
+.ds-wrap { display: grid; gap: var(--s-5); padding-block: var(--s-5) var(--s-7); }
+.ds-top h1 { margin: 0 0 var(--s-1); font: 600 clamp(20px, 4vw, 28px)/1.2 var(--mono); letter-spacing: 0.04em; }
+.ds-top p { margin: 0; }
+.ds-sec { display: grid; gap: var(--s-3); }
+.ds-h { margin: 0; font: 600 calc(12px * var(--ts, 1))/1.2 var(--mono); text-transform: uppercase; letter-spacing: 0.14em; color: var(--hud); }
+.ds-cores { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--s-2); }
+.ds-cores li { display: grid; gap: 4px; font-size: var(--fs-xs); color: var(--ink-2); }
+.ds-cores i { display: block; height: 44px; border-radius: var(--r-md); background: var(--c); border: 1px solid rgb(var(--line-rgb) / 0.3); }
+.ds-display { margin: 0; font: 400 calc(26px * var(--ts, 1))/1.2 var(--display); }
+.ds-body { margin: 0; font: 400 var(--fs-md)/1.5 var(--body); }
+.ds-mono { margin: 0; font: 600 var(--fs-md) var(--mono); color: var(--hud); }
+.ds-row { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.ds-voz { display: grid; place-items: center; }
+.ds-voz .vcore { width: min(70vw, 260px); }
+.ds-nucleo { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 50% 40%, rgb(var(--hud-rgb) / 0.5), rgb(var(--hud-rgb) / 0.08) 70%); }

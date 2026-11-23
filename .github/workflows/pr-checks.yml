@@ -55,12 +55,23 @@ jobs:
       - run: npm run build
       - name: Sobe o app e espera responder
         run: |
-          npx next start -p 3100 > /tmp/next.log 2>&1 &
+          GADU_DESIGN_PAGE=1 npx next start -p 3100 > /tmp/next.log 2>&1 &
           for i in $(seq 1 60); do curl -sf "$E2E_BASE/api/health" > /dev/null && exit 0; sleep 1; done
           cat /tmp/next.log; exit 1
       - run: npm run test:e2e:public
       - name: Celular emulado (Android Chrome e Samsung Internet no Chromium, iPhone no WebKit; sem login)
         run: npm run test:e2e:mobile
+      - name: Testes visuais do design system v2 (vitrine /design, claro e escuro, 390 e 1440)
+        run: npm run test:e2e:visual
+        env:
+          VISUAL_OUT: /tmp/gadu-visual
+      - name: Capturas dos testes visuais (sempre, para revisar ou atualizar a referência)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gadu-visual
+          path: /tmp/gadu-visual
+          if-no-files-found: ignore
 
   database:
     # Postgres temporário do próprio runner: aplica TODAS as migrações e roda testes SQL
