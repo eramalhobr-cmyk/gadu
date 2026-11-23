@@ -57,3 +57,30 @@
 .nav-group + .nav-group { margin-top: var(--s-1); }
 .nav-group-t { display: block; padding: var(--s-2) var(--s-3) 2px; color: var(--ink-3); font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
 .app.nav-mini .nav-group-t { visibility: hidden; height: 6px; padding: 0; overflow: hidden; }
+
+/* ---------- Ligações visíveis (UX-7) ---------- */
+.link-chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgb(var(--hot-rgb) / 0.35); background: rgb(var(--hot-rgb) / 0.1); color: var(--ink); font: inherit; font-size: inherit; cursor: default; }
+.tl-tag.link-chip { width: auto; max-width: 100%; padding: 2px 8px; border-radius: 999px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; font-size: var(--fs-xs, 12px); font-weight: 500; box-shadow: none; }
+button.tl-tag.link-chip { cursor: pointer; min-height: 26px; }
+.link-chip svg { color: var(--hot); flex: none; }
+.pj-links { display: flex; flex-wrap: wrap; gap: var(--s-1); }
+
+/* ---------- Mapa do GaDu no Guia (UX-7) ---------- */
+.gmap { display: grid; gap: var(--s-4); align-items: start; }
+.gmap-svg { width: min(100%, 420px); height: auto; justify-self: center; overflow: visible; }
+.gmap-ring { fill: none; stroke: var(--line); stroke-dasharray: 3 5; }
+.gmap-spoke { stroke: rgb(var(--sig-rgb) / 0.22); stroke-width: 1; }
+.gmap-link { fill: none; stroke: var(--hot); stroke-width: 1.6; opacity: 0.75; }
+.gmap-core { fill: var(--deep); stroke: rgb(var(--sig-rgb) / 0.6); stroke-width: 1.5; }
+.gmap-core-t { fill: var(--ink); font: 600 10px/1 var(--body); }
+.gmap-node { fill: var(--panel); stroke: var(--c); stroke-width: 1.6; transition: fill var(--dur) var(--ease); }
+.gmap a:hover .gmap-node, .gmap a:focus-visible .gmap-node { fill: color-mix(in srgb, var(--c) 18%, var(--panel)); }
+.gmap a:focus-visible { outline: none; }
+.gmap-node-t { fill: var(--ink); font: 600 9px/1 var(--body); pointer-events: none; }
+.gmap-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.gmap-list li { display: flex; flex-direction: column; gap: 4px; padding: var(--s-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); }
+.gmap-list b { display: inline-flex; align-items: center; gap: 4px; }
+.gmap-list b svg { color: var(--ink-3); }
+.gmap-list span { color: var(--ink-2); font-size: var(--fs-sm); }
+.gmap-list .say2 { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; }
+@media (min-width: 900px) { .gmap { grid-template-columns: minmax(320px, 420px) minmax(0, 1fr); } }

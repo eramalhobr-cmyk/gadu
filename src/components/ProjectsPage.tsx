@@ -2,6 +2,7 @@
 import { MSG, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { GoalChip, useGoalLinks } from "./links";
 import { BackButton, EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
 import { ConfirmCard } from "./ConfirmCard";
 import { TasksPanel } from "./TasksPanel";
@@ -36,6 +37,7 @@ function TasksScreen() {
 
 function ProjectsScreen({ onTalk }: { onTalk: (project: { id: number; name: string }) => void }) {
   const [items, setItems] = useState<Project[] | null>(null);
+  const goalLinks = useGoalLinks("projects", items);
   const [open, setOpen] = useState<Project | null>(null);
   const [creating, setCreating] = useState(false);
   const [err, setErr] = useState("");
@@ -86,6 +88,7 @@ function ProjectsScreen({ onTalk }: { onTalk: (project: { id: number; name: stri
                     </span>
                     <span className="pj-name">{p.name}</span>
                     <span className="pj-goal">{p.goal || "Sem objetivo definido."}</span>
+                    {goalLinks.has(p.id) && <span className="pj-links"><GoalChip titles={goalLinks.get(p.id)} asButton={false} /></span>}
                     <span className="pj-foot">
                       <span className="pj-bar" aria-hidden="true"><span style={{ width: `${pr.pct}%` }} /></span>
                       <span className="pj-count">{pr.total ? `${pr.done} de ${pr.total} tarefas` : "Sem tarefas"}</span>
