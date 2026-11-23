@@ -146,5 +146,16 @@ Aprovada pelo Eduardo (inclusive banco). Nomes de tabela seguem a proposta em in
 
 **Limitações:** nada publicado nem validado com pessoa logada ou em aparelho; Android Voltar não trata o detalhe da meta como camada própria (há botão Voltar na página); sem conquistas, recomendações, hábito, projetos e agenda, indicadores de outros módulos nem metas compartilhadas.
 
+## Fase 2: projetos e agenda (22/11 a 23/11/2026, em andamento)
+**Etapa 1, migração (`supabase/migrations/20261123170001_metas_fase2.sql`, só aditiva, rollback no topo):**
+| Tabela | Conteúdo |
+|---|---|
+| `goal_projects` | vínculo meta ↔ projeto; chave composta `(id, user_id)` nos dois lados (por isso `projects` ganha `unique (id, user_id)`, como `tasks` na fase 1) |
+| `goal_events` | bloco de agenda da meta: `event_id` do Google Agenda, título e horário (retrato), com início < fim <= 24 h |
+- RLS `(select auth.uid()) = user_id` em 4 políticas por tabela, só `authenticated`; mais as restritivas do S-05 (`*_ativo_insert/update` com `public.can_write()`): bloqueado lê e apaga, não insere nem altera.
+- **Decisões:** (1) o evento mora no Google (o escopo `calendar.events` já existe, **nenhum escopo novo**); o banco só guarda a ligação com a meta. (2) **Evento não conta como progresso**: a especificação diz que progresso só vem de registro com origem (regra 1), e que a agenda serve para "reservar horários e checar conflitos"; contar evento como feito seria inventar progresso. Se o Eduardo quiser que um evento passado conte, é uma decisão de produto nova (registro com origem `agenda`, que pede mexer no `CHECK` de `goal_progress.origem`). (3) Uma meta pode ter vários projetos e vários blocos; sem tabela de recorrência (cada bloco é um evento).
+- **Testes:** `70_metas` (isolamento A x B nas duas tabelas, vínculos cruzados recusados, CHECKs, cascatas), `30_isolamento` (as duas entram na suíte), `85_s05` (46 políticas restritivas, 23 tabelas).
+- **Etapa 2 (código: ações por voz "liga a meta ao projeto" e "reserva 3 manhãs por semana", telas e fatos do Core) só depois de a migração ser aplicada em produção.**
+
 ## Fora desta fatia
 Fases 2 a 6 da tabela acima.
