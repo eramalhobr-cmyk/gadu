@@ -2,7 +2,7 @@
 import { MSG, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
+import { BackButton, EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
 import { ConfirmCard } from "./ConfirmCard";
 import { TasksPanel } from "./TasksPanel";
 import { COLORS, colorVar, Icon } from "./ui";
@@ -177,7 +177,7 @@ function ProjectDetail({ project, onBack, onSaved, onTalk }: { project: Project;
   return (
     <main className="page" id="conteudo" style={{ ["--c" as string]: colorVar(project.color) }}>
       <div className="wrap">
-        <button className="back" onClick={onBack}><Icon name="chevron" size={16} />Projetos</button>
+        <BackButton onClick={onBack}>Projetos</BackButton>
         {editing ? <ProjectForm project={project} onDone={(s) => { setEditing(false); if (s) onSaved(); }} /> : (
           <div className="pj-hero">
             <PageHeader eyebrow={`Projeto · ${STATUS[project.status]}`} title={project.name} text={project.goal || undefined}

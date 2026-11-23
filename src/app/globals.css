@@ -24,7 +24,6 @@ a { color: var(--sig); }
 .dots { background-image: radial-gradient(rgb(var(--line-rgb) / 0.07) 1px, transparent 1px); background-size: 28px 28px; }
 
 /* Shell do app */
-.shell { height: 100dvh; display: flex; flex-direction: column; padding-top: var(--safe-t); }
 .top { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
 .brand { font-family: var(--display); font-size: calc(16px * var(--ts, 1)); }
 .state { display: inline-flex; align-items: center; gap: 8px; color: var(--sig); }
@@ -46,7 +45,6 @@ a { color: var(--sig); }
 .mic.on { background: var(--sig); color: var(--sig-ink); border-color: var(--sig); box-shadow: 0 0 0 6px rgb(var(--sig-rgb) / 0.15); }
 .send { flex: 0 0 48px; height: 48px; border-radius: 12px; }
 .tabs { flex: none; display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); padding-bottom: var(--safe-b); background: rgb(var(--bg-rgb) / 0.96); }
-.tab { min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: 0; color: var(--ink-3); font-family: var(--mono); font-size: calc(11px * var(--ts, 1)); position: relative; }
 .tab[aria-current="page"] { color: var(--sig); }
 .tab[aria-current="page"]::before { content: ""; position: absolute; top: 0; left: 25%; right: 25%; height: 2px; background: var(--sig); }
 .badge { position: absolute; top: 6px; right: calc(50% - 22px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--hot); color: #1a0f00; font: 600 calc(10px * var(--ts, 1))/16px var(--mono); }
@@ -127,7 +125,7 @@ input[type="checkbox"] { accent-color: var(--sig); width: 22px; height: 22px; }
 .rem-form input[type="datetime-local"] { color-scheme: dark; }
 a.mail { color: var(--ink); text-decoration: none; gap: 4px; }
 a.mail:hover .conv-title { color: var(--sig); }
-.tab { font-size: calc(10px * var(--ts, 1)); letter-spacing: 0.04em; }
+.tab { min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: 0; color: var(--ink-3); font-family: var(--mono); font-size: calc(10px * var(--ts, 1)); position: relative; letter-spacing: 0.04em; }
 .tab[aria-current="page"] svg { filter: drop-shadow(0 0 6px rgb(var(--sig-rgb) / 0.6)); }
 
 /* Segmentos (Tarefas | Projetos, Memória | Ajustes) */
@@ -196,7 +194,7 @@ details summary { cursor: pointer; min-height: 32px; display: flex; align-items:
 .mind-brain { position: absolute; left: 50%; width: calc(var(--S) * 0.58); height: calc(var(--S) * 0.42); top: calc(47cqh - var(--S) * 0.45); transform: translateX(-50%); mix-blend-mode: screen; opacity: 0.85; -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 55%, #000 62%, transparent 100%); mask-image: radial-gradient(ellipse 50% 50% at 50% 55%, #000 62%, transparent 100%); pointer-events: none; }
 
 /* Menu de baixo sempre fixo; o conteúdo rola por trás dele. */
-.shell { padding-bottom: calc(62px + var(--safe-b)); }
+.shell { height: 100dvh; display: flex; flex-direction: column; padding-top: var(--safe-t); padding-bottom: calc(62px + var(--safe-b)); }
 .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 15; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 
 /* Voz flutuante */

@@ -95,9 +95,9 @@ export function SettingsPage(props: {
             Endereços antigos (?tab=perfil, ?tab=integracoes) abrem esta tela já na parte certa. */}
         <section className="set-head">
           <span className="initial" aria-hidden="true">{(props.name || props.email || "G").trim().charAt(0).toUpperCase()}</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="grow1 minw0">
             <h1>Configurações</h1>
-            <div className="muted" style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{props.name ? `${props.name} · ` : ""}{props.email}</div>
+            <div className="muted ellipsis">{props.name ? `${props.name} · ` : ""}{props.email}</div>
             <details className="set-details"><summary>Detalhes</summary><span className="mono muted">GaDu {props.version}</span></details>
           </div>
           <form action="/auth/signout" method="post"><button className="btn btn-sm" type="submit">Sair</button></form>
@@ -116,7 +116,7 @@ export function SettingsPage(props: {
                   <button key={t} className="theme-opt" aria-pressed={props.theme === t} onClick={() => props.onTheme(t)}>
                     <span className={`theme-swatch ${t}`} aria-hidden="true"><i /><i /></span>
                     <b>{t === "dark" ? "Escuro" : "Claro"}</b>
-                    <span className="muted" style={{ fontSize: "var(--fs-sm)" }}>{t === "dark" ? "Identidade do GaDu. Melhor à noite." : "Mais legível em ambientes claros."}</span>
+                    <span className="muted fs-sm">{t === "dark" ? "Identidade do GaDu. Melhor à noite." : "Mais legível em ambientes claros."}</span>
                   </button>
                 ))}
               </div>
@@ -144,9 +144,9 @@ export function SettingsPage(props: {
           <div className="set-cards">
       <section className="card">
         <h2>Termos bloqueados</h2>
-        <p className="muted" style={{ margin: 0 }}>Memórias com estes termos não podem ser aprovadas. Use para o nome da empresa e assuntos corporativos.</p>
+        <p className="muted m0">Memórias com estes termos não podem ser aprovadas. Use para o nome da empresa e assuntos corporativos.</p>
         <div className="row">{blocked.length ? blocked.map((b) => <button key={b} className="chip" onClick={() => saveBlocked(blocked.filter((x) => x !== b))} aria-label={`Remover ${b}`}>{b} ×</button>) : <span className="muted">Nenhum termo ainda.</span>}</div>
-        <div className="row" style={{ flexWrap: "nowrap" }}>
+        <div className="row nowrap">
           <label className="sr" htmlFor="term">Novo termo</label>
           <input id="term" className="field" value={term} maxLength={60} placeholder="Ex.: nome da empresa" onChange={(e) => setTerm(e.target.value)} />
           <button className="btn" disabled={!term.trim()} onClick={() => { void saveBlocked([...new Set([...blocked, term.trim()])]); setTerm(""); }}>Bloquear</button>
@@ -155,7 +155,7 @@ export function SettingsPage(props: {
       </section>
       <section className="card">
         <h2>Senha</h2>
-        <form onSubmit={savePassword} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <form onSubmit={savePassword} className="col-gap">
           <input type="text" autoComplete="username" value={props.email} readOnly hidden />
           <label className="sr" htmlFor="pw1">Nova senha</label>
           <input id="pw1" className="field" type="password" autoComplete="new-password" placeholder="Nova senha (mínimo 10 caracteres)" value={pw} onChange={(e) => setPw(e.target.value)} />
@@ -173,16 +173,16 @@ export function SettingsPage(props: {
           <div className="set-cards">
       <section className="card">
         <h2>Aprender a usar</h2>
-        <button className="help-item primary" onClick={props.onGuide}><span style={{ flex: 1 }}>Ver o guia de primeiro uso (3 passos, falado)</span><span aria-hidden="true">›</span></button>
-        <a className="help-item" href="/app/guia" style={{ textDecoration: "none" }}><span style={{ flex: 1 }}>Guia passo a passo</span><span aria-hidden="true">›</span></a>
-        <a className="help-item" href="/app/sobre" style={{ textDecoration: "none" }}><span style={{ flex: 1 }}>Como o GaDu funciona (arquitetura)</span><span aria-hidden="true">›</span></a>
-        <button className="help-item" onClick={props.onResetTips}><span style={{ flex: 1 }}>Rever as dicas de cada tela</span><span aria-hidden="true">›</span></button>
+        <button className="help-item primary" onClick={props.onGuide}><span className="grow1">Ver o guia de primeiro uso (3 passos, falado)</span><span aria-hidden="true">›</span></button>
+        <a className="help-item no-ul" href="/app/guia"><span className="grow1">Guia passo a passo</span><span aria-hidden="true">›</span></a>
+        <a className="help-item no-ul" href="/app/sobre"><span className="grow1">Como o GaDu funciona (arquitetura)</span><span aria-hidden="true">›</span></a>
+        <button className="help-item" onClick={props.onResetTips}><span className="grow1">Rever as dicas de cada tela</span><span aria-hidden="true">›</span></button>
       </section>
             <section className="card">
               <h2>Atalhos</h2>
-              <button className="help-item" onClick={props.onNew}><span style={{ flex: 1 }}>Nova conversa</span><span aria-hidden="true">›</span></button>
-              <button className="help-item" onClick={() => props.onOpen("memoria")}><span style={{ flex: 1 }}>Revisar a memória</span><span aria-hidden="true">›</span></button>
-              {props.admin && <button className="help-item" onClick={() => props.onOpen("admin")}><span style={{ flex: 1 }}>Pessoas e convites</span><span aria-hidden="true">›</span></button>}
+              <button className="help-item" onClick={props.onNew}><span className="grow1">Nova conversa</span><span aria-hidden="true">›</span></button>
+              <button className="help-item" onClick={() => props.onOpen("memoria")}><span className="grow1">Revisar a memória</span><span aria-hidden="true">›</span></button>
+              {props.admin && <button className="help-item" onClick={() => props.onOpen("admin")}><span className="grow1">Pessoas e convites</span><span aria-hidden="true">›</span></button>}
             </section>
           </div>
         </section>
@@ -244,11 +244,11 @@ function SpendCard() {
         !err && <p className="muted">Carregando…</p>
       ) : (
         <>
-          <div style={{ fontSize: 22, fontVariantNumeric: "tabular-nums" }}>
-            {usd(u.total)} <span className="muted" style={{ fontSize: 15 }}>de {usd(u.monthlyBudget)} (teto do mês)</span>
+          <div className="fs-22 tnum">
+            {usd(u.total)} <span className="muted fs-15">de {usd(u.monthlyBudget)} (teto do mês)</span>
           </div>
           <Bar value={u.total + (u.reserved ?? 0)} max={u.monthlyBudget} />
-          <div className="muted" style={{ fontSize: "var(--fs-sm)" }}>
+          <div className="muted fs-sm">
             Disponível: {usd(Math.max(0, u.monthlyBudget - u.total - (u.reserved ?? 0)))}
             {(u.reserved ?? 0) > 0 ? ` · ${usd(u.reserved ?? 0)} reservado para respostas em andamento` : ""}
           </div>
@@ -257,16 +257,16 @@ function SpendCard() {
             const limit = u.budgets[r.id];
             return (
               <div className="item" key={r.id}>
-                <div className="row" style={{ justifyContent: "space-between" }}>
+                <div className="row between">
                   <span>{r.name}</span>
-                  <span style={{ fontVariantNumeric: "tabular-nums" }}>{usd(spent)} <span className="muted">/ {usd(limit)}</span></span>
+                  <span className="tnum">{usd(spent)} <span className="muted">/ {usd(limit)}</span></span>
                 </div>
                 <Bar value={spent} max={limit} />
-                {spent >= limit && <div style={{ color: "var(--bad)", fontSize: "var(--fs-sm)" }}>Limite atingido. O GaDu usa o outro motor até você aumentar.</div>}
-                <div className="muted" style={{ fontSize: "var(--fs-sm)" }}>{r.hint}</div>
+                {spent >= limit && <div className="c-bad fs-sm">Limite atingido. O GaDu usa o outro motor até você aumentar.</div>}
+                <div className="muted fs-sm">{r.hint}</div>
                 {edit && (
-                  <label className="row" style={{ flexWrap: "nowrap" }}>
-                    <span className="muted" style={{ whiteSpace: "nowrap" }}>Limite US$</span>
+                  <label className="row nowrap">
+                    <span className="muted nw">Limite US$</span>
                     <input className="field" inputMode="decimal" value={edit[r.id]} onChange={(e) => setEdit({ ...edit, [r.id]: e.target.value })} aria-label={`Limite mensal ${r.name}`} />
                   </label>
                 )}
@@ -284,7 +284,7 @@ function SpendCard() {
             )}
           </div>
           {msg && <span className="muted" role="status">{msg}</span>}
-          <p className="muted" style={{ margin: 0, fontSize: "var(--fs-sm)" }}>Ao chegar no limite de um motor, o GaDu passa para o outro. Com os dois no limite, ele para até o próximo mês.</p>
+          <p className="muted m0 fs-sm">Ao chegar no limite de um motor, o GaDu passa para o outro. Com os dois no limite, ele para até o próximo mês.</p>
         </>
       )}
     </section>
@@ -318,20 +318,20 @@ function VoiceCard(props: { prefs: Prefs; setPrefs: (p: Prefs) => void; voiceOk:
       <label className="switch"><span>Enviar sozinho o que eu falar<small className="muted"> · desligado (padrão): o texto fica no campo para você revisar e enviar</small></span><input type="checkbox" role="switch" className="sr" checked={p.autoSend} onChange={(e) => set({ autoSend: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
       <label className="switch"><span>Respostas faladas curtas<small className="muted"> · fala o resumo (cerca de 20 s) e o detalhe fica na tela; o briefing da manhã é sempre falado inteiro</small></span><input type="checkbox" role="switch" className="sr" checked={p.shortVoice} onChange={(e) => set({ shortVoice: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
       <label className="switch"><span>Modo mãos-livres<small className="muted"> · volta a ouvir depois de responder e envia sozinho; só liga se você escolher</small></span><input type="checkbox" role="switch" className="sr" checked={p.handsFree} disabled={!props.voiceOk} onChange={(e) => set({ handsFree: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
-      {!props.voiceOk && <p className="muted" style={{ margin: 0 }}>Este navegador não reconhece voz. No celular, use o Chrome (Android) ou o Safari (iPhone), ou o ditado do teclado.</p>}
+      {!props.voiceOk && <p className="muted m0">Este navegador não reconhece voz. No celular, use o Chrome (Android) ou o Safari (iPhone), ou o ditado do teclado.</p>}
       {speakOk && (
         <>
-          <label htmlFor="voice" className="muted" style={{ fontSize: "var(--fs-sm)" }}>Voz do GaDu</label>
+          <label htmlFor="voice" className="muted fs-sm">Voz do GaDu</label>
           <select id="voice" className="field" value={p.voiceURI} onChange={(e) => { set({ voiceURI: e.target.value }); test({ voiceURI: e.target.value }); }}>
             <option value="">Automática (a mais natural do aparelho)</option>
             {voices.map((v) => <option key={v.voiceURI} value={v.voiceURI}>{voiceLabel(v)}</option>)}
           </select>
-          <label htmlFor="rate" className="row" style={{ justifyContent: "space-between", fontSize: "var(--fs-sm)" }}>
-            <span className="muted">Velocidade</span><span style={{ fontVariantNumeric: "tabular-nums" }}>{p.rate.toFixed(2).replace(".", ",")}×</span>
+          <label htmlFor="rate" className="row between fs-sm">
+            <span className="muted">Velocidade</span><span className="tnum">{p.rate.toFixed(2).replace(".", ",")}×</span>
           </label>
           <input id="rate" type="range" min={0.7} max={1.6} step={0.05} value={p.rate} onChange={(e) => set({ rate: Number(e.target.value) })} onPointerUp={() => test()} onKeyUp={() => test()} />
           <div><button className="btn btn-sm" onClick={() => test()}>Ouvir exemplo</button></div>
-          <p className="muted" style={{ margin: 0, fontSize: "var(--fs-sm)" }}>
+          <p className="muted m0 fs-sm">
             Vozes marcadas como “natural” soam menos robóticas. Para ter mais: no iPhone, Ajustes › Acessibilidade › Conteúdo Falado › Vozes › Português (Brasil) e baixe uma voz “Aprimorada” ou “Premium”. No Android, instale as vozes do Google. No computador, o Edge tem as vozes “Online (Natural)”.
           </p>
         </>
@@ -385,16 +385,16 @@ function ConnectionsCard({ morningLink }: { morningLink: string }) {
       <h2>Conexões</h2>
       {err && <div className="notice" role="alert">{err}</div>}
       <div className="item">
-        <div className="row" style={{ justifyContent: "space-between" }}>
+        <div className="row between">
           <span>Google · Agenda e Gmail</span>
-          <span className="mono" style={{ color: g?.connected ? "var(--sig)" : "var(--ink-3)" }}>{g === null ? "…" : g.connected ? "Conectado" : "Desconectado"}</span>
+          <span className={`mono ${g?.connected ? "c-sig" : "muted"}`}>{g === null ? "…" : g.connected ? "Conectado" : "Desconectado"}</span>
         </div>
         {g?.connected ? (
           <>
-            <div className="muted" style={{ fontSize: "var(--fs-sm)" }}>{g.email ?? "Conta Google"}. O GaDu lê agenda e e-mails quando você pergunta. E-mail é só leitura.</div>
+            <div className="muted fs-sm">{g.email ?? "Conta Google"}. O GaDu lê agenda e e-mails quando você pergunta. E-mail é só leitura.</div>
             {g.canWrite
-              ? <div className="mono" style={{ color: "var(--sig)" }}>✓ Pode criar eventos (sempre com sua confirmação)</div>
-              : <div className="notice" style={{ fontSize: "var(--fs-sm)" }}>Para criar eventos pela voz, reconecte uma vez e marque a permissão de agenda. <a className="btn btn-sm" style={{ marginTop: 8 }} href="/api/google/connect">Reconectar Google</a></div>}
+              ? <div className="mono c-sig">✓ Pode criar eventos (sempre com sua confirmação)</div>
+              : <div className="notice fs-sm">Para criar eventos pela voz, reconecte uma vez e marque a permissão de agenda. <a className="btn btn-sm mt-2"  href="/api/google/connect">Reconectar Google</a></div>}
             {confirm ? (
               <ConfirmCard danger icon="link" title="Desconectar o Google?" detail="O GaDu deixa de ver agenda e e-mails. Você pode conectar de novo." confirmLabel="Desconectar de vez" onConfirm={disconnect} onCancel={() => setConfirm(false)} />
             ) : (
@@ -402,18 +402,18 @@ function ConnectionsCard({ morningLink }: { morningLink: string }) {
             )}
           </>
         ) : g && !g.configured ? (
-          <div className="muted" style={{ fontSize: "var(--fs-sm)" }}>Falta configurar as credenciais do Google no servidor. Siga o passo a passo que o GaDu passou.</div>
+          <div className="muted fs-sm">Falta configurar as credenciais do Google no servidor. Siga o passo a passo que o GaDu passou.</div>
         ) : (
           <>
-            <div className="muted" style={{ fontSize: "var(--fs-sm)" }}>Permite que o GaDu leia sua agenda e seus e-mails para responder e montar o briefing do dia. Ele não envia e-mails nem muda a agenda.</div>
+            <div className="muted fs-sm">Permite que o GaDu leia sua agenda e seus e-mails para responder e montar o briefing do dia. Ele não envia e-mails nem muda a agenda.</div>
             <div><a className="btn btn-pri" href="/api/google/connect">Conectar Google</a></div>
           </>
         )}
       </div>
       <div className="item">
         <label htmlFor="morning">Notícias do Começar o dia</label>
-        <div className="muted" style={{ fontSize: "var(--fs-sm)" }}>Cole o link do Update Diário no Spotify (Compartilhar › Copiar link). Sem link, abro a busca do Spotify.</div>
-        <div className="row" style={{ flexWrap: "nowrap" }}>
+        <div className="muted fs-sm">Cole o link do Update Diário no Spotify (Compartilhar › Copiar link). Sem link, abro a busca do Spotify.</div>
+        <div className="row nowrap">
           <input id="morning" className="field" inputMode="url" placeholder="https://open.spotify.com/show/…" value={link} maxLength={300} onChange={(e) => setLink(e.target.value)} />
           <button className="btn" onClick={saveLink}>Salvar</button>
         </div>
@@ -526,38 +526,38 @@ function NotificationsCard() {
     <section className="card">
       <h2>Notificações e briefing</h2>
       {support === "install" && (
-        <p className="muted" style={{ margin: 0 }}>No iPhone, as notificações só funcionam com o GaDu instalado: no Safari, toque em Compartilhar › Adicionar à Tela de Início e abra o GaDu por lá.</p>
+        <p className="muted m0">No iPhone, as notificações só funcionam com o GaDu instalado: no Safari, toque em Compartilhar › Adicionar à Tela de Início e abra o GaDu por lá.</p>
       )}
-      {support === "ios-old" && <p className="muted" style={{ margin: 0 }}>Para receber notificações no iPhone é preciso o iOS 16.4 ou mais novo. Atualize o sistema e abra o GaDu pela tela de início.</p>}
-      {support === "no" && <p className="muted" style={{ margin: 0 }}>Este navegador não recebe notificações. No Android, use o Chrome.</p>}
-      {support === "ok" && perm === "denied" && <p className="muted" style={{ margin: 0 }} role="status">{DENIED_HELP}</p>}
+      {support === "ios-old" && <p className="muted m0">Para receber notificações no iPhone é preciso o iOS 16.4 ou mais novo. Atualize o sistema e abra o GaDu pela tela de início.</p>}
+      {support === "no" && <p className="muted m0">Este navegador não recebe notificações. No Android, use o Chrome.</p>}
+      {support === "ok" && perm === "denied" && <p className="muted m0"  role="status">{DENIED_HELP}</p>}
       {support === "ok" && perm !== "denied" && (
         sub && perm === "granted" ? (
           <div className="row">
-            <span className="mono" style={{ color: "var(--sig)" }}>Ligadas neste aparelho</span>
+            <span className="mono c-sig">Ligadas neste aparelho</span>
             <button className="btn btn-sm" onClick={test}>Enviar teste</button>
             <button className="link-btn" onClick={disable}>Desligar</button>
           </div>
         ) : (
           <>
-            <p className="muted" style={{ margin: 0 }}>Receba os lembretes e o briefing da manhã no celular.</p>
+            <p className="muted m0">Receba os lembretes e o briefing da manhã no celular.</p>
             <div><button className="btn btn-pri" disabled={working} onClick={enable}>{working ? "Ligando…" : "Ligar notificações"}</button></div>
           </>
         )
       )}
       <label className="switch"><span>Briefing da manhã</span><input type="checkbox" role="switch" className="sr" checked={briefing.enabled} onChange={(e) => saveBriefing({ ...briefing, enabled: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
       {briefing.enabled && (
-        <label className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
+        <label className="row between nowrap">
           <span className="muted">Horário</span>
-          <input className="field" type="time" style={{ maxWidth: 140, colorScheme: "dark" }} value={briefing.time} onChange={(e) => /^\d{2}:\d{2}$/.test(e.target.value) && saveBriefing({ ...briefing, time: e.target.value })} />
+          <input className="field field-time" type="time" value={briefing.time} onChange={(e) => /^\d{2}:\d{2}$/.test(e.target.value) && saveBriefing({ ...briefing, time: e.target.value })} />
         </label>
       )}
-      <p className="muted" style={{ margin: 0, fontSize: "var(--fs-sm)" }}>Todo dia, no horário escolhido, chega um resumo da agenda, dos e-mails e um alerta (conflito, atraso). Toque nele para o GaDu começar o dia com você.</p>
+      <p className="muted m0 fs-sm">Todo dia, no horário escolhido, chega um resumo da agenda, dos e-mails e um alerta (conflito, atraso). Toque nele para o GaDu começar o dia com você.</p>
       <label className="switch"><span>Revisão da noite</span><input type="checkbox" role="switch" className="sr" checked={evening.enabled} onChange={(e) => saveEvening({ ...evening, enabled: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
       {evening.enabled && (
-        <label className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
+        <label className="row between nowrap">
           <span className="muted">Horário</span>
-          <input className="field" type="time" style={{ maxWidth: 140, colorScheme: "dark" }} value={evening.time} onChange={(e) => /^\d{2}:\d{2}$/.test(e.target.value) && saveEvening({ ...evening, time: e.target.value })} />
+          <input className="field field-time" type="time" value={evening.time} onChange={(e) => /^\d{2}:\d{2}$/.test(e.target.value) && saveEvening({ ...evening, time: e.target.value })} />
         </label>
       )}
       {msg && <span className="muted" role="status">{msg}</span>}

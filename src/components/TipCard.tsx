@@ -8,7 +8,7 @@ export function TipCard({ id, onDone, floating = false }: { id: TipId; onDone: (
   return (
     <div className={`tip ${floating ? "floating" : ""}`} role="note" aria-label={`Dica: ${t.title}`}>
       <span className="tip-ico"><Icon name="spark" size={18} /></span>
-      <div style={{ minWidth: 0, flex: 1 }}>
+      <div className="grow1 minw0">
         <b>{t.title}</b>
         <p>{t.text}</p>
         <div className="row">

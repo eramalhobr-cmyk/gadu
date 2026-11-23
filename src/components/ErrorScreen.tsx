@@ -7,7 +7,7 @@ export function ErrorScreen(props: { title: string; text: string; action?: React
         {props.code && <span className="mono muted">{props.code}</span>}
         <h1>{props.title}</h1>
         <p className="muted">{props.text}</p>
-        <div className="row" style={{ justifyContent: "center" }}>
+        <div className="row jc-center">
           {props.action}
           <a className="btn" href="/app">Voltar ao início</a>
         </div>

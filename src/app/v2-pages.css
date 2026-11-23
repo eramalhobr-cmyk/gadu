@@ -412,7 +412,6 @@ button.pj-card:hover { border-color: color-mix(in srgb, var(--c) 55%, transparen
 .mt-sit { flex: none; display: inline-flex; align-items: center; min-height: 24px; padding: 0 var(--s-2); border-radius: var(--r-pill); border: 1px solid var(--line-2); color: var(--ink-2); font-size: var(--fs-xs); font-weight: 500; white-space: nowrap; }
 .mt-sit.no_ritmo, .mt-sit.batida, .mt-sit.concluida { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
 .mt-sit.atrasada, .mt-sit.vencida { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
-.mt-back { align-self: flex-start; }
 .mt-done { align-items: center; flex-wrap: wrap; }
 .mt-done span { flex: 1; min-width: 200px; }
 .mt-actions { margin-top: var(--s-2); }
@@ -439,3 +438,36 @@ button.pj-card:hover { border-color: color-mix(in srgb, var(--c) 55%, transparen
 .evc.danger .evc-ico { background: color-mix(in srgb, var(--bad) 12%, transparent); }
 .hist-confirm .evc, .form-actions + .evc { max-width: none; }
 .confirm-sheet .evc { align-self: stretch; max-width: none; text-align: left; }
+
+/* ---------- Utilitários (Design System, etapa 2): no lugar dos estilos inline estáticos ---------- */
+.m0 { margin: 0; }
+.mt-2 { margin-top: var(--s-2); }
+.fs-sm { font-size: var(--fs-sm); }
+.fs-14 { font-size: calc(14px * var(--ts, 1)); }
+.fs-15 { font-size: calc(15px * var(--ts, 1)); }
+.fs-22 { font-size: calc(22px * var(--ts, 1)); }
+.grow1 { flex: 1; }
+.minw0 { min-width: 0; }
+.nowrap { flex-wrap: nowrap; }
+.nw { white-space: nowrap; }
+.between { justify-content: space-between; }
+.jc-center { justify-content: center; }
+.tnum { font-variant-numeric: tabular-nums; }
+.c-sig { color: var(--sig) !important; }
+.c-hot { color: var(--hot) !important; }
+.c-bad { color: var(--bad) !important; }
+.no-ul { text-decoration: none; }
+.ellipsis { overflow: hidden; text-overflow: ellipsis; }
+.break-all { word-break: break-all; }
+.col-gap { display: flex; flex-direction: column; gap: var(--s-2); }
+.flip-x { transform: rotate(180deg); display: inline-flex; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--s-3); }
+.mw-320 { max-width: 320px; }
+.mw-340 { max-width: 340px; }
+.mw-360 { max-width: 360px; }
+.minw-260 { min-width: 260px; }
+.field-time { max-width: 140px; color-scheme: dark; }
+.page-center { align-items: center; justify-content: center; padding: 24px; gap: 20px; text-align: center; }
+.page-center.tight { gap: 12px; }
+.login-face { position: relative; width: min(72vw, 300px); height: min(80vw, 330px); }
+.login-title { font-size: 28px; margin: 0; }
