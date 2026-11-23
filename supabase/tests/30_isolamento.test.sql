@@ -68,6 +68,7 @@ begin
     insert into public.usage_events (user_id, provider, model, cost_usd) values (u, 'gemini', 'teste', 0.01);
     insert into public.usage_daily (user_id, messages) values (u, 1);
     insert into public.daily_briefings (user_id, day) values (u, current_date);
+    insert into public.agent_uso (user_id, agent_id, mes, custo_usd) select u, id, date_trunc('month', current_date)::date, 0.1 from public.agents where user_id = u limit 1;
     insert into public.daily_pushes (user_id, day, kind) values (u, current_date, 'evening');
     insert into public.members (user_id, role, access) values (u, 'member', 'active') on conflict (user_id) do nothing;
     insert into public.invites (created_by, email, token_hash, expires_at) values (u, u || '@convite.test', md5(u::text) || md5(u::text || 'x'), now() + interval '7 days');
@@ -110,6 +111,7 @@ insert into iso_cases values
   ('google_connections', 'user_id',    'google_email = ''x''', 'insert into public.google_connections (user_id, refresh_token_enc) values (%L, ''x'')'),
   ('usage_events',       'user_id',    'cost_usd = 0',        'insert into public.usage_events (user_id, provider, model, cost_usd) values (%L, ''gemini'', ''x'', 0)'),
   ('usage_daily',        'user_id',    'messages = 0',        'insert into public.usage_daily (user_id, day, messages) values (%L, current_date - 1, 0)'),
+  ('agent_uso',          'user_id',    'custo_usd = 9',       'insert into public.agent_uso (user_id, agent_id, mes) values (%1$L, (select id from public.agents where user_id = %1$L limit 1), ''2026-01-01'')'),
   ('daily_briefings',    'user_id',    'sent_at = now()',     'insert into public.daily_briefings (user_id, day) values (%L, current_date - 1)'),
   ('daily_pushes',       'user_id',    'sent_at = now()',     'insert into public.daily_pushes (user_id, day, kind) values (%L, current_date - 1, ''evening'')'),
   ('members',            'user_id',    'role = ''admin''',    'insert into public.members (user_id, role) values (%L, ''admin'')'),
