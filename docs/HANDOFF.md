@@ -67,6 +67,12 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 14:55 · Cursor (Grok Bot), UX-7 PR 4: Hoje em três faixas
+- **Publicado antes deste PR:** #93 palco de voz (14:32, `d88bfcf`), #95 Mais e menu por áreas (14:37, `26c83f2`), #96 ligações e Mapa do GaDu (14:42, `b9632e7`); CI verde nos quatro jobs e deploy da Vercel conferido no ar. CHANGELOG corrigido para "publicado".
+- **Feito:** `TodayPage` em três faixas (Agora, Depois, Progresso) com `src/lib/hoje-faixas.ts` e testes; e2e do Hoje ampliado. Sem migração.
+- **Pedido do Eduardo (14:39):** tudo de UX feito pelo Cursor, sem abrir o Claude Code.
+- **Próximo passo:** R3 (um microfone só no celular), R6/M1 (skills de design pela regra de segurança), R7 (motores de rosto sem uso).
+
 ### 23/11/2026 14:50 · Cursor (Grok Bot), sobras do 3D: ajustar peça por voz
 - **Decisão do Eduardo (14:39):** não lançar mais o Claude Code no GaDu, nem depois de a cota renovar (ele precisa dele para outro trabalho). Todo o trabalho restante do GaDu fica com o Cursor.
 - `peca3d_ajustar` (acoes, resolvedor, cartão, pergunta falada) + `src/lib/3d/ajuste-voz.ts` + leitura única no `Studio3D.tsx`. Não mexe em `GaduApp.tsx` (frente de UX): a navegação sai do `ActionCard.tsx`.
