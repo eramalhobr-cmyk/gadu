@@ -111,6 +111,24 @@ test("tudo por voz: cartão e pergunta de ligar e desligar meta de projeto", asy
   assert.equal(d(desliga).applied, false);
 });
 
+test("tudo por voz: cartão e pergunta de reservar horários na agenda da meta", async () => {
+  const { actionQuestion, describe: d } = await import("./chat-actions.ts");
+  const now = new Date("2026-11-23T13:00:00Z"); // segunda, 10:00 em Brasília
+  const a: ChatAction = { kind: "meta_agenda", goalId: "g", meta: "Correr 50 km", pulados: 1, faltaram: 0, blocos: [
+    { inicio: "2026-11-24T10:00:00.000Z", fim: "2026-11-24T11:00:00.000Z" }, { inicio: "2026-11-26T10:00:00.000Z", fim: "2026-11-26T11:00:00.000Z" }, { inicio: "2026-11-28T10:30:00.000Z", fim: "2026-11-28T11:30:00.000Z" },
+  ] };
+  const v = d(a, now);
+  assert.equal(v.title, "Correr 50 km · 3 blocos");
+  assert.match(v.detail, /07:00–08:00/);
+  assert.match(v.detail, /07:30–08:30/);
+  assert.match(v.detail, /1 dia ocupado foi trocado/);
+  assert.equal(v.confirm, "Reservar");
+  assert.equal(v.applied, false);
+  assert.equal(actionQuestion(a, now), "Reservo 3 blocos na agenda para a meta Correr 50 km: amanhã às 7h; quinta, dia 26 às 7h; sábado, dia 28 às 7h30. Posso reservar?");
+  const muitos: ChatAction = { ...a, faltaram: 2, blocos: Array.from({ length: 6 }, (_, i) => ({ inicio: `2026-12-0${i + 1}T10:00:00.000Z`, fim: `2026-12-0${i + 1}T11:00:00.000Z` })) } as ChatAction;
+  assert.match(actionQuestion(muitos, now), /e mais 2\. 2 não couberam\. Posso reservar\?$/);
+});
+
 test("tudo por voz: cartões e perguntas de memória, nova conversa e navegação; splitNavegacao separa o que abre na hora", async () => {
   const { actionQuestion, describe: d, splitNavegacao } = await import("./chat-actions.ts");
   assert.equal(actionQuestion({ kind: "memoria_aprovar", ids: [1], texto: "Mora em Curitiba" }, NOW), "Aprovo a memória: Mora em Curitiba?");

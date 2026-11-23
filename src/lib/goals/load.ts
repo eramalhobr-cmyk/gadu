@@ -61,6 +61,17 @@ export async function loadProjetos(db: SessionDb, userId: string, goalId?: strin
   });
 }
 
+/** Bloco de agenda reservado para a meta (o evento mora no Google; aqui só o retrato do título e do horário). */
+export type BlocoAgenda = { goal_id: string; event_id: string; titulo: string; inicio: string; fim: string };
+/** Blocos de agenda das metas (só da pessoa), do mais próximo ao mais distante, só dos últimos 7 dias em diante. Erro de leitura lança. */
+export async function loadAgenda(db: SessionDb, userId: string, goalId?: string, now = Date.now()): Promise<BlocoAgenda[]> {
+  let q = db.from("goal_events").select("goal_id, event_id, titulo, inicio, fim").eq("user_id", userId).gte("inicio", new Date(now - 7 * 86_400_000).toISOString());
+  if (goalId) q = q.eq("goal_id", goalId);
+  const r = await q.order("inicio").limit(500);
+  if (r.error) throw new Error("goals_leitura");
+  return ((r.data ?? []) as Rows).map((x) => ({ goal_id: String(x.goal_id), event_id: String(x.event_id), titulo: String(x.titulo), inicio: String(x.inicio), fim: String(x.fim) }));
+}
+
 /** Todas as metas da pessoa (menos arquivadas, a não ser que `incluirArquivadas`) já com progresso e ritmo. Filtra também por user_id (a SESSÃO), como defesa em profundidade além da RLS. */
 export async function loadMetas(db: SessionDb, userId: string, hoje: string, opts: { incluirArquivadas?: boolean } = {}): Promise<MetaView[]> {
   const [goals, prog, marcos] = await Promise.all([

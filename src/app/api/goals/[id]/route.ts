@@ -1,4 +1,4 @@
-import { loadMeta, loadProjetos, GOAL_COLS, toGoal } from "@/lib/goals/load";
+import { loadAgenda, loadMeta, loadProjetos, GOAL_COLS, toGoal } from "@/lib/goals/load";
 import { GoalPatch, IdParam } from "@/lib/goals/schemas";
 import { dbFail, goalsGuard, hojeIso, invalid, notFound, ok, readJson, unavailable } from "../_guard";
 
@@ -24,7 +24,8 @@ export async function GET(_request: Request, ctx: Ctx) {
     const ligados = new Set(projetos.map((p) => p.project_id));
     const pr = await g.a.supabase.from("projects").select("id, name, status").eq("user_id", g.a.user.id).in("status", ["active", "paused"]).order("created_at", { ascending: false }).limit(60);
     const projetosDisponiveis = pr.error ? [] : ((pr.data ?? []) as { id: number; name: string }[]).filter((p) => !ligados.has(Number(p.id))).slice(0, 30).map((p) => ({ id: Number(p.id), name: p.name }));
-    return ok({ ...d, tarefasAbertas, projetos, projetosDisponiveis });
+    const agenda = await loadAgenda(g.a.supabase, g.a.user.id, id.data).catch(() => []);
+    return ok({ ...d, tarefasAbertas, projetos, projetosDisponiveis, agenda });
   } catch {
     return unavailable();
   }

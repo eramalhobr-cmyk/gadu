@@ -66,6 +66,13 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 13:45 · Cursor (Grok Bot) sobre o rascunho do Claude Code, Metas fase 2: agenda da meta
+- **Migração `20261123170001_metas_fase2` (PR #85): aplicada** pelo Cursor via MCP às 13:11 (versão `20261123161155`); conferido: `goal_projects` e `goal_events` com RLS, 4 políticas de dono + 2 restritivas S-05 em cada (46 restritivas no total), `anon` sem acesso, `projects_id_user_unique` criada.
+- Projetos ligados à meta: PR #86 (Claude Code), publicado às 13:29.
+- O Claude Code atingiu o limite de uso às ~13:35 (volta às 15:20) com a parte da agenda pronta mas sem commit. O Cursor levou o rascunho para o branch `feat/metas-agenda`, revisou, conferiu os testes e documentou.
+- **Agenda da meta:** `meta_agenda` ("reserva 3 manhãs por semana para a meta de corrida"): o SERVIDOR escolhe dias e horários (`src/lib/goals/agenda.ts`, pula compromissos, nunca no passado, até 20 blocos em até 6 semanas); o cartão mostra os horários e só depois do "sim" cria os eventos no Google (`POST /api/goals/:id/agenda`, título vem da meta; se um falhar, desfaz os já criados). "Feito · Desfazer" libera os blocos. Tela da meta: painel "Agenda da meta" com Liberar (`DELETE /api/goals/:id/agenda/:eventId`, só evento reservado pelo GaDu para meta da própria pessoa). Reservar **não conta como progresso**. Sem escopo OAuth novo.
+- **A revisar por outra IA:** `src/app/api/goals/[id]/agenda/**` (Google + banco, desfazer parcial), `planejarAgenda` (fuso de Brasília).
+
 ### 23/11/2026 13:20 · Claude Code, Metas fase 2 (tarefa 11), etapa 2a: projetos
 - Branch `feat/metas-fase2-projetos` (sem migração nova): rotas `POST /api/goals/:id/projetos` e `DELETE /api/goals/:id/projetos/:projectId`; `GET /api/goals/:id` devolve `projetos` e `projetosDisponiveis`; painel "Projetos ligados" na tela da meta; ação `meta_projeto` ("liga a meta de corrida ao projeto Saúde", `desligar:true` para tirar) com cartão, pergunta falada e **Desfazer** (UX-4); o Core cita "projetos ligados: …" na linha da meta (nome com termo bloqueado vira "omitido pela regra de privacidade"). Leitura de vínculos que falha nunca inventa vínculo (aviso no chat; Core segue sem a informação).
 - Testes: unitários (validação, cartão, pergunta), integração das rotas (A x B, duplicado 409, `GOALS_ENABLED=0` 404, sem sessão 401) e do `/api/chat` (só itens de A, nada gravado antes de confirmar, interruptor, termo bloqueado), e2e público (15 rotas 401).

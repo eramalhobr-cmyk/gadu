@@ -6,7 +6,7 @@
 //  - nada é inventado: sem registro, "sem registros".
 import { hojeSP, isoDia } from "../finance/datas.ts";
 import { dataBR, metasAtencao, progressoTexto, ritmoTexto } from "../goals/calc.ts";
-import { loadMetas, loadProjetos } from "../goals/load.ts";
+import { loadAgenda, loadMetas, loadProjetos } from "../goals/load.ts";
 import { CATEGORIA_LABEL, type MetaView } from "../goals/types.ts";
 import { personalUserId, resolveScopes } from "./scopes.ts";
 import { hidden } from "./privacy.ts";
@@ -40,6 +40,14 @@ export async function collectGoals(input: { userId: string; db: SessionDb; block
   const resumo = fact("Resumo das metas", `${ativas.length} ativa${ativas.length === 1 ? "" : "s"} (${n("atrasada")} atrasada${n("atrasada") === 1 ? "" : "s"}, ${n("vencida")} com prazo vencido, ${n("batida")} atingida${n("batida") === 1 ? "" : "s"} e ainda não concluída${n("batida") === 1 ? "" : "s"}); `
     + `${todas.filter((m) => m.goal.status === "pausada").length} pausada(s); ${todas.filter((m) => m.goal.status === "concluida").length} concluída(s).`, "resumo");
 
+  const agenda = await loadAgenda(input.db, userId, undefined, (input.now ?? new Date()).getTime()).catch(() => []);
+  const agendaTexto = (goalId: string) => {
+    const agora = (input.now ?? new Date()).getTime();
+    const prox = agenda.filter((b) => b.goal_id === goalId && Date.parse(b.fim) >= agora);
+    if (!prox.length) return "";
+    const q = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "short", day: "2-digit", month: "2-digit" }).replace(".", "") + " " + new Date(iso).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+    return `agenda reservada (reservar não é progresso): ${prox.length} bloco${prox.length === 1 ? "" : "s"}, próximo${prox.length === 1 ? "" : "s"}: ${prox.slice(0, 3).map((b) => q(b.inicio)).join(", ")}`;
+  };
   const projetosTexto = (goalId: string) => {
     const nomes = projetos.filter((p) => p.goal_id === goalId).slice(0, 5).map((p) => (hidden(p.name, blocked) ? OMITTED : p.name.slice(0, 80)));
     return nomes.length ? `projetos ligados: ${nomes.join(", ")}` : "";
@@ -54,6 +62,7 @@ export async function collectGoals(input: { userId: string; db: SessionDb; block
       ritmoTexto(m),
       g.prazo ? `prazo ${dataBR(g.prazo)}/${g.prazo.slice(0, 4)}` : "sem prazo",
       projetosTexto(m.goal.id),
+      agendaTexto(m.goal.id),
       p.ultimoRegistro ? `último registro em ${dataBR(p.ultimoRegistro)}` : g.medicao === "numerica" || g.medicao === "percentual" ? "nenhum registro ainda" : "",
     ];
     if (completo || intent.kind === "atualizar") {

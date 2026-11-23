@@ -188,6 +188,7 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Metas | adicionar marco, concluir marco | sim | `meta_marco`, `meta_marco_concluir` | — |
 | Metas | criar tarefa da meta | sim | `meta_tarefa` (cria e vincula) | — |
 | Metas | ligar e desligar a meta de um projeto ("liga a meta de corrida ao projeto Saúde") | sim | `meta_projeto` (`POST`/`DELETE /api/goals/:id/projetos`; cartão com "sim"; **Desfazer** religa ou desliga; só meta e projeto da própria pessoa; vínculo repetido vira aviso) | — |
+| Metas | reservar horários na agenda para a meta ("reserva 3 manhãs por semana para a meta de corrida") e liberar | sim | `meta_agenda` (o servidor escolhe dias e horários pulando compromissos; cartão mostra os horários; cria no Google só depois do "sim"; **Desfazer** libera os blocos; liberar um bloco pela tela da meta). Reservar não conta como progresso | Claude Code e Cursor, 23/11 |
 | Metas | pausar, retomar, arquivar | sim | `meta_pausar`, `meta_retomar`, `meta_arquivar` (`PATCH /api/goals/:id` com `status`; arquivar não apaga nada e avisa que dá para restaurar em Metas) | — |
 | Metas | editar título, alvo (meta numérica) e prazo | sim | `meta_editar` | — |
 | Metas | apagar registro de progresso ("apaga o último registro da corrida") | sim | `meta_registro_apagar` (o mais recente, ou pelo valor e data; cartão com "sim"; não tem Desfazer), PR do Cursor de 23/11 | — |
