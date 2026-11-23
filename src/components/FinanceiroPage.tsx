@@ -14,7 +14,7 @@ import { showUndo } from "@/lib/undo";
 import { Icon, todayKey } from "./ui";
 
 type Payload = { enabled: boolean; config: Config; configSalva: boolean; itens: ItemComMes[]; gastos: Gasto[]; resumo: ResumoMensal; previsao: PrevisaoRecebimento | null };
-type Tab = "contas" | "dia" | "salario";
+type Tab = "contas" | "dia" | "tetos" | "salario";
 type Filtro = "todas" | "aberto" | "pagas";
 
 async function api(path: string, init?: RequestInit): Promise<{ ok: boolean; status: number; json: Record<string, unknown> }> {
@@ -81,13 +81,16 @@ export function FinanceiroPage() {
             <div className="seg" role="tablist" aria-label="Seções do Financeiro">
               <button role="tab" id="tab-contas" aria-selected={tab === "contas"} aria-controls="pn-contas" onClick={() => setTab("contas")}>Contas</button>
               <button role="tab" id="tab-dia" aria-selected={tab === "dia"} aria-controls="pn-dia" onClick={() => setTab("dia")}>Dia a dia</button>
+              <button role="tab" id="tab-tetos" aria-selected={tab === "tetos"} aria-controls="pn-tetos" onClick={() => setTab("tetos")}>Tetos e ano</button>
               <button role="tab" id="tab-salario" aria-selected={tab === "salario"} aria-controls="pn-salario" onClick={() => setTab("salario")}>Salário</button>
             </div>
             {tab === "contas"
               ? <div role="tabpanel" id="pn-contas" aria-labelledby="tab-contas" className="stack"><Contas data={data} ano={ano} mes={mes} run={run} /><ConfigPanel data={data} run={run} /></div>
               : tab === "dia"
                 ? <div role="tabpanel" id="pn-dia" aria-labelledby="tab-dia" className="stack"><DiaADia data={data} ano={ano} mes={mes} isAtual={isAtual} run={run} /></div>
-                : <div role="tabpanel" id="pn-salario" aria-labelledby="tab-salario"><SalarioSimulador config={data.config} itens={data.itens} ano={ano} mes={mes} run={run} /></div>}
+                : tab === "tetos"
+                  ? <div role="tabpanel" id="pn-tetos" aria-labelledby="tab-tetos" className="stack"><TetosAno ano={ano} mes={mes} versao={data} run={run} /></div>
+                  : <div role="tabpanel" id="pn-salario" aria-labelledby="tab-salario"><SalarioSimulador config={data.config} itens={data.itens} ano={ano} mes={mes} run={run} /></div>}
           </>
         )}
     </ModuleScreen>
@@ -427,5 +430,96 @@ function GastoEditor({ g, run, onClose }: { g: Gasto; run: Run; onClose: () => v
       </div>
       {confirma && <ConfirmCard danger icon="coin" title="Apagar este gasto?" detail="Dá para desfazer logo depois." confirmLabel="Apagar" onConfirm={async () => { if (await run(api(`/api/finance/gastos/${g.id}`, { method: "DELETE" }), "Gasto apagado.", () => api("/api/finance/gastos", { method: "POST", body: JSON.stringify({ ano: g.ano, mes: g.mes, dia: g.dia, valor: g.valor, categoria: g.categoria, descricao: g.descricao, meio: g.meio, origem: g.origem }) }))) onClose(); }} onCancel={() => setConfirma(false)} />}
     </form>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Tetos por categoria (mês aberto na tela) e totais do ano até hoje. Os números vêm prontos do servidor.
+type TetoSt = { id: string; categoria: string; valor: number; gasto: number; pct: number; resta: number; nivel: "ok" | "alerta" | "estourou" };
+type Acum = { ano: number; ateMes: number; total: number; qtd: number; porCategoria: { categoria: string; total: number; qtd: number }[]; porMes: { mes: number; nome: string; total: number }[] };
+const NIVEL_TXT = { ok: "Dentro do teto", alerta: "Passou de 80%", estourou: "Estourou" } as const;
+
+function TetosAno({ ano, mes, versao, run }: { ano: number; mes: number; versao: unknown; run: Run }) {
+  const [tetos, setTetos] = useState<TetoSt[] | null>(null);
+  const [acum, setAcum] = useState<Acum | null>(null);
+  const [falhou, setFalhou] = useState(false);
+  const [cat, setCat] = useState<string>(CATEGORIAS[0]);
+  const [valor, setValor] = useState("");
+  const [busy, setBusy] = useState(false);
+  const carregar = useCallback(async () => {
+    const [t, a] = await Promise.all([api(`/api/finance/tetos?ano=${ano}&mes=${mes}`), api(`/api/finance/ano?ano=${ano}`)]);
+    setFalhou(!t.ok || !a.ok);
+    setTetos(t.ok ? (t.json.tetos as TetoSt[]) : []);
+    setAcum(a.ok ? (a.json as unknown as Acum) : null);
+  }, [ano, mes]);
+  useEffect(() => { void carregar(); }, [carregar, versao]);
+
+  async function salvar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!valor.trim() || busy) return;
+    setBusy(true);
+    const antes = tetos?.find((t) => t.categoria === cat)?.valor ?? null;
+    const ok = await run(api("/api/finance/tetos", { method: "PUT", body: JSON.stringify({ categoria: cat, valor }) }), `Teto de ${cat} salvo.`,
+      () => (antes === null ? api(`/api/finance/tetos?categoria=${encodeURIComponent(cat)}`, { method: "DELETE" }) : api("/api/finance/tetos", { method: "PUT", body: JSON.stringify({ categoria: cat, valor: antes }) })));
+    setBusy(false);
+    if (ok) setValor("");
+  }
+  const tirar = (t: TetoSt) => run(api(`/api/finance/tetos?categoria=${encodeURIComponent(t.categoria)}`, { method: "DELETE" }), `Teto de ${t.categoria} removido.`,
+    () => api("/api/finance/tetos", { method: "PUT", body: JSON.stringify({ categoria: t.categoria, valor: t.valor }) }));
+  const maxCat = acum?.porCategoria[0]?.total ?? 0;
+
+  return (
+    <>
+      <Panel title={`Tetos de ${MESES[mes - 1]}`} icon="target">
+        {falhou && <p className="muted small" role="alert">{loadFailed("os tetos")}</p>}
+        {tetos === null ? <p className="muted">Carregando…</p> : tetos.length === 0
+          ? <EmptyState icon="target" title="Nenhum teto ainda" text="Escolha uma categoria e um valor por mês. O GaDu avisa aqui, no Hoje e na conversa quando passar de 80% e de 100%." phrase="Põe um teto de 800 para restaurante" />
+          : (
+            <div className="rows">
+              {tetos.map((t) => (
+                <div className={`fin-cat fin-teto ${t.nivel}`} key={t.id}>
+                  <div className="grow">
+                    <span>{t.categoria} <span className={`muted small fin-teto-n ${t.nivel}`}>· {NIVEL_TXT[t.nivel]} ({t.pct}%)</span></span>
+                    <div className="fin-bar cat" aria-hidden="true"><i style={{ width: `${Math.min(100, t.pct)}%` }} /></div>
+                    <span className="muted small">{formatBRL(t.gasto)} de {formatBRL(t.valor)} · {t.nivel === "estourou" ? `${formatBRL(t.gasto - t.valor)} acima` : `restam ${formatBRL(t.resta)}`}</span>
+                  </div>
+                  <button className="btn btn-sm" onClick={() => void tirar(t)} aria-label={`Tirar o teto de ${t.categoria}`}>Tirar</button>
+                </div>
+              ))}
+            </div>
+          )}
+        <form className="form-grid" onSubmit={salvar}>
+          <Field label="Categoria">
+            <select className="field" value={cat} onChange={(e) => setCat(e.target.value)}>{CATEGORIAS.map((c) => <option key={c}>{c}</option>)}</select>
+          </Field>
+          <Field label="Teto por mês (R$)">
+            <input className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="800" />
+          </Field>
+          <button className="btn btn-pri" type="submit" disabled={busy || !valor.trim()}>{tetos?.some((t) => t.categoria === cat) ? "Mudar teto" : "Salvar teto"}</button>
+        </form>
+      </Panel>
+
+      <Panel title={`${ano} até ${acum ? MESES[acum.ateMes - 1] : "agora"}`} icon="spark">
+        {!acum ? <p className="muted">{falhou ? loadFailed("o ano") : "Carregando…"}</p> : acum.qtd === 0
+          ? <p className="muted">Nenhum gasto do dia a dia lançado em {ano}.</p>
+          : (
+            <>
+              <p className="fin-big"><b>{formatBRL(acum.total)}</b> <span className="muted small">em {acum.qtd} gasto{acum.qtd === 1 ? "" : "s"} do dia a dia (contas fixas fora)</span></p>
+              <div className="rows">
+                {acum.porCategoria.map((c) => (
+                  <div className="fin-cat" key={c.categoria}>
+                    <div className="grow"><span>{c.categoria} <span className="muted small">· {c.qtd}</span></span><div className="fin-bar cat" aria-hidden="true"><i style={{ width: `${maxCat ? Math.round((c.total / maxCat) * 100) : 0}%` }} /></div></div>
+                    <span className="fin-num">{formatBRL(c.total)}</span>
+                  </div>
+                ))}
+              </div>
+              <details><summary>Por mês</summary>
+                <div className="rows">{acum.porMes.map((m) => <div className="fin-cat" key={m.mes}><span className="grow">{m.nome}</span><span className="fin-num">{formatBRL(m.total)}</span></div>)}</div>
+              </details>
+              <p className="muted small">Pergunte por voz: &quot;quanto gastei com mercado este ano?&quot;</p>
+            </>
+          )}
+      </Panel>
+    </>
   );
 }

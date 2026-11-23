@@ -60,6 +60,7 @@ export function TodayPage(props: {
   onAsk: (q: string) => void;
   onOpen: (view: ViewId) => void;
   goalsEnabled: boolean;
+  financeEnabled?: boolean;
 }) {
   const [today, setToday] = useState<Today | null>(null);
   const [rems, setRems] = useState<Reminder[] | null>(null);
@@ -174,7 +175,7 @@ export function TodayPage(props: {
         {showReview && <ReviewCard onDone={() => { props.onReviewDone(); setReview(false); setAttnKey((k) => k + 1); }} />}
 
         {/* (3) Uma lista só: tarefas, lembretes, compromissos, e-mails, metas e memórias, com Feito/Adiar no item. */}
-        <AttentionCard key={attnKey} busy={props.busy} onOpen={props.onOpen} onAsk={props.onAsk} goalsEnabled={props.goalsEnabled} pendingMemories={props.pendingMemories} onCount={setAttn} />
+        <AttentionCard key={attnKey} busy={props.busy} onOpen={props.onOpen} onAsk={props.onAsk} goalsEnabled={props.goalsEnabled} financeEnabled={props.financeEnabled} pendingMemories={props.pendingMemories} onCount={setAttn} />
 
         {/* Só 1 ação principal e até 2 secundárias à vista (UX-4): o resto fica em "Mais opções". */}
         <details className="more-opts">

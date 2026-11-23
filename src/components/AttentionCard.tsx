@@ -9,6 +9,8 @@ import { Icon } from "./ui";
 import { EmptyState, Panel } from "./kit";
 
 type Data = { enabled: boolean; items?: ActionItem[]; more?: number; unavailable?: { source: string; reason: string; text: string }[] };
+type TetoAviso = { id: string; categoria: string; valor: number; gasto: number; pct: number; nivel: "ok" | "alerta" | "estourou" };
+const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 type Goals = { ativas: number; atencao: { id: string; titulo: string; situacao: Situacao; pct: number; semDados: boolean; prazo: string | null }[] };
 
 const ORIGIN: Partial<Record<ViewId, string>> = { tarefas: "Tarefas", agenda: "Agenda", metas: "Metas", financeiro: "Financeiro", memoria: "Revisar" };
@@ -23,6 +25,8 @@ export function AttentionCard(props: {
   onOpen: (view: ViewId) => void;
   onAsk: (q: string) => void;
   goalsEnabled: boolean;
+  /** Financeiro ligado: mostra os tetos do mês que passaram de 80%. */
+  financeEnabled?: boolean;
   pendingMemories: number;
   /** Quantos itens pedem atenção (para a frase do topo). */
   onCount?: (n: number) => void;
@@ -50,9 +54,17 @@ export function AttentionCard(props: {
       .catch(() => setGoals(null));
   }, [props.goalsEnabled]);
 
+  const [tetos, setTetos] = useState<TetoAviso[]>([]);
+  useEffect(() => {
+    if (!props.financeEnabled) return;
+    fetch("/api/finance/tetos", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { tetos?: TetoAviso[] } | null) => setTetos(Array.isArray(j?.tetos) ? j.tetos.filter((t) => t.nivel !== "ok") : []))
+      .catch(() => setTetos([]));
+  }, [props.financeEnabled]);
   const items = (data?.items ?? []).filter((s) => !gone.has(s.tag));
   const goalRows = goals?.atencao ?? [];
-  const total = items.length + goalRows.length + (props.pendingMemories > 0 ? 1 : 0);
+  const total = items.length + goalRows.length + tetos.length + (props.pendingMemories > 0 ? 1 : 0);
   const onCount = props.onCount;
   useEffect(() => { if (data) onCount?.(total); }, [data, total, onCount]);
 
@@ -133,6 +145,16 @@ export function AttentionCard(props: {
                     <span className="s">Meta · {SITUACAO_LABEL[m.situacao]}{m.semDados ? " · sem registros" : ` · ${m.pct}%`}</span>
                   </div>
                   <div className="attn-acts"><button className="btn btn-sm" onClick={() => props.onOpen("metas")}>Metas</button></div>
+                </div>
+              ))}
+              {tetos.map((t) => (
+                <div className="row-i attn-i one" key={`t-${t.id}`}>
+                  <span className="rec-ico" aria-hidden="true"><Icon name="coin" size={20} /></span>
+                  <div className="grow">
+                    <span className="t wrap-t">{t.nivel === "estourou" ? `${t.categoria} estourou o teto do mês` : `${t.categoria} passou de 80% do teto`}</span>
+                    <span className="s">Financeiro · {brl(t.gasto)} de {brl(t.valor)} ({t.pct}%)</span>
+                  </div>
+                  <div className="attn-acts"><button className="btn btn-sm" onClick={() => props.onOpen("financeiro")}>Financeiro</button></div>
                 </div>
               ))}
               {props.pendingMemories > 0 && (

@@ -1,5 +1,6 @@
 // Servidor: transforma as ações propostas pelo modelo (src/lib/acoes.ts) em cartões, resolvendo os nomes para ids
 // SÓ entre os itens da própria pessoa (cliente da SESSÃO + filtro por user_id, além da RLS). Nada é gravado aqui.
+import { nomeCategoria } from "./finance/tetos.ts";
 import type { AcaoProposta } from "./acoes.ts";
 import { DESTINO_NOME, matchByName, norm } from "./acoes.ts";
 import type { ChatAction, GastoMudancas, TarefaMudancas } from "./chat-actions.ts";
@@ -360,6 +361,15 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           if (!p || blocked(p.titulo)) { misses.push(a.busca ? `Não achei a peça "${a.busca}" no 3D.` : "Você ainda não tem peças salvas no 3D."); break; }
           const quando = new Date(p.updated_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
           actions.push({ kind: "peca3d_abrir", id: p.id, titulo: p.titulo.slice(0, 120), quando });
+          break;
+        }
+        case "teto_definir": {
+          if (!opts.finance || blocked(a.categoria)) break;
+          const categoria = nomeCategoria(a.categoria);
+          const r = await db.from("fin_tetos").select("valor").eq("user_id", userId).eq("categoria", categoria).limit(1);
+          const atual = !r.error && Array.isArray(r.data) && r.data[0] ? Number((r.data[0] as { valor: unknown }).valor) : null;
+          if (a.valor === null && atual === null) { misses.push(`${categoria} não tem teto.`); break; }
+          actions.push({ kind: "teto", categoria, valor: a.valor, anterior: atual });
           break;
         }
         case "nova_conversa":
