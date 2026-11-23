@@ -160,3 +160,14 @@ test("salario_simular: valor e dependentes validados; 'salvar' só quando dito; 
   }
   assert.match(acoesRules(), /salario_simular/);
 });
+
+test("ajuste de velocidade e de voz: número no intervalo, relativo ou normal; nada fora disso", () => {
+  assert.deepEqual(validAcao({ tipo: "ajuste", opcao: "velocidade", valor: 1.23 }, NOW), { tipo: "ajuste", ajuste: { opcao: "velocidade", valor: 1.25 } });
+  assert.deepEqual(validAcao({ tipo: "ajuste", opcao: "velocidade", valor: "mais devagar" }, NOW), { tipo: "ajuste", ajuste: { opcao: "velocidade", valor: "mais_devagar" } });
+  assert.deepEqual(validAcao({ tipo: "ajuste", opcao: "velocidade", valor: "mais_rápido" }, NOW), { tipo: "ajuste", ajuste: { opcao: "velocidade", valor: "mais_rapido" } });
+  assert.deepEqual(validAcao({ tipo: "ajuste", opcao: "velocidade", valor: "normal" }, NOW), { tipo: "ajuste", ajuste: { opcao: "velocidade", valor: 1 } });
+  assert.equal(validAcao({ tipo: "ajuste", opcao: "velocidade", valor: 3 }, NOW), null);
+  assert.equal(validAcao({ tipo: "ajuste", opcao: "velocidade", valor: "voando" }, NOW), null);
+  assert.deepEqual(validAcao({ tipo: "ajuste", opcao: "voz_trocar", valor: "proxima" }, NOW), { tipo: "ajuste", ajuste: { opcao: "voz_trocar", valor: "proxima" } });
+  assert.equal(validAcao({ tipo: "ajuste", opcao: "voz_trocar", valor: "https://x" }, NOW), null);
+});

@@ -252,6 +252,8 @@ export function ajusteLabel(j: Ajuste): string {
     case "respostas_curtas": return `${liga(j.valor)} as respostas faladas curtas`;
     case "voz": return `${liga(j.valor)} a resposta falada`;
     case "tema": return `Tema ${j.valor === "light" ? "claro" : "escuro"}`;
+    case "velocidade": return j.valor === "mais_devagar" ? "Falar mais devagar" : j.valor === "mais_rapido" ? "Falar mais rápido" : `Velocidade da fala: ${j.valor.toFixed(2).replace(".", ",")}×`;
+    case "voz_trocar": return "Trocar para a próxima voz do aparelho";
   }
 }
 

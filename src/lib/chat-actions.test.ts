@@ -145,3 +145,10 @@ test("salário: cartão só de informação (sem botões) e cartão de salvar (c
   assert.match(actionQuestion({ kind: "salario", calc, salvar: null }, NOW), /líquido R\$ 6\.040,64/);
   assert.match(d({ kind: "salario", calc: calcularSalario(3000, 1)!, salvar: null }).detail, /IR R\$ 0,00 \(isento\)/);
 });
+
+test("pergunta falada dos ajustes de velocidade e voz", async () => {
+  const { actionQuestion } = await import("./chat-actions.ts");
+  assert.equal(actionQuestion({ kind: "ajuste", ajuste: { opcao: "velocidade", valor: "mais_devagar" } }, NOW), "Falar mais devagar?");
+  assert.equal(actionQuestion({ kind: "ajuste", ajuste: { opcao: "velocidade", valor: 1.2 } }, NOW), "Velocidade da fala: 1,20×?");
+  assert.equal(actionQuestion({ kind: "ajuste", ajuste: { opcao: "voz_trocar", valor: "proxima" } }, NOW), "Trocar para a próxima voz do aparelho?");
+});
