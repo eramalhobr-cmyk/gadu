@@ -316,7 +316,7 @@ describe("app com login", () => {
     for (const tab of ["tarefas", "metas", "agentes"]) {
       await d.goto(`${BASE}/app?tab=${tab}`);
       const txt = await d.waitForSelector("#painel", { timeout: 15000 }).then((el) => el.innerText()).catch(() => "");
-      if (tab !== "agentes") assert.ok(txt, `${tab}: tem painel`);
+      if (tab === "tarefas") assert.ok(txt, `${tab}: tem painel`); // metas e agentes só mostram painel quando existe algum registro
       assert.ok(!/NaN|undefined|Infinity/.test(txt), `${tab}: sem NaN/undefined no painel`);
     }
     assert.equal(chats, 0, "sem chamar o modelo");
