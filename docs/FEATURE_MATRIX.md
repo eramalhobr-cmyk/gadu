@@ -121,7 +121,10 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Arquitetura de módulos com status real | implementado | — | `src/lib/modules.ts`, `src/components/ModulePage.tsx` | PR #12; os módulos planejados só têm página de visão geral |
 | Navegação por módulos (menu lateral; barra de baixo e folha de módulos) | substituído (UX-1, PR #34) | — | `GaduApp.tsx` | PR #12 |
 | Hoje em 5 blocos (UX-2): "Falar com o GaDu", Agora, lista única "Merece sua atenção" (Core + metas + memórias) com Feito/Adiar e Desfazer, frases prontas, Ver tudo (lembretes abrem no lugar) | publicado (22/11/2026, PR #35) | — | `TodayPage.tsx`, `AttentionCard.tsx`, `src/lib/core/format.ts` (`toActionItem`), `src/app/api/attention/route.ts`, `src/app/ux.css` | validar Feito/Adiar com dados reais no aparelho |
-| Voz em um toque (UX-3, parte 1): tela de escuta em letra grande, envio sozinho em 3 s com Cancelar/Corrigir, conversa contínua na tela | publicado (22/11/2026, PR #36) | — | `ListenSheet.tsx`, `GaduApp.tsx`, `src/app/ux.css` | faltam confirmações faladas, respostas curtas e texto grande |
+| Voz em um toque (UX-3, parte 1): tela de escuta em letra grande, envio sozinho em 3 s com Cancelar/Corrigir, conversa contínua na tela | publicado (22/11/2026, PR #36) | — | `ListenSheet.tsx`, `GaduApp.tsx`, `src/app/ux.css` | validar no aparelho |
+| Texto grande (UX-3): Normal, Grande (115%) e Maior (130%) em Configurações, aplicado pelo servidor (cookie `gadu_texto`), corpo de 16 px | publicado (22/11/2026, PR #38) | — | `src/lib/text-size.ts`, `src/app/layout.tsx`, `SettingsPage.tsx` (`TextSizeCard`), fontes em `calc(Npx * var(--ts, 1))` nos CSS | conferir cortes de texto com "Maior" no aparelho |
+| Confirmações faladas (UX-3): o GaDu lê o que vai gravar e aceita "sim", "não" ou "muda para…"; tela com Sim/Não grandes; cartão único `ActionCard` | publicado (22/11/2026, PR #39; estado no app desde o PR #42) | — | `src/lib/voice-confirm.ts`, `ConfirmSheet.tsx`, `ActionCard.tsx`, `src/lib/chat-actions.ts`, `GaduApp.tsx` | validar reconhecimento do "sim" no Chrome Android e Samsung Internet |
+| Respostas faladas curtas (UX-3): fala cerca de 20 s e "O resto está na tela"; opção em Configurações; briefing fala inteiro | publicado (22/11/2026, PR #39) | — | `src/lib/speech.ts` (`maxChars`, `SHORT_REPLY`), `src/lib/prompt.ts` | — |
 | Passagem de bastão entre IAs (AGENTS.md, HANDOFF, modelo de PR) | publicado (22/11/2026, PR #33) | — | `AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF.md`, `.github/pull_request_template.md` | — |
 | Temas claro e escuro | implementado | — | `src/lib/theme.ts`, `src/app/v2.css`, `src/app/layout.tsx` | PR #12; contraste AA medido nos dois temas (PR #14) |
 | Painel Hoje, Conversa, Perfil e ajustes e home no desenho da v2 | implementado | — | `TodayPage.tsx`, `GaduApp.tsx`, `SettingsPage.tsx`, `src/app/page.tsx` | PR #12 |
@@ -139,3 +142,35 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Logo novo (três movimentos) | bloqueado | P1 | — | aguardando o arquivo; hoje marca em texto |
 | Acessibilidade (atalho de teclado, alvos de toque, foco) | implementado | — | `GaduApp.tsx`, `globals.css` | PR #10; alvos de 44 px e contraste AA auditados em 360 a 1920 px (PR #14) |
 | Validação do PWA na Streaming Box do carro | planejado | P3 | ROADMAP do PR #1 | — |
+
+## 11. Tudo por voz (matriz; princípio do Eduardo de 22/11/2026)
+Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, falando ou escrevendo. A IA só propõe; a pessoa confirma com um toque ou dizendo "sim". Regra em [AGENTS.md](../AGENTS.md), seção 8.1. Código: `src/lib/acoes.ts` (bloco `"acoes"`), `src/lib/acoes-resolver.ts`, `src/lib/chat-actions.ts`, `src/components/ActionCard.tsx`.
+
+| Módulo | Ação na tela | Pela conversa | Como | Lacuna / motivo |
+|---|---|---|---|---|
+| Tarefas | criar | sim | `"tarefas"` (cria na hora; cartão com Desfazer desde o PR #42) | — |
+| Tarefas | concluir | sim | `tarefa_concluir` | — |
+| Tarefas | adiar (mudar prazo) | sim | `tarefa_adiar` | — |
+| Tarefas | cancelar, reabrir, editar título ou prioridade, mudar de projeto | **não** | — | lacuna (próximo PR de "Tudo por voz") |
+| Lembretes | criar | sim | `"lembretes"` (cria na hora; cartão com Desfazer) | — |
+| Lembretes | cancelar | sim | `lembrete_cancelar` | — |
+| Lembretes | adiar | **não** | — | lacuna |
+| Agenda | criar evento | sim | `"eventos"` (proposta) | — |
+| Agenda | editar ou apagar evento | **não** | — | lacuna: não há rota de edição; exige permissão nova do Google |
+| Finanças | lançar gasto | sim | `"gastos"` (proposta) | — |
+| Finanças | marcar conta do mês como paga ("paguei a luz") | sim | `conta_paga` (com os vínculos de cartão e "segue") | — |
+| Finanças | desmarcar paga, mudar valor do mês, criar conta, editar ou apagar gasto, configurar salário | **não** | — | lacuna |
+| Metas | criar (número, percentual, marcos, tarefas) | sim | `meta_criar` | — |
+| Metas | registrar progresso, concluir | sim | `meta_registrar`, `meta_concluir` (pelo nome) e `"metas"` (pela etiqueta [M1]) | — |
+| Metas | adicionar marco, concluir marco | sim | `meta_marco`, `meta_marco_concluir` | — |
+| Metas | criar tarefa da meta | sim | `meta_tarefa` (cria e vincula) | — |
+| Metas | pausar, arquivar, editar alvo ou prazo, apagar registro | **não** | — | lacuna |
+| Projetos | criar | sim | `projeto_criar` | — |
+| Projetos | editar, arquivar | **não** | — | lacuna |
+| Memória | guardar um fato ("lembre que…") | sim | `"memorias"` (fica pendente para revisão) | — |
+| Memória | aprovar, recusar, esquecer | **não** | — | lacuna |
+| Agentes | criar, editar | **não** | — | lacuna |
+| Configurações | tamanho do texto, conversa contínua, respostas curtas, resposta falada, tema | sim | `ajuste` | — |
+| Configurações | voz e velocidade, termos bloqueados, limites de IA, notificações, conectar o Google | **não** | — | notificações e Google exigem um toque (regra do navegador e do OAuth); o resto é lacuna |
+| Conversa e navegação | nova conversa, abrir conversa anterior, "abre o Financeiro" | **não** | — | lacuna |
+| 3D | gerar e ajustar peça | pela tela 3D | — | frente do Claude Code, que adiciona as próprias ações |

@@ -19,7 +19,7 @@ Este é o caderno de passagem de bastão entre as IAs que programam o GaDu (Clau
 ## Em andamento (atualize ao começar e ao terminar)
 | Frente | IA | Branch | Situação |
 |---|---|---|---|
-| Ciclo UX (UX-1, UX-2, UX-3 parte 1) | Cursor (Grok Bot) | — | **concluído e publicado** em 22/11 às 19:54 (PRs #34, #35, #36). Próximo de UX: resto do UX-3 e UX-4 |
+| Ciclo UX (UX-1 a UX-3) e Tudo por voz | Cursor (Grok Bot) | — | **publicados** em 22/11 (PRs #34, #35, #36, #38, #39, #42). Próximo: lacunas da matriz "Tudo por voz" (FEATURE_MATRIX, seção 11) e UX-4 |
 | 3D-1 (conversa → OpenSCAD) | Claude Code | `feat/3d-1-openscad` (PR #40, integrado) | **publicado** em 22/11/2026 às 20:55 (Brasília), PR #40, merge `6d87a5f`, CI verde (verify, e2e-public, database), deploy de produção da Vercel concluído. No ar: `/api/3d/generate` sem sessão 401, `/vendor/openscad/render-worker.js` 200 com a CSP própria, e2e público contra a produção 10/10. `MODELING_3D_ENABLED` não definida na Vercel: o 3D está **desligado** em produção até o Eduardo ligar. Falta: revisão por outra IA, PR, ligar o interruptor e testar com a IA real |
 
 ## A revisar por outra IA
@@ -34,10 +34,24 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - [ ] **PR #34, UX-1 navegação** (Cursor/Grok Bot): microfone central (toque fala, segurar abre o painel), tela Mais, fim do menu sanfona, Configurações unificada (`?tab=perfil` e `?tab=integracoes` rolam até a parte certa). Conferir o Voltar do Android no aparelho.
 - [ ] **PR #35, UX-2 Hoje** (Cursor/Grok Bot): `toActionItem` em `src/lib/core/format.ts` (só `tasks`/`reminders` ganham `ref`); Feito/Adiar/Desfazer gravam pelo cliente com RLS em `AttentionCard.tsx`. Conferir com dados reais; "Virar tarefa" de e-mail saiu do Hoje.
 - [ ] **PR #36, UX-3 voz** (Cursor/Grok Bot): `ListenSheet.tsx` e a contagem de 3 s; `voiceSheetRef` no `onText` do reconhecedor em `GaduApp.tsx`. Conferir no Chrome Android e no Samsung Internet se o fim da fala dispara a contagem e se o microfone sempre fecha.
+- [ ] **PR #38, texto grande** (Cursor/Grok Bot): `src/lib/text-size.ts`, cookie `gadu_texto` lido em `src/app/layout.tsx`; todas as fontes em `calc(Npx * var(--ts, 1))`. Conferir no aparelho, com "Maior", se nada corta ou sobrepõe (barra de baixo, cartões, Financeiro).
+- [ ] **PR #39, confirmações faladas** (Cursor/Grok Bot): máquina de estados em `GaduApp.tsx` (`confirmQ`, `listenConfirm`, `answerConfirm`, ramos `confirmListenRef` no reconhecedor), `parseAnswer` em `src/lib/voice-confirm.ts` ("não, foi 60 reais" = mudar), `Speaker.maxChars`. Conferir no Chrome Android e no Samsung Internet se o microfone abre depois da pergunta e sempre fecha.
+- [ ] **PR #42, Tudo por voz** (Cursor/Grok Bot): (a) `src/lib/acoes-resolver.ts`: toda consulta com `.eq("user_id")` e cliente da sessão, `matchByName` devolve nada quando há empate; (b) `ActionCard.tsx` (`runAction`): `meta_tarefa` cancela a tarefa se o vínculo falhar; `conta_paga` usa `PUT /api/finance/itens/:id/mes`; (c) o estado dos cartões em `GaduApp` (`cards`, `cardOp`); (d) testar com a IA real se ela usa `acoes` nas frases comuns ("cria uma meta de…", "paguei a luz", "aumenta a letra").
 - [ ] **e2e com login** (`e2e/auth.e2e.cjs`): os testes novos de Mais, Hoje e tela de escuta foram escritos sem rodar (faltam credenciais de teste nesta máquina). Rodar com o usuário de teste e corrigir o que falhar.
 - [ ] **Validação com login no aparelho** de tudo o que foi publicado em 22/11 (pendência humana, com o Eduardo).
 
 ## Diário (mais recente no topo)
+
+### 22/11/2026 · 20:15–21:11 · Cursor (Grok Bot), resto do UX-3 e Tudo por voz
+- **Fez e publicou:**
+  - PR #38, texto grande (Normal, Grande 115%, Maior 130%), merge `ba3c6c5` às 20:43.
+  - PR #39, confirmações faladas (sim, não, muda para…) e respostas faladas curtas, merge `87ab3bf` às 20:59.
+  - PR #42, Tudo por voz: metas, marcos, tarefas da meta, concluir e adiar tarefa, cancelar lembrete, "paguei a luz", criar projeto e ajustes pela conversa, sempre com cartão e "sim" falado, merge `61334a1` às 21:11.
+  - Este PR de documentação: regra 8.1 no AGENTS.md, matriz "Tudo por voz" (FEATURE_MATRIX, seção 11), ROADMAP, CHANGELOG e PROJECT_STATUS.
+- **Evidências:** CI verde em todos os PRs (os de código refeitos sobre a `main` mais nova antes do merge); deploy Vercel `success` pelos status do GitHub; CSS novo conferido no ar; capturas em `/workspace/gadu-review/ux-after/` (09 a 16, máquina do agente).
+- **Paralelo com o Claude Code (3D):** não mexi em arquivos do 3D nem em `src/lib/modules.ts`. O 3D adiciona as próprias ações pela conversa seguindo a regra 8.1.
+- **Ficou pela metade:** as lacunas da matriz (cancelar, reabrir e editar tarefa; adiar lembrete; editar ou apagar gasto e evento; desmarcar conta; pausar e arquivar meta; memória; agentes; navegação por voz); e2e com login; teste no aparelho e com a IA real.
+- **Próximo passo:** revisar #38, #39 e #42 (lista acima), fechar as lacunas mais usadas (cancelar tarefa, adiar lembrete, apagar gasto, "abre o Financeiro") e começar o UX-4.
 
 ### 22/11/2026 · noite · Claude Code, 3D-1 (3D Studio Beta)
 - **Fez (local, 4 commits `feat(3d)` em `feat/3d-1-openscad`, sem push e sem PR):** o 3D-1 inteiro conforme [docs/FEATURE-3D.md](FEATURE-3D.md): rota `/api/3d/generate` (pipeline de custo do chat, fail closed), OpenSCAD WASM em Web Worker como componente GPL separado (`public/vendor/openscad/`), visualizador three.js, controles dos parâmetros, verificações da A1, STL e 3MF, interruptor `MODELING_3D_ENABLED` (desligado por padrão; entrada "3D" Beta no Mais; `/app/3d` e `/api/3d/*` 404 desligado), CSP própria só para o worker (páginas inalteradas). Sem migração.
