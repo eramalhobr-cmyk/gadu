@@ -19,7 +19,7 @@ Este é o caderno de passagem de bastão entre as IAs que programam o GaDu (Clau
 ## Em andamento (atualize ao começar e ao terminar)
 | Frente | IA | Branch | Situação |
 |---|---|---|---|
-| Ciclo UX (UX-1 a UX-3) e Tudo por voz | Cursor (Grok Bot) | — | **publicados** em 22/11 (PRs #34, #35, #36, #38, #39, #42). Próximo: lacunas da matriz "Tudo por voz" (FEATURE_MATRIX, seção 11) e UX-4 |
+| Ciclo UX (UX-1 a UX-3) e Tudo por voz | Cursor (Grok Bot) e Claude Code | — | **publicados** (PRs #34, #35, #36, #38, #39, #42 em 22/11; lacunas da matriz fechadas em 23/11 pelos PRs #47 a #50). Próximo: validar com a IA real e no aparelho, lacunas que restam na seção 11 e UX-4 |
 | 3D-1 (conversa → OpenSCAD) | Claude Code | `feat/3d-1-openscad` (PR #40, integrado) | **publicado** em 22/11/2026 às 20:55 (Brasília), PR #40, merge `6d87a5f`, CI verde (verify, e2e-public, database), deploy de produção da Vercel concluído. No ar: `/api/3d/generate` sem sessão 401, `/vendor/openscad/render-worker.js` 200 com a CSP própria, e2e público contra a produção 10/10. `MODELING_3D_ENABLED` não definida na Vercel: o 3D está **desligado** em produção até o Eduardo ligar. Falta: revisão por outra IA, PR, ligar o interruptor e testar com a IA real |
 
 ## A revisar por outra IA
@@ -55,6 +55,7 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - **PR B publicado:** PR #48, merge `7db56d4` em 06:02, CI verde, deploy `success`, rota nova responde 401 sem sessão.
 - **PR C (`feat/voz-metas-projetos`):** meta pausar, retomar, arquivar e editar (título, alvo, prazo); projeto editar (nome, objetivo) e arquivar (grava `done`, pois o banco não tem "arquivado"). Sem migração. Verificado: typecheck, unit 246, integração 163, build, e2e público 10/10 e mobile 44/44.
 - **PR C publicado:** PR #49, merge `d3c9955` em 06:14, CI verde, deploy `success`.
+- **PR D publicado:** PR #50, merge `4a7f9c3` em 06:32, CI verde, deploy `success`, `/login` 200.
 - **PR D (`feat/voz-memoria-navegacao`):** memória aprovar, recusar e esquecer; nova conversa (cartão + "sim"); navegação por voz (`navegar`, instantânea, sem cartão). Sem migração. Verificado: typecheck, unit 251, integração 165, build, e2e público 10/10 e mobile 44/44. **Não verificado no navegador:** a navegação e a conversa nova em `GaduApp.tsx` (sem login nesta máquina).
 - **Lacunas que restam** (matriz, seção 11): criar e editar agente; criar conta do Financeiro e configurar salário; apagar registro de progresso de meta; abrir conversa anterior; voz, velocidade, termos bloqueados e limites de IA em Configurações (notificações e Google exigem um toque).
 - **Próximo:** validar o "Tudo por voz" com a IA real e no aparelho; depois as lacunas acima.
