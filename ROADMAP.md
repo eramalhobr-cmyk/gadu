@@ -431,13 +431,13 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa. A
 - [x] Memória (aprovar, recusar, esquecer), nova conversa e navegação por voz ("abre o Financeiro") (PR D #50, publicado em 23/11/2026 às 06:32)
 - [ ] Lacunas que restam (docs/FEATURE_MATRIX.md, seção 11): criar e editar agente; criar conta do Financeiro e configurar salário; apagar registro de progresso de meta; abrir conversa anterior; voz, velocidade, termos bloqueados e limites de IA em Configurações
 
-### UX-4 · Acessibilidade para quem não é digital (P1) · começado em 22/11/2026 pelo Cursor (Grok Bot)
-- [x] Linguagem simples: sem "Beta", "Planejado", "Plataforma", "Core", "via modelo" e etiquetas [T1] na tela principal (as etiquetas ficam em "Fontes"; o modelo, no título da bolha). Entrega: PR A `feat/ux4-linguagem` (23/11/2026). Fora: o selo "Beta" do 3D, que é da frente 3D
+### UX-4 · Acessibilidade para quem não é digital (P1) · começado em 22/11/2026 pelo Cursor (Grok Bot) e **fechado em 23/11/2026 pelo Claude Code (PRs #52 a #55)**; falta validar no aparelho (UX-6)
+- [x] Linguagem simples: sem "Beta", "Planejado", "Plataforma", "Core", "via modelo" e etiquetas [T1] na tela principal (as etiquetas ficam em "Fontes"; o modelo, no título da bolha). Entrega: PR #52 (23/11/2026, 06:57). Fora: o selo "Beta" do 3D, que é da frente 3D
 - [x] Alvos de toque de pelo menos 48 px no celular e em telas de toque (PR #44; a base era 44 px)
-- [x] Menos escolhas por tela: 1 ação principal e no máximo 2 secundárias (Hoje: "Mais opções" recolhido; PR A `feat/ux4-linguagem`)
-- [x] **Primeiro uso guiado** em 3 passos, falado: nome, testar microfone e voz, conectar o Google (no lugar das dicas soltas por tela) (PR D `feat/ux4-primeiro-uso`, 23/11/2026: pode ser pulado; Voltar do Android fecha; refeito em Configurações e por voz, "me mostra o guia de novo"; preferência em `profiles.settings.onboarding`, sem migração)
-- [x] **Desfazer** em toda ação que grava (concluir, adiar, apagar, marcar pago): aviso "Feito · Desfazer" por alguns segundos (PR B `feat/ux4-desfazer`, 23/11/2026: componente único `UndoToast` + `src/lib/undo.ts`; "desfaz" falado ou escrito; apagar memória, gasto e evento pela conversa não tem Desfazer)
-- [x] Erros claros com o que fazer agora ("Sem internet. Sua mensagem ficou guardada. Tentar de novo"), falados quando a pessoa estiver usando voz (PR C `feat/ux4-erros`, 23/11/2026: catálogo em `src/lib/errors.ts` com testes; botão "Tentar de novo" na conversa e nos cartões; "tenta de novo" falado)
+- [x] Menos escolhas por tela: 1 ação principal e no máximo 2 secundárias (Hoje: "Mais opções" recolhido; PR #52)
+- [x] **Primeiro uso guiado** em 3 passos, falado: nome, testar microfone e voz, conectar o Google (no lugar das dicas soltas por tela) (PR #55, 23/11/2026, 07:29: pode ser pulado; Voltar do Android fecha; refeito em Configurações e por voz, "me mostra o guia de novo"; preferência em `profiles.settings.onboarding`, sem migração)
+- [x] **Desfazer** em toda ação que grava (concluir, adiar, apagar, marcar pago): aviso "Feito · Desfazer" por alguns segundos (PR #53, 23/11/2026, 07:09: componente único `UndoToast` + `src/lib/undo.ts`; "desfaz" falado ou escrito; apagar memória, gasto e evento pela conversa não tem Desfazer)
+- [x] Erros claros com o que fazer agora ("Sem internet. Sua mensagem ficou guardada. Tentar de novo"), falados quando a pessoa estiver usando voz (PR #54, 23/11/2026, 07:18: catálogo em `src/lib/errors.ts` com testes; botão "Tentar de novo" na conversa e nos cartões; "tenta de novo" falado)
 
 ### UX-5 · Consistência entre módulos (P1)
 - [ ] Um padrão de tela de módulo: título e uma frase, ação principal ("Falar" ou "Adicionar"), lista, estado vazio com um exemplo de frase para falar
