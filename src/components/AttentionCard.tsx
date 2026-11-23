@@ -48,6 +48,12 @@ export function AttentionCard(props: {
     } catch { setFailed(true); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // App aberto em segundo plano: ao voltar para ele, refaz a lista (regra nova ou memória aprovada em outro lugar vale na hora).
+  useEffect(() => {
+    const v = () => { if (document.visibilityState === "visible") void load(); };
+    document.addEventListener("visibilitychange", v);
+    return () => document.removeEventListener("visibilitychange", v);
+  }, [load]);
   useEffect(() => {
     if (!props.goalsEnabled) return;
     fetch("/api/goals/resumo", { cache: "no-store" })
