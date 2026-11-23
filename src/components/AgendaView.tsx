@@ -74,7 +74,7 @@ export function AgendaView({ onBack }: { onBack: () => void }) {
   return (
     <main className="page" id="conteudo"><div className="wrap agenda-v">
       <button className="back" onClick={onBack}><Icon name="chevron" size={16} />Hoje</button>
-      <PageHeader eyebrow="Pessoal" title="Agenda" text={connected ? `${month} · sua semana no Google Agenda.` : "Sua semana do Google Agenda, dentro do GaDu."}
+      <PageHeader title="Agenda" text={connected ? `${month} · sua semana no Google Agenda.` : "Sua semana do Google Agenda, dentro do GaDu."}
         actions={connected && <>
           {week !== monday(today) && <button className="btn" onClick={() => setSel(today)}>Esta semana</button>}
           <button className="btn btn-pri" onClick={() => setForm({ date: sel, time: "09:00" })}><Icon name="plus" size={18} />Novo evento</button>

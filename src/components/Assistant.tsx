@@ -1,4 +1,5 @@
 "use client";
+import { stripSourceTags } from "@/lib/speech";
 import { useEffect, useRef, useState } from "react";
 import type { FaceMode } from "./robot-engine";
 import { ActionCard, type CardState } from "./ActionCard";
@@ -103,7 +104,7 @@ export function Assistant(props: {
         </span>
         <div className="t">
           <b>GaDu {state && <span className={`assist-state ${props.mode === "thinking" ? "hot" : ""}`} role="status">· {state}</span>}</b>
-          <small title="Contexto da tela (Beta): o GaDu sabe em que tela você está, mas pode falar de qualquer assunto">Em {contextLabel(props.context)}</small>
+          <small title="O GaDu sabe em que tela você está, mas pode falar de qualquer assunto">Em {contextLabel(props.context)}</small>
         </div>
         <button className="icon-btn desk-only" onClick={props.onNew} aria-label="Nova conversa" title="Nova conversa"><Icon name="plus" /></button>
         <button className="icon-btn" onClick={props.onOpenConversation} aria-label="Abrir a conversa completa" title="Abrir a conversa completa"><Icon name="full" /></button>
@@ -133,7 +134,7 @@ export function Assistant(props: {
               {m.content}
               {m.link && <div style={{ marginTop: 8 }}><a className="btn btn-sm" href={m.link.href} target="_blank" rel="noopener noreferrer">{m.link.label}</a></div>}
             </div>
-          ) : <div key={m.id} className="bub b"><span className="via">GaDu{m.via ? ` · via ${m.via}` : ""}</span>{m.content || "…"}{m.sources && <SourcesDetail data={m.sources} onOpen={props.onOpenView} />}</div>,
+          ) : <div key={m.id} className="bub b"><span className="via" title={m.via ? `Modelo: ${m.via}` : undefined}>GaDu</span>{m.content ? stripSourceTags(m.content) : "…"}{m.sources && <SourcesDetail data={m.sources} onOpen={props.onOpenView} />}</div>,
         )}
       </div>
 

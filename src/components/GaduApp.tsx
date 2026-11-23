@@ -10,7 +10,7 @@ import { GIVE_UP_LINE, parseAnswer, resultLine, RETRY_LINE } from "@/lib/voice-c
 import { SourcesDetail, type SourcesData } from "./SourcesDetail";
 import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
-import { canListen, canSpeak, createRecognizer, SHORT_REPLY, Speaker } from "@/lib/speech";
+import { canListen, canSpeak, createRecognizer, SHORT_REPLY, Speaker, stripSourceTags } from "@/lib/speech";
 import { chatErrorMessage, micErrorMessage } from "@/lib/errors";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { ConversationsDrawer } from "./ConversationsDrawer";
@@ -873,7 +873,7 @@ export function GaduApp(props: {
                       {m.content}
                       {m.link && <div style={{ marginTop: 8 }}><a className="btn btn-sm" href={m.link.href} target="_blank" rel="noopener noreferrer">{m.link.label}</a></div>}
                     </div>
-                  ) : <div key={m.id} className="bub b"><span className="via">GaDu{m.via ? ` · via ${m.via}` : ""}</span>{m.content || "…"}{m.sources && <SourcesDetail data={m.sources} onOpen={setTab} />}</div>,
+                  ) : <div key={m.id} className="bub b"><span className="via" title={m.via ? `Modelo: ${m.via}` : undefined}>GaDu</span>{m.content ? stripSourceTags(m.content) : "…"}{m.sources && <SourcesDetail data={m.sources} onOpen={setTab} />}</div>,
                 )}
               </div>
               <form className="chat-form" onSubmit={(e) => { e.preventDefault(); void send(draft); }}>

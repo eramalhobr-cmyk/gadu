@@ -74,7 +74,7 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
   return (
     <main className="page" id="conteudo">
       <div className="wrap">
-        <PageHeader eyebrow="Pessoal" title="Memórias" text="A memória é do GaDu, não das IAs. Tudo entra como pendente e só vale depois que você aprova." />
+        <PageHeader title="Memórias" text="A memória é do GaDu, não das IAs. Tudo entra como pendente e só vale depois que você aprova." />
         <div className="search">
           <Icon name="spark" size={18} />
           <label className="sr" htmlFor="mem-q">Buscar na memória</label>

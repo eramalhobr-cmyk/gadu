@@ -53,7 +53,7 @@ export function FinanceiroPage(props: { onAsk: (q: string) => void }) {
   return (
     <main className="page" id="conteudo">
       <div className="wrap stack">
-        <PageHeader eyebrow="Beta" title="Financeiro" text="Contas do mês e gastos do dia a dia. Pergunte ao GaDu ou lance por aqui."
+        <PageHeader title="Financeiro" text="Contas do mês e gastos do dia a dia. Pergunte ao GaDu ou lance por aqui."
           actions={<button className="btn btn-sm" onClick={() => props.onAsk("Quanto gastei este mês?")}><Icon name="spark" size={16} />Perguntar ao GaDu</button>} />
 
         <nav className="fin-month" aria-label="Mês">

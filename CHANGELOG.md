@@ -7,6 +7,12 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · UX-4, PR A: linguagem simples e menos escolhas · **desenvolvido e testado** (branch `feat/ux4-linguagem`)
+- **Feito por:** Claude Code.
+- **Mudou:** sem rótulos "Beta", "Pessoal", "Agent Office" e "Plataforma" no cabeçalho de Metas, Financeiro, Tarefas, Projetos, Agenda, Memória, Agentes e Administração; a bolha do GaDu mostra só "GaDu" (o modelo vai para o título) e esconde as etiquetas [T1]/[M1] do texto (continuam em "Fontes"); a dica da Conversa não diz mais "Beta"; Hoje fica com 1 ação principal ("Falar com o GaDu") e 1 secundária ("Começar o dia"), e "Peça com um toque" e "Ver tudo" passam para "Mais opções" (recolhido); o botão repetido "Perguntar ao GaDu" saiu da lista de atenção; a versão do app fica em "Detalhes" em Configurações; texto de custo sem "tokens". Só interface, sem ação nova pela conversa (nada grava) e sem migração.
+- **Fora:** o selo "Beta" da entrada do 3D em Mais (frente 3D, desligada em produção).
+- **Evidência:** typecheck; unit 251/251; integração 168/168 (`test/linguagem.test.ts` novo); build; e2e público 10/10 e mobile 44/44; capturas a 412 × 915 em `/workspace/gadu-review/ux-after/20` a `25`.
+
 ## 2026-11-23 · Tudo por voz, PR D: memória, nova conversa e navegação · **publicado** (PR #50, merge `4a7f9c3`, 06:32)
 - **Feito por:** Claude Code.
 - **Novo pela conversa:** `memoria_aprovar` (uma ou todas as pendentes), `memoria_recusar` e `memoria_esquecer` (cartão + "sim"; apagar avisa que não dá para desfazer; só acham memórias da própria pessoa e do estado certo), `nova_conversa` (cartão + "sim") e `navegar` ("abre o Financeiro", "vai para Metas", "mostra minhas tarefas": abre a tela **na hora, sem cartão e sem gravar**; Financeiro e Metas desligados pelos interruptores não abrem; Admin e telas em desenvolvimento não abrem pela conversa). O app separa a navegação dos cartões em `splitNavegacao` (`src/lib/chat-actions.ts`) e trata `nova_conversa` e a atualização do contador de memórias em `cardOp` (`GaduApp.tsx`).

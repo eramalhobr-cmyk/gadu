@@ -432,9 +432,9 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa. A
 - [ ] Lacunas que restam (docs/FEATURE_MATRIX.md, seção 11): criar e editar agente; criar conta do Financeiro e configurar salário; apagar registro de progresso de meta; abrir conversa anterior; voz, velocidade, termos bloqueados e limites de IA em Configurações
 
 ### UX-4 · Acessibilidade para quem não é digital (P1) · começado em 22/11/2026 pelo Cursor (Grok Bot)
-- [ ] Linguagem simples: sem "Beta", "Planejado", "Plataforma", "Core", "via modelo" e etiquetas [T1] na tela principal (ficam em "Detalhes")
+- [x] Linguagem simples: sem "Beta", "Planejado", "Plataforma", "Core", "via modelo" e etiquetas [T1] na tela principal (as etiquetas ficam em "Fontes"; o modelo, no título da bolha). Entrega: PR A `feat/ux4-linguagem` (23/11/2026). Fora: o selo "Beta" do 3D, que é da frente 3D
 - [x] Alvos de toque de pelo menos 48 px no celular e em telas de toque (PR #44; a base era 44 px)
-- [ ] Menos escolhas por tela: 1 ação principal e no máximo 2 secundárias
+- [x] Menos escolhas por tela: 1 ação principal e no máximo 2 secundárias (Hoje: "Mais opções" recolhido; PR A `feat/ux4-linguagem`)
 - [ ] **Primeiro uso guiado** em 3 passos, falado: nome, testar microfone e voz, conectar o Google (no lugar das dicas soltas por tela)
 - [ ] **Desfazer** em toda ação que grava (concluir, adiar, apagar, marcar pago): aviso "Feito · Desfazer" por alguns segundos
 - [ ] Erros claros com o que fazer agora ("Sem internet. Sua mensagem ficou guardada. Tentar de novo"), falados quando a pessoa estiver usando voz
