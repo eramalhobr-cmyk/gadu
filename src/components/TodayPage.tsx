@@ -7,6 +7,7 @@ import { Avatar } from "./RobotFace";
 import { Icon, todayKey } from "./ui";
 import { EmptyState, Panel } from "./kit";
 import { Kpi, KpiRow } from "./charts";
+import { EVENTO_FALAR, falaHoje } from "@/lib/painel-fala";
 import { formatBRLRound } from "@/lib/finance/money";
 import { AttentionCard } from "./AttentionCard";
 import { PercepcoesCard } from "./PercepcoesCard";
@@ -169,6 +170,8 @@ export function TodayPage(props: {
   const showReview = props.review || review;
   const later = laterToday(events, rems ?? [], now, nextEv?.start);
   const pct = doneToday === null || openTasks === null ? null : dayProgress(doneToday, openTasks);
+  const falaDia = falaHoje({ compromissos: today?.connected ? upcoming.length : null, atencao: attn, abertas: openTasks, feitas: doneToday,
+    gasto: gastoMes ? { pago: formatBRLRound(gastoMes.pago), previsto: gastoMes.previsto > 0 ? formatBRLRound(gastoMes.previsto) : null } : null });
 
   return (
     <main className="page" id="conteudo">
@@ -244,8 +247,11 @@ export function TodayPage(props: {
         </section>
 
         {/* Faixa 3 · Progresso: tarefas feitas hoje e metas que pedem atenção. */}
-        <section className="band band-prog" id="painel" aria-labelledby="band-prog">
-          <h2 id="band-prog" className="band-t"><i aria-hidden="true" />Progresso</h2>
+        <section className="band band-prog" id="painel" aria-labelledby="band-prog" data-falar={falaDia}>
+          <div className="pnl-hd">
+            <h2 id="band-prog" className="band-t"><i aria-hidden="true" />Progresso</h2>
+            {falaDia && <button type="button" className="pnl-ouvir" aria-label="Ouvir: resumo do dia" onClick={() => window.dispatchEvent(new CustomEvent(EVENTO_FALAR, { detail: falaDia }))}><Icon name="som" size={16} />Ouvir</button>}
+          </div>
           {/* Resumo do dia em números (tema JARVIS): só contagens reais; "–" enquanto carrega ou sem fonte. */}
           <KpiRow label="Resumo do dia">
             <Kpi label="Compromissos" value={today?.connected ? upcoming.length : "–"} sub={today?.connected ? "ainda hoje" : "agenda não conectada"} />

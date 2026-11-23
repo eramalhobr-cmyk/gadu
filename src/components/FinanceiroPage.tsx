@@ -8,7 +8,8 @@ import type { PrevisaoRecebimento } from "@/lib/finance/previsao";
 import type { ResumoMensal } from "@/lib/finance/summary";
 import { CATEGORIAS, GRUPOS, MEIOS, MEIO_LABEL, MESES, type Config, type Gasto, type Meio } from "@/lib/finance/types";
 import { ConfirmCard } from "./ConfirmCard";
-import { Bars, Kpi, KpiRow, Meter, Ring } from "./charts";
+import { Bars, Kpi, KpiRow, Meter, PainelHead, Ring, Spark } from "./charts";
+import { falaFinancas } from "@/lib/painel-fala";
 import { pctDe } from "@/lib/painel";
 import { SalarioSimulador } from "./SalarioSimulador";
 import { EmptyState, Field, ModuleScreen, Panel, PrimaryAction } from "./kit";
@@ -546,13 +547,17 @@ function FinPainel({ ano, mes, versao, resumo, onTetos }: { ano: number; mes: nu
   const destaque = meses.findIndex((_, i) => (acum?.porMes[i]?.mes ?? 0) === mes);
   const topo = [...(tetos ?? [])].sort((a, b) => b.pct - a.pct).slice(0, 4);
   const acima = (tetos ?? []).filter((t) => t.nivel !== "ok").length;
+  const fala = acum === null && tetos === null ? "" : falaFinancas({ mes: MESES[mes - 1].toLowerCase(), ano, contas: { qtd: resumo.contas.qtd, pagas: resumo.contas.qtdPagas, aberto: formatBRLRound(resumo.contas.aberto) },
+    anoTotal: acum && acum.qtd > 0 ? formatBRLRound(acum.total) : null, media: acum && acum.qtd > 0 ? formatBRLRound(acum.total / Math.max(1, acum.ateMes)) : null, tetos: (tetos ?? []).map((t) => ({ categoria: t.categoria, pct: t.pct })) });
   return (
-    <section className="pnl" id="painel" aria-labelledby="painel-fin">
-      <h2 className="pnl-h" id="painel-fin">Resumo de {MESES[mes - 1]} <small>Diga: “mostra meu resumo de finanças”</small></h2>
+    <section className="pnl" id="painel" aria-labelledby="painel-fin" data-falar={fala}>
+      <PainelHead id="painel-fin" title={`Resumo de ${MESES[mes - 1]}`} dica="Diga: “mostra meu resumo de finanças”" fala={fala} />
       <div className="pnl-grid">
         <div className="hud-frame pnl-box">
           <KpiRow label="Indicadores do mês">
-            <Kpi label="Dia a dia no ano" value={acum ? formatBRLRound(acum.total) : "–"} sub={acum && acum.qtd > 0 ? `média ${formatBRLRound(acum.total / Math.max(1, acum.ateMes))}/mês` : "nenhum gasto lançado"} />
+            <Kpi label="Dia a dia no ano" value={acum ? formatBRLRound(acum.total) : "–"} sub={acum && acum.qtd > 0 ? `média ${formatBRLRound(acum.total / Math.max(1, acum.ateMes))}/mês` : "nenhum gasto lançado"}>
+              {acum && acum.qtd > 0 && <Spark values={acum.porMes.map((m) => m.total)} label={`Tendência do dia a dia em ${ano}`} />}
+            </Kpi>
             <Kpi label="Tetos" value={tetos === null ? "–" : tetos.length === 0 ? "0" : `${acima}/${tetos.length}`} sub={tetos && tetos.length ? "acima de 80%" : "nenhum teto definido"} tone={acima > 0 ? "hot" : undefined} />
           </KpiRow>
           <div className="pnl-ring-row">

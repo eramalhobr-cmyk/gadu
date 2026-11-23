@@ -6,7 +6,8 @@ import { GoalChip, useGoalLinks } from "./links";
 import { BackButton, EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
 import { ConfirmCard } from "./ConfirmCard";
 import { TasksPanel } from "./TasksPanel";
-import { Bars, Kpi, KpiRow, Ring, Stack } from "./charts";
+import { Bars, Kpi, KpiRow, PainelHead, Ring, Stack } from "./charts";
+import { falaTarefas } from "@/lib/painel-fala";
 import { pctDe, resumoTarefas } from "@/lib/painel";
 import { todayKey } from "./ui";
 import { COLORS, colorVar, Icon } from "./ui";
@@ -236,8 +237,8 @@ function TarefasPainel({ versao }: { versao: unknown }) {
   }, [versao]);
   const hojePct = r ? pctDe(r.feitasHoje, r.feitasHoje + r.paraHoje) : null;
   return (
-    <section className="pnl" id="painel" aria-labelledby="painel-tarefas">
-      <h2 className="pnl-h" id="painel-tarefas">Resumo das tarefas <small>Diga: “mostra o resumo das tarefas”</small></h2>
+    <section className="pnl" id="painel" aria-labelledby="painel-tarefas" data-falar={r ? falaTarefas(r) : ""}>
+      <PainelHead id="painel-tarefas" title="Resumo das tarefas" dica="Diga: “mostra o resumo das tarefas”" fala={r ? falaTarefas(r) : ""} />
       <div className="pnl-grid">
         <div className="hud-frame pnl-box">
           <KpiRow label="Tarefas em números">

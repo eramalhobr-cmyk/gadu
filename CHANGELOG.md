@@ -9,6 +9,12 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · UX-7 M4 · Resumo falado dos painéis · desenvolvido e testado
+- **Feito por:** Cursor (Grok Bot). Cada painel (Hoje, Finanças, Metas, Tarefas, Agentes) tem o botão **Ouvir** (44 px), que fala em uma ou duas frases o que o gráfico mostra, só com os números reais (`src/lib/painel-fala.ts`). Funciona mesmo com a voz das respostas desligada, porque foi pedido no toque. Finanças ganhou a linha de tendência do dia a dia no ano.
+- **Voz (sem modelo, sem custo):** "lê o resumo" / "me fala o resumo" lê o painel da tela atual (sem painel, avisa e sugere a frase); "mostra meu resumo de finanças" por voz agora abre, rola e **fala os números** quando eles chegam (até 3 s; senão só confirma).
+- **Evidências (máquina local):** typecheck; `painel-fala.test.ts` (frases com e sem dados, "lê o resumo" sem sequestrar outros pedidos); build; e2e com login novo "resumo falado dos painéis (M4)" (Ouvir fala o resumo, 44 px, sem chamar o modelo). Capturas em `/workspace/gadu-review/m4/`.
+- **Ícone:** `som` desenhado no próprio `ui.tsx` (traço, sem pacote novo).
+
 ## 2026-11-23 · Plano do Spotify (tocar o Update Diário do dia) · só documentação
 - **Feito por:** Cursor (Grok Bot). `docs/PLANO-SPOTIFY.md` com as regras de 2026 do Spotify (Development Mode, Premium, allowlist de 5, PKCE, redirect HTTPS), Connect × Web Playback SDK no Galaxy S26 Ultra, link como reserva, segurança dos tokens, comandos de voz, esforço e riscos. Nada implementado.
 

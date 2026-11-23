@@ -58,4 +58,12 @@
 .bars.dense .bar-v { display: none; }
 .bars-g { overflow: hidden; }
 .band-prog .gkpi-row { grid-template-columns: 1fr 1fr; }
+/* M4: cabeçalho do painel com "Ouvir" (resumo falado). */
+.pnl-hd { display: flex; align-items: center; gap: var(--s-2); }
+.pnl-hd .pnl-h { flex: 1; min-width: 0; flex-wrap: wrap; }
+.pnl-ouvir { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid rgb(var(--hud-rgb) / 0.4); background: rgb(var(--hud-rgb) / 0.08); color: var(--hud); font: 600 var(--fs-sm) var(--mono); cursor: pointer; }
+.pnl-ouvir:hover { background: rgb(var(--hud-rgb) / 0.16); }
+.pnl-ouvir:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
+
 .band-prog .gkpi-row > :nth-child(5) { grid-column: 1 / -1; }
+.pnl-hd .band-t { flex: 1; min-width: 0; }
