@@ -66,7 +66,7 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
-### 23/11/2026 14:40 · Cursor (Grok Bot), agentes com ferramentas e teto (fila, item 2)
+### 23/11/2026 14:20 · Cursor (Grok Bot), agentes com ferramentas e teto (fila, item 2)
 - Migração `agentes_ferramentas_teto` (PR #91): merge às 14:15, **aplicada** via MCP às 14:16 (versão `20261123171612`) e conferida (RLS, só leitura da dona em `agent_uso`, função só do servidor). `agent_uso` não tem escrita pelo cliente, então não precisa das restritivas S-05.
 - App: teto do agente antes de `reserveBudget` (`limitesDoAgente` no `/api/chat`), gating de contexto e de ações por ferramenta, `server_add_agent_usage` depois da liquidação; tela Agentes e voz `agente_editar` (`liberar`, `bloquear`, `teto`).
 - **Decisão a registrar:** o teto do agente é mole (pode passar um pouco com mensagens simultâneas). "Atenção hoje" só entra para agente com agenda, e-mail, tarefas e lembretes.
