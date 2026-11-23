@@ -191,3 +191,49 @@ test("evento editar e apagar: acha na agenda, mantém a duração, recusa dia in
   const bloqueado = await resolveAcoes(db3, U, [{ tipo: "evento_editar", evento: "dentista", titulo: "Reunião Acme", inicio: null, fim: null, local: null }], { goals: true, finance: true, now: NOW, calendar, blocked: (t) => /acme/i.test(t) });
   assert.deepEqual(bloqueado.actions, []);
 });
+
+const db4 = fakeDb({
+  goals: [
+    { id: "g1", titulo: "Correr 50 km em novembro", medicao: "numerica", unidade: "km", agregacao: "soma", status: "ativa", valor_alvo: "50", prazo: "2026-11-30", user_id: U },
+    { id: "g2", titulo: "Mudar de casa", medicao: "marcos", unidade: null, agregacao: "soma", status: "ativa", valor_alvo: null, prazo: null, user_id: U },
+    { id: "g3", titulo: "Ler 12 livros", medicao: "numerica", unidade: "livros", agregacao: "soma", status: "pausada", valor_alvo: 12, prazo: null, user_id: U },
+    { id: "gX", titulo: "Meta secreta", medicao: "numerica", unidade: "km", agregacao: "soma", status: "ativa", valor_alvo: 9, prazo: null, user_id: "outra" },
+  ],
+  projects: [{ id: 3, name: "Casa nova", goal: "Mudar até junho", status: "active", user_id: U }, { id: 4, name: "Projeto secreto", goal: null, status: "active", user_id: "outra" }],
+});
+test("meta pausar, retomar, arquivar e editar; projeto editar e arquivar: só da própria pessoa", async () => {
+  const r = await resolveAcoes(db4, U, [
+    { tipo: "meta_pausar", meta: "correr" },
+    { tipo: "meta_retomar", meta: "livros" },
+    { tipo: "meta_arquivar", meta: "mudar de casa" },
+    { tipo: "meta_editar", meta: "correr", titulo: null, alvo: 60, prazo: "2026-12-31" },
+    { tipo: "projeto_editar", projeto: "casa", nome: "Casa pronta", objetivo: "" },
+  ], { goals: true, finance: true, now: NOW });
+  const pa = await resolveAcoes(db4, U, [{ tipo: "projeto_arquivar", projeto: "casa nova" }], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(pa.actions, [{ kind: "projeto_arquivar", id: 3, nome: "Casa nova" }]);
+  assert.deepEqual(r.actions, [
+    { kind: "meta_status", goalId: "g1", titulo: "Correr 50 km em novembro", para: "pausada" },
+    { kind: "meta_status", goalId: "g3", titulo: "Ler 12 livros", para: "ativa" },
+    { kind: "meta_status", goalId: "g2", titulo: "Mudar de casa", para: "arquivada" },
+    { kind: "meta_editar", goalId: "g1", titulo: "Correr 50 km em novembro", unidade: "km", mudancas: { alvo: 60, prazo: "2026-12-31" } },
+    { kind: "projeto_editar", id: 3, nome: "Casa nova", mudancas: { nome: "Casa pronta", objetivo: "" } },
+  ]);
+  assert.deepEqual(r.misses, []);
+  assert.ok(db4.calls.every((c) => c.filters.some(([k, v]) => k === "user_id" && v === U)), "toda leitura filtra por user_id");
+});
+test("meta e projeto: de outra pessoa, estado errado, nada para mudar, alvo em meta por marcos, módulo desligado e termo bloqueado", async () => {
+  const r = await resolveAcoes(db4, U, [
+    { tipo: "meta_pausar", meta: "meta secreta" },
+    { tipo: "meta_pausar", meta: "livros" },
+    { tipo: "meta_retomar", meta: "correr" },
+    { tipo: "meta_editar", meta: "mudar de casa", titulo: null, alvo: 5, prazo: null },
+    { tipo: "meta_editar", meta: "correr", titulo: null, alvo: 50, prazo: "2026-11-30" },
+    { tipo: "projeto_arquivar", projeto: "projeto secreto" },
+  ], { goals: true, finance: true, now: NOW });
+  assert.equal(r.actions.length, 0);
+  assert.equal(r.misses.length, 3);
+  const off = await resolveAcoes(db4, U, [{ tipo: "meta_pausar", meta: "correr" }, { tipo: "meta_editar", meta: "correr", titulo: "Novo", alvo: null, prazo: null }, { tipo: "projeto_arquivar", projeto: "casa" }], { goals: false, finance: true, now: NOW });
+  assert.deepEqual(off.actions.map((a) => a.kind), ["projeto_arquivar"], "projeto não depende de Metas");
+  const bl = await resolveAcoes(db4, U, [{ tipo: "meta_editar", meta: "correr", titulo: "Meta Acme", alvo: null, prazo: null }, { tipo: "projeto_editar", projeto: "casa", nome: "Acme", objetivo: null }], { goals: true, finance: true, now: NOW, blocked: (t) => /acme/i.test(t) });
+  assert.deepEqual(bl.actions, []);
+});

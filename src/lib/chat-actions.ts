@@ -19,6 +19,10 @@ export type ChatAction =
   | { kind: "lembrete"; id: number; text: string; dueAt: string }
   // "Tudo por voz" (src/lib/acoes.ts): ids resolvidos no servidor, só entre os itens da própria pessoa.
   | { kind: "meta_nova"; titulo: string; medicao: Medicao; unidade: string | null; alvo: number | null; inicial: number; prazo: string | null; categoria: Categoria; marcos: string[] }
+  | { kind: "meta_status"; goalId: string; titulo: string; para: "pausada" | "ativa" | "arquivada" }
+  | { kind: "meta_editar"; goalId: string; titulo: string; unidade: string | null; mudancas: { titulo?: string; alvo?: number; prazo?: string } }
+  | { kind: "projeto_editar"; id: number; nome: string; mudancas: { nome?: string; objetivo?: string } }
+  | { kind: "projeto_arquivar"; id: number; nome: string }
   | { kind: "marco"; goalId: string; meta: string; titulo: string; data: string | null }
   | { kind: "marco_ok"; goalId: string; marcoId: string; meta: string; titulo: string }
   | { kind: "meta_tarefa"; goalId: string; meta: string; titulo: string; prazo: string | null }
@@ -136,6 +140,16 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
         confirm: "Criar meta", busy: "Criando…", applied: false, open: { label: "Ver em Metas", view: "metas" },
       };
     }
+    case "meta_status": {
+      const t = { pausada: ["Pausar meta?", "Meta pausada", "Pausar", "Fica em Pausadas; o progresso é mantido"], ativa: ["Retomar meta?", "Meta retomada", "Retomar", "Volta para as ativas"], arquivada: ["Arquivar meta?", "Meta arquivada", "Arquivar", "Some das listas; nada é apagado (dá para restaurar em Metas)"] }[a.para];
+      return { icon: "target", proposed: t[0], done: t[1], undone: "Descartado", title: a.titulo, detail: t[3], confirm: t[2], busy: "Salvando…", applied: false, open: { label: "Ver em Metas", view: "metas" } };
+    }
+    case "meta_editar":
+      return { icon: "target", proposed: "Mudar meta?", done: "Meta mudada", undone: "Descartado", title: a.titulo, detail: metaMudancasTexto(a), confirm: "Mudar meta", busy: "Salvando…", applied: false, open: { label: "Ver em Metas", view: "metas" } };
+    case "projeto_editar":
+      return { icon: "folder", proposed: "Mudar projeto?", done: "Projeto mudado", undone: "Descartado", title: a.nome, detail: [a.mudancas.nome && `novo nome: ${a.mudancas.nome}`, a.mudancas.objetivo !== undefined && (a.mudancas.objetivo ? `objetivo: ${a.mudancas.objetivo}` : "sem objetivo")].filter(Boolean).join(" · "), confirm: "Mudar projeto", busy: "Salvando…", applied: false, open: { label: "Ver Projetos", view: "projetos" } };
+    case "projeto_arquivar":
+      return { icon: "folder", proposed: "Arquivar projeto?", done: "Projeto arquivado", undone: "Descartado", title: a.nome, detail: "Fica como concluído; some dos ativos (dá para reabrir em Projetos)", confirm: "Arquivar", busy: "Salvando…", applied: false, open: { label: "Ver Projetos", view: "projetos" } };
     case "marco":
       return { icon: "target", proposed: "Marco para confirmar", done: "Marco adicionado", undone: "Descartado", title: a.titulo, detail: `Meta: ${a.meta}${a.data ? ` · até ${dm(a.data)}` : ""}`, confirm: "Adicionar", busy: "Salvando…", applied: false, open: { label: "Ver em Metas", view: "metas" } };
     case "marco_ok":
@@ -182,6 +196,13 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
   }
 }
 
+function metaMudancasTexto(a: Extract<ChatAction, { kind: "meta_editar" }>): string {
+  const m = a.mudancas, l: string[] = [];
+  if (m.titulo) l.push(`novo título: ${m.titulo}`);
+  if (m.alvo !== undefined) l.push(`alvo ${fmtNum(m.alvo)}${a.unidade ? ` ${a.unidade}` : ""}`);
+  if (m.prazo) l.push(`prazo ${dm(m.prazo)}`);
+  return l.join(" · ");
+}
 const dm = (ymd: string) => `${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
 const liga = (v: boolean) => (v ? "Ligar" : "Desligar");
 export function ajusteLabel(j: Ajuste): string {
@@ -202,6 +223,16 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
       const alvo = a.medicao === "numerica" && a.alvo !== null ? `, de ${fmtNum(a.inicial)} até ${fmtNum(a.alvo)}${a.unidade ? ` ${a.unidade}` : ""}` : a.medicao === "marcos" ? `, com ${a.marcos.length} ${a.marcos.length === 1 ? "marco" : "marcos"}` : "";
       return `Crio a meta ${a.titulo}${alvo}${a.prazo ? `, até ${spokenDay(a.prazo, now)}` : ""}?`;
     }
+    case "meta_status": return a.para === "pausada" ? `Pauso a meta ${a.titulo}?` : a.para === "ativa" ? `Retomo a meta ${a.titulo}?` : `Arquivo a meta ${a.titulo}? Nada é apagado.`;
+    case "meta_editar": {
+      const m = a.mudancas, l: string[] = [];
+      if (m.titulo) l.push(`o título para ${m.titulo}`);
+      if (m.alvo !== undefined) l.push(`o alvo para ${fmtNum(m.alvo)}${a.unidade ? ` ${a.unidade}` : ""}`);
+      if (m.prazo) l.push(`o prazo para ${spokenDay(m.prazo, now)}`);
+      return `Na meta ${a.titulo}, mudo ${l.join(", ")}?`;
+    }
+    case "projeto_editar": return `No projeto ${a.nome}, mudo ${[a.mudancas.nome && `o nome para ${a.mudancas.nome}`, a.mudancas.objetivo !== undefined && (a.mudancas.objetivo ? `o objetivo para ${a.mudancas.objetivo}` : "o objetivo para vazio")].filter(Boolean).join(", ")}?`;
+    case "projeto_arquivar": return `Arquivo o projeto ${a.nome}? Ele fica como concluído.`;
     case "marco": return `Adiciono o marco ${a.titulo} na meta ${a.meta}?`;
     case "marco_ok": return `Marco o marco ${a.titulo}, da meta ${a.meta}, como concluído?`;
     case "meta_tarefa": return `Crio a tarefa ${a.titulo} na meta ${a.meta}?`;

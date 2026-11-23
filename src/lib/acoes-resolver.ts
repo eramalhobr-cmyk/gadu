@@ -10,7 +10,7 @@ import { GASTO_COLS, loadMes, toGasto } from "./finance/load.ts";
 import type { Gasto } from "./finance/types.ts";
 import type { Agregacao, Medicao } from "./goals/types.ts";
 
-type GoalRow = { id: string; titulo: string; medicao: Medicao; unidade: string | null; agregacao: Agregacao; status: string };
+type GoalRow = { id: string; titulo: string; medicao: Medicao; unidade: string | null; agregacao: Agregacao; status: string; valor_alvo?: number | string | null; prazo?: string | null };
 /** Agenda do Google (só no servidor, com o token da própria pessoa); ausente nos testes que não usam agenda. */
 export type CalendarLookup = (from: Date, to: Date) => Promise<CalEvent[]>;
 type Opts = { goals: boolean; finance: boolean; calendar?: CalendarLookup; now?: number; blocked?: (text: string) => boolean };
@@ -21,11 +21,11 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
   const misses: string[] = [];
   const now = opts.now ?? Date.now();
   const blocked = opts.blocked ?? (() => false);
-  const cache: { goals?: GoalRow[]; tasks?: { id: number; title: string }[]; reminders?: { id: number; text: string; due_at: string }[]; closed?: { id: number; title: string }[]; projects?: { id: number; name: string }[]; snoozable?: { id: number; text: string; due_at: string }[]; gastos?: Gasto[]; eventos?: CalEvent[] } = {};
+  const cache: { goals?: GoalRow[]; tasks?: { id: number; title: string }[]; reminders?: { id: number; text: string; due_at: string }[]; closed?: { id: number; title: string }[]; projects?: { id: number; name: string; goal?: string | null }[]; snoozable?: { id: number; text: string; due_at: string }[]; gastos?: Gasto[]; eventos?: CalEvent[] } = {};
 
   const goals = async () => {
     if (!cache.goals) {
-      const r = await db.from("goals").select("id, titulo, medicao, unidade, agregacao, status").eq("user_id", userId).in("status", ["ativa", "pausada"]).limit(200);
+      const r = await db.from("goals").select("id, titulo, medicao, unidade, agregacao, status, valor_alvo, prazo").eq("user_id", userId).in("status", ["ativa", "pausada"]).limit(200);
       cache.goals = r.error ? [] : (r.data as GoalRow[]);
     }
     return cache.goals;
@@ -54,8 +54,8 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
   };
   const projects = async () => {
     if (!cache.projects) {
-      const r = await db.from("projects").select("id, name").eq("user_id", userId).in("status", ["active", "paused"]).limit(100);
-      cache.projects = r.error ? [] : (r.data as { id: number; name: string }[]);
+      const r = await db.from("projects").select("id, name, goal").eq("user_id", userId).in("status", ["active", "paused"]).limit(100);
+      cache.projects = r.error ? [] : (r.data as { id: number; name: string; goal?: string | null }[]);
     }
     return cache.projects;
   };
@@ -125,6 +125,43 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           } else {
             actions.push({ kind: "meta", d: { goalId: g.id, titulo: g.titulo, unidade: g.unidade, acao: "concluir", valor: null, data: null, agregacao: g.agregacao } });
           }
+          break;
+        }
+        case "meta_pausar": case "meta_retomar": case "meta_arquivar": {
+          if (!opts.goals) break;
+          const g = await findGoal(a.meta);
+          if (!g) break;
+          const para = a.tipo === "meta_pausar" ? "pausada" : a.tipo === "meta_retomar" ? "ativa" : "arquivada";
+          if (para === "pausada" && g.status === "pausada") { misses.push(`A meta "${g.titulo}" já está pausada.`); break; }
+          if (para === "ativa" && g.status !== "pausada") { misses.push(`A meta "${g.titulo}" não está pausada.`); break; }
+          actions.push({ kind: "meta_status", goalId: g.id, titulo: g.titulo, para });
+          break;
+        }
+        case "meta_editar": {
+          if (!opts.goals || (a.titulo && blocked(a.titulo))) break;
+          const g = await findGoal(a.meta);
+          if (!g) break;
+          const mudancas: { titulo?: string; alvo?: number; prazo?: string } = {};
+          if (a.titulo && a.titulo !== g.titulo) mudancas.titulo = a.titulo;
+          if (a.alvo !== null) {
+            if (g.medicao !== "numerica") { misses.push(`A meta "${g.titulo}" não tem alvo em número.`); break; }
+            if (g.valor_alvo == null || Number(g.valor_alvo) !== a.alvo) mudancas.alvo = a.alvo;
+          }
+          if (a.prazo && a.prazo !== g.prazo) mudancas.prazo = a.prazo;
+          if (!Object.keys(mudancas).length) { misses.push(`A meta "${g.titulo}" já está assim. Nada para mudar.`); break; }
+          actions.push({ kind: "meta_editar", goalId: g.id, titulo: g.titulo, unidade: g.unidade, mudancas });
+          break;
+        }
+        case "projeto_editar": case "projeto_arquivar": {
+          if (a.tipo === "projeto_editar" && ((a.nome && blocked(a.nome)) || (a.objetivo && blocked(a.objetivo)))) break;
+          const p = matchByName(await projects(), (x) => x.name, a.projeto);
+          if (!p) { misses.push(`Não achei o projeto "${a.projeto}". Diga o nome como está em Projetos.`); break; }
+          if (a.tipo === "projeto_arquivar") { actions.push({ kind: "projeto_arquivar", id: p.id, nome: p.name }); break; }
+          const mudancas: { nome?: string; objetivo?: string } = {};
+          if (a.nome && a.nome !== p.name) mudancas.nome = a.nome;
+          if (a.objetivo !== null && a.objetivo !== (p.goal ?? "")) mudancas.objetivo = a.objetivo;
+          if (!Object.keys(mudancas).length) { misses.push(`O projeto "${p.name}" já está assim. Nada para mudar.`); break; }
+          actions.push({ kind: "projeto_editar", id: p.id, nome: p.name, mudancas });
           break;
         }
         case "meta_marco": {

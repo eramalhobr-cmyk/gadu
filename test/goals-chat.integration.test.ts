@@ -458,3 +458,47 @@ test("tudo por voz: ações de tarefa e lembrete continuam com Metas desligado, 
   const events = await chat("cancela o aviso e renomeia");
   assert.deepEqual((events.find((e) => e.t === "acoes")?.items ?? []).map((i) => i.kind), ["tarefa_cancelar"]);
 });
+
+// ---- "Tudo por voz": metas (pausar, retomar, arquivar, editar) e projetos (editar, arquivar) ----
+test("tudo por voz: pausar, arquivar e editar meta e editar e arquivar projeto viram cartões; nada é gravado", async () => {
+  seedTarefas();
+  store.goals.push(mk("10000000-0000-4000-8000-000000000005", A, { titulo: "Meditar todo dia", status: "pausada" }));
+  modelText = META_TXT([
+    { tipo: "meta_pausar", meta: "livros" },
+    { tipo: "meta_retomar", meta: "meditar" },
+    { tipo: "meta_arquivar", meta: "certificação" },
+    { tipo: "meta_editar", meta: "peso", alvo: 72, prazo: "2027-06-30" },
+    { tipo: "projeto_editar", projeto: "casa nova", nome: "Casa pronta" },
+  ]);
+  const events = await chat("pausa a meta dos livros, retoma a de meditar, arquiva a certificação, muda o alvo do peso e renomeia o projeto da casa");
+  const items = events.find((e) => e.t === "acoes")?.items ?? [];
+  assert.deepEqual(items.map((i) => i.kind), ["meta_status", "meta_status", "meta_status", "meta_editar", "projeto_editar"]);
+  assert.deepEqual(items.slice(0, 3).map((i) => i.para), ["pausada", "ativa", "arquivada"]);
+  assert.equal(items[0].goalId, "10000000-0000-4000-8000-000000000001");
+  assert.deepEqual(items[3].mudancas, { alvo: 72, prazo: "2027-06-30" });
+  assert.deepEqual(items[4], { kind: "projeto_editar", id: 3, nome: "Casa nova", mudancas: { nome: "Casa pronta" } });
+  assert.equal(log.writes.length, 0, "nenhuma gravação em metas");
+  assert.equal(voiceWrites.length, 0, "nenhuma gravação em projetos");
+});
+
+test("tudo por voz: meta e projeto de B nunca viram cartão (viram aviso)", async () => {
+  seedTarefas();
+  modelText = META_TXT([{ tipo: "meta_pausar", meta: "SEGREDO-B meta" }, { tipo: "meta_arquivar", meta: "SEGREDO-B meta" }, { tipo: "projeto_arquivar", projeto: "SEGREDO-B projeto" }, { tipo: "projeto_editar", projeto: "SEGREDO-B projeto", nome: "Meu" }]);
+  const events = await chat("mexe nas coisas do outro");
+  assert.equal(events.find((e) => e.t === "acoes"), undefined);
+  assert.ok(events.some((e) => e.t === "notice" && e.kind === "acao"));
+  assert.equal(log.writes.length, 0);
+  assert.equal(voiceWrites.length, 0);
+});
+
+test("tudo por voz: GOALS_ENABLED=0 não gera cartão de meta (projeto continua); termo bloqueado não vira cartão", async () => {
+  process.env.GOALS_ENABLED = "0";
+  seedTarefas();
+  modelText = META_TXT([{ tipo: "meta_pausar", meta: "livros" }, { tipo: "meta_editar", meta: "livros", titulo: "Ler mais" }, { tipo: "projeto_arquivar", projeto: "casa nova" }]);
+  const off = await chat("pausa livros, renomeia e arquiva o projeto da casa");
+  assert.deepEqual((off.find((e) => e.t === "acoes")?.items ?? []).map((i) => i.kind), ["projeto_arquivar"]);
+  delete process.env.GOALS_ENABLED;
+  modelText = META_TXT([{ tipo: "meta_editar", meta: "livros", titulo: "Livros da Acme" }, { tipo: "projeto_editar", projeto: "casa nova", objetivo: "Projeto Acme" }]);
+  const bl = await chat("renomeia a meta e o projeto");
+  assert.equal(bl.find((e) => e.t === "acoes"), undefined);
+});

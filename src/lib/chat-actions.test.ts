@@ -78,3 +78,22 @@ test("tudo por voz: cartões e perguntas de conta, gasto e evento (apagar avisa 
   assert.equal(actionQuestion(ee, NOW), "No evento Dentista, mudo o título para Dentista da Ana, o horário para amanhã 15:00?");
   for (const a of [ga, ea, ge, ee, cv]) assert.equal(d(a).applied, false, "nunca pré-aplicado: só grava depois do toque ou do sim");
 });
+
+test("tudo por voz: cartões e perguntas de meta (pausar, retomar, arquivar, editar) e projeto (editar, arquivar)", async () => {
+  const { actionQuestion, describe: d } = await import("./chat-actions.ts");
+  const ms = (para: "pausada" | "ativa" | "arquivada"): ChatAction => ({ kind: "meta_status", goalId: "g", titulo: "Correr 50 km", para });
+  assert.equal(actionQuestion(ms("pausada"), NOW), "Pauso a meta Correr 50 km?");
+  assert.equal(actionQuestion(ms("ativa"), NOW), "Retomo a meta Correr 50 km?");
+  assert.equal(actionQuestion(ms("arquivada"), NOW), "Arquivo a meta Correr 50 km? Nada é apagado.");
+  assert.equal(d(ms("pausada")).confirm, "Pausar");
+  assert.match(d(ms("arquivada")).detail, /nada é apagado/i);
+  const me: ChatAction = { kind: "meta_editar", goalId: "g", titulo: "Correr 50 km", unidade: "km", mudancas: { titulo: "Correr 60 km", alvo: 60, prazo: "2026-12-31" } };
+  assert.equal(d(me).detail, "novo título: Correr 60 km · alvo 60 km · prazo 31/12");
+  assert.equal(actionQuestion(me, NOW), "Na meta Correr 50 km, mudo o título para Correr 60 km, o alvo para 60 km, o prazo para quinta, dia 31?");
+  const pe: ChatAction = { kind: "projeto_editar", id: 3, nome: "Casa", mudancas: { nome: "Casa nova", objetivo: "" } };
+  assert.equal(d(pe).detail, "novo nome: Casa nova · sem objetivo");
+  assert.equal(actionQuestion(pe, NOW), "No projeto Casa, mudo o nome para Casa nova, o objetivo para vazio?");
+  const pa: ChatAction = { kind: "projeto_arquivar", id: 3, nome: "Casa" };
+  assert.equal(actionQuestion(pa, NOW), "Arquivo o projeto Casa? Ele fica como concluído.");
+  for (const a of [ms("pausada"), me, pe, pa]) assert.equal(d(a).applied, false);
+});

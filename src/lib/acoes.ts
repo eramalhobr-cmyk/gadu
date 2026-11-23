@@ -14,6 +14,10 @@ export type AcaoProposta =
   | { tipo: "meta_criar"; titulo: string; medicao: Medicao; unidade: string | null; alvo: number | null; inicial: number; prazo: string | null; categoria: Categoria; marcos: string[] }
   | { tipo: "meta_registrar"; meta: string; valor: number; data: string | null }
   | { tipo: "meta_concluir"; meta: string }
+  | { tipo: "meta_pausar" | "meta_retomar" | "meta_arquivar"; meta: string }
+  | { tipo: "meta_editar"; meta: string; titulo: string | null; alvo: number | null; prazo: string | null }
+  | { tipo: "projeto_editar"; projeto: string; nome: string | null; objetivo: string | null }
+  | { tipo: "projeto_arquivar"; projeto: string }
   | { tipo: "meta_marco"; meta: string; titulo: string; data: string | null }
   | { tipo: "meta_marco_concluir"; meta: string; marco: string }
   | { tipo: "meta_tarefa"; meta: string; tarefa: string; prazo: string | null }
@@ -34,7 +38,7 @@ export type AcaoProposta =
   | { tipo: "projeto_criar"; nome: string; objetivo: string | null }
   | { tipo: "ajuste"; ajuste: Ajuste };
 
-export const TIPOS = ["meta_criar", "meta_registrar", "meta_concluir", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "projeto_criar", "ajuste"] as const;
+export const TIPOS = ["meta_criar", "meta_registrar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "projeto_criar", "ajuste"] as const;
 
 const txt = (v: unknown, max: number): string => (typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "");
 
@@ -117,6 +121,23 @@ export function validAcao(raw: unknown, now = Date.now()): AcaoProposta | null {
     case "meta_concluir": {
       const meta = txt(o.meta, 120);
       return meta ? { tipo: "meta_concluir", meta } : null;
+    }
+    case "meta_pausar": case "meta_retomar": case "meta_arquivar": {
+      const meta = txt(o.meta, 120);
+      return meta ? { tipo: o.tipo, meta } : null;
+    }
+    case "meta_editar": {
+      const meta = txt(o.meta, 120), titulo = txt(o.titulo, 120) || null;
+      const alvo = parseNumero(o.alvo), prazo = dataFutura(o.prazo, now, 3650);
+      return meta && (titulo || alvo !== null || prazo) ? { tipo: "meta_editar", meta, titulo, alvo, prazo } : null;
+    }
+    case "projeto_editar": {
+      const projeto = txt(o.projeto, 80), nome = txt(o.nome, 80) || null, objetivo = typeof o.objetivo === "string" ? txt(o.objetivo, 400) : null;
+      return projeto && (nome || objetivo !== null) ? { tipo: "projeto_editar", projeto, nome, objetivo } : null;
+    }
+    case "projeto_arquivar": {
+      const projeto = txt(o.projeto, 80);
+      return projeto ? { tipo: "projeto_arquivar", projeto } : null;
     }
     case "meta_marco": {
       const meta = txt(o.meta, 120), titulo = txt(o.titulo, 120);
@@ -263,6 +284,9 @@ export function acoesRules(): string {
   return `- "acoes": para fazer pela conversa tudo o que dá para fazer tocando no app. Você NÃO grava: o app mostra um cartão e a pessoa confirma com um toque ou dizendo "sim". Use os nomes como a pessoa disse ou como aparecem no contexto; o app acha o item. Tipos:
   {"tipo":"meta_criar","titulo":"Correr 50 km","medicao":"numerica","unidade":"km","alvo":50,"inicial":0,"prazo":"AAAA-MM-DD","categoria":"saude"} (medicao: numerica com alvo, percentual, marcos com "marcos":["..."], ou tarefas; categoria: financeira, familiar, profissional, saude, desenvolvimento ou educacao; sem alvo numa meta numérica, pergunte);
   {"tipo":"meta_registrar","meta":"nome da meta","valor":5,"data":"AAAA-MM-DD"} (data só se não for hoje); {"tipo":"meta_concluir","meta":"..."};
+  {"tipo":"meta_pausar","meta":"..."}; {"tipo":"meta_retomar","meta":"..."}; {"tipo":"meta_arquivar","meta":"..."} (some das listas, nada é apagado);
+  {"tipo":"meta_editar","meta":"nome atual","titulo":"novo título","alvo":60,"prazo":"AAAA-MM-DD"} (só o que muda; alvo só em meta numérica);
+  {"tipo":"projeto_editar","projeto":"nome atual","nome":"novo nome","objetivo":"..."} (só o que muda); {"tipo":"projeto_arquivar","projeto":"..."} (marca o projeto como concluído; some dos ativos);
   {"tipo":"meta_marco","meta":"...","titulo":"...","data":"AAAA-MM-DD"}; {"tipo":"meta_marco_concluir","meta":"...","marco":"..."}; {"tipo":"meta_tarefa","meta":"...","tarefa":"...","prazo":"AAAA-MM-DD"};
   {"tipo":"tarefa_concluir","tarefa":"..."}; {"tipo":"tarefa_adiar","tarefa":"...","prazo":"AAAA-MM-DD"}; {"tipo":"lembrete_cancelar","lembrete":"..."};
   {"tipo":"tarefa_cancelar","tarefa":"..."} ("cancela/apaga a tarefa…"); {"tipo":"tarefa_reabrir","tarefa":"..."} (tarefa já feita ou cancelada que volta a ficar aberta);

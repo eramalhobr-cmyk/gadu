@@ -40,6 +40,7 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - [x] **PR #44, UX-4 alvos de 48 px** (Cursor/Grok Bot): bloco no fim de `src/app/ux.css` (`--touch: 48px` até 1023 px ou em tela de toque). Conferir no aparelho se nada ficou apertado. **Revisado por Claude Code em 23/11/2026:** só CSS, e2e público e mobile passaram nesta revisão. Conferir no aparelho segue pendente.
 - [ ] **PR A, tarefas e lembretes por voz** (Claude Code): conferir com a IA real se ela usa `tarefa_editar` e `lembrete_adiar` nas frases comuns ("adia o remédio para amanhã às 9", "muda a prioridade do boleto para alta") e se "adiar" um lembrete já avisado volta a disparar o push.
 - [ ] **PR B, finanças e agenda por voz** (Claude Code): (a) `src/app/api/calendar/[id]/route.ts` e `updateEvent`/`deleteEvent` em `src/lib/google.ts`: conferir que só usam o token da própria pessoa e o escopo `calendar.events`, e testar com um evento de verdade (editar e apagar) no Google; (b) `findGasto` em `src/lib/acoes-resolver.ts`: a regra "se o nome cabe em mais de um gasto, não escolhe" é de propósito, por ser apagar; (c) testar com a IA real as frases "apaga o gasto de 50 no mercado" e "muda a reunião para as 15h".
+- [ ] **PR C, metas e projetos por voz** (Claude Code): conferir a decisão de "arquivar projeto" = status `done` (um status "arquivado" pede migração e aprovação do Eduardo) e testar com a IA real "pausa a meta de correr" e "muda o alvo para 60".
 - [ ] **e2e com login** (`e2e/auth.e2e.cjs`): os testes novos de Mais, Hoje e tela de escuta foram escritos sem rodar (faltam credenciais de teste nesta máquina). Rodar com o usuário de teste e corrigir o que falhar.
 - [ ] **Validação com login no aparelho** de tudo o que foi publicado em 22/11 (pendência humana, com o Eduardo).
 
@@ -50,7 +51,9 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - **Verificado de fato:** typecheck, unit 235, integração 152, build, e2e público 10/10 e mobile 44/44. Publicação (merge, CI, deploy) será registrada na entrada seguinte.
 - **PR A publicado:** PR #47, merge `3eed4eb` em 05:49, CI verde, deploy `success`, site 200.
 - **PR B (`feat/voz-financas-agenda`):** conta desmarcar e mudar valor do mês; gasto editar e apagar; evento editar e apagar. O escopo `calendar.events` já cobre editar e apagar (OAuth não mudou); rotas novas `PATCH`/`DELETE /api/calendar/:id`. Sem migração. Verificado: typecheck, unit 242, integração 160, build, e2e público 10/10 e mobile 44/44.
-- **Próximo:** PR C (meta pausar/retomar/arquivar/editar; projeto editar/arquivar), depois D.
+- **PR B publicado:** PR #48, merge `7db56d4` em 06:02, CI verde, deploy `success`, rota nova responde 401 sem sessão.
+- **PR C (`feat/voz-metas-projetos`):** meta pausar, retomar, arquivar e editar (título, alvo, prazo); projeto editar (nome, objetivo) e arquivar (grava `done`, pois o banco não tem "arquivado"). Sem migração. Verificado: typecheck, unit 246, integração 163, build, e2e público 10/10 e mobile 44/44.
+- **Próximo:** PR D (memória aprovar/recusar/esquecer, nova conversa, navegação por voz).
 
 ### 23/11/2026 · manhã · Claude Code, revisão dos itens de 22/11
 - **Revisou:** PRs #38, #39, #42, #44 (Cursor) e #40 (3D-1, só segurança e custo), lendo os diffs e rodando os testes. Resultado em cada item da lista acima.
