@@ -463,6 +463,9 @@ Proposta completa (17 itens), com o levantamento das skills de design no GitHub,
 - [x] **M3 · Hoje em três faixas** (Agora, Depois, Progresso): linha do tempo do resto do dia, anel de progresso das tarefas de hoje, metas que pedem atenção e uma frase para dizer em cada faixa
 - [x] **R3** um microfone só no celular (o do campo aparece ao escrever)
 - [x] **R7** motores de rosto antigos apagados (~550 linhas)
+- [x] **G2 · Navegação por intenção**: "abre finanças", "vai para as metas", "volta" entendidos no aparelho, sem modelo; por voz o GaDu confirma falando
+- [ ] **R6/M1** skills de design revisadas e DESIGN.md · **M4** telas mais visuais (Finanças, Metas, Agentes) · **M5** "o que posso dizer aqui" · **M6** computador (menu compacto, Ctrl+K) · **G1** modo voz imersivo · **G2** navegação por voz · **G3** design system v2 com testes visuais · **G4** logo novo (espera o arquivo)
+
 - [x] **R6/M1** guias de design revisados só em texto (`docs/design/`), `DESIGN.md` e a primeira crítica com a rubrica
 - [ ] **M4** telas mais visuais (Finanças, Metas, Agentes) · **M5** "o que posso dizer aqui" · **M6** computador (menu compacto, Ctrl+K) · **G1** modo voz imersivo · **G2** navegação por voz · **G3** design system v2 com testes visuais · **G4** logo novo (espera o arquivo)
 

@@ -266,6 +266,22 @@ describe("app com login", () => {
     await d.context().close();
   });
 
+  test("navegação por intenção (UX-7 G2): abre e volta sem chamar o modelo", async () => {
+    const d = await page(DESK);
+    let chats = 0;
+    d.on("request", (r) => { if (r.url().includes("/api/chat")) chats++; });
+    await d.goto(`${BASE}/app?tab=conversa`);
+    await d.fill("#msg", "abre a agenda");
+    await d.click(".chat-form [aria-label=Enviar]");
+    await d.waitForURL(/tab=agenda/);
+    await d.click("[aria-label='Abrir o assistente']");
+    await d.fill("#msg", "volta");
+    await d.click(".chat-form [aria-label=Enviar]");
+    await d.waitForURL(/tab=conversa/);
+    assert.equal(chats, 0, "sem chamar o modelo");
+    await d.context().close();
+  });
+
   test("voz: microfone negado mostra aviso claro", async () => {
     const p = await page(PHONE, { voice: "deny" });
     await p.goto(`${BASE}/app?tab=conversa`);
