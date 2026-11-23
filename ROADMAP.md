@@ -427,9 +427,9 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa. A
 - [x] Configurações: tamanho do texto, conversa contínua, respostas curtas, resposta falada e tema (PR #42)
 - [ ] Lacunas: cancelar, reabrir e editar tarefa; adiar lembrete; editar ou apagar gasto e evento; desmarcar conta e mudar valor; pausar, arquivar e editar meta; editar e arquivar projeto; aprovar e esquecer memória; criar agente; nova conversa e navegação por voz ("abre o Financeiro")
 
-### UX-4 · Acessibilidade para quem não é digital (P1)
+### UX-4 · Acessibilidade para quem não é digital (P1) · começado em 22/11/2026 pelo Cursor (Grok Bot)
 - [ ] Linguagem simples: sem "Beta", "Planejado", "Plataforma", "Core", "via modelo" e etiquetas [T1] na tela principal (ficam em "Detalhes")
-- [ ] Alvos de toque de pelo menos 48 px e mais espaço entre botões (hoje a base é 44 px; "Virar tarefa" tem 40 px de altura)
+- [x] Alvos de toque de pelo menos 48 px no celular e em telas de toque (PR #44; a base era 44 px)
 - [ ] Menos escolhas por tela: 1 ação principal e no máximo 2 secundárias
 - [ ] **Primeiro uso guiado** em 3 passos, falado: nome, testar microfone e voz, conectar o Google (no lugar das dicas soltas por tela)
 - [ ] **Desfazer** em toda ação que grava (concluir, adiar, apagar, marcar pago): aviso "Feito · Desfazer" por alguns segundos
