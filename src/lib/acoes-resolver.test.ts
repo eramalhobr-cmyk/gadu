@@ -72,3 +72,46 @@ test("módulo desligado não gera cartão; termo bloqueado também não", async 
   ], { goals: true, finance: false, now: NOW, blocked: (t) => /acme/i.test(t) });
   assert.deepEqual(r.actions.map((a) => a.kind), ["projeto", "ajuste"]);
 });
+
+const db2 = fakeDb({
+  tasks: [
+    { id: 5, title: "Ler aviso do condomínio", status: "open", user_id: U },
+    { id: 6, title: "Pagar boleto da escola", status: "done", user_id: U },
+    { id: 7, title: "Ligar para o dentista", status: "cancelled", user_id: U },
+    { id: 8, title: "Fatura segredo-b", status: "done", user_id: "outra" },
+  ],
+  projects: [{ id: 3, name: "Casa nova", status: "active", user_id: U }, { id: 4, name: "Projeto alheio", status: "active", user_id: "outra" }],
+  reminders: [
+    { id: 9, text: "Tomar o remédio", due_at: "2026-11-22T23:00:00.000Z", status: "pending", user_id: U },
+    { id: 10, text: "Buscar encomenda", due_at: "2026-11-22T12:00:00.000Z", status: "sent", user_id: U },
+    { id: 11, text: "Remédio de outra pessoa", due_at: "2026-11-22T23:00:00.000Z", status: "pending", user_id: "outra" },
+  ],
+});
+test("tarefa cancelar, reabrir e editar; lembrete adiar: só itens da própria pessoa", async () => {
+  const r = await resolveAcoes(db2, U, [
+    { tipo: "tarefa_cancelar", tarefa: "aviso do condomínio" },
+    { tipo: "tarefa_reabrir", tarefa: "dentista" },
+    { tipo: "tarefa_editar", tarefa: "aviso", titulo: null, prioridade: 1, prazo: "2026-11-25", projeto: "casa" },
+    { tipo: "lembrete_adiar", lembrete: "encomenda", quando: "2026-11-23T12:00:00.000Z" },
+    { tipo: "lembrete_adiar", lembrete: "remédio", quando: "2026-11-23T12:00:00.000Z" },
+  ], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(r.actions, [
+    { kind: "tarefa_cancelar", id: 5, titulo: "Ler aviso do condomínio" },
+    { kind: "tarefa_reabrir", id: 7, titulo: "Ligar para o dentista" },
+    { kind: "tarefa_editar", id: 5, titulo: "Ler aviso do condomínio", mudancas: { prioridade: 1, prazo: "2026-11-25", projetoId: 3, projeto: "Casa nova" } },
+    { kind: "lembrete_adiar", id: 10, text: "Buscar encomenda", dueAt: "2026-11-22T12:00:00.000Z", novoDueAt: "2026-11-23T12:00:00.000Z" },
+    { kind: "lembrete_adiar", id: 9, text: "Tomar o remédio", dueAt: "2026-11-22T23:00:00.000Z", novoDueAt: "2026-11-23T12:00:00.000Z" },
+  ]);
+  assert.deepEqual(r.misses, []);
+  assert.ok(db2.calls.every((c) => c.filters.some(([k, v]) => k === "user_id" && v === U)), "toda leitura filtra por user_id");
+});
+test("tarefa/projeto de outra pessoa, projeto inexistente e título bloqueado não geram cartão", async () => {
+  const r = await resolveAcoes(db2, U, [
+    { tipo: "tarefa_reabrir", tarefa: "fatura segredo" },
+    { tipo: "tarefa_editar", tarefa: "aviso", titulo: null, prioridade: null, prazo: null, projeto: "projeto alheio" },
+    { tipo: "tarefa_editar", tarefa: "aviso", titulo: "Reunião Acme", prioridade: null, prazo: null, projeto: null },
+    { tipo: "tarefa_cancelar", tarefa: "comprar pão" },
+  ], { goals: true, finance: true, now: NOW, blocked: (t) => /acme/i.test(t) });
+  assert.equal(r.actions.length, 0);
+  assert.equal(r.misses.length, 3);
+});

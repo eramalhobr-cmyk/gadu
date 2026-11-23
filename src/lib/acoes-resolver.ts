@@ -2,7 +2,7 @@
 // SÓ entre os itens da própria pessoa (cliente da SESSÃO + filtro por user_id, além da RLS). Nada é gravado aqui.
 import type { AcaoProposta } from "./acoes.ts";
 import { matchByName } from "./acoes.ts";
-import type { ChatAction } from "./chat-actions.ts";
+import type { ChatAction, TarefaMudancas } from "./chat-actions.ts";
 import type { SessionDb } from "./core/types.ts";
 import { hojeSP, isoDia } from "./finance/datas.ts";
 import { loadMes } from "./finance/load.ts";
@@ -17,7 +17,7 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
   const misses: string[] = [];
   const now = opts.now ?? Date.now();
   const blocked = opts.blocked ?? (() => false);
-  const cache: { goals?: GoalRow[]; tasks?: { id: number; title: string }[]; reminders?: { id: number; text: string; due_at: string }[] } = {};
+  const cache: { goals?: GoalRow[]; tasks?: { id: number; title: string }[]; reminders?: { id: number; text: string; due_at: string }[]; closed?: { id: number; title: string }[]; projects?: { id: number; name: string }[]; snoozable?: { id: number; text: string; due_at: string }[] } = {};
 
   const goals = async () => {
     if (!cache.goals) {
@@ -39,6 +39,28 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
       cache.reminders = r.error ? [] : (r.data as { id: number; text: string; due_at: string }[]);
     }
     return cache.reminders;
+  };
+  // Tarefas já feitas ou canceladas (para reabrir) e lembretes pendentes ou já avisados (para adiar).
+  const closedTasks = async () => {
+    if (!cache.closed) {
+      const r = await db.from("tasks").select("id, title").eq("user_id", userId).in("status", ["done", "cancelled"]).order("updated_at", { ascending: false }).limit(200);
+      cache.closed = r.error ? [] : (r.data as { id: number; title: string }[]);
+    }
+    return cache.closed;
+  };
+  const projects = async () => {
+    if (!cache.projects) {
+      const r = await db.from("projects").select("id, name").eq("user_id", userId).in("status", ["active", "paused"]).limit(100);
+      cache.projects = r.error ? [] : (r.data as { id: number; name: string }[]);
+    }
+    return cache.projects;
+  };
+  const snoozable = async () => {
+    if (!cache.snoozable) {
+      const r = await db.from("reminders").select("id, text, due_at").eq("user_id", userId).in("status", ["pending", "sent"]).order("due_at", { ascending: false }).limit(200);
+      cache.snoozable = r.error ? [] : (r.data as { id: number; text: string; due_at: string }[]);
+    }
+    return cache.snoozable;
   };
   const findGoal = async (nome: string) => {
     const g = matchByName(await goals(), (x) => x.titulo, nome);
@@ -94,6 +116,41 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           const t = matchByName(await tasks(), (x) => x.title, a.tarefa);
           if (!t) { misses.push(`Não achei a tarefa "${a.tarefa}" entre as abertas.`); break; }
           actions.push(a.tipo === "tarefa_concluir" ? { kind: "tarefa_ok", id: t.id, titulo: t.title } : { kind: "tarefa_adiar", id: t.id, titulo: t.title, prazo: a.prazo });
+          break;
+        }
+        case "tarefa_cancelar": {
+          const t = matchByName(await tasks(), (x) => x.title, a.tarefa);
+          if (t) actions.push({ kind: "tarefa_cancelar", id: t.id, titulo: t.title });
+          else misses.push(`Não achei a tarefa "${a.tarefa}" entre as abertas.`);
+          break;
+        }
+        case "tarefa_reabrir": {
+          const t = matchByName(await closedTasks(), (x) => x.title, a.tarefa);
+          if (t) actions.push({ kind: "tarefa_reabrir", id: t.id, titulo: t.title });
+          else misses.push(`Não achei a tarefa "${a.tarefa}" entre as feitas ou canceladas.`);
+          break;
+        }
+        case "tarefa_editar": {
+          if (a.titulo && blocked(a.titulo)) break;
+          const t = matchByName(await tasks(), (x) => x.title, a.tarefa);
+          if (!t) { misses.push(`Não achei a tarefa "${a.tarefa}" entre as abertas.`); break; }
+          const mudancas: TarefaMudancas = {};
+          if (a.titulo) mudancas.titulo = a.titulo;
+          if (a.prioridade) mudancas.prioridade = a.prioridade;
+          if (a.prazo) mudancas.prazo = a.prazo;
+          if (a.projeto) {
+            const p = matchByName(await projects(), (x) => x.name, a.projeto);
+            if (!p) { misses.push(`Não achei o projeto "${a.projeto}". Diga o nome como está em Projetos.`); break; }
+            mudancas.projetoId = p.id;
+            mudancas.projeto = p.name;
+          }
+          actions.push({ kind: "tarefa_editar", id: t.id, titulo: t.title, mudancas });
+          break;
+        }
+        case "lembrete_adiar": {
+          const r = matchByName(await snoozable(), (x) => x.text, a.lembrete);
+          if (r) actions.push({ kind: "lembrete_adiar", id: r.id, text: r.text, dueAt: r.due_at, novoDueAt: a.quando });
+          else misses.push(`Não achei o lembrete "${a.lembrete}".`);
           break;
         }
         case "lembrete_cancelar": {

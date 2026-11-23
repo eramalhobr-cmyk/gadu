@@ -151,10 +151,12 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Tarefas | criar | sim | `"tarefas"` (cria na hora; cartão com Desfazer desde o PR #42) | — |
 | Tarefas | concluir | sim | `tarefa_concluir` | — |
 | Tarefas | adiar (mudar prazo) | sim | `tarefa_adiar` | — |
-| Tarefas | cancelar, reabrir, editar título ou prioridade, mudar de projeto | **não** | — | lacuna (próximo PR de "Tudo por voz") |
+| Tarefas | cancelar (apagar) | sim | `tarefa_cancelar` (a tarefa vai para "cancelada"; dá para reabrir pela conversa) | — |
+| Tarefas | reabrir (feita ou cancelada) | sim | `tarefa_reabrir` | — |
+| Tarefas | editar título, prioridade, prazo, mudar de projeto | sim | `tarefa_editar` (só os campos que mudam; o projeto é achado pelo nome entre os da pessoa) | — |
 | Lembretes | criar | sim | `"lembretes"` (cria na hora; cartão com Desfazer) | — |
 | Lembretes | cancelar | sim | `lembrete_cancelar` | — |
-| Lembretes | adiar | **não** | — | lacuna |
+| Lembretes | adiar (soneca) | sim | `lembrete_adiar` (novo horário em Brasília; vale também para lembrete já avisado, que volta a pendente) | — |
 | Agenda | criar evento | sim | `"eventos"` (proposta) | — |
 | Agenda | editar ou apagar evento | **não** | — | lacuna: não há rota de edição; exige permissão nova do Google |
 | Finanças | lançar gasto | sim | `"gastos"` (proposta) | — |

@@ -26,10 +26,26 @@ export type ChatAction =
   /** Já criada pelo servidor ("anota aí"): o cartão oferece Desfazer (cancela a tarefa). */
   | { kind: "tarefa_criada"; id: number; titulo: string; prazo: string | null }
   | { kind: "tarefa_adiar"; id: number; titulo: string; prazo: string }
+  | { kind: "tarefa_cancelar"; id: number; titulo: string }
+  | { kind: "tarefa_reabrir"; id: number; titulo: string }
+  | { kind: "tarefa_editar"; id: number; titulo: string; mudancas: TarefaMudancas }
   | { kind: "lembrete_off"; id: number; text: string; dueAt: string }
+  | { kind: "lembrete_adiar"; id: number; text: string; dueAt: string; novoDueAt: string }
   | { kind: "conta_paga"; itemId: string; nome: string; valor: number; ano: number; mes: number }
   | { kind: "projeto"; nome: string; objetivo: string | null }
   | { kind: "ajuste"; ajuste: Ajuste };
+
+/** Só os campos que mudam; `projetoId` vem do servidor (projeto da própria pessoa). */
+export type TarefaMudancas = { titulo?: string; prioridade?: 1 | 2 | 3; prazo?: string; projetoId?: number; projeto?: string };
+const PRIO = { 1: "alta", 2: "normal", 3: "baixa" } as const;
+export function mudancasTexto(m: TarefaMudancas): string {
+  const l: string[] = [];
+  if (m.titulo) l.push(`título: ${m.titulo}`);
+  if (m.prioridade) l.push(`prioridade ${PRIO[m.prioridade]}`);
+  if (m.prazo) l.push(`prazo ${m.prazo.slice(8, 10)}/${m.prazo.slice(5, 7)}`);
+  if (m.projeto) l.push(`projeto ${m.projeto}`);
+  return l.join(" · ");
+}
 
 export type ActionView = {
   icon: string;
@@ -113,6 +129,14 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
       return { icon: "check", proposed: "Tarefa anotada", done: "Tarefa anotada", undone: "Tarefa desfeita", title: a.titulo, detail: a.prazo ? `Prazo: ${dm(a.prazo)}` : "Sem prazo", confirm: "", busy: "Desfazendo…", applied: true, open: { label: "Ver Tarefas", view: "tarefas" } };
     case "tarefa_adiar":
       return { icon: "calendar", proposed: "Adiar tarefa?", done: "Tarefa adiada", undone: "Descartado", title: a.titulo, detail: `Novo prazo: ${dm(a.prazo)}`, confirm: "Adiar", busy: "Salvando…", applied: false, open: { label: "Ver Tarefas", view: "tarefas" } };
+    case "tarefa_cancelar":
+      return { icon: "check", proposed: "Cancelar tarefa?", done: "Tarefa cancelada", undone: "Descartado", title: a.titulo, detail: "Sai da lista (dá para reabrir pela conversa)", confirm: "Cancelar tarefa", busy: "Salvando…", applied: false, open: { label: "Ver Tarefas", view: "tarefas" } };
+    case "tarefa_reabrir":
+      return { icon: "check", proposed: "Reabrir tarefa?", done: "Tarefa reaberta", undone: "Descartado", title: a.titulo, detail: "Volta para as abertas", confirm: "Reabrir", busy: "Salvando…", applied: false, open: { label: "Ver Tarefas", view: "tarefas" } };
+    case "tarefa_editar":
+      return { icon: "check", proposed: "Mudar tarefa?", done: "Tarefa mudada", undone: "Descartado", title: a.titulo, detail: mudancasTexto(a.mudancas), confirm: "Mudar", busy: "Salvando…", applied: false, open: { label: "Ver Tarefas", view: "tarefas" } };
+    case "lembrete_adiar":
+      return { icon: "bell", proposed: "Adiar lembrete?", done: "Lembrete adiado", undone: "Descartado", title: a.text, detail: `Novo horário: ${whenLabel(a.novoDueAt, now)}`, confirm: "Adiar", busy: "Salvando…", applied: false, open: { label: "Ver no Hoje", view: "hoje" } };
     case "lembrete_off":
       return { icon: "bell", proposed: "Cancelar lembrete?", done: "Lembrete cancelado", undone: "Descartado", title: a.text, detail: whenLabel(a.dueAt, now), confirm: "Cancelar lembrete", busy: "Salvando…", applied: false, open: { label: "Ver no Hoje", view: "hoje" } };
     case "conta_paga":
@@ -150,11 +174,24 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     case "tarefa_ok": return `Marco a tarefa ${a.titulo} como feita?`;
     case "tarefa_criada": return `Anotei a tarefa ${a.titulo}${a.prazo ? `, para ${spokenDay(a.prazo, now)}` : ""}. Está certo?`;
     case "tarefa_adiar": return `Adio a tarefa ${a.titulo} para ${spokenDay(a.prazo, now)}?`;
+    case "tarefa_cancelar": return `Cancelo a tarefa ${a.titulo}?`;
+    case "tarefa_reabrir": return `Reabro a tarefa ${a.titulo}?`;
+    case "tarefa_editar": return `Na tarefa ${a.titulo}, mudo ${mudancasFalada(a.mudancas, now)}?`;
+    case "lembrete_adiar": return `Adio o lembrete ${a.text} para ${whenLabel(a.novoDueAt, now)}?`;
     case "lembrete_off": return `Cancelo o lembrete ${a.text}?`;
     case "conta_paga": return `Marco a conta ${a.nome}, de ${spokenMoney(a.valor)}, como paga?`;
     case "projeto": return `Crio o projeto ${a.nome}?`;
     case "ajuste": return `${ajusteLabel(a.ajuste)}?`;
   }
+}
+
+function mudancasFalada(m: TarefaMudancas, now: Date): string {
+  const l: string[] = [];
+  if (m.titulo) l.push(`o título para ${m.titulo}`);
+  if (m.prioridade) l.push(`a prioridade para ${PRIO[m.prioridade]}`);
+  if (m.prazo) l.push(`o prazo para ${spokenDay(m.prazo, now)}`);
+  if (m.projeto) l.push(`o projeto para ${m.projeto}`);
+  return l.join(", ");
 }
 
 /** O que a confirmação falada lê (tipos com frase própria em voice-confirm.ts). */

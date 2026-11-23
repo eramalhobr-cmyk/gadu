@@ -57,3 +57,28 @@ test("matchByName: exato, contém, palavras; ambíguo devolve null", () => {
   assert.equal(matchByName(metas, (m) => m.n, "meta de correr")?.n, "Correr 50 km em novembro");
   assert.equal(matchByName(metas, (m) => m.n, "livros")?.n, "Ler 12 livros");
 });
+
+test("tarefa_cancelar e tarefa_reabrir só pedem o nome", () => {
+  assert.deepEqual(validAcao({ tipo: "tarefa_cancelar", tarefa: " Pagar  boleto " }, NOW), { tipo: "tarefa_cancelar", tarefa: "Pagar boleto" });
+  assert.deepEqual(validAcao({ tipo: "tarefa_reabrir", tarefa: "Pagar boleto" }, NOW), { tipo: "tarefa_reabrir", tarefa: "Pagar boleto" });
+  assert.equal(validAcao({ tipo: "tarefa_cancelar", tarefa: "" }, NOW), null);
+  assert.equal(validAcao({ tipo: "tarefa_reabrir" }, NOW), null);
+});
+
+test("tarefa_editar: precisa de ao menos uma mudança válida; prioridade 1 a 3; prazo futuro", () => {
+  assert.deepEqual(validAcao({ tipo: "tarefa_editar", tarefa: "Boleto", titulo: "Boleto da luz", prioridade: 1, prazo: "2026-11-30", projeto: "Casa" }, NOW),
+    { tipo: "tarefa_editar", tarefa: "Boleto", titulo: "Boleto da luz", prioridade: 1, prazo: "2026-11-30", projeto: "Casa" });
+  assert.deepEqual(validAcao({ tipo: "tarefa_editar", tarefa: "Boleto", prioridade: "3" }, NOW), { tipo: "tarefa_editar", tarefa: "Boleto", titulo: null, prioridade: 3, prazo: null, projeto: null });
+  assert.equal(validAcao({ tipo: "tarefa_editar", tarefa: "Boleto" }, NOW), null, "sem mudança");
+  assert.equal(validAcao({ tipo: "tarefa_editar", tarefa: "Boleto", prioridade: 9, prazo: "2026-11-01" }, NOW), null, "prioridade e prazo inválidos");
+  assert.equal(validAcao({ tipo: "tarefa_editar", titulo: "Novo" }, NOW), null, "sem nome da tarefa");
+});
+
+test("lembrete_adiar exige horário futuro (sem fuso = Brasília) e até 1 ano", () => {
+  assert.deepEqual(validAcao({ tipo: "lembrete_adiar", lembrete: "Remédio", quando: "2026-11-23T09:00:00" }, NOW), { tipo: "lembrete_adiar", lembrete: "Remédio", quando: "2026-11-23T12:00:00.000Z" });
+  assert.deepEqual(validAcao({ tipo: "lembrete_adiar", lembrete: "Remédio", quando: "2026-11-22T17:00:00-03:00" }, NOW), { tipo: "lembrete_adiar", lembrete: "Remédio", quando: "2026-11-22T20:00:00.000Z" });
+  assert.equal(validAcao({ tipo: "lembrete_adiar", lembrete: "Remédio", quando: "2026-11-22T10:00:00-03:00" }, NOW), null, "passado");
+  assert.equal(validAcao({ tipo: "lembrete_adiar", lembrete: "Remédio", quando: "2028-01-01T10:00:00-03:00" }, NOW), null, "longe demais");
+  assert.equal(validAcao({ tipo: "lembrete_adiar", lembrete: "Remédio", quando: "amanhã" }, NOW), null);
+  assert.equal(validAcao({ tipo: "lembrete_adiar", quando: "2026-11-23T09:00:00" }, NOW), null);
+});

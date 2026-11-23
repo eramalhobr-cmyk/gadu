@@ -53,6 +53,19 @@ export async function runAction(a: ChatAction): Promise<Result> {
     }
     if (a.kind === "tarefa_ok") return saved(await supabaseBrowser().from("tasks").update({ status: "done", done_at: new Date().toISOString() }).eq("id", a.id).eq("status", "open").select("id"));
     if (a.kind === "tarefa_adiar") return saved(await supabaseBrowser().from("tasks").update({ due_date: a.prazo }).eq("id", a.id).select("id"));
+    if (a.kind === "tarefa_cancelar") return saved(await supabaseBrowser().from("tasks").update({ status: "cancelled" }).eq("id", a.id).eq("status", "open").select("id"));
+    if (a.kind === "tarefa_reabrir") return saved(await supabaseBrowser().from("tasks").update({ status: "open", done_at: null }).eq("id", a.id).in("status", ["done", "cancelled"]).select("id"));
+    if (a.kind === "tarefa_editar") {
+      const m = a.mudancas;
+      const patch: Record<string, unknown> = {};
+      if (m.titulo) patch.title = m.titulo;
+      if (m.prioridade) patch.priority = m.prioridade;
+      if (m.prazo) patch.due_date = m.prazo;
+      if (m.projetoId !== undefined) patch.project_id = m.projetoId;
+      return saved(await supabaseBrowser().from("tasks").update(patch).eq("id", a.id).eq("status", "open").select("id"));
+    }
+    // Adiar: volta para "pendente" (se já tinha avisado) e o servidor avisa de novo no novo horário.
+    if (a.kind === "lembrete_adiar") return saved(await supabaseBrowser().from("reminders").update({ due_at: a.novoDueAt, status: "pending", sent_at: null }).eq("id", a.id).in("status", ["pending", "sent"]).select("id"));
     if (a.kind === "lembrete_off") return saved(await supabaseBrowser().from("reminders").update({ status: "cancelled" }).eq("id", a.id).select("id"));
     if (a.kind === "conta_paga") return api(await fetch(`/api/finance/itens/${a.itemId}/mes`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ano: a.ano, mes: a.mes, pago: true }) }), "Não consegui marcar a conta.");
     if (a.kind === "projeto") return saved(await supabaseBrowser().from("projects").insert({ name: a.nome, goal: a.objetivo, color: "sig", status: "active" }).select("id"));

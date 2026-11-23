@@ -7,6 +7,11 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · Tudo por voz, PR A: tarefas (cancelar, reabrir, editar) e lembretes (adiar) · **testado** (branch `feat/voz-tarefas-lembretes`)
+- **Feito por:** Claude Code.
+- **Novo pela conversa (proposta com cartão e "sim" falado; nada é gravado antes):** `tarefa_cancelar`, `tarefa_reabrir`, `tarefa_editar` (título, prioridade, prazo, projeto pelo nome) e `lembrete_adiar` ("me lembra daqui a 1 hora", "adia para amanhã às 9"). Nomes só entre os itens da própria pessoa (sessão + `user_id`); título bloqueado não vira cartão. As gravações são as mesmas consultas das telas, com a sessão e a RLS. Sem migração.
+- **Evidência:** typecheck; unit 235/235; integração 152/152 (3 testes novos: cartões sem gravar, isolamento entre pessoas, interruptores desligados); build; e2e público 10/10 e mobile 44/44 contra `next start`. `scripts/test-db.sh` não rodou (sem mudança de banco).
+
 ## 2026-11-23 · Revisão dos PRs de 22/11 e correção da confirmação falada · **testado** (PR de `fix/revisao-23-11`)
 - **Feito por:** Claude Code.
 - **Corrige:** o "sim" falado com negação ou pausa ("claro que não", "sim, espera") não grava mais; "muda para…" num item que o servidor já criou (lembrete) agora o desfaz em vez de duplicar.
