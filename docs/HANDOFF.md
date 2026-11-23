@@ -64,6 +64,9 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 13:05 · Cursor (Grok Bot), Desfazer nos agentes por voz
+- Revisão do #82 (Claude Code): sem problema de segurança; faltava "Feito · Desfazer" (UX-4). Feito no branch `fix/agentes-desfazer`: `agente_novo` desfaz apagando o agente criado (o id volta da gravação), `agente_editar` guarda os campos antes e restaura. Sem migração.
+
 ### 23/11/2026 12:15 · Cursor (Grok Bot), Finanças: teto por categoria e acumulado do ano (tarefa 10)
 - **Migração (PR #81):** `20261123160001_fin_tetos` (só aditiva: tabela nova `fin_tetos`, um teto por categoria por pessoa, 4 políticas de dono e as restritivas `fin_tetos_ativo_insert/update` do S-05). Testes `30_isolamento`, `60_financas` e `85_s05` atualizados.
 - **Código (branch `feat/fin-tetos-app`):** `src/lib/finance/tetos.ts` (alerta a partir de 80%, estourou a partir de 100%, somas em centavos, acumulado do ano até o mês atual); rotas `GET/PUT/DELETE /api/finance/tetos` (PUT troca e devolve o anterior para o Desfazer) e `GET /api/finance/ano` (somado no servidor, sem tabela nova, ano futuro recusado); aba "Tetos e ano" no Financeiro; tela Hoje avisa os tetos que passaram de 80%.

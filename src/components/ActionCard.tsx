@@ -79,6 +79,12 @@ async function capture(a: ChatAction): Promise<Prep | null> {
         const antes = j.config.receita_principal_id ?? null;
         return () => () => backApi(put("/api/finance/config", { receita_principal_id: antes }));
       }
+      case "agente_novo": return (r) => (r.id ? () => back(db.from("agents").delete().eq("id", Number(r.id))) : undefined);
+      case "agente_editar": {
+        const { data } = await db.from("agents").select("name, area, instructions, active").eq("id", a.id).maybeSingle();
+        if (!data) return null;
+        return () => () => back(db.from("agents").update(data).eq("id", a.id));
+      }
       case "gasto": return (r) => (r.id ? () => backApi(fetch(`/api/finance/gastos/${r.id}`, { method: "DELETE" })) : undefined);
       case "evento": return (r) => (r.id ? () => backApi(fetch(`/api/calendar/${encodeURIComponent(r.id!)}`, { method: "DELETE" })) : undefined);
       default: return null;
@@ -131,7 +137,12 @@ async function execute(a: ChatAction): Promise<Result> {
       if (m.objetivo !== undefined) patch.goal = m.objetivo || null;
       return saved(await supabaseBrowser().from("projects").update(patch).eq("id", a.id).select("id"));
     }
-    if (a.kind === "agente_novo") return saved(await supabaseBrowser().from("agents").insert({ name: a.nome, area: a.area, instructions: a.instrucoes, color: "sig", icon: "spark", active: true }).select("id"));
+    if (a.kind === "agente_novo") {
+      const r = await supabaseBrowser().from("agents").insert({ name: a.nome, area: a.area, instructions: a.instrucoes, color: "sig", icon: "spark", active: true }).select("id");
+      const res = saved(r);
+      const id = (r.data as { id?: unknown }[] | null)?.[0]?.id;
+      return res.ok && (typeof id === "number" || typeof id === "string") ? { ...res, id: String(id) } : res;
+    }
     if (a.kind === "agente_editar") {
       const m = a.mudancas;
       const patch: Record<string, unknown> = {};

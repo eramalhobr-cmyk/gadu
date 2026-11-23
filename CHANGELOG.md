@@ -7,6 +7,9 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · Agentes por voz com Desfazer · desenvolvido e testado
+- **Feito por:** Cursor (Grok Bot). Regra UX-4 ("Feito · Desfazer" em toda ação que grava): criar agente pela conversa agora pode ser desfeito (apaga o agente recém-criado; conversas ligadas ficam sem agente) e editar volta nome, área, instruções e ativo de antes. Sem migração. Teste `test/desfazer.test.ts` cobre as duas ações.
+
 ## 2026-11-23 · Finanças: teto por categoria e acumulado do ano · desenvolvido e testado
 - **Feito por:** Cursor (Grok Bot). Migração aditiva `20261123160001_fin_tetos` (PR #81) e código (`feat/fin-tetos-app`): aba "Tetos e ano" no Financeiro, aviso na tela Hoje a partir de 80%, `GET/PUT/DELETE /api/finance/tetos`, `GET /api/finance/ano`, voz `teto_definir` com confirmação e Desfazer, perguntas "quanto gastei … este ano" respondidas com fatos somados no servidor.
 - **Evidências (máquina local):** `npm run typecheck`; `test:unit` e `test:integration` verdes (inclui `test/finance-tetos.integration.test.ts`); `scripts/test-db.sh` ok. **Não testado:** no aparelho, com a IA real.
