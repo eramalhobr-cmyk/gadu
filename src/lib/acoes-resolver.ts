@@ -402,14 +402,17 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           actions.push({ kind: "receita_principal", itemId: it.id, nome: it.nome });
           break;
         }
-        case "peca3d_abrir": {
+        case "peca3d_abrir":
+        case "peca3d_ajustar": {
           if (!opts.modeling3d) break;
+          if (a.tipo === "peca3d_ajustar" && blocked(a.pedido)) break;
           const r = await db.from("pecas_3d").select("id, titulo, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(50);
           const lista = (r.error || !Array.isArray(r.data) ? [] : r.data) as { id: string; titulo: string; updated_at: string }[];
           const p = a.busca ? matchByName(lista, (x) => x.titulo, a.busca) : lista[0];
           if (!p || blocked(p.titulo)) { misses.push(a.busca ? `Não achei a peça "${a.busca}" no 3D.` : "Você ainda não tem peças salvas no 3D."); break; }
           const quando = new Date(p.updated_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
-          actions.push({ kind: "peca3d_abrir", id: p.id, titulo: p.titulo.slice(0, 120), quando });
+          if (a.tipo === "peca3d_ajustar") actions.push({ kind: "peca3d_ajustar", id: p.id, titulo: p.titulo.slice(0, 120), quando, pedido: a.pedido });
+          else actions.push({ kind: "peca3d_abrir", id: p.id, titulo: p.titulo.slice(0, 120), quando });
           break;
         }
         case "percepcao": {

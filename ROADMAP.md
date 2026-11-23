@@ -377,7 +377,8 @@ Escolha do Eduardo: usar as IAs que já temos, sem serviço pago por geração (
   - [x] **OpenSCAD WASM num Web Worker**, componente GPL separado em `public/vendor/openscad/` (código do GaDu limpo, licença e fonte ao lado); sem rede (CSP própria), tempo-limite de 30 s, worker recriado se travar
   - [x] Visualizador **three.js** (giro, mesa 256 × 256 mm, medidas) e **controles deslizantes** dos parâmetros (sem custo de IA)
   - [x] Refinar por texto (campo "Pedir uma mudança") e pedir correção à IA quando o OpenSCAD dá erro
-  - [ ] Refinar por voz e **imagem do render** enviada ao modelo (fica para 3D-1b)
+  - [x] Refinar por voz: "deixa o suporte 2 mm mais alto" vira o cartão `peca3d_ajustar`; confirmado, abre a peça no 3D Studio e faz o ajuste (mesma reserva e cota do 3D; "Voltar uma versão" desfaz) (23/11, Cursor)
+  - [ ] **Imagem do render** enviada ao modelo (fica para 3D-1b)
   - [x] Verificações de impressão: no máximo **256 mm** por eixo, malha fechada (manifold), base plana, parede de pelo menos **1,2 mm** (estimativa) e aviso de balanço
   - [x] Exportar **STL** e **3MF comum**
   - [ ] **3MF "A1 PLA 0.4"**: função de injeção pronta e testada com modelo fictício; botão desativado até o Eduardo enviar o projeto (docs/FEATURE-3D.md, "Como enviar o modelo de projeto")

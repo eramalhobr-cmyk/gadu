@@ -67,6 +67,12 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 14:50 · Cursor (Grok Bot), sobras do 3D: ajustar peça por voz
+- **Decisão do Eduardo (14:39):** não lançar mais o Claude Code no GaDu, nem depois de a cota renovar (ele precisa dele para outro trabalho). Todo o trabalho restante do GaDu fica com o Cursor.
+- `peca3d_ajustar` (acoes, resolvedor, cartão, pergunta falada) + `src/lib/3d/ajuste-voz.ts` + leitura única no `Studio3D.tsx`. Não mexe em `GaduApp.tsx` (frente de UX): a navegação sai do `ActionCard.tsx`.
+- **A revisar por outra IA:** o efeito do ajuste no `Studio3D.tsx` (roda uma vez, depois que a peça certa abriu).
+- **Próximo nas sobras do 3D:** imagem do render para o modelo (3D-1b) e as 10 peças de referência com IA real (precisa do Eduardo autorizar o gasto). 3MF "A1 PLA 0.4" espera o projeto do Eduardo.
+
 ### 23/11/2026 14:20 · Cursor (Grok Bot), UX-7 PR 1: palco de voz
 - **Pedido do Eduardo (14:06):** aplicar a proposta visual inteira (17 itens) em PRs pequenos. Ordem: palco de voz, Mais/menu por áreas, ligações e mapa, Hoje em três faixas, o resto.
 - **Feito:** avatar grande na tela de escuta (tela cheia no celular), na Conversa do celular (até 190 px vazia ou em voz, encolhe ao digitar), no computador (340/420 px) e no painel do assistente (136/168 px ao ouvir, pensar e falar). Nível real da voz: `src/lib/voice-level.ts` (testado), `src/lib/mic-meter.ts` (computador, só com permissão já dada, nada gravado), trechos reconhecidos e `onboundary` da fala. CSS do ciclo em `src/app/ux7.css`.

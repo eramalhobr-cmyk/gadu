@@ -23,7 +23,7 @@ test("cartões da conversa: só as ações reversíveis ganham Desfazer; apagar 
   const capture = src.slice(src.indexOf("async function capture"), src.indexOf("async function execute"));
   const reversiveis = ["tarefa_ok", "tarefa_cancelar", "tarefa_reabrir", "tarefa_adiar", "tarefa_editar", "lembrete_adiar", "lembrete_off", "memoria_aprovar", "projeto_arquivar", "conta_paga", "conta_desmarcar", "marco_ok", "meta_status", "gasto", "evento", "agente_novo", "agente_editar", "meta_projeto", "meta_agenda", "percepcao"];
   for (const k of reversiveis) assert.match(capture, new RegExp(`case "${k}"`), `${k} sem desfazer`);
-  for (const k of ["memoria_esquecer", "memoria_recusar", "gasto_apagar", "evento_apagar", "nova_conversa", "navegar", "ajuste"]) assert.doesNotMatch(capture, new RegExp(`case "${k}"`), `${k} não deveria ter desfazer`);
+  for (const k of ["memoria_esquecer", "memoria_recusar", "gasto_apagar", "evento_apagar", "nova_conversa", "navegar", "ajuste", "peca3d_ajustar"]) assert.doesNotMatch(capture, new RegExp(`case "${k}"`), `${k} não deveria ter desfazer`);
 });
 
 test("o 'desfaz' falado passa pelo mesmo caminho do texto, sem modelo", () => {
