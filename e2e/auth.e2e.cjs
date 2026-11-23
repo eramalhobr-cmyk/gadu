@@ -275,8 +275,8 @@ describe("app com login", () => {
     await d.click(".chat-form [aria-label=Enviar]");
     await d.waitForURL(/tab=agenda/);
     await d.click("[aria-label='Abrir o assistente']");
-    await d.fill("#msg", "volta");
-    await d.click(".chat-form [aria-label=Enviar]");
+    await d.fill("#assist-msg", "volta");
+    await d.click(".assist-composer [aria-label=Enviar]");
     await d.waitForURL(/tab=conversa/);
     assert.equal(chats, 0, "sem chamar o modelo");
     await d.context().close();
