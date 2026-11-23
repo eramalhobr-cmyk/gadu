@@ -240,3 +240,15 @@ test("agentes: cartão, confirmação e pergunta falada", async () => {
   const longo: ChatAction = { kind: "agente_editar", id: 1, nome: "Mentor", mudancas: { instrucoes: "a ".repeat(400) } };
   assert.ok(actionQuestion(longo, NOW).length < 260, "a fala não lê as 4000 letras");
 });
+
+test("percepção: cartão e pergunta falada de aceitar e ignorar; conflito abre a Agenda", async () => {
+  const { actionQuestion, describe: d } = await import("./chat-actions.ts");
+  const ac: ChatAction = { kind: "percepcao", tipo: "atrasadas", decisao: "aceita", texto: "Tarefa atrasada há 2 dias: \"Pagar boleto\".", rotulo: "Passar para hoje" };
+  assert.equal(d(ac).confirm, "Passar para hoje");
+  assert.equal(actionQuestion(ac, NOW), "Passo as tarefas atrasadas para hoje?");
+  const ig: ChatAction = { ...ac, decisao: "ignorada" } as ChatAction;
+  assert.equal(d(ig).confirm, "Ignorar");
+  assert.match(actionQuestion(ig, NOW), /^Ignoro hoje o aviso: Tarefa atrasada/);
+  const cf: ChatAction = { kind: "percepcao", tipo: "conflito", decisao: "aceita", texto: "Conflito às 16:30", rotulo: "Ver na agenda" };
+  assert.equal(d(cf).open?.view, "agenda");
+});

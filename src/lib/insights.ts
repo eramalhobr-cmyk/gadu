@@ -2,7 +2,9 @@
 export type InEvent = { title: string; start: string; end: string; allDay: boolean };
 export type InTask = { title: string; due_date: string | null; priority: number };
 export type InMail = { from: string; subject: string; date: string; important: boolean };
-export type Insight = { kind: "conflito" | "livre" | "atrasadas" | "email" | "cheio"; text: string };
+export type InsightKind = "conflito" | "livre" | "atrasadas" | "email" | "cheio";
+/** `ref`: só o necessário para o "Aceitar" (janela livre: horário; e-mail único: remetente e assunto, já filtrados pela privacidade). */
+export type Insight = { kind: InsightKind; text: string; ref?: { inicio?: string; fim?: string; from?: string; subject?: string } };
 
 const TZ = "America/Sao_Paulo";
 const hm = (ms: number) => new Date(ms).toLocaleTimeString("pt-BR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
@@ -27,7 +29,7 @@ export function insights(input: { events: InEvent[] | null; tasks: InTask[]; mai
       cursor = Math.max(cursor, ev.e);
     }
     if (dayEnd - cursor > best.e - best.s) best = { s: cursor, e: dayEnd };
-    if (best.e - best.s >= 90 * 60_000) out.push({ kind: "livre", text: `Janela livre das ${hm(best.s)} às ${hm(best.e)}: boa hora para foco.` });
+    if (best.e - best.s >= 90 * 60_000) out.push({ kind: "livre", text: `Janela livre das ${hm(best.s)} às ${hm(best.e)}: boa hora para foco.`, ref: { inicio: new Date(best.s).toISOString(), fim: new Date(best.e).toISOString() } });
   }
 
   const late = input.tasks.filter((t) => t.due_date && t.due_date < today).sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1));
@@ -37,7 +39,7 @@ export function insights(input: { events: InEvent[] | null; tasks: InTask[]; mai
   }
 
   const stale = (input.mails ?? []).filter((m) => m.important && Date.parse(m.date) < now - 20 * 3_600_000);
-  if (stale.length) out.push({ kind: "email", text: stale.length === 1 ? `E-mail importante de ${stale[0].from} sem leitura desde ontem: "${stale[0].subject}".` : `${stale.length} e-mails importantes sem leitura desde ontem.` });
+  if (stale.length) out.push({ kind: "email", text: stale.length === 1 ? `E-mail importante de ${stale[0].from} sem leitura desde ontem: "${stale[0].subject}".` : `${stale.length} e-mails importantes sem leitura desde ontem.`, ...(stale.length === 1 ? { ref: { from: stale[0].from, subject: stale[0].subject } } : {}) });
 
   return out.slice(0, 4);
 }

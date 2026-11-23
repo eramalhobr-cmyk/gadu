@@ -3,6 +3,7 @@ import { z } from "zod";
 import { accessToken, events, GoogleError, inbox } from "@/lib/google";
 import { spNow } from "@/lib/briefing";
 import { insights } from "@/lib/insights";
+import { pendentes, type Resposta } from "@/lib/percepcoes";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
 import { signedIn } from "../google/_auth";
 
@@ -11,9 +12,16 @@ export const dynamic = "force-dynamic";
 const Query = z.object({ days: z.coerce.number().int().min(1).max(14).default(1) });
 
 // Painel "Hoje": compromissos e e-mails não lidos. Sensíveis e bloqueados aparecem como omitidos.
+/** Respostas de hoje às percepções (Aceitar/Ignorar). Se a leitura falhar, mostra todas (nada some por erro). */
+async function respostasDeHoje(a: NonNullable<Awaited<ReturnType<typeof signedIn>>>): Promise<Resposta[]> {
+  const r = await a.supabase.from("insight_respostas").select("tipo, decisao").eq("user_id", a.user.id).eq("dia", spNow().day);
+  return r.error ? [] : ((r.data ?? []) as Resposta[]);
+}
+
 export async function GET(request: Request) {
   const a = await signedIn();
   if (!a) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const respostas = respostasDeHoje(a);
   const q = Query.safeParse(Object.fromEntries(new URL(request.url).searchParams));
   if (!q.success) return NextResponse.json({ error: "invalid" }, { status: 400 });
   try {
@@ -34,7 +42,7 @@ export async function GET(request: Request) {
       {
         connected: true,
         events: visible,
-        insights: insights({ events: visible, tasks: (tasks.data ?? []) as { title: string; due_date: string | null; priority: number }[], mails: mails.filter((m) => !hide(`${m.from} ${m.subject} ${m.snippet}`)) }),
+        insights: pendentes(insights({ events: visible, tasks: (tasks.data ?? []) as { title: string; due_date: string | null; priority: number }[], mails: mails.filter((m) => !hide(`${m.from} ${m.subject} ${m.snippet}`)) }), await respostas),
         emails: mails.map((m) => (hide(`${m.from} ${m.subject} ${m.snippet}`) ? { ...m, subject: "(omitido pela regra de privacidade)", snippet: "" } : m)),
       },
       { headers: { "cache-control": "no-store" } },
@@ -43,7 +51,7 @@ export async function GET(request: Request) {
     const kind = e instanceof GoogleError ? e.kind : "api";
     // Sem Google, os insights das tarefas continuam valendo.
     const { data: tasks } = await a.supabase.from("tasks").select("title, due_date, priority").eq("status", "open").limit(200);
-    const tips = insights({ events: null, tasks: (tasks ?? []) as { title: string; due_date: string | null; priority: number }[], mails: null });
+    const tips = pendentes(insights({ events: null, tasks: (tasks ?? []) as { title: string; due_date: string | null; priority: number }[], mails: null }), await respostas);
     return NextResponse.json({ connected: kind !== "not_connected", error: kind, insights: tips }, { status: kind === "not_connected" ? 200 : 502 });
   }
 }

@@ -16,6 +16,8 @@ import { releaseBudget, reserveBudget, settleBudget } from "@/lib/ai-budget";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
 import { accessToken, events, formatEvents, formatMails, GoogleError, googleIntent, inbox } from "@/lib/google";
 import { insights, type InTask } from "@/lib/insights";
+import { ACEITAR, pendentes, type Resposta } from "@/lib/percepcoes";
+import { spNow } from "@/lib/briefing";
 import { embed, embeddingsAvailable, toVector } from "@/lib/embeddings";
 import { agentAreas } from "@/lib/presets";
 import { contextBlock, extrasBlock, systemPrompt } from "@/lib/prompt";
@@ -409,6 +411,8 @@ export async function POST(request: Request) {
             goals: goalsEnabled(), finance: financeEnabled(), modeling3d: modeling3dEnabled(),
             // Agenda do Google só para achar o evento pelo nome (token da própria pessoa, só no servidor).
             calendar: async (from, to) => events(await accessToken(supabase, user.id), from, to),
+            // E-mails não lidos só para recalcular as percepções de hoje (ação "percepcao").
+            inbox: async () => inbox(await accessToken(supabase, user.id)),
             blocked: (t) => isSensitive(t) || Boolean(blockedTerm(t, blocked)),
           });
           if (actions.length) send({ t: "acoes", items: actions });
@@ -530,7 +534,10 @@ async function googleContext(supabase: Db, userId: string, message: string, bloc
     const parts = [ev ? formatEvents(ev) : "", mails ? formatMails(mails, hide) : ""].filter(Boolean);
     // Insights calculados (conflitos, janela livre, atrasos, e-mails parados): use no briefing e ao priorizar.
     const tips = insights({ events: ev ? ev.filter((e) => !e.declined && e.start < new Date(start.getTime() + 86_400_000).toISOString()) : null, tasks, mails: mails?.filter((m) => !hide(`${m.from} ${m.subject} ${m.snippet}`)) ?? null });
-    if (tips.length) parts.push("Insights de hoje:\n" + tips.map((t) => `- ${t.text}`).join("\n"));
+    // Percepções que a pessoa já aceitou ou ignorou hoje não voltam. As outras podem ser aceitas ou ignoradas pela conversa (ação "percepcao").
+    const resp = await supabase.from("insight_respostas").select("tipo, decisao").eq("user_id", userId).eq("dia", spNow().day);
+    const abertas = pendentes(tips, resp.error ? [] : ((resp.data ?? []) as Resposta[]));
+    if (abertas.length) parts.push("Percepções de hoje (a pessoa pode aceitar ou ignorar cada uma):\n" + abertas.map((t) => `- [${t.kind}] ${t.text}${ACEITAR[t.kind] ? ` (aceitar = ${ACEITAR[t.kind]!.rotulo.toLowerCase()})` : " (só aviso)"}`).join("\n"));
     return `\n\nDados do Google (lidos agora, só leitura):\n${parts.join("\n\n")}`;
   } catch (e) {
     if (e instanceof GoogleError && e.kind === "not_connected") {

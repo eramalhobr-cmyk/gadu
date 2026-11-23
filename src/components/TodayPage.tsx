@@ -7,11 +7,12 @@ import { Avatar } from "./RobotFace";
 import { Icon, todayKey } from "./ui";
 import { EmptyState, Panel } from "./kit";
 import { AttentionCard } from "./AttentionCard";
+import { PercepcoesCard } from "./PercepcoesCard";
+import type { Insight } from "@/lib/insights";
 import type { ViewId } from "@/lib/modules";
 
 type Ev = { title: string; start: string; end: string; allDay: boolean; where?: string; meet: boolean };
 type Mail = { thread?: string; from: string; subject: string; snippet: string; important: boolean };
-type Insight = { kind: string; text: string };
 type Today = { connected: boolean; events?: Ev[]; emails?: Mail[]; insights?: Insight[]; error?: string };
 type Reminder = { id: number; text: string; due_at: string; status: "pending" | "sent" | "done" | "cancelled" };
 type LateTask = { id: number; title: string; due_date: string | null };
@@ -176,6 +177,9 @@ export function TodayPage(props: {
 
         {/* (3) Uma lista só: tarefas, lembretes, compromissos, e-mails, metas e memórias, com Feito/Adiar no item. */}
         <AttentionCard key={attnKey} busy={props.busy} onOpen={props.onOpen} onAsk={props.onAsk} goalsEnabled={props.goalsEnabled} financeEnabled={props.financeEnabled} pendingMemories={props.pendingMemories} onCount={setAttn} />
+
+        {/* Percepções do dia (sem IA) com Aceitar/Ignorar e Desfazer. */}
+        <PercepcoesCard items={today?.insights ?? []} onOpen={props.onOpen} onChanged={() => setAttnKey((k) => k + 1)} />
 
         {/* Só 1 ação principal e até 2 secundárias à vista (UX-4): o resto fica em "Mais opções". */}
         <details className="more-opts">

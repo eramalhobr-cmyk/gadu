@@ -1,6 +1,9 @@
 // Servidor: transforma as ações propostas pelo modelo (src/lib/acoes.ts) em cartões, resolvendo os nomes para ids
 // SÓ entre os itens da própria pessoa (cliente da SESSÃO + filtro por user_id, além da RLS). Nada é gravado aqui.
 import { nomeCategoria } from "./finance/tetos.ts";
+import { insights, type InTask } from "./insights.ts";
+import { ACEITAR, pendentes, type Resposta } from "./percepcoes.ts";
+import { spNow } from "./briefing.ts";
 import type { AcaoProposta } from "./acoes.ts";
 import { DESTINO_NOME, matchByName, norm } from "./acoes.ts";
 import { AREAS } from "./meta.ts";
@@ -17,7 +20,9 @@ import { planejarAgenda } from "./goals/agenda.ts";
 type GoalRow = { id: string; titulo: string; medicao: Medicao; unidade: string | null; agregacao: Agregacao; status: string; valor_alvo?: number | string | null; prazo?: string | null };
 /** Agenda do Google (só no servidor, com o token da própria pessoa); ausente nos testes que não usam agenda. */
 export type CalendarLookup = (from: Date, to: Date) => Promise<CalEvent[]>;
-type Opts = { goals: boolean; finance: boolean; modeling3d?: boolean; calendar?: CalendarLookup; now?: number; blocked?: (text: string) => boolean };
+/** E-mails não lidos da própria pessoa (token só no servidor), para as percepções. */
+export type InboxLookup = () => Promise<{ from: string; subject: string; snippet: string; date: string; important: boolean }[]>;
+type Opts = { goals: boolean; finance: boolean; modeling3d?: boolean; calendar?: CalendarLookup; inbox?: InboxLookup; now?: number; blocked?: (text: string) => boolean };
 
 /** Área do agente: só as da lista de Agentes (como na tela); outra coisa vira nulo. */
 function areaDe(v: string | null): string | null {
@@ -404,6 +409,25 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           if (!p || blocked(p.titulo)) { misses.push(a.busca ? `Não achei a peça "${a.busca}" no 3D.` : "Você ainda não tem peças salvas no 3D."); break; }
           const quando = new Date(p.updated_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
           actions.push({ kind: "peca3d_abrir", id: p.id, titulo: p.titulo.slice(0, 120), quando });
+          break;
+        }
+        case "percepcao": {
+          // Recalcula as percepções de hoje no servidor (mesma regra da tela Hoje), só com dados da própria pessoa,
+          // e tira as já respondidas: o modelo nunca escolhe o texto nem o horário.
+          const sp = spNow(now);
+          const fimDia = new Date(sp.start.getTime() + 86_400_000).toISOString();
+          let evs: CalEvent[] | null = null;
+          try { evs = (await eventos()).filter((e) => e.start < fimDia && e.end > sp.start.toISOString()); } catch { evs = null; }
+          let mails: Awaited<ReturnType<InboxLookup>> | null = null;
+          try { mails = opts.inbox ? (await opts.inbox()).filter((m) => !blocked(`${m.from} ${m.subject} ${m.snippet}`)) : null; } catch { mails = null; }
+          const t = await db.from("tasks").select("title, due_date, priority").eq("user_id", userId).eq("status", "open").limit(200);
+          const resp = await db.from("insight_respostas").select("tipo, decisao").eq("user_id", userId).eq("dia", sp.day);
+          const lista = pendentes(insights({ events: evs, tasks: (t.error ? [] : t.data ?? []) as InTask[], mails, now, today: sp.day }), resp.error ? [] : ((resp.data ?? []) as Resposta[]));
+          const ins = lista.find((x) => x.kind === a.percepcao);
+          if (!ins) { misses.push("Não há esse aviso entre as percepções de hoje (ou você já respondeu)."); break; }
+          const aceitar = ACEITAR[ins.kind];
+          if (a.decisao === "aceitar" && !aceitar) { misses.push("Esse aviso só dá para ignorar."); break; }
+          actions.push({ kind: "percepcao", tipo: ins.kind, decisao: a.decisao === "aceitar" ? "aceita" : "ignorada", texto: ins.text, rotulo: aceitar?.rotulo ?? null, ...(ins.ref ? { ref: ins.ref } : {}) });
           break;
         }
         case "teto_definir": {

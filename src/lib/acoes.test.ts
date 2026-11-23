@@ -239,3 +239,11 @@ test("agente_criar e agente_editar: validação", () => {
   assert.equal(validAcao({ tipo: "agente_editar", agente: "Mentor" }, NOW), null, "sem nada para mudar");
   assert.equal(validAcao({ tipo: "agente_editar", nome: "Novo" }, NOW), null, "sem dizer qual agente");
 });
+
+test("percepcao: tipo e decisão conhecidos; sinônimos simples; o resto é recusado", () => {
+  assert.deepEqual(validAcao({ tipo: "percepcao", percepcao: "atrasadas", decisao: "aceitar" }, NOW), { tipo: "percepcao", percepcao: "atrasadas", decisao: "aceitar" });
+  assert.deepEqual(validAcao({ tipo: "percepcao", percepcao: "atrasos", decisao: "ignora" }, NOW), { tipo: "percepcao", percepcao: "atrasadas", decisao: "ignorar" });
+  assert.equal(validAcao({ tipo: "percepcao", percepcao: "clima", decisao: "aceitar" }, NOW), null);
+  assert.equal(validAcao({ tipo: "percepcao", percepcao: "email", decisao: "talvez" }, NOW), null);
+  assert.ok(acoesRules().includes('"tipo":"percepcao"'));
+});

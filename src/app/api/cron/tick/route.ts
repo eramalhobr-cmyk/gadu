@@ -95,9 +95,12 @@ async function briefings(db: Db) {
     const { count: due } = await db.from("tasks").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "open").lte("due_date", now.day);
     const name = String(p.display_name ?? "").split(" ")[0];
     const t = briefingText({ name, events: evs, mails, important, reminders: count ?? 0, tasks: due ?? 0 });
+    // Percepção que a pessoa já respondeu hoje não entra no briefing (se a leitura falhar, segue sem filtro).
+    const { data: resp } = await db.from("insight_respostas").select("tipo").eq("user_id", userId).eq("dia", now.day);
+    const ignoradas = new Set(((resp ?? []) as { tipo: string }[]).map((r) => r.tipo));
     const { data: openTasks } = await db.from("tasks").select("title, due_date, priority").eq("user_id", userId).eq("status", "open").limit(200);
     const tip = insights({ events: evs ? evs.map((e) => ({ ...e, end: (e as { end?: string }).end ?? e.start })) : null, tasks: (openTasks ?? []) as { title: string; due_date: string | null; priority: number }[], mails: mailList })
-      .find((x) => x.kind === "conflito" || x.kind === "atrasadas" || x.kind === "email");
+      .find((x) => (x.kind === "conflito" || x.kind === "atrasadas" || x.kind === "email") && !ignoradas.has(x.kind));
     if (tip) t.body = t.body.replace("Toque para começar o dia.", `${tip.text} Toque para começar o dia.`);
     sent += await push(db, userId, { ...t, url: "/app?start=briefing", tag: `briefing-${now.day}` });
   }
