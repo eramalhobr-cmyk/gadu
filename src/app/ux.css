@@ -96,3 +96,12 @@ html[data-texto="130"] { --ts: 1.3; }
 .text-sample { margin: var(--s-3) 0 0; color: var(--ink-2); }
 /* Com texto grande, os atalhos das Configurações viram uma linha só, de rolar para o lado (em vez de 3 linhas fixas no topo). */
 @media (max-width: 699px) { html[data-texto="115"] .set-nav, html[data-texto="130"] .set-nav { flex-wrap: nowrap; overflow-x: auto; } }
+/* ===== UX-3 · Confirmação falada ===== */
+.confirm-sheet .listen-text { font-weight: 600; }
+.confirm-sheet .listen-status { padding: 0 44px; }
+.confirm-heard { margin: 0; color: var(--ink-2); font-size: var(--fs-lg); font-style: italic; }
+.confirm-acts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); width: 100%; }
+.confirm-acts .listen-main { min-height: 64px; font-size: var(--fs-lg); }
+.confirm-dot { display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%; background: var(--hot); vertical-align: middle; animation: confirm-pulse 1.2s ease-in-out infinite; }
+@keyframes confirm-pulse { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .confirm-dot { animation: none; } }
