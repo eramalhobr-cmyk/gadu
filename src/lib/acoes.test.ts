@@ -178,6 +178,9 @@ test("salario_simular: valor e dependentes validados; 'salvar' só quando dito; 
   for (const bad of [{ bruto: 0 }, { bruto: -1 }, { bruto: "abc" }, {}, { bruto: 5000, dependentes: -1 }, { bruto: 5000, dependentes: 1.5 }, { bruto: 5000, dependentes: 99 }, { bruto: 5000, dependentes: "x" }]) {
     assert.equal(validAcao({ tipo: "salario_simular", ...bad }, NOW), null, JSON.stringify(bad));
   }
+  // outras deduções e benefícios: só entram se válidos; inválidos ficam de fora (nada é adivinhado)
+  assert.deepEqual(validAcao({ tipo: "salario_simular", bruto: 12000, outrasDeducoes: "500", beneficios: 800 }, NOW), { tipo: "salario_simular", bruto: 12000, dependentes: 0, salvar: false, outrasDeducoes: 500, beneficios: 800 });
+  assert.deepEqual(validAcao({ tipo: "salario_simular", bruto: 2000, outrasDeducoes: 9000, beneficios: -3 }, NOW), { tipo: "salario_simular", bruto: 2000, dependentes: 0, salvar: false });
   assert.match(acoesRules(), /salario_simular/);
 });
 

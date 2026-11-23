@@ -514,8 +514,8 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           // O cálculo é do servidor (nunca do modelo). Só informa; para salvar, o líquido vai para a RECEITA PRINCIPAL da própria
           // pessoa (Financeiro › Contas › Configurar), que já guarda o valor do mês. Sem receita principal, só mostra o cálculo.
           if (!opts.finance) break;
-          const calc = calcularSalario(a.bruto, a.dependentes);
-          if (!calc) { misses.push("Não consegui calcular esse salário. Confira o valor e os dependentes."); break; }
+          const calc = calcularSalario(a.bruto, a.dependentes, { outrasDeducoes: a.outrasDeducoes, beneficios: a.beneficios });
+          if (!calc) { misses.push("Não consegui calcular esse salário. Confira o valor, os dependentes e as deduções."); break; }
           if (!a.salvar) { actions.push({ kind: "salario", calc, salvar: null }); break; }
           const hoje = hojeSP(now);
           const d = await loadMes(db, userId, hoje.ano, hoje.mes);

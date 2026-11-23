@@ -36,7 +36,7 @@ import type { MetaDraft } from "@/lib/goals/types";
 import { collectFinance, financeProposalRules, formatFinanceBlock } from "@/lib/core/finance";
 import { financeEnabled } from "@/lib/finance/flag";
 import { modeling3dEnabled } from "@/lib/3d/flag";
-import { blocoSalario, pedidoSalario } from "@/lib/finance/salario-texto";
+import { blocoSalario, calcularPedido, pedeSalvarSalario, pedidoSalario, resumoSalario } from "@/lib/finance/salario-texto";
 import { hojeSP, isoDia } from "@/lib/finance/datas";
 import type { GastoProposta } from "@/lib/finance/lancamento";
 
@@ -123,6 +123,17 @@ export async function POST(request: Request) {
         agenteUso = agente?.id ?? null;
         if (tetoAtingido(agente, limAg.gasto)) {
           send({ t: "notice", kind: "quota", text: `O agente ${agente!.nome} chegou ao teto de gasto dele neste mês (US$ ${agente!.teto!.toFixed(2)}). Dá para aumentar o teto em Agentes, ou conversar com o GaDu sem o agente.` });
+          return;
+        }
+        // 2a'. Simulador de salário (só leitura): resposta local e determinística, SEM modelo, sem reserva e sem cota (custo zero).
+        //      Pedido para GUARDAR o líquido segue o fluxo normal (confirmação e Desfazer). Financeiro desligado ou agente sem a ferramenta: segue como antes.
+        const salarioLocal = financeEnabled() && pode(agente, "financas") && !pedeSalvarSalario(message) ? pedidoSalario(message) : null;
+        const calcLocal = salarioLocal ? calcularPedido(salarioLocal) : null;
+        if (calcLocal) {
+          send({ t: "provider", name: "Cálculo local · sem IA" });
+          send({ t: "delta", text: resumoSalario(calcLocal) });
+          send({ t: "acoes", items: [{ kind: "salario", calc: calcLocal, salvar: null }] });
+          send({ t: "done", memories: 0 });
           return;
         }
         // 2b. Teto mensal com RESERVA atômica: o banco soma gasto + reservas abertas + estimativa desta resposta.
@@ -424,7 +435,7 @@ export async function POST(request: Request) {
         if (salarioPedido) {
           // O valor e os dependentes do cartão são os que a pessoa disse, não os que o modelo repetiu; sem ação do modelo, o servidor propõe o cartão.
           const dele = acoesOk.find((a) => a.tipo === "salario_simular");
-          const base = { tipo: "salario_simular" as const, bruto: salarioPedido.bruto, dependentes: salarioPedido.dependentes };
+          const base = { tipo: "salario_simular" as const, bruto: salarioPedido.bruto, dependentes: salarioPedido.dependentes, ...(salarioPedido.outrasDeducoes ? { outrasDeducoes: salarioPedido.outrasDeducoes } : {}), ...(salarioPedido.beneficios ? { beneficios: salarioPedido.beneficios } : {}) };
           acoesOk = [...acoesOk.filter((a) => a.tipo !== "salario_simular"), { ...base, salvar: dele?.tipo === "salario_simular" ? dele.salvar : false }];
         }
         if (acoesOk.length) {

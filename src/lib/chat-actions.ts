@@ -320,7 +320,9 @@ export function salarioDetalhe(c: Salario): string {
   const ir = c.irrf > 0 ? formatBRL(c.irrf) : c.irrfDispensado ? "R$ 0,00 (até R$ 10 não retém)" : "R$ 0,00 (isento)";
   const dep = c.dependentes ? ` · ${c.dependentes} ${c.dependentes === 1 ? "dependente" : "dependentes"}` : "";
   const red = c.reducao > 0 ? ` · redução da lei ${formatBRL(c.reducao)}` : "";
-  return `Bruto ${formatBRL(c.bruto)}${dep} · INSS ${formatBRL(c.inss)} · IR ${ir}${red} · IR sobre ${formatBRL(c.baseIr)} (${c.modelo === "simplificado" ? "desconto simplificado" : "INSS e dependentes"}) · tabelas de ${SALARIO_ANO}, estimativa de salário mensal CLT`;
+  const out = c.outrasDeducoes > 0 ? ` · outras deduções ${formatBRL(c.outrasDeducoes)}` : "";
+  const ben = c.beneficios > 0 ? ` · benefícios ${formatBRL(c.beneficios)} (total ${formatBRL(c.totalRecebido)})` : "";
+  return `Bruto ${formatBRL(c.bruto)}${dep} · INSS ${formatBRL(c.inss)} · IR ${ir}${red}${out}${ben} · IR sobre ${formatBRL(c.baseIr)} (${c.modelo === "simplificado" ? "desconto simplificado" : "deduções legais"}) · 13º líquido ${formatBRL(c.decimoTerceiro.liquido)} e férias com 1/3 líquidas ${formatBRL(c.ferias.liquido)} (estimativas) · tabelas de ${SALARIO_ANO}, salário mensal CLT`;
 }
 
 function metaMudancasTexto(a: Extract<ChatAction, { kind: "meta_editar" }>): string {
@@ -411,7 +413,7 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     case "conversa_abrir": return `Abro a conversa ${a.titulo}, de ${a.quando}?`;
     case "guia": return "Abro o guia?";
     case "navegar": return `Abro ${DESTINO_NOME[a.view]}?`;
-    case "salario": return a.salvar ? `${resumoSalario(a.calc)} Salvo o líquido de ${spokenMoney(a.calc.liquido)} como o salário de ${MESES[a.salvar.mes - 1]} de ${a.salvar.ano}?` : resumoSalario(a.calc);
+    case "salario": return a.salvar ? `${resumoSalario(a.calc, { estimativas: false })} Salvo o líquido de ${spokenMoney(a.calc.liquido)} como o salário de ${MESES[a.salvar.mes - 1]} de ${a.salvar.ano}?` : resumoSalario(a.calc);
     case "projeto": return `Crio o projeto ${a.nome}?`;
     case "ajuste": return `${ajusteLabel(a.ajuste)}?`;
   }
