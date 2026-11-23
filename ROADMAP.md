@@ -470,7 +470,8 @@ Proposta completa (17 itens), com o levantamento das skills de design no GitHub,
 - [x] **Tema JARVIS (G2)** escolhido pelo Eduardo às 16:33: claro padrão e escuro, barra flutuante com microfone sólido por cima (publicado às 17:03, PR #107)
 - [x] **Painéis de resumo e gráficos** (Hoje, Finanças, Metas, Tarefas, Agentes; só dados reais; "mostra meu resumo de finanças" pela voz)
 - [x] **M4** telas mais visuais com resumo falado: botão "Ouvir" em cada painel, "lê o resumo" e "mostra meu resumo de…" falam os números do painel; tendência do ano no Financeiro
-- [ ] **G1** modo voz imersivo · **G3** design system v2 com testes visuais · **G4** logo novo (espera o arquivo) · direção escolhida: G2 JARVIS (23/11, 16:33)
+- [x] **G1** modo voz imersivo: escuta em tela cheia com o núcleo JARVIS (anéis e espectro de 60 traços ligados ao nível real da voz), estado em HUD e "modo voz" / "modo Jarvis" pela voz ou texto; anéis da Conversa também reagem
+- [ ] **G3** design system v2 com testes visuais · **G4** logo novo (espera o arquivo) · direção escolhida: G2 JARVIS (23/11, 16:33)
 
 ## Próximo ciclo (prioridades, em ordem; revisado em 22/11/2026)
 1. Validar com pessoa logada, em aparelho, o que foi publicado em 22/11 (Hoje e Fontes, Financeiro, Metas, voz, notificações) e fechar os passos manuais da segurança (senhas vazadas, S-09).

@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "./ui";
 import { Avatar } from "./RobotFace";
 import type { FaceMode } from "./robot-engine";
+import { VoiceCore } from "./VoiceCore";
+import { rotuloModo, type ModoNucleo } from "@/lib/nivel-visual";
 
 const WAIT_S = 3;
 
@@ -48,14 +50,19 @@ export function ListenSheet(props: {
   }, [props]);
 
   const heard = props.text.trim();
+  const modo: ModoNucleo = props.listening ? "listening" : (props.mode as ModoNucleo);
   const status = props.pending !== null ? `Enviando em ${Math.max(left, 0)}…` : props.listening ? "Estou ouvindo…" : heard ? "Parei de ouvir." : "Não ouvi nada.";
   return (
-    <div className="listen-wrap" role="dialog" aria-modal="true" aria-labelledby="listen-status">
+    <div className="listen-wrap imersivo" role="dialog" aria-modal="true" aria-labelledby="listen-status">
       <div className="listen">
         <button className="icon-btn listen-x" onClick={props.onClose} aria-label="Fechar"><Icon name="x" /></button>
-        <div className={`listen-ava ${props.listening ? "on" : ""}`} aria-hidden="true">
-          <Avatar mode={props.listening ? "listening" : props.mode} label="" />
-        </div>
+        {/* Modo voz imersivo (G1): núcleo JARVIS com anéis e espectro que reagem ao som real (voice-level). */}
+        <span className="listen-chip" data-modo={modo} aria-hidden="true"><i />{rotuloModo(modo, props.listening)}</span>
+        <VoiceCore modo={modo}>
+          <div className={`listen-ava ${props.listening ? "on" : ""}`} aria-hidden="true">
+            <Avatar mode={props.listening ? "listening" : props.mode} label="" />
+          </div>
+        </VoiceCore>
         <p className="listen-status" id="listen-status" role="status" aria-live="polite">{status}</p>
         <p className={`listen-text ${heard ? "" : "hint"}`}>{heard || (props.listening ? "Fale normalmente. Por exemplo: “me lembra amanhã às 9h de ligar para o médico”." : "Toque no microfone para falar de novo.")}</p>
 

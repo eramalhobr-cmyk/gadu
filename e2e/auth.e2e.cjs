@@ -214,6 +214,23 @@ describe("app com login", () => {
     await p.context().close();
   });
 
+  test("modo voz imersivo (G1): tela cheia, núcleo com anéis e espectro ligado ao nível da voz", async () => {
+    const p = await page(PHONE, { voice: "hang" });
+    await p.goto(`${BASE}/app?tab=hoje`);
+    await p.click(".dock-mic");
+    await p.waitForSelector(".listen-wrap.imersivo .vcore");
+    assert.equal(await p.$$eval(".vcore .vc-spec line", (l) => l.length), 60, "60 traços no espectro");
+    assert.match(await p.$eval(".listen-chip", (e) => e.textContent || ""), /Ouvindo/i);
+    const box = await p.$eval(".listen", (e) => { const r = e.getBoundingClientRect(); return { w: r.width, h: r.height }; });
+    assert.ok(box.w >= 389 && box.h >= 800, `tela cheia (${box.w}x${box.h})`);
+    await p.waitForFunction(() => getComputedStyle(document.querySelector(".vcore")).getPropertyValue("--lvl").trim() !== "");
+    const lvl = Number(await p.$eval(".vcore", (e) => e.style.getPropertyValue("--lvl")));
+    assert.ok(lvl >= 0 && lvl <= 1, `--lvl entre 0 e 1 (${lvl})`);
+    await p.keyboard.press("Escape");
+    assert.equal(await p.$(".listen"), null);
+    await p.context().close();
+  });
+
   test("palco de voz (UX-7): avatar grande na escuta e na Conversa, pequeno ao digitar", async () => {
     let p = await page(PHONE, { voice: "hang" });
     await p.goto(`${BASE}/app?tab=hoje`);

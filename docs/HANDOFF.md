@@ -67,6 +67,10 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 18:10 · Cursor (Grok Bot), G1 voz imersiva
+- `VoiceCore.tsx` (anéis SVG + espectro; `useNivel` escreve `--lvl` por quadro a partir do `voiceLevel`), `nivel-visual.ts`, `voz-imersiva.css`; `ListenSheet` com `.listen-wrap.imersivo` (mantém `.listen-ava` para os e2e antigos). "Modo voz" em `send()` antes do "lê o resumo". Empilhado sobre o M4.
+- **Próximo:** G3 (design system v2 com testes visuais).
+
 ### 23/11/2026 17:50 · Cursor (Grok Bot), M4 resumo falado
 - Botão "Ouvir" nos painéis (evento `gadu:falar`, o GaduApp fala com o `Speaker`), "lê o resumo" (`parseLerResumo`, antes da navegação em `send()`) e resumo por voz que espera `#painel[data-falar]` (até 3 s). Empilhado sobre o PR do gasto do mês.
 - **Próximos:** G1 (voz imersiva), G3.

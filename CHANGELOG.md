@@ -9,6 +9,11 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · UX-7 G1 · Modo voz imersivo (JARVIS) · desenvolvido e testado
+- **Feito por:** Cursor (Grok Bot). A tela de escuta virou tela cheia (celular e computador) com o **núcleo JARVIS**: o avatar no centro de três anéis e um espectro de 60 traços que crescem com o **nível real da voz** (`voice-level.ts`: microfone no computador, trechos reconhecidos no celular, palavras faladas pela voz do aparelho). Sem sinal, só uma respiração baixa; nada de volume inventado. Selo de estado em HUD (Ouvindo / Pensando / Falando). Os anéis do avatar da Conversa agora também reagem (`--lvl`). Um laço por quadro escreve só a variável CSS (sem re-render). "Reduzir movimento" para os giros; alto contraste usa as cores do sistema.
+- **Voz (sem modelo):** "modo voz", "abre o modo de voz", "ativa o modo Jarvis", "modo imersivo" abrem a escuta.
+- **Evidências (máquina local):** typecheck; `nivel-visual.test.ts` (nível real × respiração, espectro, rótulos, frases); build; e2e com login novo "modo voz imersivo (G1)" (tela cheia, 60 traços, selo "Ouvindo", `--lvl` entre 0 e 1). Capturas em `/workspace/gadu-review/g1/`.
+
 ## 2026-11-23 · UX-7 M4 · Resumo falado dos painéis · desenvolvido e testado
 - **Feito por:** Cursor (Grok Bot). Cada painel (Hoje, Finanças, Metas, Tarefas, Agentes) tem o botão **Ouvir** (44 px), que fala em uma ou duas frases o que o gráfico mostra, só com os números reais (`src/lib/painel-fala.ts`). Funciona mesmo com a voz das respostas desligada, porque foi pedido no toque. Finanças ganhou a linha de tendência do dia a dia no ano.
 - **Voz (sem modelo, sem custo):** "lê o resumo" / "me fala o resumo" lê o painel da tela atual (sem painel, avisa e sugere a frase); "mostra meu resumo de finanças" por voz agora abre, rola e **fala os números** quando eles chegam (até 3 s; senão só confirma).

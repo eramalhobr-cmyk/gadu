@@ -14,7 +14,7 @@ export const SAY_HERE: Partial<Record<ViewId, string[]>> = {
   agentes: ["Cria um agente para os estudos", "Muda as instruções do agente de estudos", "Define um teto de gasto para o agente de estudos", "Mostra o resumo dos agentes"],
   ajustes: ["Muda para o tema escuro", "Aumenta a letra", "Fala mais devagar", "Liga a conversa contínua"],
   perfil: ["Muda para o tema escuro", "Aumenta a letra", "Fala mais devagar"],
-  modulos: ["Abre finanças", "Abre as metas", "Mostra o guia"],
+  modulos: ["Abre finanças", "Abre as metas", "Mostra o guia", "Abre o modo voz"],
   studio3d: ["Abre minha última peça", "Deixa o suporte 2 mm mais alto", "Arredonda as bordas da minha última peça"],
 };
 
