@@ -428,7 +428,7 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa. A
 - [x] Configurações: tamanho do texto, conversa contínua, respostas curtas, resposta falada e tema (PR #42)
 - [x] Finanças e Agenda: desmarcar conta, mudar o valor do mês, editar e apagar gasto, editar e apagar evento (PR B `feat/voz-financas-agenda`, testado em 23/11/2026; escopo OAuth do Google não mudou)
 - [x] Metas e Projetos: pausar, retomar, arquivar e editar meta; editar e arquivar projeto (PR C `feat/voz-metas-projetos`, testado em 23/11/2026)
-- [x] Memória (aprovar, recusar, esquecer), nova conversa e navegação por voz ("abre o Financeiro") (PR D `feat/voz-memoria-navegacao`, testado em 23/11/2026)
+- [x] Memória (aprovar, recusar, esquecer), nova conversa e navegação por voz ("abre o Financeiro") (PR D #50, publicado em 23/11/2026 às 06:32)
 - [ ] Lacunas que restam (docs/FEATURE_MATRIX.md, seção 11): criar e editar agente; criar conta do Financeiro e configurar salário; apagar registro de progresso de meta; abrir conversa anterior; voz, velocidade, termos bloqueados e limites de IA em Configurações
 
 ### UX-4 · Acessibilidade para quem não é digital (P1) · começado em 22/11/2026 pelo Cursor (Grok Bot)
