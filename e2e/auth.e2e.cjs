@@ -238,6 +238,18 @@ describe("app com login", () => {
     await p.context().close();
   });
 
+  test("Guia: Mapa do GaDu mostra as ligações e o que dizer (UX-7)", async () => {
+    const p = await page(PHONE);
+    await p.goto(`${BASE}/app/guia#mapa`);
+    await p.waitForSelector(".gmap-svg");
+    const nodes = await p.$$eval(".gmap-svg a", (a) => a.map((e) => e.getAttribute("aria-label")));
+    assert.ok(nodes.includes("Abrir Tarefas") && nodes.includes("Abrir Agenda"), `nós do mapa: ${nodes}`);
+    const rows = await p.$$eval(".gmap-list li", (l) => l.map((e) => e.textContent));
+    assert.ok(rows.length >= 3 && rows.every((t) => t.includes("“")), "cada ligação traz uma frase para dizer");
+    assert.ok((await overflowX(p)) <= 0, "mapa sem rolagem lateral");
+    await p.context().close();
+  });
+
   test("voz: microfone negado mostra aviso claro", async () => {
     const p = await page(PHONE, { voice: "deny" });
     await p.goto(`${BASE}/app?tab=conversa`);

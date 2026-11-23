@@ -1,6 +1,7 @@
 "use client";
 import { MSG, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { GoalChip, useGoalLinks } from "./links";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { showNotice, showUndo, UNDO_TEXT } from "@/lib/undo";
 import { EmptyState, Panel } from "./kit";
@@ -42,6 +43,7 @@ export function TasksPanel(props: { mode: Mode; projectId?: number; title?: stri
   const [prio, setPrio] = useState(2);
   const [err, setErr] = useState("");
   const db = supabaseBrowser();
+  const goalLinks = useGoalLinks("tasks", items);
   const onChangeRef = useRef(props.onChange);
   useEffect(() => { onChangeRef.current = props.onChange; }, [props.onChange]);
 
@@ -105,11 +107,12 @@ export function TasksPanel(props: { mode: Mode; projectId?: number; title?: stri
         <button className="tl-tick" onClick={() => toggle(t)} aria-label={`Concluir ${t.title}`}><span aria-hidden="true" /></button>
         <span className="tl-body">
           <span className="tl-title">{t.title}</span>
-          {(t.priority === 1 || t.due_date || (t.projects && props.mode !== "project") || t.link) && (
+          {(t.priority === 1 || t.due_date || (t.projects && props.mode !== "project") || t.link || goalLinks.has(t.id)) && (
             <span className="tl-meta">
               {t.priority === 1 && <span className="tl-tag hot">Alta</span>}
               {t.due_date && <span className={`tl-tag ${late ? "bad" : isToday ? "sig" : ""}`}><Icon name="calendar" size={13} />{late ? "Atrasada · " : isToday ? "Hoje" : ""}{isToday ? "" : shortDate(t.due_date)}</span>}
               {t.projects && props.mode !== "project" && <span className="tl-tag proj" style={{ ["--c" as string]: colorVar(t.projects.color) }}><i aria-hidden="true" />{t.projects.name}</span>}
+              <GoalChip titles={goalLinks.get(t.id)} />
               {t.link && <a className="tl-tag link" href={t.link} target="_blank" rel="noopener noreferrer">Abrir e-mail<Icon name="chevron" size={12} /></a>}
             </span>
           )}

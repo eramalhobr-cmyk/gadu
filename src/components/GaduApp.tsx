@@ -24,6 +24,7 @@ import { AgendaView } from "./AgendaView";
 import { FinanceiroPage } from "./FinanceiroPage";
 import { MetasPage } from "./MetasPage";
 import { TalkProvider } from "./kit";
+import { LinksProvider } from "./links";
 import type { MetaDraft } from "@/lib/goals/types";
 import { Icon } from "./ui";
 import { TipCard } from "./TipCard";
@@ -740,6 +741,8 @@ export function GaduApp(props: {
     setDrawer(false);
   }
 
+  /** Ligações visíveis (UX-7): chips de meta nas tarefas e nos projetos; tocar abre a tela Metas. */
+  const linksValue = useMemo(() => ({ goals: props.goalsEnabled, open: (v: ViewId) => setTab(v) }), [props.goalsEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
   const stateLabel = { idle: "Em repouso", listening: "Escutando", thinking: "Pensando", speaking: "Respondendo" }[mode];
   const active = listening || busy || mode === "speaking";
   const title = view ? viewDef(view).label : "Ajuda";
@@ -1002,6 +1005,7 @@ export function GaduApp(props: {
         )}
 
         <TalkProvider value={dockTalk}>
+        <LinksProvider value={linksValue}>
         {view === "hoje" && (
           <TodayPage review={review} onReviewDone={() => setReview(false)} onDock={dockTalk} onWrite={() => openAssist(true)} name={name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk}
             onOpenMemory={() => setTab("memoria")} onOpenTasks={() => setTab("tarefas")} onOpen={setTab} goalsEnabled={props.goalsEnabled} financeEnabled={props.financeEnabled}
@@ -1022,6 +1026,7 @@ export function GaduApp(props: {
             section={view} theme={theme} onTheme={toggleTheme} admin={props.admin} onOpen={setTab}
             onNew={() => { newConversation(); setTab("conversa"); }} initialBlocked={props.initialBlocked} morningLink={props.morningLink} onResetTips={resetTips} onGuide={openGuide} />
         )}
+        </LinksProvider>
         </TalkProvider>
       </div>
 
