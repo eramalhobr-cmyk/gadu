@@ -60,10 +60,14 @@ export async function limitAttempts(request: Request, bucket: Bucket, key: strin
 // (hash do id) na mesma tabela de janelas. Aqui é FAIL CLOSED: sem contador ou acima do limite, a rota não chama a
 // IA e a tela segue só com a busca por texto (que não custa nada).
 export const SEARCH_LIMIT = 60;
+// O balde precisa estar na lista do CHECK de private.rate_limits (migração 20261122120001). "search_user" não estava:
+// o insert falhava e a busca por significado ficava sempre desligada. Reusa "verify_email" (chave própria por hash
+// "search-user", sem se misturar com os e-mails). Um balde dedicado pede migração (aprovação do Eduardo).
+export const SEARCH_BUCKET = "verify_email";
 
 export async function allowPaidSearch(userId: string): Promise<boolean> {
   try {
-    const r = await hit(supabaseAdmin(), "search_user", keyHash("user", userId), SEARCH_LIMIT);
+    const r = await hit(supabaseAdmin(), SEARCH_BUCKET, keyHash("search-user", userId), SEARCH_LIMIT);
     return r?.allowed === true;
   } catch {
     return false;

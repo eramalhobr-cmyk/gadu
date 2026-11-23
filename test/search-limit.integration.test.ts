@@ -38,7 +38,7 @@ test("dentro do limite: chama embeddings e conta por pessoa (só hash)", async (
   const j = await call();
   assert.equal(j.semantic, true);
   assert.equal(embeds, 1);
-  assert.equal(hits[0].bucket, "search_user");
+  assert.equal(hits[0].bucket, "verify_email");
   assert.equal(hits[0].limit, 60);
   assert.ok(!hits[0].hash.includes("1111"), "só o hash vai para o banco");
 });
@@ -58,4 +58,16 @@ test("contador indisponível: fail closed, sem IA", async () => {
   adminThrows = false;
   assert.equal((await call()).semantic, false);
   assert.equal(embeds, 0);
+});
+
+test("o balde usado pela busca existe no CHECK de private.rate_limits (o banco recusaria qualquer outro)", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { SEARCH_BUCKET } = await import(src("lib/rate-limit.ts"));
+  const sql = readFileSync(new URL("../supabase/migrations/20261122120001_seguranca_p1_aditiva.sql", import.meta.url), "utf8");
+  const lista = /bucket text not null check \(bucket in \(([^)]*)\)\)/.exec(sql)?.[1] ?? "";
+  const buckets = [...lista.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+  assert.ok(buckets.length >= 8);
+  assert.ok(buckets.includes(SEARCH_BUCKET), `${SEARCH_BUCKET} fora do CHECK`);
+  await call();
+  assert.ok(hits.every((h) => buckets.includes(h.bucket)));
 });
