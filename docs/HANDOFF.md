@@ -62,6 +62,12 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 11:30 · Cursor (Grok Bot), S-05 aprovado e aplicado
+- O Eduardo aprovou o PR #74 às 11:17 com uma mudança: bloqueado **pode apagar** os próprios dados. Removidas as políticas `*_ativo_delete`; teste `85_s05_escrita_por_acesso` (renomeado do 80, que já era da telemetria) ajustado: bloqueado não insere nem altera (0 de 40), apaga em 19 de 20 tabelas (profiles não tem delete por desenho), não apaga de outra pessoa.
+- Incluídas `pecas_3d` e `pecas_3d_versoes`. Migração renomeada para `20261123150001` (precisa vir depois de `pecas_3d`).
+- Conferência em produção antes de aplicar: 0 políticas restritivas, 0 nomes em conflito, `private.is_blocked` igual ao do teste, gatilhos só de `updated_at`/vínculo, 0 lembretes com conversa alheia, 2 pessoas ativas; ensaio em transação desfeita (ativa grava, bloqueada 42501, nada sobrou).
+- **Rollback** no cabeçalho da migração (só derruba políticas e a função; nenhum dado muda).
+
 ### 23/11/2026 11:05 · Cursor (Grok Bot), 3D: salvar peças e versões (pedido do Eduardo às 10:54)
 - **Por quê:** o Eduardo testou o 3D em produção; gera bem, mas o histórico sumia ao fechar e abrir o GaDu.
 - **Migrações aplicadas pelo Cursor via MCP (só aditivas, conferidas com RLS):** `20261123110001_telemetria_erros` (do Claude Code, PR #76) e `20261123140001_pecas_3d` (PR #78: `pecas_3d` e `pecas_3d_versoes`, 4 políticas cada, versão presa à peça por chave composta).
@@ -79,7 +85,7 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - **Revisão (tarefa 6) concluída:** revisei #32, #34, #35, #36, #65, #67, #68, #69 e #70 (resultado em cada item acima). **1 bug real:** o limite de custo da busca (#65) usava um balde fora do `CHECK` do banco, então a busca por significado ficava sempre desligada. **PR #72**, merge `0088ca1` às 10:32, CI verde (verify, e2e-public, database), status do commit `success`, `/login` 200. Unit 303, integração 196, build. Os testes do #65 mockavam o banco: por isso não pegaram.
 - **7a auditoria:** `docs/SECURITY_AUDIT_2026-11-23.md` (este PR de docs). Medido no banco local: pessoa bloqueada ainda grava em 18 tabelas; `reminders.conversation_id` aceita conversa de outra pessoa.
 - **Não verificado:** nada em produção (sem acesso ao Supabase); não conferi o banco de produção contra as migrações (precisa do MCP do Cursor); aparelho e IA real seguem pendentes.
-- **7b S-05 (RASCUNHO, sem merge):** PR da branch `fix/s05-escrita-por-acesso` com a migração `20261123120001_s05_escrita_por_acesso.sql` (`public.can_write()` + políticas restritivas de insert/update/delete em 18 tabelas + conversa própria em `reminders`), teste `supabase/tests/80_s05_escrita_por_acesso.test.sql` e rollback documentado e testado. `scripts/test-db.sh` passou inteiro (ativa grava 50 de 54 comandos; bloqueada 0; sem a migração a mesma bloqueada grava 50). **PRECISA DO OK DO EDUARDO** para mergear e aplicar. **NÃO está aplicada em produção.**
+- **7b S-05 (RASCUNHO, sem merge):** PR da branch `fix/s05-escrita-por-acesso` com a migração `20261123150001_s05_escrita_por_acesso.sql` (`public.can_write()` + políticas restritivas de insert/update/delete em 18 tabelas + conversa própria em `reminders`), teste `supabase/tests/85_s05_escrita_por_acesso.test.sql` e rollback documentado e testado. `scripts/test-db.sh` passou inteiro (ativa grava 50 de 54 comandos; bloqueada 0; sem a migração a mesma bloqueada grava 50). **PRECISA DO OK DO EDUARDO** para mergear e aplicar. **NÃO está aplicada em produção.**
 - **Próximo:** 7c (`docs/ORGANIZACOES.md`).
 
 ### 23/11/2026 10:20 · Cursor (Grok Bot), 3D ligado em produção
