@@ -7,6 +7,9 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · 3D Studio (Beta) ligado em produção
+- O Eduardo definiu `MODELING_3D_ENABLED=1` na Vercel por volta das 09:37 (Brasília) e fez o redeploy. Sem mudança de código. Registrado por Cursor (Grok Bot).
+
 ## 2026-11-23 · Tudo por voz: criar conta ou receita e definir a receita principal · desenvolvido e testado
 - **Feito por:** Cursor (Grok Bot).
 - "Cria uma conta de água de 90 reais todo dia 10" ou "adiciona a receita de aluguel": cartão "Conta nova" (grupo, valor, dia; "todo mês" vale até dezembro) que usa a mesma rota da tela (`POST /api/finance/itens`) e tem Desfazer. "Meu salário principal é o da empresa": acha a receita da própria pessoa e define como principal (`PUT /api/finance/config`), com Desfazer que volta a anterior. Termos bloqueados e `FINANCE_ENABLED=0` respeitados.
