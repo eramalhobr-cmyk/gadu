@@ -160,3 +160,11 @@ test("cartão e pergunta de abrir conversa", async () => {
   assert.equal(d(a).applied, false);
   assert.equal(actionQuestion(a, NOW), "Abro a conversa Assembleia do condomínio, de 20/11?");
 });
+
+test("cartão e pergunta de apagar registro de meta", async () => {
+  const { actionQuestion, describe: d } = await import("./chat-actions.ts");
+  const a: ChatAction = { kind: "registro_apagar", goalId: "g1", registroId: "p1", meta: "Correr 50 km", valor: 5, unidade: "km", data: "2026-11-21" };
+  assert.equal(d(a).confirm, "Apagar registro");
+  assert.match(d(a).detail, /5 km em 21\/11/);
+  assert.match(actionQuestion(a, NOW), /^Apago o registro de 5 km de .+ na meta Correr 50 km\?$/);
+});

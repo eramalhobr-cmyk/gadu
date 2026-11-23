@@ -572,3 +572,18 @@ test("tudo por voz: abrir conversa anterior não grava nada; sem conversa achada
   assert.equal(voiceWrites.length, 0);
   assert.equal(log.writes.length, 0);
 });
+
+test("tudo por voz: apagar registro de progresso acha só o da pessoa, não apaga antes da confirmação e respeita GOALS_ENABLED", async () => {
+  modelText = META_TXT([{ tipo: "meta_registro_apagar", meta: "livros" }, { tipo: "meta_registro_apagar", meta: "peso", valor: 99 }, { tipo: "meta_registro_apagar", meta: "SEGREDO-B meta" }]);
+  const ev = await chat("apaga o último registro dos livros");
+  const items = ev.find((e) => e.t === "acoes")?.items ?? [];
+  assert.deepEqual(items.map((i) => [i.kind, i.registroId, i.valor]), [["registro_apagar", "p1", 3]]);
+  assert.ok(ev.some((e) => e.t === "notice" && e.kind === "acao"), "valor que não existe e meta de B viram aviso");
+  assert.ok(!JSON.stringify(ev).includes("7777"));
+  assert.equal(store.goal_progress.length, 3, "nada apagado antes do sim");
+  assert.equal(log.writes.length, 0);
+  process.env.GOALS_ENABLED = "0";
+  modelText = META_TXT([{ tipo: "meta_registro_apagar", meta: "livros" }]);
+  const off = await chat("apaga o último registro dos livros");
+  assert.equal(off.find((e) => e.t === "acoes"), undefined);
+});

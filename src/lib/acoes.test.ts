@@ -177,3 +177,10 @@ test("conversa_abrir: precisa de um assunto", () => {
   assert.equal(validAcao({ tipo: "conversa_abrir", busca: "" }, NOW), null);
   assert.equal(validAcao({ tipo: "conversa_abrir" }, NOW), null);
 });
+
+test("meta_registro_apagar: valor e data opcionais; valor inválido derruba a ação", () => {
+  assert.deepEqual(validAcao({ tipo: "meta_registro_apagar", meta: "corrida" }, NOW), { tipo: "meta_registro_apagar", meta: "corrida", valor: null, data: null });
+  assert.deepEqual(validAcao({ tipo: "meta_registro_apagar", meta: "corrida", valor: "5" }, NOW)?.tipo, "meta_registro_apagar");
+  assert.equal(validAcao({ tipo: "meta_registro_apagar", meta: "corrida", valor: "muito" }, NOW), null);
+  assert.equal(validAcao({ tipo: "meta_registro_apagar", meta: "" }, NOW), null);
+});

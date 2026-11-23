@@ -7,6 +7,11 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · Tudo por voz: apagar um registro de progresso de meta · desenvolvido e testado
+- **Feito por:** Cursor (Grok Bot).
+- "Apaga o último registro da meta de corrida" ou "aquele de 5 km de ontem foi engano": acha o registro da própria pessoa (o mais recente, ou pelo valor e data) e mostra o cartão "Apagar registro?" com "sim" falado; usa a rota `DELETE /api/goals/:id/progresso/:pid` da tela. Sem Desfazer (o cartão avisa). `GOALS_ENABLED=0` desliga.
+- **Testes:** `acoes.test.ts`, `chat-actions.test.ts`, `test/goals-chat.integration.test.ts` (registro de outra pessoa nunca aparece, nada apagado antes do "sim", interruptor); integração 194/194.
+
 ## 2026-11-23 · Tudo por voz: abrir uma conversa anterior pela conversa · desenvolvido e testado
 - **Feito por:** Cursor (Grok Bot), enquanto a cota do Claude Code estava esgotada.
 - "Abre a conversa sobre o condomínio" acha, entre as conversas da própria pessoa, a do título ou resumo (ou a mais recente na busca por texto) e mostra o cartão "Abrir esta conversa?" com "sim" falado; a conversa atual fica no histórico. Não acha: aviso "Ela pode estar no Histórico". Termos bloqueados não aparecem. Nada é gravado.
