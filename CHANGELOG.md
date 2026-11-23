@@ -7,6 +7,10 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · Telemetria de erros: migração da tabela `error_events` · desenvolvido e testado (não aplicada)
+- **Feito por:** Claude Code. Migração aditiva `20261123110001_telemetria_erros.sql`: só o servidor escreve, só administrador lê, sem texto de mensagem nem dados pessoais. **MIGRAÇÃO PENDENTE** (o Cursor aplica pelo MCP).
+- **Testes:** `bash scripts/test-db.sh` passou (novo `80_telemetria.test.sql` e a tabela em `30_isolamento`).
+
 ## 2026-11-23 · 3D Studio (Beta) ligado em produção
 - O Eduardo definiu `MODELING_3D_ENABLED=1` na Vercel por volta das 09:37 (Brasília) e fez o redeploy. Sem mudança de código. Registrado por Cursor (Grok Bot).
 

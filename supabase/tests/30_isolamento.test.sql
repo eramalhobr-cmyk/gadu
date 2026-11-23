@@ -83,6 +83,8 @@ begin
     insert into public.goal_progress (user_id, goal_id, valor, data) select u, id, 1, current_date from public.goals where user_id = u;
     insert into public.goal_milestones (user_id, goal_id, titulo) select u, id, 'marco sintético' from public.goals where user_id = u;
     insert into public.goal_tasks (user_id, goal_id, task_id) select u, g.id, (select t.id from public.tasks t where t.user_id = u limit 1) from public.goals g where g.user_id = u;
+    -- Telemetria de erros (sintético, sem texto de mensagem)
+    insert into public.error_events (user_id, origem, rota, nome, impressao) values (u, 'cliente', '/app', 'Erro sintético', md5(u::text) || md5('x'));
   end loop;
 end $$;
 
@@ -114,6 +116,7 @@ insert into iso_cases values
   ('goals',              'user_id',    'titulo = ''x''',      'insert into public.goals (user_id, titulo, medicao, valor_alvo) values (%L, ''x'', ''numerica'', 5)'),
   ('goal_progress',      'user_id',    'valor = 2',           'insert into public.goal_progress (user_id, goal_id, valor, data) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), 1, current_date)'),
   ('goal_milestones',    'user_id',    'titulo = ''x''',      'insert into public.goal_milestones (user_id, goal_id, titulo) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), ''x'')'),
+  ('error_events',       'user_id',    'status = 500',        'insert into public.error_events (user_id, origem, rota, nome, impressao) values (%L, ''cliente'', ''/app'', ''x'', repeat(''a'', 16))'),
   ('goal_tasks',         'user_id',    'created_at = now()',  'insert into public.goal_tasks (user_id, goal_id, task_id) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), (select id from public.tasks where user_id = %1$L limit 1))');
 
 do $$
@@ -123,7 +126,8 @@ begin
   for c in select * from iso_cases loop
     execute format('select count(*) from public.%I where %I = %L', c.t, c.owner, a) into own;
     perform pg_temp.check(own > 0, format('%s: há dados sintéticos de A', c.t));
-    perform pg_temp.check(pg_temp.count_as('authenticated', a, format('select 1 from public.%I where %I = %L', c.t, c.owner, a)) = own, format('%s: A lê as próprias linhas', c.t));
+    -- error_events é só do administrador: a própria pessoa comum também não lê (0), diferente das demais tabelas.
+    perform pg_temp.check(pg_temp.count_as('authenticated', a, format('select 1 from public.%I where %I = %L', c.t, c.owner, a)) = case when c.t = 'error_events' then 0 else own end, format('%s: A lê as próprias linhas (ou nada, se for só do administrador)', c.t));
     perform pg_temp.check(pg_temp.count_as('authenticated', b, format('select 1 from public.%I where %I = %L', c.t, c.owner, a)) = 0, format('%s: B não lê linhas de A', c.t));
     perform pg_temp.check(pg_temp.count_as('anon', null, format('select 1 from public.%I', c.t)) = 0, format('%s: sem login não lê nada', c.t));
     n := pg_temp.exec_as(b, format('update public.%I set %s where %I = %L', c.t, c.upd, c.owner, a));
