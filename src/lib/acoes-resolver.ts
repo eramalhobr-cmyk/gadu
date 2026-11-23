@@ -328,6 +328,21 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
         case "nova_conversa":
           actions.push({ kind: "nova_conversa" });
           break;
+        case "conversa_abrir": {
+          // Só as conversas da própria pessoa: título e resumo pelo nome; se o nome não decide, a mais recente que casa na busca por texto.
+          const r = await db.from("conversations").select("id, title, summary, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(200);
+          const lista = (r.error || !Array.isArray(r.data) ? [] : r.data) as { id: number; title: string | null; summary: string | null; updated_at: string }[];
+          let c = matchByName(lista, (x) => x.title ?? "", a.busca) ?? matchByName(lista, (x) => `${x.title ?? ""} ${x.summary ?? ""}`, a.busca);
+          if (!c) {
+            const t = await db.from("conversations").select("id, title, summary, updated_at").eq("user_id", userId).textSearch("search", a.busca, { type: "websearch", config: "portuguese" }).order("updated_at", { ascending: false }).limit(1);
+            c = (t.error || !Array.isArray(t.data) ? null : t.data[0]) ?? null;
+          }
+          if (!c || blocked(`${c.title ?? ""} ${c.summary ?? ""}`)) { misses.push(`Não achei uma conversa sobre "${a.busca}". Ela pode estar no Histórico.`); break; }
+          const d = new Date(c.updated_at);
+          const quando = d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
+          actions.push({ kind: "conversa_abrir", id: c.id, titulo: (c.title || "Sem título").slice(0, 120), quando });
+          break;
+        }
         case "guia":
           actions.push({ kind: "guia" });
           break;

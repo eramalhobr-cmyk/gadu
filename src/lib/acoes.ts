@@ -43,6 +43,7 @@ export type AcaoProposta =
   | { tipo: "memoria_recusar"; memoria: string }
   | { tipo: "memoria_esquecer"; memoria: string }
   | { tipo: "nova_conversa" }
+  | { tipo: "conversa_abrir"; busca: string }
   | { tipo: "guia" }
   | { tipo: "navegar"; destino: Destino }
   | { tipo: "projeto_criar"; nome: string; objetivo: string | null }
@@ -60,7 +61,7 @@ export function destinoDe(v: unknown): Destino | null {
   return (DESTINOS as readonly string[]).includes(k) ? (k as Destino) : DESTINO_APELIDO[k] ?? null;
 }
 
-export const TIPOS = ["meta_criar", "meta_registrar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "nova_conversa", "guia", "navegar", "projeto_criar", "salario_simular", "ajuste"] as const;
+export const TIPOS = ["meta_criar", "meta_registrar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "nova_conversa", "conversa_abrir", "guia", "navegar", "projeto_criar", "salario_simular", "ajuste"] as const;
 
 const txt = (v: unknown, max: number): string => (typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "");
 
@@ -259,6 +260,10 @@ export function validAcao(raw: unknown, now = Date.now()): AcaoProposta | null {
     }
     case "nova_conversa":
       return { tipo: "nova_conversa" };
+    case "conversa_abrir": {
+      const busca = txt(o.busca, 120);
+      return busca.length >= 2 ? { tipo: "conversa_abrir", busca } : null;
+    }
     case "guia":
       return { tipo: "guia" };
     case "navegar": {
@@ -353,7 +358,7 @@ export function acoesRules(): string {
   {"tipo":"gasto_apagar","gasto":"mercado","valor":50,"data":"AAAA-MM-DD"} (apaga um gasto já lançado: nome ou categoria, e o valor ou a data se ajudarem a achar); {"tipo":"gasto_editar","gasto":"mercado","de_valor":50,"de_data":"AAAA-MM-DD","valor":55,"categoria":"Mercado","descricao":"...","meio":"pix","data":"AAAA-MM-DD"} (de_* só para achar o gasto; valor, categoria, descricao, meio e data são o que muda);
   {"tipo":"evento_editar","evento":"título atual","titulo":"novo título","inicio":"AAAA-MM-DDTHH:MM:00-03:00","fim":"AAAA-MM-DDTHH:MM:00-03:00","local":"..."} (só o que muda; sem "fim", a duração é mantida); {"tipo":"evento_apagar","evento":"título"} (eventos da agenda do Google);
   {"tipo":"memoria_aprovar","memoria":"palavras da memória pendente"} ou {"tipo":"memoria_aprovar","todas":true}; {"tipo":"memoria_recusar","memoria":"..."} (descarta uma memória pendente); {"tipo":"memoria_esquecer","memoria":"palavras do fato"} ("esquece que eu…": apaga uma memória aprovada; use as palavras da lista de memória);
-  {"tipo":"nova_conversa"} ("começa uma conversa nova"); {"tipo":"guia"} ("me mostra o guia de novo", "como o GaDu funciona?": abre o guia de primeiro uso na hora, sem confirmação; não grava nada); {"tipo":"navegar","destino":"hoje|conversa|tarefas|agenda|financeiro|metas|projetos|memoria|agentes|ajustes|mais"} ("abre o Financeiro", "vai para Metas", "mostra minhas tarefas": abre a tela na hora, sem confirmação; use só quando a pessoa pedir para ir ou abrir uma tela);
+  {"tipo":"nova_conversa"} ("começa uma conversa nova"); {"tipo":"conversa_abrir","busca":"assunto ou título"} ("abre a conversa sobre o condomínio", "volta naquela conversa da viagem": abre uma conversa anterior da pessoa, com confirmação); {"tipo":"guia"} ("me mostra o guia de novo", "como o GaDu funciona?": abre o guia de primeiro uso na hora, sem confirmação; não grava nada); {"tipo":"navegar","destino":"hoje|conversa|tarefas|agenda|financeiro|metas|projetos|memoria|agentes|ajustes|mais"} ("abre o Financeiro", "vai para Metas", "mostra minhas tarefas": abre a tela na hora, sem confirmação; use só quando a pessoa pedir para ir ou abrir uma tela);
   {"tipo":"projeto_criar","nome":"...","objetivo":"..."};
   {"tipo":"salario_simular","bruto":8000,"dependentes":0,"salvar":false} ("quanto fica líquido um salário de 8 mil?", "e com 2 dependentes?": o SERVIDOR calcula INSS e imposto de renda e mostra o cartão com o passo a passo; você NUNCA calcula nem escreve valores de INSS, imposto ou líquido: diga só que o cartão tem o cálculo, ou repita os números do bloco "Cálculo do salário" se ele estiver no contexto. "salvar":true só quando a pessoa pedir para guardar o líquido como o salário deste mês: vira um cartão de confirmação);
   {"tipo":"ajuste","opcao":"texto","valor":"100|115|130"} (letra normal, grande, maior), {"tipo":"ajuste","opcao":"maos_livres|respostas_curtas|voz","valor":true|false}, {"tipo":"ajuste","opcao":"tema","valor":"dark|light"}, {"tipo":"ajuste","opcao":"velocidade","valor":0.7 a 1.6|"normal"|"mais_devagar"|"mais_rapido"} ("fala mais devagar", "fala mais rápido", "volta a velocidade normal"), {"tipo":"ajuste","opcao":"voz_trocar","valor":"proxima"} ("troca a voz", "usa outra voz": passa para a próxima voz em português do aparelho).

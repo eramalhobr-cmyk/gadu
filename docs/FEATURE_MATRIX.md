@@ -202,5 +202,5 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Erros | "tenta de novo" | sim | comando local `parseRetryCommand` (`src/lib/errors.ts`): reenvia a última mensagem que falhou; sem modelo | — |
 | Primeiro uso | "me mostra o guia de novo" | sim | `guia` (abre o guia na hora, sem cartão e sem gravar; vale com Metas e Financeiro desligados) | — |
 | Primeiro uso | pular, voltar e continuar passos do guia | **não** | — | são toques dentro do guia; o nome e o teste do microfone são falados ali dentro |
-| Conversa | abrir conversa anterior | **não** | — | lacuna: o histórico é por data e título; falta uma busca por nome |
+| Conversa | abrir conversa anterior ("abre a conversa sobre o condomínio") | sim | `conversa_abrir` (título, resumo ou busca por texto, só as da pessoa; cartão com "sim"), PR do Cursor de 23/11 | — |
 | 3D | gerar e ajustar peça | pela tela 3D | — | frente do Claude Code, que adiciona as próprias ações |

@@ -563,3 +563,12 @@ test("tudo por voz: velocidade e troca de voz saem como cartão de ajuste, sem g
   assert.equal(voiceWrites.length, 0);
   assert.equal(log.writes.length, 0);
 });
+
+test("tudo por voz: abrir conversa anterior não grava nada; sem conversa achada vira aviso", async () => {
+  modelText = META_TXT([{ tipo: "conversa_abrir", busca: "dentista" }, { tipo: "conversa_abrir", busca: "" }]);
+  const ev = await chat("abre a conversa sobre o dentista");
+  assert.equal((ev.find((e) => e.t === "acoes")?.items ?? []).length, 0);
+  assert.ok(ev.some((e) => e.t === "notice" && e.kind === "acao"));
+  assert.equal(voiceWrites.length, 0);
+  assert.equal(log.writes.length, 0);
+});
