@@ -1,4 +1,5 @@
 "use client";
+import { voiceLevel } from "./voice-level.ts";
 // Voz grátis do próprio aparelho: reconhecimento (ouvir) e síntese (falar).
 // Se o navegador não suportar, o app continua por texto.
 
@@ -291,6 +292,8 @@ export class Speaker {
     const timer = setTimeout(finish, speakTimeout(clean, u.rate) * this.queue);
     this.timers.add(timer);
     u.onend = u.onerror = finish;
+    // Palco de voz (UX-7): cada palavra falada é um impulso para o avatar. Aparelho sem esse aviso: o avatar usa a animação própria.
+    u.onboundary = () => voiceLevel.pulse(0.85, performance.now());
     if (needsKeepAlive() && !this.keepAlive) {
       this.keepAlive = setInterval(() => {
         const s = window.speechSynthesis;

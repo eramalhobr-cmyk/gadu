@@ -38,6 +38,8 @@ import { ModulePage, ModulesHub, StatusPill } from "./ModulePage";
 import { contextOf } from "@/lib/assistant-context";
 import { canonicalView, isOverview, MAIN_VIEWS, MODULES, moduleOf, parseView, viewDef, type ViewId } from "@/lib/modules";
 import { applyTheme, readTheme, type Theme } from "@/lib/theme";
+import { voiceLevel } from "@/lib/voice-level";
+import { startMicMeter } from "@/lib/mic-meter";
 
 export type Msg = { id: string; role: "user" | "assistant" | "notice" | "action"; content: string; /** Texto a reenviar pelo botão "Tentar de novo" (erro do chat). */ retry?: string; via?: string; link?: { href: string; label: string }; action?: ChatAction; sources?: SourcesData };
 
@@ -231,6 +233,8 @@ export function GaduApp(props: {
           if (final && text) { confirmListenRef.current = false; confirmFns.current.answer(text); }
           return;
         }
+        // Palco de voz (UX-7): cada trecho reconhecido é um sinal de fala para o avatar (no celular, o único sinal real).
+        if (text) voiceLevel.pulse(final ? 0.6 : 0.9, performance.now());
         setDraft(text);
         // Tela de escuta aberta: a fala final vai para a contagem de 3 s (dá para cancelar ou corrigir).
         if (final && text && voiceSheetRef.current) { setHeard(text); return; }
@@ -266,6 +270,9 @@ export function GaduApp(props: {
       setListening(false);
     }
   }, [busy, speaker, voiceOk]);
+
+  // Palco de voz (UX-7): enquanto ouve, o volume do microfone move o avatar (só no computador; no celular, os trechos reconhecidos).
+  useEffect(() => (listening ? startMicMeter() : undefined), [listening]);
 
   /** Motivo da última falha de um cartão, para a fala. */
   const cardErr = useRef("");
@@ -921,7 +928,7 @@ export function GaduApp(props: {
         {pageOpen && <main className="page doc-page" id="conteudo">{props.page}</main>}
 
         {view === "conversa" && (
-          <main className="chat2" id="conteudo">
+          <main className={`chat2 ${active || messages.length === 0 ? "stage-big" : ""}`} data-mode={listening ? "listening" : mode} id="conteudo">
             <aside className="chat-stage on-dark" aria-label="GaDu">
               <div className="chat-ava"><Avatar mode={mode} label={`GaDu: ${stateLabel}`} /></div>
               <div className="meta">
@@ -1042,7 +1049,7 @@ export function GaduApp(props: {
       <UndoToast />
       {onboarding && <Onboarding name={name} speaker={speaker} voiceOn={prefs.voice} onSaveName={saveName} onClose={(st) => void closeGuide(st)} />}
       {voiceSheet && (
-        <ListenSheet listening={listening} text={draft} pending={heard} handsFree={prefs.handsFree}
+        <ListenSheet listening={listening} mode={mode} text={draft} pending={heard} handsFree={prefs.handsFree}
           onHandsFree={(on) => setPrefs({ ...prefs, handsFree: on })}
           onListen={() => { setHeard(null); setDraft(""); listen(); }} onStop={() => recRef.current?.stop()}
           onSend={sendHeard} onCancel={() => setHeard(null)}

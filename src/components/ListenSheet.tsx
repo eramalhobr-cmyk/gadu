@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "./ui";
+import { Avatar } from "./RobotFace";
+import type { FaceMode } from "./robot-engine";
 
 const WAIT_S = 3;
 
@@ -8,6 +10,8 @@ const WAIT_S = 3;
  * Só apresentação; o microfone, o envio e as preferências vêm do app. */
 export function ListenSheet(props: {
   listening: boolean;
+  /** Estado do rosto do GaDu (UX-7, palco de voz): o avatar grande reage ao ouvir, pensar e falar. */
+  mode: FaceMode;
   /** Transcrição ao vivo (a mesma do campo de mensagem). */
   text: string;
   /** Texto final pronto para enviar (fim da fala). null enquanto ouve. */
@@ -49,6 +53,9 @@ export function ListenSheet(props: {
     <div className="listen-wrap" role="dialog" aria-modal="true" aria-labelledby="listen-status">
       <div className="listen">
         <button className="icon-btn listen-x" onClick={props.onClose} aria-label="Fechar"><Icon name="x" /></button>
+        <div className={`listen-ava ${props.listening ? "on" : ""}`} aria-hidden="true">
+          <Avatar mode={props.listening ? "listening" : props.mode} label="" />
+        </div>
         <p className="listen-status" id="listen-status" role="status" aria-live="polite">{status}</p>
         <p className={`listen-text ${heard ? "" : "hint"}`}>{heard || (props.listening ? "Fale normalmente. Por exemplo: “me lembra amanhã às 9h de ligar para o médico”." : "Toque no microfone para falar de novo.")}</p>
 
