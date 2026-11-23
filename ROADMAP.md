@@ -464,11 +464,9 @@ Proposta completa (17 itens), com o levantamento das skills de design no GitHub,
 - [x] **R3** um microfone só no celular (o do campo aparece ao escrever)
 - [x] **R7** motores de rosto antigos apagados (~550 linhas)
 - [x] **M5 · "O que posso dizer aqui"**: botão no topo de todas as telas com 3 ou 4 frases da tela; pedido por voz ("o que posso dizer aqui?") abre o mesmo cartão e lê exemplos, sem modelo
-- [ ] **R6/M1** skills de design revisadas e DESIGN.md · **M4** telas mais visuais (Finanças, Metas, Agentes) · **M6** computador (menu compacto, Ctrl+K) · **G1** modo voz imersivo · **G2** navegação por voz · **G3** design system v2 com testes visuais · **G4** logo novo (espera o arquivo)
-
 - [x] **G2 · Navegação por intenção**: "abre finanças", "vai para as metas", "volta" entendidos no aparelho, sem modelo; por voz o GaDu confirma falando
 - [x] **R6/M1** guias de design revisados só em texto (`docs/design/`), `DESIGN.md` e a primeira crítica com a rubrica
-- [ ] **M4** telas mais visuais (Finanças, Metas, Agentes) · **M5** "o que posso dizer aqui" · **M6** computador (menu compacto, Ctrl+K) · **G1** modo voz imersivo · **G2** navegação por voz · **G3** design system v2 com testes visuais · **G4** logo novo (espera o arquivo)
+- [ ] **M4** telas mais visuais (Finanças, Metas, Agentes) · **M6** computador (menu compacto, Ctrl+K) · **G1** modo voz imersivo · **G3** design system v2 com testes visuais · **G4** logo novo (espera o arquivo)
 
 ## Próximo ciclo (prioridades, em ordem; revisado em 22/11/2026)
 1. Validar com pessoa logada, em aparelho, o que foi publicado em 22/11 (Hoje e Fontes, Financeiro, Metas, voz, notificações) e fechar os passos manuais da segurança (senhas vazadas, S-09).
