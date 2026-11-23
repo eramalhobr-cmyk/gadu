@@ -58,3 +58,4 @@
 .bars.dense .bar-v { display: none; }
 .bars-g { overflow: hidden; }
 .band-prog .gkpi-row { grid-template-columns: 1fr 1fr; }
+.band-prog .gkpi-row > :nth-child(5) { grid-column: 1 / -1; }

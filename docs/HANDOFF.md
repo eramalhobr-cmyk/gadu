@@ -67,6 +67,10 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 17:30 · Cursor (Grok Bot), gasto do mês no Hoje
+- PR #108 publicado às 17:14 (CHANGELOG corrigido). Hoje ganhou "Gasto no mês" (contas pagas + dia a dia, de quanto está previsto) no resumo do dia, só com o Financeiro ligado; sem resposta, o indicador some.
+- **Próximos:** M4, G1, G3.
+
 ### 23/11/2026 17:35 · Cursor (Grok Bot), plano do Spotify (só plano)
 - Pedido do Eduardo (17:15): plano, sem código. Está em `docs/PLANO-SPOTIFY.md`: Development Mode com Premium do dono e até 5 usuários na allowlist, PKCE no servidor, Spotify Connect como caminho principal no S26 Ultra e link do episódio como reserva, tokens criptografados em `spotify_connections` (RLS, gravação só pelo servidor), voz, ~18 h em 5 PRs, riscos.
 - **Espera o Eduardo:** Premium, app criado no painel do Spotify (redirect URIs do plano) e o Client ID; aprovação da migração aditiva e da chave `SPOTIFY_TOKEN_KEY`.

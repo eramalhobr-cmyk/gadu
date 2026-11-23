@@ -7,6 +7,7 @@ import { Avatar } from "./RobotFace";
 import { Icon, todayKey } from "./ui";
 import { EmptyState, Panel } from "./kit";
 import { Kpi, KpiRow } from "./charts";
+import { formatBRLRound } from "@/lib/finance/money";
 import { AttentionCard } from "./AttentionCard";
 import { PercepcoesCard } from "./PercepcoesCard";
 import type { Insight } from "@/lib/insights";
@@ -80,6 +81,7 @@ export function TodayPage(props: {
   const [attnKey, setAttnKey] = useState(0);
   const [doneToday, setDoneToday] = useState<number | null>(null);
   const [goals, setGoals] = useState<GoalSum | null>(null);
+  const [gastoMes, setGastoMes] = useState<{ pago: number; previsto: number } | null>(null);
   const db = supabaseBrowser();
 
   const loadToday = useCallback(async () => {
@@ -117,6 +119,20 @@ export function TodayPage(props: {
     })();
     return () => { alive = false; };
   }, [props.goalsEnabled, attnKey]);
+  useEffect(() => {
+    // Gasto do mês (contas pagas + dia a dia) só com o Financeiro ligado; sem resposta, o indicador não aparece.
+    if (!props.financeEnabled) return;
+    let alive = true;
+    const [ano, mes] = todayKey().split("-").map(Number);
+    (async () => {
+      try {
+        const r = await fetch(`/api/finance/resumo?ano=${ano}&mes=${mes}`, { cache: "no-store" });
+        const j = r.ok ? await r.json() : null;
+        if (alive && j?.resumo) setGastoMes({ pago: Number(j.resumo.pagoTotal) || 0, previsto: Number(j.resumo.despesas) || 0 });
+      } catch { /* sem Financeiro: o resumo do dia fica sem o gasto */ }
+    })();
+    return () => { alive = false; };
+  }, [props.financeEnabled, attnKey]);
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 60_000); return () => clearInterval(id); }, []);
 
   async function setStatus(id: number, status: "done" | "cancelled") {
@@ -236,6 +252,7 @@ export function TodayPage(props: {
             <Kpi label="Pedem atenção" value={attn ?? "–"} tone={attn ? "hot" : undefined} />
             <Kpi label="Tarefas abertas" value={openTasks ?? "–"} />
             <Kpi label="Feitas hoje" value={doneToday ?? "–"} tone="ok" />
+            {gastoMes && <Kpi label="Gasto no mês" value={formatBRLRound(gastoMes.pago)} sub={gastoMes.previsto > 0 ? `de ${formatBRLRound(gastoMes.previsto)} previstos` : "nada lançado ainda"} />}
           </KpiRow>
           <div className="prog-day">
             <div className="prog-ring" role="img" aria-label={pct === null ? "Sem tarefas para hoje" : `${pct}% das tarefas de hoje feitas`} style={{ ["--p" as string]: `${pct ?? 0}` }}><b>{pct === null ? "–" : `${pct}%`}</b></div>
