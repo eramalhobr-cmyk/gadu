@@ -1,5 +1,6 @@
 // UX-4 · "Feito · Desfazer": um aviso só, por alguns segundos, para toda ação que grava.
 // Lógica pura (sem React) para poder testar. O componente é src/components/UndoToast.tsx.
+import { MSG } from "./errors.ts";
 
 /** Quanto tempo o Desfazer fica à mão (ms). Um pouco mais que o normal, para quem fala ou toca devagar. */
 export const UNDO_MS = 8000;
@@ -11,8 +12,8 @@ export const UNDO_TEXT = {
   done: "Feito.",
   later: "Passou para amanhã.",
   undone: "Desfeito.",
-  failSave: "Não consegui gravar. Tente de novo.",
-  failUndo: "Não consegui desfazer. Tente de novo.",
+  failSave: MSG.save,
+  failUndo: MSG.undo,
   gone: "Já passou o tempo de desfazer.",
   nothing: "Não há nada para desfazer agora.",
 } as const;

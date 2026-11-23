@@ -437,7 +437,7 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa. A
 - [x] Menos escolhas por tela: 1 ação principal e no máximo 2 secundárias (Hoje: "Mais opções" recolhido; PR A `feat/ux4-linguagem`)
 - [ ] **Primeiro uso guiado** em 3 passos, falado: nome, testar microfone e voz, conectar o Google (no lugar das dicas soltas por tela)
 - [x] **Desfazer** em toda ação que grava (concluir, adiar, apagar, marcar pago): aviso "Feito · Desfazer" por alguns segundos (PR B `feat/ux4-desfazer`, 23/11/2026: componente único `UndoToast` + `src/lib/undo.ts`; "desfaz" falado ou escrito; apagar memória, gasto e evento pela conversa não tem Desfazer)
-- [ ] Erros claros com o que fazer agora ("Sem internet. Sua mensagem ficou guardada. Tentar de novo"), falados quando a pessoa estiver usando voz
+- [x] Erros claros com o que fazer agora ("Sem internet. Sua mensagem ficou guardada. Tentar de novo"), falados quando a pessoa estiver usando voz (PR C `feat/ux4-erros`, 23/11/2026: catálogo em `src/lib/errors.ts` com testes; botão "Tentar de novo" na conversa e nos cartões; "tenta de novo" falado)
 
 ### UX-5 · Consistência entre módulos (P1)
 - [ ] Um padrão de tela de módulo: título e uma frase, ação principal ("Falar" ou "Adicionar"), lista, estado vazio com um exemplo de frase para falar

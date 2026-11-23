@@ -1,4 +1,5 @@
 "use client";
+import { actionFailed, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { AGENT_PRESETS } from "@/lib/presets";
 import { EmptyState, PageHeader, Panel } from "./kit";
@@ -26,7 +27,7 @@ export function AdminPage() {
       const j = await r.json();
       setPeople(j.people); setInvites(j.invites); setErr("");
     } catch {
-      setErr("Não consegui carregar as pessoas.");
+      setErr(loadFailed("as pessoas"));
       setPeople([]);
     }
   }, []);
@@ -36,7 +37,7 @@ export function AdminPage() {
     const r = await fetch("/api/admin/people", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId: p.id, access }) });
     if (!r.ok) {
       const j = (await r.json().catch(() => null)) as { message?: string } | null;
-      setErr(j?.message ?? "Não consegui alterar o acesso. Tente de novo.");
+      setErr(j?.message ?? actionFailed("alterar o acesso"));
       return;
     }
     void load();
@@ -139,7 +140,7 @@ function InviteForm({ onDone }: { onDone: () => void }) {
     try {
       const r = await fetch("/api/admin/invites", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, email, agents, ...(business.trim() ? { business } : {}) }) });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) return setMsg(j.message || "Não consegui criar o convite.");
+      if (!r.ok) return setMsg(j.message || actionFailed("criar o convite"));
       setLink(j.link);
     } finally {
       setBusy(false);

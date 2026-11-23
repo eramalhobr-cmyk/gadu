@@ -1,4 +1,5 @@
 "use client";
+import { MSG } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { showNotice, showUndo, UNDO_TEXT } from "@/lib/undo";
@@ -114,7 +115,7 @@ export function TodayPage(props: {
     if (!text.trim() || Number.isNaN(due.getTime())) return setMsg("Escreva o lembrete e escolha dia e hora.");
     if (due.getTime() < Date.now() + 30_000) return setMsg("Escolha um horário no futuro.");
     const { error } = await db.from("reminders").insert({ text: text.trim().slice(0, 300), due_at: due.toISOString() });
-    if (error) return setMsg("Não salvou. Tente de novo.");
+    if (error) return setMsg(MSG.save);
     setText(""); setWhen(""); setMsg(""); setAdding(false);
     void loadRems();
     setAttnKey((k) => k + 1);

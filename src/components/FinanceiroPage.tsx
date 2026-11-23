@@ -1,5 +1,6 @@
 "use client";
 // Financeiro (base): Contas e Dia a dia. Tudo passa pelas rotas /api/finance/* (sessão obrigatória, RLS); nada de chave no navegador.
+import { MSG, loadFailed } from "@/lib/errors";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { formatBRL, formatBRLRound } from "@/lib/finance/money";
 import type { ItemComMes } from "@/lib/finance/month";
@@ -33,7 +34,7 @@ export function FinanceiroPage(props: { onAsk: (q: string) => void }) {
   const load = useCallback(async () => {
     const r = await api(`/api/finance/resumo?ano=${ano}&mes=${mes}`);
     if (r.status === 404) return setErro("O Financeiro está desligado no momento.");
-    if (!r.ok) return setErro("Não consegui carregar o mês. Tente de novo.");
+    if (!r.ok) return setErro(loadFailed("o mês"));
     setErro(null);
     setData(r.json as unknown as Payload);
   }, [ano, mes]);
@@ -43,7 +44,7 @@ export function FinanceiroPage(props: { onAsk: (q: string) => void }) {
   /** Executa uma gravação, avisa o resultado e recarrega. */
   async function run(p: Promise<{ ok: boolean; json: Record<string, unknown> }>, okText: string, undo?: () => Promise<{ ok: boolean; json: Record<string, unknown> }>): Promise<boolean> {
     const r = await p;
-    if (!r.ok) { say(typeof r.json.message === "string" ? r.json.message : "Não consegui salvar. Tente de novo.", true); return false; }
+    if (!r.ok) { say(typeof r.json.message === "string" ? r.json.message : MSG.save, true); return false; }
     // Com como desfazer: o aviso único "Feito · Desfazer". Sem: o aviso simples desta tela.
     if (undo) showUndo(okText, async () => { const u = await undo(); await load(); return u; });
     else say(okText);

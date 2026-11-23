@@ -11,7 +11,7 @@ import { SourcesDetail, type SourcesData } from "./SourcesDetail";
 import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
 import { canListen, canSpeak, createRecognizer, SHORT_REPLY, Speaker, stripSourceTags } from "@/lib/speech";
-import { chatErrorMessage, micErrorMessage } from "@/lib/errors";
+import { chatFailure, MSG, micErrorMessage, parseRetryCommand, RETRY_LABEL, spokenFailure, type Failure } from "@/lib/errors";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { ConversationsDrawer } from "./ConversationsDrawer";
 import { OverlayHistory } from "@/lib/overlay-history";
@@ -36,7 +36,7 @@ import { contextOf } from "@/lib/assistant-context";
 import { canonicalView, isOverview, MAIN_VIEWS, MODULES, moduleOf, parseView, viewDef, type ViewId } from "@/lib/modules";
 import { applyTheme, readTheme, type Theme } from "@/lib/theme";
 
-export type Msg = { id: string; role: "user" | "assistant" | "notice" | "action"; content: string; via?: string; link?: { href: string; label: string }; action?: ChatAction; sources?: SourcesData };
+export type Msg = { id: string; role: "user" | "assistant" | "notice" | "action"; content: string; /** Texto a reenviar pelo botão "Tentar de novo" (erro do chat). */ retry?: string; via?: string; link?: { href: string; label: string }; action?: ChatAction; sources?: SourcesData };
 
 const DEFAULT_MORNING = "https://open.spotify.com/search/Update%20Di%C3%A1rio/podcasts";
 const QUICK = ["Começar o dia", "Como está minha agenda hoje?", "Tenho e-mails importantes?"];
@@ -243,6 +243,8 @@ export function GaduApp(props: {
         if (confirmListenRef.current) { confirmListenRef.current = false; confirmFns.current.noAnswer(); return; }
         const text = micErrorMessage(code);
         if (text) setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: text }]);
+        // Quem está usando a voz ouve o aviso (menos o "não ouvi nada", que se repetiria no modo conversa).
+        if (text && code !== "no-speech" && prefsRef.current.voice) speaker?.announce(text);
       },
     });
     if (!rec) return;
@@ -258,6 +260,17 @@ export function GaduApp(props: {
     }
   }, [busy, speaker, voiceOk]);
 
+  /** Motivo da última falha de um cartão, para a fala. */
+  const cardErr = useRef("");
+  /** A última mensagem que não chegou ao GaDu, para "tenta de novo" (falado ou escrito) e para o botão. */
+  const lastFailRef = useRef<{ message: string; voice: boolean } | null>(null);
+  /** Mostra o erro do chat com o que fazer agora; fala se a pessoa está usando voz. A mensagem fica guardada no rascunho. */
+  const failChat = useCallback((f: Failure, message: string, voice: boolean) => {
+    lastFailRef.current = f.retry ? { message, voice } : null;
+    setDraft(message);
+    setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: f.text, ...(f.retry ? { retry: message } : {}) }]);
+    if (voice && prefsRef.current.voice) speaker?.announce(spokenFailure(f));
+  }, [speaker]);
   const send = useCallback(async (text: string, opts: { voice?: boolean } = {}) => {
     const message = text.trim();
     // "Desfaz": desfaz a última ação enquanto o aviso "Feito · Desfazer" está à mão. Sem modelo e sem custo.
@@ -266,9 +279,17 @@ export function GaduApp(props: {
       void undoBus.undo().then((ok) => { if (ok && opts.voice && prefsRef.current.voice) speaker?.announce("Desfeito."); });
       return;
     }
+    // "Tenta de novo": repete a última mensagem que falhou (sem modelo para entender o comando).
+    if (message && lastFailRef.current && !busy && parseRetryCommand(message)) {
+      const f = lastFailRef.current;
+      lastFailRef.current = null;
+      setDraft("");
+      void sendRef.current(f.message, { voice: opts.voice ?? f.voice });
+      return;
+    }
     if (!message || busy) return;
     if (!navigator.onLine) {
-      setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "Você está sem internet. A mensagem ficou no rascunho para enviar depois." }]);
+      failChat({ text: MSG.offline, retry: true }, message, Boolean(opts.voice));
       return;
     }
     setDraft("");
@@ -365,13 +386,13 @@ export function GaduApp(props: {
         await new Promise((r) => setTimeout(r, 800));
         await attempt();
       }
+      lastFailRef.current = null;
       if (answer && /^come[cç]ar o dia\b/i.test(message)) {
         setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "Quer ouvir as notícias agora?", link: { href: props.morningLink || DEFAULT_MORNING, label: "Ouvir o Update Diário" } }]);
       }
     } catch (e) {
       if (!ctrl.signal.aborted) {
-        setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: chatErrorMessage((e as { status?: number }).status ?? 0) }]);
-        setDraft(message);
+        failChat(chatFailure((e as { status?: number }).status ?? 0), message, Boolean(opts.voice));
       }
     } finally {
       setBusy(false);
@@ -387,7 +408,7 @@ export function GaduApp(props: {
         if (answer && !ctrl.signal.aborted && handsFreeRef.current) setTimeout(() => { if (modeRef.current === "idle" && !busyRef.current && !listeningRef.current) listenRef.current(); }, 600);
       }
     }
-  }, [busy, conversationId, prefs.voice, refreshPending, speaker, props.morningLink, target]);
+  }, [busy, conversationId, failChat, prefs.voice, refreshPending, speaker, props.morningLink, target]);
 
   const modeRef = useRef(mode);
   useEffect(() => { modeRef.current = mode; }, [mode]);
@@ -500,7 +521,7 @@ export function GaduApp(props: {
     if ((cardsRef.current[id]?.state) === "saving") return false;
     set({ state: "saving" });
     const r = op === "confirm" ? await runAction(a) : await undoAction(a);
-    if (!r.ok) { set({ state: "error", msg: r.msg }); return false; }
+    if (!r.ok) { cardErr.current = r.msg ?? ""; set({ state: "error", msg: r.msg }); return false; }
     set(op === "confirm" ? { state: "created", link: r.link } : { state: "discarded", undone: true });
     // "Feito · Desfazer": o aviso único por alguns segundos, quando a ação dá para desfazer sem perder nada.
     if (op === "confirm" && r.undo) {
@@ -522,7 +543,7 @@ export function GaduApp(props: {
     const item = confirmQ.current[0];
     if (!item || item.id !== id) return;
     confirmQ.current = confirmQ.current.slice(1);
-    say(resultLine(item.a.kind, action, ok), "result");
+    say(resultLine(item.a.kind, action, ok, ok ? "" : cardErr.current), "result");
   }
   /** Toque em Sim/Não na tela de confirmação. */
   function tapConfirm(yes: boolean) {
@@ -842,7 +863,7 @@ export function GaduApp(props: {
             <a className="icon-btn desk-only" href="/app/guia" aria-label="Guia do GaDu" title="Guia do GaDu"><b aria-hidden="true">?</b></a>
           </div>
         </header>
-        {!online && <div className="banner" role="status">Sem internet. O app continua aberto e as mensagens ficam no rascunho.</div>}
+        {!online && <div className="banner" role="status">{MSG.offlineBanner}</div>}
         {tip && !seen.has(tip) && <TipCard key={`tip-${tip}`} id={tip} onDone={() => markTip(tip)} />}
         {pageOpen && <main className="page doc-page" id="conteudo">{props.page}</main>}
 
@@ -888,6 +909,7 @@ export function GaduApp(props: {
                   : m.role === "notice" ? (
                     <div key={m.id} className="notice" role="status">
                       {m.content}
+                      {m.retry && messages[messages.length - 1]?.id === m.id && <div style={{ marginTop: 8 }}><button className="btn btn-sm btn-pri" disabled={busy} onClick={() => { lastFailRef.current = null; void send(m.retry!); }}>{RETRY_LABEL}</button></div>}
                       {m.link && <div style={{ marginTop: 8 }}><a className="btn btn-sm" href={m.link.href} target="_blank" rel="noopener noreferrer">{m.link.label}</a></div>}
                     </div>
                   ) : <div key={m.id} className="bub b"><span className="via" title={m.via ? `Modelo: ${m.via}` : undefined}>GaDu</span>{m.content ? stripSourceTags(m.content) : "…"}{m.sources && <SourcesDetail data={m.sources} onOpen={setTab} />}</div>,
