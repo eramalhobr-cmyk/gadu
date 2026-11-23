@@ -9,6 +9,11 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · 3D: correções da rodada de referência com IA real · desenvolvido e testado
+- **Feito por:** Cursor (Grok Bot). Tempo da IA no 3D (maxDuration 120 s, prazo de 105 s, sem raciocínio interno, 504 com mensagem clara), código cortado detectado (`scadIncompleto`) com uma nova tentativa automática mais curta, "altura" sempre no eixo Z no prompt, texto em relevo funcionando (fontes Liberation Sans, OFL, no worker do OpenSCAD), "Nova peça" limpa a caixa de texto, a prévia volta à vista depois de gerar ou ajustar, mensagens de erro com o código. **Testado:** `test:unit` 410/410 (inclui o OpenSCAD WASM real com `text("ESCRITÓRIO")`), `test:integration` 257/257, `tsc`; `conferir.ts` nos 16 códigos salvos da rodada: os 2 cortados são pegos pelo `scadIncompleto`, chaveiro e placa ganham o relevo. **Não testado:** nova rodada com a IA real no navegador.
+
+## 2026-11-23 · UX-7 G1 · Modo voz imersivo (JARVIS) · desenvolvido e testado
+
 ## 2026-11-23 · UX-7 G3 · Design system v2 com testes visuais · desenvolvido e testado
 - **Feito por:** Cursor (Grok Bot). Vitrine `/design` com tokens, tipografia, ações, gráficos dos painéis e o núcleo de voz (números de exemplo marcados como tal; **404 em produção**, abre só com `GADU_DESIGN_PAGE=1`). Testes visuais novos no CI (`e2e/visual.e2e.cjs`, job `e2e-public`): contraste WCAG dos tokens nos dois temas, sem rolagem lateral, alvos de 44 px e comparação de pixels com `e2e/visual-baseline/` (até 2%), feita no próprio navegador, **sem dependência nova**. Capturas sobem como artefato `gadu-visual`. Ver `docs/DESIGN_SYSTEM.md` ("Design system v2").
 - **Evidências (máquina local):** typecheck; build; `npm run test:e2e:visual` 6/6 (contraste claro e escuro; vitrine 390 e 1440 nos dois temas).

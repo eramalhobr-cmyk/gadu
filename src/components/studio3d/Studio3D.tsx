@@ -29,7 +29,10 @@ function httpMessage(status: number, body: unknown): string {
   if (status === 401) return "Sua sessão expirou. Entre de novo para continuar.";
   if (status === 404) return "O 3D Studio está desligado no momento.";
   if (status === 0) return "Não consegui falar com o servidor. Confira a internet.";
-  return "Não consegui gerar a peça agora. Tente de novo em instantes.";
+  // Sem mensagem do GaDu: a resposta veio da Vercel (função cortada por tempo ou caída).
+  if (status === 504) return "O servidor passou do tempo limite esperando a IA. Tente de novo; se repetir, peça uma peça mais simples ou em partes.";
+  if (status >= 500) return `O servidor falhou ao gerar a peça (erro ${status}). Tente de novo em instantes.`;
+  return `Não consegui gerar a peça agora (erro ${status}). Tente de novo em instantes.`;
 }
 
 function download(bytes: Uint8Array, name: string, type: string) {
@@ -173,6 +176,8 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
 
   function novaPeca() {
     setPecaId(null); setScad(""); setAnteriores([]); setValues({}); setMesh(null); setReport(null); setUltimoPedido(""); setRender({ state: "idle" }); setAviso("");
+    // Peça nova começa do zero: sem o pedido e o ajuste da anterior na caixa de texto.
+    setPedido(""); setAjuste(""); setErroIA("");
     valoresSalvos.current = "{}";
   }
 
@@ -208,6 +213,13 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
       void salvar(modo, texto, body.scad, modo === "novo" ? null : pecaId);
       if (modo === "novo") { setUltimoPedido(texto); setMesh(null); setReport(null); }
       setAjuste("");
+      // A peça nova/ajustada fica à vista (a página não pode ficar parada lá embaixo, longe da prévia).
+      window.setTimeout(() => {
+        const el = document.getElementById("s3d-peca");
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        if (r.top < 0 || r.top > window.innerHeight * 0.5) el.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      }, 80);
     } catch {
       setErroIA(httpMessage(0, null));
     } finally {
@@ -276,7 +288,7 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
       {scad && (
         <>
           <div className="s3d-grid">
-            <div className="s3d-main">
+            <div className="s3d-main" id="s3d-peca">
               <Panel title="Peça" icon="cube" action={<span className="pill s3d-state" role="status">{render.state === "busy" ? "Montando…" : render.state === "ok" ? "Pronta" : render.state === "erro" ? "Com erro" : ""}</span>}>
                 <Viewer3D positions={mesh?.positions ?? null} box={box} captura={captura} />
                 {render.state === "erro" && (

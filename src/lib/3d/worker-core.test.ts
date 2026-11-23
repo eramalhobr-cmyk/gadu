@@ -7,7 +7,8 @@ import { boundingBox, parseStl, triangleCount } from "./mesh.ts";
 
 const dir = new URL("../../../public/vendor/openscad/", import.meta.url).href;
 const { createOpenSCAD } = await import(`${dir}openscad.js`);
-const { renderScad } = await import(`${dir}render-core.js`);
+const { renderScad, decodeFonts, usaTexto } = await import(`${dir}render-core.js`);
+const { FONTES } = await import(`${dir}fonts.js`);
 
 test("compila um cubo de verdade: STL binário, 12 triângulos e as medidas certas", async () => {
   const r = await renderScad(createOpenSCAD, "cube([20, 10, 5]);");
@@ -44,4 +45,25 @@ test("não lê arquivos do sistema: include de arquivo inexistente não traz nad
   // O sistema de arquivos do WASM é virtual: nada do aparelho aparece. Rende só o cubo (ou falha), nunca vaza conteúdo.
   assert.ok(!r.ok || triangleCount(mesh!) === 12);
   assert.ok(!/root:/.test(r.log));
+});
+
+// Referência 3D (23/11): sem fonte no WASM, text() saía vazio e o relevo sumia sem aviso.
+test("texto em relevo: com as fontes Liberation Sans, text() desenha e sobe em Z (acento incluso)", async () => {
+  const code = 'union() { cube([120, 40, 4]); translate([60, 20, 3.99]) linear_extrude(1.21) text("ESCRITÓRIO", size = 10, font = "Liberation Sans:style=Bold", halign = "center", valign = "center"); }';
+  assert.equal(usaTexto(code), true);
+  const r = await renderScad(createOpenSCAD, code, decodeFonts(FONTES));
+  assert.equal(r.ok, true, r.error);
+  const box = boundingBox(parseStl(r.stl));
+  assert.ok(box && box.max[2] - box.min[2] > 5, `altura ${box ? box.max[2] - box.min[2] : "?"}`);
+});
+
+test("texto sem fonte disponível: erro claro em vez de peça sem o relevo", async () => {
+  const r = await renderScad(createOpenSCAD, 'linear_extrude(1) text("GADU", size = 8);\ncube([10, 10, 1]);');
+  assert.equal(r.ok, false);
+  assert.match(r.error, /fonte/);
+});
+
+test("usaTexto só liga com text(", () => {
+  assert.equal(usaTexto("cube(10); // texto"), false);
+  assert.equal(usaTexto("text (\"A\");"), true);
 });
