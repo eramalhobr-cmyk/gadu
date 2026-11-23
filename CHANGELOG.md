@@ -7,6 +7,12 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-22 · UX-4 (começo) · Alvos de toque de 48 px no celular (PR #44, merge `a881411`) · **publicado**
+- **Feito por:** Cursor (Grok Bot).
+- **Estágio:** **publicado** em 22/11/2026 às 21:26 (Brasília), PR #44, merge `a881411`. CI verde (verify, e2e-public, database); deploy Vercel `success`; `--touch:48px` conferido no CSS do site no ar.
+- No celular (até 1023 px) e em telas de toque, `--touch` passa de 44 para 48 px, e botões pequenos, chips, abas (inclusive as de Metas, que tinham 36 px), botões redondos, campos e o "Pular para o conteúdo" seguem o mínimo de 48 px. O computador com mouse não muda. Só CSS (`src/app/ux.css`).
+- **Testes executados (22/11/2026):** auditoria com Playwright a 412 × 915 em 11 telas (Hoje, Conversa, Tarefas, Mais, Configurações, Financeiro, Metas, Projetos, Memória, Agenda, Lembretes): de 70 alvos abaixo de 48 px para 0 (os 6 restantes são as caixas escondidas dos interruptores, cujo alvo é a linha inteira), sem rolagem lateral; typecheck; 228 unitários e 149 de integração; build; e2e mobile 44/44 e público 10/10 contra `next start`.
+
 ## 2026-11-22 · Tudo por voz: ações de todos os módulos pela conversa, com confirmação (PR #42, merge `61334a1`) · **publicado**
 - **Feito por:** Cursor (Grok Bot). Pedido do Eduardo às 20:43: "tudo no GaDu precisa poder ser feito por voz ou pela conversa".
 - **Estágio:** **publicado** em 22/11/2026 às 21:11 (Brasília), PR #42, merge `61334a1`. CI verde (verify, e2e-public, database); deploy Vercel `success` (status do GitHub). Ainda não validado com pessoa logada em aparelho nem com a IA real.
