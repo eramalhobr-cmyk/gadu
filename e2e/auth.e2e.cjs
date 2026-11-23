@@ -284,6 +284,7 @@ describe("app com login", () => {
     assert.equal(await p.isVisible(".say-pop"), false, "Esc fecha");
     assert.equal(chats, 0, "sem chamar o modelo");
     await p.context().close();
+  });
 
   test("navegação por intenção (UX-7 G2): abre e volta sem chamar o modelo", async () => {
     const d = await page(DESK);
