@@ -4,12 +4,36 @@
 
 const MAX_LOG = 4000;
 
-/** Roda o OpenSCAD sobre o código e devolve { ok, stl (Uint8Array binário) | error, log }. Uma instância nova por render. */
-export async function renderScad(createOpenSCAD, code) {
+/** O código usa text()? Só então vale carregar as fontes (1 MB). */
+export function usaTexto(code) {
+  return /\btext\s*\(/.test(code);
+}
+
+/** Converte { "Arquivo.ttf": base64 } em [{ name, bytes }] para o renderScad. */
+export function decodeFonts(map) {
+  return Object.entries(map || {}).map(([name, b64]) => {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return { name, bytes };
+  });
+}
+
+/**
+ * Roda o OpenSCAD sobre o código e devolve { ok, stl (Uint8Array binário) | error, log }. Uma instância nova por render.
+ * fonts: [{ name, bytes }] gravadas em /fonts. Sem elas, text() sai vazio e o relevo some sem aviso.
+ */
+export async function renderScad(createOpenSCAD, code, fonts = []) {
   const lines = [];
   const push = (l) => { if (lines.join("\n").length < MAX_LOG) lines.push(String(l)); };
   const inst = await createOpenSCAD({ noInitialRun: true, print: push, printErr: push });
   const m = inst.getInstance();
+  if (fonts.length) {
+    m.FS.mkdirTree("/fonts");
+    for (const f of fonts) m.FS.writeFile(`/fonts/${f.name}`, f.bytes);
+    m.FS.mkdirTree("/etc/fonts");
+    m.FS.writeFile("/etc/fonts/fonts.conf", '<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd"><fontconfig><dir>/fonts</dir></fontconfig>');
+  }
   m.FS.writeFile("/input.scad", code);
   let rc;
   try {
@@ -20,6 +44,7 @@ export async function renderScad(createOpenSCAD, code) {
     push(String(e && e.message ? e.message : e));
   }
   const log = lines.join("\n").slice(0, MAX_LOG);
+  if (rc === 0 && /Can't get font/i.test(log)) return { ok: false, error: "O texto da peça usa uma fonte que não existe aqui. Use a fonte Liberation Sans.", log };
   if (rc !== 0) return { ok: false, error: friendlyError(log), log };
   let stl;
   try { stl = m.FS.readFile("/out.stl"); } catch { return { ok: false, error: "O OpenSCAD não gerou a peça. O código pode estar vazio.", log }; }

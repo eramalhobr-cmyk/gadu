@@ -67,6 +67,13 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 18:07 · Cursor (Grok Bot), 3D: correções da rodada de referência com IA real
+- **Feito por (IA):** Cursor (Grok Bot). Rodada das 10 peças (17:48–18:00, no navegador pelo Eduardo/bot): 8 de 10 geradas, 6 renderizaram de primeira e 8 depois da correção automática; todas as renderizadas passaram nas verificações da A1; 7 de 8 ajustes no eixo certo; relevo de texto sumiu em 2. Custo registrado: **US$ 0,0200** (16 chamadas `claude-haiku-5-5`; as 2 que falharam não foram registradas).
+- **Causas:** (1) suporte e gancho: a função passava de `maxDuration = 60` (Anthropic 30 s + nova tentativa + gateway) e a Vercel cortava sem JSON, daí a mensagem genérica; (2) caixa e suporte de parede: saída parou no limite de 6000 tokens (raciocínio interno gastava quase tudo; só ~2000 caracteres de código) e o código chegou cortado; (3) chaveiro: o modelo chamou o eixo Y de "altura"; (4) texto: o OpenSCAD WASM não tem fontes, `text()` saía vazio sem erro (conferido: chaveiro 3 → 4 mm e placa 4 → 5,2 mm com as fontes, nos códigos salvos da rodada).
+- **Correções (branch `fix/3d-referencia`):** `complete()` com `semRaciocinio` (`thinking: disabled`, volta ao padrão se o motor recusar), `timeoutMs`, `maxRetries`, `deadline` e `cortada` (stop_reason `max_tokens`); rota com `maxDuration = 120`, prazo próprio de 105 s, 55 s por motor, sem novas tentativas do SDK, 504 `ai_timeout` com mensagem clara; `scadIncompleto()` (delimitadores e última instrução) no `validateScad` e **uma** nova tentativa automática mais curta quando o código vem cortado (reserva dobrada; a 2ª chamada grava o consumo direto); regras 8 a 10 do prompt (altura = Z, texto só com Liberation Sans, código enxuto); fontes Liberation Sans (OFL) em `public/vendor/openscad/fonts.js`, carregadas pelo worker só quando há `text()`, e erro claro se a fonte pedida não existir; Studio3D: "Nova peça" limpa o pedido, o ajuste e o erro, a prévia volta à vista depois de gerar/ajustar, mensagens com o código do erro (504/5xx). O harness `scripts/3d-referencia/` (pedidos + `conferir.ts`) entra junto.
+- **Voz:** o ajuste por voz usa o mesmo `pedirIA`, então recebe as mesmas correções.
+- **Falta:** rodar de novo as 10 peças no navegador para medir o "depois"; logs da Vercel das falhas não lidos (o conector da Vercel não tem acesso ao time).
+
 ### 23/11/2026 18:10 · Cursor (Grok Bot), G1 voz imersiva
 - `VoiceCore.tsx` (anéis SVG + espectro; `useNivel` escreve `--lvl` por quadro a partir do `voiceLevel`), `nivel-visual.ts`, `voz-imersiva.css`; `ListenSheet` com `.listen-wrap.imersivo` (mantém `.listen-ava` para os e2e antigos). "Modo voz" em `send()` antes do "lê o resumo". Empilhado sobre o M4.
 - **Próximo:** G3 (design system v2 com testes visuais).
@@ -79,7 +86,7 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - PR #108 publicado às 17:14 (CHANGELOG corrigido). Hoje ganhou "Gasto no mês" (contas pagas + dia a dia, de quanto está previsto) no resumo do dia, só com o Financeiro ligado; sem resposta, o indicador some.
 - **Próximos:** M4, G1, G3.
 
-### 23/11/2026 17:35 · Cursor (Grok Bot), plano do Spotify (só plano)
+### 23/11/2026 17:22 · Cursor (Grok Bot), plano do Spotify (só plano)
 - Pedido do Eduardo (17:15): plano, sem código. Está em `docs/PLANO-SPOTIFY.md`: Development Mode com Premium do dono e até 5 usuários na allowlist, PKCE no servidor, Spotify Connect como caminho principal no S26 Ultra e link do episódio como reserva, tokens criptografados em `spotify_connections` (RLS, gravação só pelo servidor), voz, ~18 h em 5 PRs, riscos.
 - **Espera o Eduardo:** Premium, app criado no painel do Spotify (redirect URIs do plano) e o Client ID; aprovação da migração aditiva e da chave `SPOTIFY_TOKEN_KEY`.
 

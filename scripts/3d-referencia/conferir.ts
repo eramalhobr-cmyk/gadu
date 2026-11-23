@@ -10,7 +10,9 @@ import { validateScad } from "../../src/lib/3d/scad.ts";
 
 const dir = new URL("../../public/vendor/openscad/", import.meta.url).href;
 const { createOpenSCAD } = await import(`${dir}openscad.js`);
-const { renderScad } = await import(`${dir}render-core.js`);
+const { renderScad, decodeFonts, usaTexto } = await import(`${dir}render-core.js`);
+const { FONTES } = await import(`${dir}fonts.js`);
+const fontes = decodeFonts(FONTES);
 
 const pecas = JSON.parse(readFileSync(process.argv[2], "utf8")) as { titulo: string; scad: string }[];
 const out = [];
@@ -20,7 +22,8 @@ for (const p of pecas) {
   const params = parseParams(p.scad);
   const values = defaultValues(params);
   const t0 = Date.now();
-  const r = await renderScad(createOpenSCAD, applyParams(p.scad, values));
+  const code = applyParams(p.scad, values);
+  const r = await renderScad(createOpenSCAD, code, usaTexto(code) ? fontes : []);
   const ms = Date.now() - t0;
   if (!r.ok) { out.push({ titulo: p.titulo, render: "erro", motivo: String(r.error).slice(0, 300), ms }); continue; }
   const mesh = placeOnBed(parseStl(r.stl));

@@ -18,5 +18,8 @@ Esta pasta contém o **OpenSCAD compilado para WebAssembly**, usado só pelo 3D 
 - O código `.scad` roda **só no worker**, sem DOM, cookies nem rede (a CSP deste diretório usa `connect-src 'none'`).
 - Cada renderização usa uma instância nova do OpenSCAD, com limite de tempo de 30 s; passou do limite, o worker é encerrado e recriado.
 
+## Fontes
+`fonts.js` traz as fontes **Liberation Sans** Regular e Bold (SIL Open Font License 1.1, veja `FONTS-LICENSE.txt`) em base64. O OpenSCAD WASM não traz fontes: sem elas `text()` sai vazio. O worker só carrega esse módulo quando o código usa `text()` (a CSP não permite rede, por isso a fonte vem como módulo do mesmo endereço).
+
 ## Atualizar
 Troque `openscad.js` e `LICENSE.txt` pelos do novo pacote, rode `npm run test:unit` (há um teste que compila um cubo com este arquivo) e atualize a versão acima.
