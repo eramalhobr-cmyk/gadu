@@ -140,7 +140,7 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Casa Inteligente (GaDu Casa) | adiado (decisão do Eduardo, 22/11/2026) | — | `src/lib/modules.ts` (catálogo), `docs/CASA_INTELIGENTE.md` | sem integração real; Home Assistant recomendado |
 | Integração de saúde (Samsung Health, Health Connect) | planejado | P3 | `docs/INTEGRACOES_SAUDE.md` | PWA não lê esses dados; exige conector Android e aprovação |
 | Logo novo (três movimentos) | bloqueado | P1 | — | aguardando o arquivo; hoje marca em texto |
-| Acessibilidade (atalho de teclado, alvos de toque, foco) | implementado | — | `GaduApp.tsx`, `globals.css` | PR #10; alvos de 44 px e contraste AA auditados em 360 a 1920 px (PR #14) |
+| Acessibilidade (atalho de teclado, alvos de toque, foco) | implementado | — | `GaduApp.tsx`, `globals.css`, `src/app/ux.css` | PR #10; alvos de 44 px e contraste AA auditados em 360 a 1920 px (PR #14); **48 px no celular e em telas de toque desde o UX-4 (PR #44)** |
 | Validação do PWA na Streaming Box do carro | planejado | P3 | ROADMAP do PR #1 | — |
 
 ## 11. Tudo por voz (matriz; princípio do Eduardo de 22/11/2026)

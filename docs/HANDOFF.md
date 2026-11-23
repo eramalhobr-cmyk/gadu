@@ -37,6 +37,7 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - [ ] **PR #38, texto grande** (Cursor/Grok Bot): `src/lib/text-size.ts`, cookie `gadu_texto` lido em `src/app/layout.tsx`; todas as fontes em `calc(Npx * var(--ts, 1))`. Conferir no aparelho, com "Maior", se nada corta ou sobrepõe (barra de baixo, cartões, Financeiro).
 - [ ] **PR #39, confirmações faladas** (Cursor/Grok Bot): máquina de estados em `GaduApp.tsx` (`confirmQ`, `listenConfirm`, `answerConfirm`, ramos `confirmListenRef` no reconhecedor), `parseAnswer` em `src/lib/voice-confirm.ts` ("não, foi 60 reais" = mudar), `Speaker.maxChars`. Conferir no Chrome Android e no Samsung Internet se o microfone abre depois da pergunta e sempre fecha.
 - [ ] **PR #42, Tudo por voz** (Cursor/Grok Bot): (a) `src/lib/acoes-resolver.ts`: toda consulta com `.eq("user_id")` e cliente da sessão, `matchByName` devolve nada quando há empate; (b) `ActionCard.tsx` (`runAction`): `meta_tarefa` cancela a tarefa se o vínculo falhar; `conta_paga` usa `PUT /api/finance/itens/:id/mes`; (c) o estado dos cartões em `GaduApp` (`cards`, `cardOp`); (d) testar com a IA real se ela usa `acoes` nas frases comuns ("cria uma meta de…", "paguei a luz", "aumenta a letra").
+- [ ] **PR #44, UX-4 alvos de 48 px** (Cursor/Grok Bot): bloco no fim de `src/app/ux.css` (`--touch: 48px` até 1023 px ou em tela de toque). Conferir no aparelho se nada ficou apertado.
 - [ ] **e2e com login** (`e2e/auth.e2e.cjs`): os testes novos de Mais, Hoje e tela de escuta foram escritos sem rodar (faltam credenciais de teste nesta máquina). Rodar com o usuário de teste e corrigir o que falhar.
 - [ ] **Validação com login no aparelho** de tudo o que foi publicado em 22/11 (pendência humana, com o Eduardo).
 
@@ -47,6 +48,7 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
   - PR #38, texto grande (Normal, Grande 115%, Maior 130%), merge `ba3c6c5` às 20:43.
   - PR #39, confirmações faladas (sim, não, muda para…) e respostas faladas curtas, merge `87ab3bf` às 20:59.
   - PR #42, Tudo por voz: metas, marcos, tarefas da meta, concluir e adiar tarefa, cancelar lembrete, "paguei a luz", criar projeto e ajustes pela conversa, sempre com cartão e "sim" falado, merge `61334a1` às 21:11.
+  - PR #44, UX-4 (começo): alvos de toque de 48 px no celular e em telas de toque.
   - Este PR de documentação: regra 8.1 no AGENTS.md, matriz "Tudo por voz" (FEATURE_MATRIX, seção 11), ROADMAP, CHANGELOG e PROJECT_STATUS.
 - **Evidências:** CI verde em todos os PRs (os de código refeitos sobre a `main` mais nova antes do merge); deploy Vercel `success` pelos status do GitHub; CSS novo conferido no ar; capturas em `/workspace/gadu-review/ux-after/` (09 a 16, máquina do agente).
 - **Paralelo com o Claude Code (3D):** não mexi em arquivos do 3D nem em `src/lib/modules.ts`. O 3D adiciona as próprias ações pela conversa seguindo a regra 8.1.
