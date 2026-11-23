@@ -1,7 +1,9 @@
 "use client";
 import { Panel } from "./kit";
 import { colorVar, Icon } from "./ui";
-import { DOCK_VIEWS, MAIN_VIEWS, MODULES, moduleOf, STATUS_LABEL, viewDef, type ModuleDef, type ModuleId, type ViewId } from "@/lib/modules";
+import { useEffect, useState } from "react";
+import { DOCK_VIEWS, MODULES, moduleOf, navGroups, STATUS_LABEL, viewDef, type ModuleDef, type ModuleId, type ViewId } from "@/lib/modules";
+import { supabaseBrowser } from "@/lib/supabase/client";
 import { PageHeader } from "./kit";
 
 /** Selo de status de um módulo. Sempre o status real. */
@@ -108,9 +110,11 @@ export function ModulesHub(props: {
   email?: string;
 }) {
   const { onOpen, pending = 0, hide = [] } = props;
-  const views = MAIN_VIEWS.filter((v) => !DOCK_VIEWS.includes(v) && !hide.includes(moduleOf(v).id));
+  // UX-7: Mais agrupado por áreas (as mesmas do menu do computador), com status, números e um exemplo do que dizer.
+  const groups = navGroups((v) => hide.includes(moduleOf(v).id), DOCK_VIEWS);
   const soon = MODULES.filter((m) => m.status === "planejado" && !hide.includes(m.id) && m.id !== "studio3d");
   const initial = (props.name || props.email || "G").trim().charAt(0).toUpperCase();
+  const counts = useHubCounts(!hide.includes("metas"));
   const tile = (key: string, icon: string, name: string, text: string, color: string, onClick: () => void, badge?: React.ReactNode) => (
     <button key={key} className="more-tile" style={{ ["--c" as string]: colorVar(color) }} onClick={onClick}>
       <span className="hub-ico" aria-hidden="true"><Icon name={icon} size={24} /></span>
@@ -118,34 +122,56 @@ export function ModulesHub(props: {
       {badge}
     </button>
   );
+  const badgeOf = (v: ViewId): React.ReactNode => {
+    if (v === "memoria" && pending > 0) return <b className="nav-badge" aria-label={`${pending} memórias para revisar`}>{pending}</b>;
+    if (v === "metas" && counts.metasAtrasadas > 0) return <span className="more-count warn">{counts.metasAtrasadas} {counts.metasAtrasadas === 1 ? "atrasada" : "atrasadas"}</span>;
+    if (v === "metas" && counts.metasAtivas > 0) return <span className="more-count">{counts.metasAtivas} {counts.metasAtivas === 1 ? "ativa" : "ativas"}</span>;
+    if (v === "projetos" && counts.projetos > 0) return <span className="more-count">{counts.projetos} {counts.projetos === 1 ? "ativo" : "ativos"}</span>;
+    return undefined;
+  };
   return (
     <main className="page" id="conteudo">
       <div className="wrap hub more">
         <h1 className="sr">Mais</h1>
-        <div className="more-tiles">
-          {views.map((v) => {
-            const d = viewDef(v);
-            return tile(v, d.icon, d.label, MORE_TEXT[v] ?? "", moduleOf(v).color, () => onOpen(v),
-              v === "memoria" && pending > 0 ? <b className="nav-badge" aria-label={`${pending} memórias para revisar`}>{pending}</b> : undefined);
-          })}
-          {props.show3d && (
-            <a className="more-tile" href="/app/3d" style={{ ["--c" as string]: colorVar("hot") }}>
-              <span className="hub-ico" aria-hidden="true"><Icon name="cube" size={24} /></span>
-              <span className="hub-t"><b>3D</b><small>Peças para imprimir na A1</small></span>
-              <span className="pill parcial">Beta</span>
+        {groups.map((g) => {
+          const extra3d = g.id === "criacao" && props.show3d;
+          const historico = g.id === "dia";
+          if (g.views.length === 0 && !extra3d && !historico) return null;
+          return (
+            <section key={g.id} className="more-group" aria-labelledby={`mais-${g.id}`}>
+              <header className="more-head">
+                <h2 id={`mais-${g.id}`}>{g.name}</h2>
+                <p><Icon name="mic" size={14} /> Diga: {g.hint}</p>
+              </header>
+              <div className="more-tiles">
+                {g.views.map((v) => {
+                  const d = viewDef(v);
+                  return tile(v, d.icon, d.label, MORE_TEXT[v] ?? "", moduleOf(v).color, () => onOpen(v), badgeOf(v));
+                })}
+                {extra3d && (
+                  <a className="more-tile" href="/app/3d" style={{ ["--c" as string]: colorVar("hot") }}>
+                    <span className="hub-ico" aria-hidden="true"><Icon name="cube" size={24} /></span>
+                    <span className="hub-t"><b>3D</b><small>Peças para imprimir na A1</small></span>
+                    <span className="pill parcial">Beta</span>
+                  </a>
+                )}
+                {historico && tile("historico", "history", "Conversas anteriores", "Abrir uma conversa antiga", "sig", props.onHistory)}
+              </div>
+            </section>
+          );
+        })}
+        <section className="more-group" aria-labelledby="mais-conta">
+          <header className="more-head"><h2 id="mais-conta">Conta e ajuda</h2><p><Icon name="mic" size={14} /> Diga: “Abre as configurações”</p></header>
+          <div className="more-tiles">
+            {tile("ajustes", "gear", "Configurações", "Conta, voz, Google e avisos", "pink", () => onOpen("ajustes"),
+              <span className="more-initial" aria-hidden="true">{initial}</span>)}
+            {props.admin && tile("admin", "lock", "Administração", "Pessoas e convites", "pink", () => onOpen("admin"))}
+            <a className="more-tile" href="/app/guia" style={{ ["--c" as string]: colorVar("blue") }}>
+              <span className="hub-ico" aria-hidden="true"><Icon name="book" size={24} /></span>
+              <span className="hub-t"><b>Ajuda</b><small>Guia e mapa do GaDu</small></span>
             </a>
-          )}
-          {tile("historico", "history", "Conversas anteriores", "Abrir uma conversa antiga", "sig", props.onHistory)}
-        </div>
-        <div className="more-tiles">
-          {tile("ajustes", "gear", "Configurações", "Conta, voz, Google e avisos", "pink", () => onOpen("ajustes"),
-            <span className="more-initial" aria-hidden="true">{initial}</span>)}
-          {props.admin && tile("admin", "lock", "Administração", "Pessoas e convites", "pink", () => onOpen("admin"))}
-          <a className="more-tile" href="/app/guia" style={{ ["--c" as string]: colorVar("blue") }}>
-            <span className="hub-ico" aria-hidden="true"><Icon name="book" size={24} /></span>
-            <span className="hub-t"><b>Ajuda</b><small>Guia passo a passo</small></span>
-          </a>
-        </div>
+          </div>
+        </section>
         {soon.length > 0 && (
           <p className="more-soon">
             <span>Em breve:</span>
@@ -155,4 +181,28 @@ export function ModulesHub(props: {
       </div>
     </main>
   );
+}
+
+/** Números da tela Mais: metas ativas e atrasadas (resumo do servidor) e projetos ativos. Falhou, fica sem número. */
+function useHubCounts(goals: boolean) {
+  const [c, setC] = useState({ metasAtivas: 0, metasAtrasadas: 0, projetos: 0 });
+  useEffect(() => {
+    let live = true;
+    if (goals) {
+      fetch("/api/goals/resumo", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: { enabled?: boolean; ativas?: number; atrasadas?: number } | null) => {
+          if (live && d?.enabled) setC((o) => ({ ...o, metasAtivas: Number(d.ativas) || 0, metasAtrasadas: Number(d.atrasadas) || 0 }));
+        })
+        .catch(() => {});
+    }
+    void (async () => {
+      try {
+        const { count } = await supabaseBrowser().from("projects").select("id", { count: "exact", head: true }).eq("status", "active");
+        if (live && typeof count === "number") setC((o) => ({ ...o, projetos: count }));
+      } catch {}
+    })();
+    return () => { live = false; };
+  }, [goals]);
+  return c;
 }
