@@ -9,7 +9,8 @@ import { A1_TEMPLATE_AVAILABLE, A1_TEMPLATE_PENDING_TEXT, build3mf } from "@/lib
 import { ScadRenderer } from "@/lib/3d/worker-client";
 import { Icon } from "../ui";
 import { PageHeader, Panel } from "../kit";
-import { Viewer3D } from "./Viewer3D";
+import { Viewer3D, type Captura } from "./Viewer3D";
+import { IMAGEM_DATAURL_MAX } from "@/lib/3d/render-imagem";
 import "./studio3d.css";
 import { AJUSTE_3D_KEY, lerAjuste } from "@/lib/3d/ajuste-voz";
 
@@ -64,6 +65,7 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
   const [pecas, setPecas] = useState<PecaResumo[] | null>(null);
   const [aviso, setAviso] = useState("");
   const valoresSalvos = useRef("{}");
+  const captura = useRef<Captura | null>(null);
   const params = useMemo(() => parseParams(scad), [scad]);
   const renderer = useRef<ScadRenderer | null>(null);
   const seq = useRef(0);
@@ -186,10 +188,13 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
 
   const pedirIA = useCallback(async (modo: Modo, texto: string) => {
     setGerando(true); setErroIA("");
+    // 3D-1b: no ajuste, o render atual vai junto (a IA vê a forma). Sem render pronto ou sem WebGL, vai só o código.
+    const img = modo === "refinar" && render.state === "ok" ? captura.current?.() ?? null : null;
+    const imagem = img && img.length <= IMAGEM_DATAURL_MAX ? img : null;
     try {
       const res = await fetch("/api/3d/generate", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ modo, pedido: texto, ...(modo !== "novo" ? { scad } : {}), ...(modo === "corrigir" ? { erro: `${render.error ?? ""}\n${render.log ?? ""}`.trim().slice(0, 1500) } : {}) }),
+        body: JSON.stringify({ modo, pedido: texto, ...(modo !== "novo" ? { scad } : {}), ...(imagem ? { imagem } : {}), ...(modo === "corrigir" ? { erro: `${render.error ?? ""}\n${render.log ?? ""}`.trim().slice(0, 1500) } : {}) }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok || !body || typeof body.scad !== "string") { setErroIA(httpMessage(res.status, body)); return; }
@@ -208,15 +213,16 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
     } finally {
       setGerando(false);
     }
-  }, [scad, render.error, render.log, salvar, pecaId]);
+  }, [scad, render.state, render.error, render.log, salvar, pecaId]);
 
   useEffect(() => {
     const texto = ajusteVoz.current;
-    if (!texto || !scad || pecaId !== abrir || gerando) return;
+    // Espera o render da peça aberta ficar pronto, para o ajuste por voz também levar a imagem (3D-1b); se o render falhar, vai só o código.
+    if (!texto || !scad || pecaId !== abrir || gerando || !((render.state === "ok" && mesh) || render.state === "erro")) return;
     ajusteVoz.current = null;
     setAjuste(texto);
     void pedirIA("refinar", texto);
-  }, [scad, pecaId, abrir, gerando, pedirIA]);
+  }, [scad, pecaId, abrir, gerando, pedirIA, render.state, mesh]);
 
   const voltar = () => {
     const prev = anteriores[anteriores.length - 1];
@@ -272,7 +278,7 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
           <div className="s3d-grid">
             <div className="s3d-main">
               <Panel title="Peça" icon="cube" action={<span className="pill s3d-state" role="status">{render.state === "busy" ? "Montando…" : render.state === "ok" ? "Pronta" : render.state === "erro" ? "Com erro" : ""}</span>}>
-                <Viewer3D positions={mesh?.positions ?? null} box={box} />
+                <Viewer3D positions={mesh?.positions ?? null} box={box} captura={captura} />
                 {render.state === "erro" && (
                   <div className="s3d-fail" role="alert">
                     <b>Não consegui montar a peça.</b>

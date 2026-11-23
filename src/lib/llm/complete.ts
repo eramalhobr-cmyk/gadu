@@ -8,7 +8,8 @@ import type { ProviderId } from "./types";
 // Tenta a Anthropic direta e, se não der, o AI Gateway. Respeita os provedores pulados por limite.
 export type Completion = { text: string; provider: ProviderId; model: string; input: number; output: number; cost: number };
 
-export async function complete(prompt: string, opts: { maxTokens?: number; skip?: Set<ProviderId> } = {}): Promise<Completion> {
+/** image: imagem já conferida pelo servidor (3D-1b), enviada antes do texto. */
+export async function complete(prompt: string, opts: { maxTokens?: number; skip?: Set<ProviderId>; image?: { mediaType: "image/png" | "image/jpeg"; data: string } } = {}): Promise<Completion> {
   const cfg = serverConfig();
   const skip = opts.skip ?? new Set();
   const attempts: { provider: ProviderId; model: string; client: () => Promise<Anthropic> }[] = [];
@@ -29,7 +30,12 @@ export async function complete(prompt: string, opts: { maxTokens?: number; skip?
       const msg = await c.messages.create({
         model: a.model,
         max_tokens: opts.maxTokens ?? 1200,
-        messages: [{ role: "user", content: prompt }],
+        messages: [{
+          role: "user",
+          content: opts.image
+            ? [{ type: "image", source: { type: "base64", media_type: opts.image.mediaType, data: opts.image.data } }, { type: "text", text: prompt }]
+            : prompt,
+        }],
         output_config: { effort: "low" },
       });
       const text = msg.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();

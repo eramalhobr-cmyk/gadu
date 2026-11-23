@@ -1,14 +1,17 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { Box } from "@/lib/3d/mesh";
+import { tamanhoCaptura } from "@/lib/3d/render-imagem";
 
 // Visualizador three.js: peça sobre a mesa da A1 (256 × 256 mm), com giro, zoom e a caixa de medidas.
 // O three.js só é carregado aqui (import dinâmico), na tela 3D. Z para cima, como na impressora.
 const BED = 256;
 
-type Props = { positions: Float32Array | null; box: Box | null };
+/** captura: o Studio pede o render atual (JPEG, lado maior de 512 px) para mandar junto do ajuste (3D-1b). */
+export type Captura = () => string | null;
+type Props = { positions: Float32Array | null; box: Box | null; captura?: { current: Captura | null } };
 
-export function Viewer3D({ positions, box }: Props) {
+export function Viewer3D({ positions, box, captura }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const api = useRef<{ setMesh: (p: Float32Array | null) => void; dispose: () => void } | null>(null);
   const pending = useRef<Float32Array | null>(positions);
@@ -99,6 +102,22 @@ export function Viewer3D({ positions, box }: Props) {
       const tick = () => { controls.update(); renderer.render(scene, camera); raf = requestAnimationFrame(tick); };
       tick();
       setMesh(pending.current);
+      const fundo = css.getPropertyValue("--surface").trim() || "#1b2030";
+      if (captura) captura.current = () => {
+        try {
+          renderer.render(scene, camera); // desenha agora, para ler o quadro sem preserveDrawingBuffer
+          const src = renderer.domElement;
+          const t = tamanhoCaptura(src.width, src.height);
+          if (!t.w) return null;
+          const c = document.createElement("canvas");
+          c.width = t.w; c.height = t.h;
+          const ctx = c.getContext("2d");
+          if (!ctx) return null;
+          ctx.fillStyle = fundo; ctx.fillRect(0, 0, t.w, t.h);
+          ctx.drawImage(src, 0, 0, t.w, t.h);
+          return c.toDataURL("image/jpeg", 0.82);
+        } catch { return null; }
+      };
       api.current = {
         setMesh,
         dispose() {
@@ -108,7 +127,7 @@ export function Viewer3D({ positions, box }: Props) {
         },
       };
     })();
-    return () => { dead = true; api.current?.dispose(); api.current = null; };
+    return () => { dead = true; api.current?.dispose(); api.current = null; if (captura) captura.current = null; };
   }, []);
 
   useEffect(() => { pending.current = positions; api.current?.setMesh(positions); }, [positions]);

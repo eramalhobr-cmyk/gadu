@@ -67,6 +67,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 15:05 · Cursor (Grok Bot), 3D-1b: render junto do ajuste
+- Aprovado pelo Eduardo às 15:01. `src/lib/3d/render-imagem.ts` (conferência e tamanho), `complete()` aceita `image`, rota `/api/3d/generate` com `imagem` só no `refinar`, captura no `Viewer3D.tsx`, `Studio3D.tsx` manda a imagem (campo e voz). Custo extra ≈ US$ 0,00004 por ajuste.
+- **A revisar por outra IA:** a captura no `Viewer3D.tsx` (desenha e lê no mesmo quadro) e o efeito da voz no `Studio3D.tsx`.
+- **Não feito:** as 10 peças de referência com IA real (esperam o OK de gasto do Eduardo). Sem Claude Code (decisão das 14:39).
+
 ### 23/11/2026 15:12 · Cursor (Grok Bot), UX-7 R7: motores de rosto antigos apagados
 - **Feito:** só o avatar oficial fica (`Avatar` em `RobotFace.tsx` + `avatar-engine.ts`); `robot-engine.ts` guarda só o tipo `FaceMode` (o nome do arquivo ficou para não mexer nos imports de quem usa o tipo).
 - **Próximo passo:** R6/M1 (skills de design pela regra de segurança).

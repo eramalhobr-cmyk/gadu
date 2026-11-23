@@ -9,6 +9,11 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · 3D-1b: o render da peça vai junto de cada ajuste · desenvolvido e testado
+- **Feito por:** Cursor (Grok Bot), aprovado pelo Eduardo às 15:01. No ajuste ("Pedir uma mudança" e o ajuste por voz `peca3d_ajustar`), o Studio captura o visualizador (JPEG, lado maior de 512 px) e manda junto; a rota `/api/3d/generate` confere o tipo pelo cabeçalho real e o tamanho (até 300 KB; inválido = 400 antes de qualquer custo), soma a imagem na estimativa da reserva e segue o pipeline de sempre (limites → reserva → cota → IA → liquidação). Peça nova e correção de erro continuam só com texto. Sem render pronto ou sem WebGL, vai só o código. O ajuste por voz espera o render da peça aberta ficar pronto.
+- **Custo extra estimado:** ~350 tokens de entrada por imagem de 512 × 512 (regra w·h/750) → **≈ US$ 0,000035 por ajuste** no Haiku 5.5 (US$ 0,10 por milhão); a reserva conta 400 tokens (≈ US$ 0,00004). Mesmo com o modelo mais caro da tabela (Opus 5.5, US$ 4/M) seria ≈ US$ 0,0014.
+- **Evidências (máquina local):** `render-imagem.test.ts`, integração da rota (imagem e nota vão à IA, ordem de custo igual, reserva maior com imagem, imagem falsa/grande/fora do ajuste = 400 sem custo, cota esgotada libera a reserva), `test/studio3d-imagem.test.ts`. **Não testado:** IA real (as 10 peças de referência esperam o OK de gasto do Eduardo), aparelho.
+
 ## 2026-11-23 · UX-7 · Motores de rosto antigos apagados · desenvolvido e testado
 - **Feito por:** Cursor (Grok Bot). Apagados `brain-engine.ts`, `head-engine.ts`, `bot-engine.ts`, o desenho de `robot-engine.ts` (fica só o tipo `FaceMode`), os componentes `RobotFace` e `Mind`, o ouvinte de ponteiro que só servia a eles e o CSS `.mind`: cerca de 550 linhas sem uso. O avatar oficial (ilustração + `avatar-engine.ts`) não muda. Sem voz nova (é limpeza).
 - **Evidências (máquina local):** typecheck; `test:unit`; build; avatar conferido na Conversa, no Hoje e na escuta.

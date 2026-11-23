@@ -4,6 +4,7 @@ import { checkDailyQuota, checkProviderSpend, safeRpc } from "@/lib/chat-budget-
 import { readBudgets, serverConfig } from "@/lib/config";
 import { SAIDA_MAX_TOKENS } from "@/lib/3d/limits";
 import { GenerateBody } from "@/lib/3d/schemas";
+import { IMAGEM_CHARS_EST, lerImagem } from "@/lib/3d/render-imagem";
 import { buildPrompt, extractScad, validateScad } from "@/lib/3d/scad";
 import { complete } from "@/lib/llm/complete";
 import type { ProviderId } from "@/lib/llm/types";
@@ -25,6 +26,9 @@ export async function POST(request: Request) {
   const p = GenerateBody.safeParse(await request.json().catch(() => null));
   if (!p.success) return fail(400, "invalid", p.error.issues[0]?.message ?? "Confira os dados.");
   const { modo, pedido, scad, erro } = p.data;
+  // 3D-1b: render atual da peça junto do ajuste. Conferido pelo cabeçalho real e pelo tamanho; inválido = 400.
+  const imagem = p.data.imagem ? lerImagem(p.data.imagem) : null;
+  if (p.data.imagem && !imagem) return fail(400, "invalid", "A imagem da peça veio num formato que não reconheço.");
 
   // Privacidade: dado sensível ou termo bloqueado pela pessoa não sai daqui.
   const { data: profile } = await supabase.from("profiles").select("settings").eq("id", user.id).maybeSingle();
@@ -42,10 +46,10 @@ export async function POST(request: Request) {
   if ((spend.spentBy.anthropic ?? 0) >= budgets.anthropic) skip.add("anthropic");
   if ((spend.spentBy.gateway ?? 0) >= budgets.gateway) skip.add("gateway");
 
-  const prompt = buildPrompt({ modo, pedido, scad, erro });
+  const prompt = buildPrompt({ modo, pedido, scad, erro, comImagem: Boolean(imagem) });
   const cfg = serverConfig();
   // Reserva atômica do teto mensal, só pelo servidor, com o id da SESSÃO (nunca do corpo).
-  const resv = await reserveBudget(user.id, "chat", estimateMaxCost(cfg.cheapModel, prompt.length, SAIDA_MAX_TOKENS));
+  const resv = await reserveBudget(user.id, "chat", estimateMaxCost(cfg.cheapModel, prompt.length + (imagem ? IMAGEM_CHARS_EST : 0), SAIDA_MAX_TOKENS));
   if (!resv.ok) {
     return resv.reason === "unavailable"
       ? fail(503, "budget", "Não consegui verificar seu orçamento de IA agora. Tente de novo em instantes.")
@@ -62,7 +66,7 @@ export async function POST(request: Request) {
     }
     let r;
     try {
-      r = await complete(prompt, { maxTokens: SAIDA_MAX_TOKENS, skip });
+      r = await complete(prompt, { maxTokens: SAIDA_MAX_TOKENS, skip, ...(imagem ? { image: imagem } : {}) });
     } catch {
       return fail(502, "ai", "A IA não respondeu agora. Tente de novo em instantes.");
     }
