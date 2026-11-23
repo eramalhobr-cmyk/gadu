@@ -78,12 +78,13 @@ begin
     format('pessoa bloqueada reservando orçamento: %s; consumindo cota: %s', r::jsonb ->> 'reason', q));
 end $$;
 
--- S-05 (escrita direta nas tabelas): FORA do escopo desta entrega. A RLS ainda checa só auth.uid().
+-- S-05 (escrita direta nas tabelas): fechado pela migração 20261123150001 (políticas restritivas com public.can_write()).
+-- Sem ela (ou antes de aplicá-la em produção), este item volta a aparecer como AINDA PRESENTE.
 do $$
 declare b text := '00000000-0000-0000-0000-0000000a0d02'; r text;
 begin
   r := pg_temp.exec_as('authenticated', b, 'insert into public.tasks (title) values (''escrita depois do bloqueio'')');
-  perform pg_temp.report('S-05 (escrita direta em tabelas, parcial)', r = '1', 'insert de tarefa por pessoa bloqueada pela API do banco: ' || r || ' (a sessão é encerrada ao bloquear; política por acesso fica para depois)');
+  perform pg_temp.report('S-05 (escrita direta em tabelas)', r = '1', 'insert de tarefa por pessoa bloqueada pela API do banco: ' || r || ' (políticas restritivas de escrita por acesso: migração 20261123150001)');
 end $$;
 
 -- S-07: a função antiga aceitava o limite enviado por quem chama.

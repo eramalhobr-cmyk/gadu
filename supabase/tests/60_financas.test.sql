@@ -71,8 +71,8 @@ select pg_temp.check(not exists (
   select 1 from unnest(array['fin_itens', 'fin_item_meses', 'fin_gastos', 'fin_config']) t,
        unnest(array['TRUNCATE', 'REFERENCES', 'TRIGGER']) p
   where has_table_privilege('authenticated', 'public.' || t, p)), 'authenticated sem TRUNCATE, REFERENCES e TRIGGER nas tabelas fin_*');
-select pg_temp.check((select count(*) = 16 from pg_policies where schemaname = 'public' and tablename like 'fin\_%'), '4 políticas por tabela fin_* (select, insert, update, delete)');
-select pg_temp.check(not exists (select 1 from pg_policies where schemaname = 'public' and tablename like 'fin\_%' and (roles <> '{authenticated}' or
+select pg_temp.check((select count(*) = 16 from pg_policies where schemaname = 'public' and permissive = 'PERMISSIVE' and tablename like 'fin\_%'), '4 políticas por tabela fin_* (select, insert, update, delete)');
+select pg_temp.check(not exists (select 1 from pg_policies where schemaname = 'public' and permissive = 'PERMISSIVE' and tablename like 'fin\_%' and (roles <> '{authenticated}' or
   coalesce(qual, with_check) not like '%SELECT auth.uid()%' or coalesce(qual, with_check) not like '%user_id%')), 'políticas só para authenticated e com (select auth.uid()) = user_id');
 select pg_temp.check(not exists (select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid where c.relname like 'fin\_%' and not t.tgisinternal), 'nenhuma trigger nas tabelas fin_*');
 select pg_temp.check((select count(*) = 0 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
