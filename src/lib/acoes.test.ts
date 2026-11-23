@@ -184,3 +184,13 @@ test("meta_registro_apagar: valor e data opcionais; valor inválido derruba a a�
   assert.equal(validAcao({ tipo: "meta_registro_apagar", meta: "corrida", valor: "muito" }, NOW), null);
   assert.equal(validAcao({ tipo: "meta_registro_apagar", meta: "" }, NOW), null);
 });
+
+test("conta_criar e receita_principal: validação estrita", () => {
+  assert.deepEqual(validAcao({ tipo: "conta_criar", nome: "Água", valor: "90", dia: 10, todoMes: true }, NOW), { tipo: "conta_criar", contaTipo: "despesa", nome: "Água", valor: 90, dia: 10, grupo: null, todoMes: true });
+  assert.equal(validAcao({ tipo: "conta_criar", nome: "Água", dia: 40 }, NOW), null);
+  assert.equal(validAcao({ tipo: "conta_criar", nome: "Água", valor: "caro" }, NOW), null);
+  assert.equal(validAcao({ tipo: "conta_criar", nome: "" }, NOW), null);
+  assert.equal((validAcao({ tipo: "conta_criar", contaTipo: "receita", nome: "Aluguel recebido" }, NOW) as { contaTipo: string }).contaTipo, "receita");
+  assert.deepEqual(validAcao({ tipo: "receita_principal", receita: "Salário" }, NOW), { tipo: "receita_principal", receita: "Salário" });
+  assert.equal(validAcao({ tipo: "receita_principal" }, NOW), null);
+});

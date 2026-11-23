@@ -57,6 +57,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 10:15 · Cursor (Grok Bot), Tudo por voz: criar conta e receita principal
+- **Feito:** ações `conta_criar` (cartão `conta_nova`, `POST /api/finance/itens`, Desfazer apaga o item) e `receita_principal` (acha a receita da pessoa, `PUT /api/finance/config`, Desfazer volta a anterior). Branch `feat/voz-conta-criar`.
+- **A revisar por outra IA:** `ActionCard.tsx` (capture/execute de `conta_nova` e `receita_principal`), `acoes-resolver.ts` (`.eq("user_id")` na busca da receita).
+- **Lacunas de voz que restam:** criar/editar agentes (TAREFA 9 do Claude Code).
+
 ### 23/11/2026 · 09:31–10:00 · Cursor (Grok Bot), troca de IA por cota
 - **Troca:** a cota de 5 horas do Claude Code acabou às 09:31 (volta às 10:20). Segui como Cursor na revisão cruzada, que também precisa de outra IA para os PRs do Claude Code.
 - **Revisei** #22 e #26 (marcados acima). Achado real no #22: busca por significado sem limite de custo; corrigido com testes (`test/search-limit.integration.test.ts`).

@@ -177,7 +177,7 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Finanças | apagar gasto | sim | `gasto_apagar` (confirmação explícita; não dá para desfazer) | — |
 | Finanças | quanto fica líquido um salário de X (com dependentes) | sim | `salario_simular` (o servidor calcula com `calcularSalario`; o modelo não escreve valores; cartão só de informação, sem botões e fora da confirmação falada; o servidor também propõe o cartão se o modelo não propuser, com o valor e os dependentes que a pessoa disse) | quem está falando ouve a resposta do modelo; o cartão tem o passo a passo |
 | Finanças | guardar o líquido como salário do mês | sim | `salario_simular` com `salvar: true` (cartão + "sim"; grava na receita principal da própria pessoa pela rota `PUT /api/finance/itens/:id/mes`, com Desfazer; sem receita principal definida, só mostra o cálculo e avisa) | — |
-| Finanças | criar conta, configurar a receita principal | **não** | — | lacuna |
+| Finanças | criar conta, configurar a receita principal | sim | `conta_criar`, `receita_principal` (cartão com confirmação; criar tem Desfazer) | Cursor, 23/11 |
 | Metas | criar (número, percentual, marcos, tarefas) | sim | `meta_criar` | — |
 | Metas | registrar progresso, concluir | sim | `meta_registrar`, `meta_concluir` (pelo nome) e `"metas"` (pela etiqueta [M1]) | — |
 | Metas | adicionar marco, concluir marco | sim | `meta_marco`, `meta_marco_concluir` | — |

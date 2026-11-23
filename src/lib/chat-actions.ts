@@ -50,6 +50,8 @@ export type ChatAction =
   | { kind: "memoria_aprovar"; ids: number[]; texto: string }
   | { kind: "memoria_recusar"; id: number; texto: string }
   | { kind: "memoria_esquecer"; id: number; texto: string }
+  | { kind: "conta_nova"; contaTipo: "despesa" | "receita"; nome: string; grupo: string; valor: number | null; dia: number | null; escopo: "mes" | "proximos"; ano: number; mes: number }
+  | { kind: "receita_principal"; itemId: string; nome: string }
   | { kind: "nova_conversa" }
   | { kind: "conversa_abrir"; id: number; titulo: string; quando: string }
   | { kind: "guia" }
@@ -219,6 +221,13 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
       return { icon: "book", proposed: "Esquecer isto?", done: "Esquecido", undone: "Descartado", title: a.texto, detail: "O GaDu deixa de saber disso. Não dá para desfazer", confirm: "Esquecer", busy: "Apagando…", applied: false, open: { label: "Ver Memória", view: "memoria" } };
     case "registro_apagar":
       return { icon: "target", proposed: "Apagar registro?", done: "Registro apagado", undone: "Descartado", title: a.meta, detail: `${fmtNum(a.valor)}${a.unidade ? (a.unidade === "%" ? "%" : ` ${a.unidade}`) : ""} em ${a.data.slice(8, 10)}/${a.data.slice(5, 7)} · o progresso é recalculado · não dá para desfazer`, confirm: "Apagar registro", busy: "Apagando…", applied: false, open: { label: "Ver Metas", view: "metas" } };
+    case "conta_nova": {
+      const r = a.contaTipo === "receita";
+      const det = [a.grupo, a.valor !== null ? `${formatBRL(a.valor)} ${a.escopo === "proximos" ? "por mês até dezembro" : `em ${String(a.mes).padStart(2, "0")}/${a.ano}`}` : "sem valor por enquanto", a.dia ? `dia ${a.dia}` : null].filter(Boolean).join(" · ");
+      return { icon: "coin", proposed: r ? "Receita nova para confirmar" : "Conta nova para confirmar", done: r ? "Receita criada" : "Conta criada", undone: "Descartado", title: a.nome, detail: det, confirm: r ? "Criar receita" : "Criar conta", busy: "Criando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } };
+    }
+    case "receita_principal":
+      return { icon: "coin", proposed: "Receita principal?", done: "Receita principal definida", undone: "Descartado", title: a.nome, detail: "O simulador de salário salva o líquido nela", confirm: "Definir", busy: "Salvando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } };
     case "nova_conversa":
       return { icon: "plus", proposed: "Começar uma conversa nova?", done: "Conversa nova", undone: "Descartado", title: "Nova conversa", detail: "A conversa atual fica guardada no histórico", confirm: "Começar", busy: "Abrindo…", applied: false };
     case "conversa_abrir":
@@ -312,6 +321,8 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     case "memoria_recusar": return `Descarto a memória: ${a.texto}? Não dá para desfazer.`;
     case "memoria_esquecer": return `Esqueço isto: ${a.texto}? Não dá para desfazer.`;
     case "nova_conversa": return "Começo uma conversa nova?";
+    case "conta_nova": return `Crio a ${a.contaTipo === "receita" ? "receita" : "conta"} ${a.nome}${a.valor !== null ? `, de ${spokenMoney(a.valor)}${a.escopo === "proximos" ? " por mês" : ""}` : ""}${a.dia ? `, no dia ${a.dia}` : ""}?`;
+    case "receita_principal": return `Defino ${a.nome} como sua receita principal?`;
     case "registro_apagar": return `Apago o registro de ${fmtNum(a.valor)}${a.unidade && a.unidade !== "%" ? ` ${a.unidade}` : a.unidade === "%" ? " por cento" : ""} de ${spokenDay(a.data, now)} na meta ${a.meta}?`;
     case "conversa_abrir": return `Abro a conversa ${a.titulo}, de ${a.quando}?`;
     case "guia": return "Abro o guia?";

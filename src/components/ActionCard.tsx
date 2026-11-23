@@ -62,6 +62,14 @@ async function capture(a: ChatAction): Promise<Prep | null> {
         if (!antes) return null;
         return () => () => backApi(patch(`/api/goals/${a.goalId}`, { status: antes }));
       }
+      case "conta_nova": return (r) => (r.id ? () => backApi(fetch(`/api/finance/itens/${r.id}`, { method: "DELETE" })) : undefined);
+      case "receita_principal": {
+        const r = await fetch("/api/finance/config", { cache: "no-store" });
+        const j = r.ok ? await json(r) as { config?: { receita_principal_id?: string | null } } : null;
+        if (!j?.config) return null;
+        const antes = j.config.receita_principal_id ?? null;
+        return () => () => backApi(put("/api/finance/config", { receita_principal_id: antes }));
+      }
       case "gasto": return (r) => (r.id ? () => backApi(fetch(`/api/finance/gastos/${r.id}`, { method: "DELETE" })) : undefined);
       case "evento": return (r) => (r.id ? () => backApi(fetch(`/api/calendar/${encodeURIComponent(r.id!)}`, { method: "DELETE" })) : undefined);
       default: return null;
@@ -147,6 +155,14 @@ async function execute(a: ChatAction): Promise<Result> {
     // Adiar: volta para "pendente" (se já tinha avisado) e o servidor avisa de novo no novo horário.
     if (a.kind === "lembrete_adiar") return saved(await supabaseBrowser().from("reminders").update({ due_at: a.novoDueAt, status: "pending", sent_at: null }).eq("id", a.id).in("status", ["pending", "sent"]).select("id"));
     if (a.kind === "lembrete_off") return saved(await supabaseBrowser().from("reminders").update({ status: "cancelled" }).eq("id", a.id).select("id"));
+    if (a.kind === "conta_nova") {
+      const r = await fetch("/api/finance/itens", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tipo: a.contaTipo, nome: a.nome, grupo: a.grupo, ...(a.dia ? { dia: a.dia } : {}), ...(a.valor !== null ? { inicial: { ano: a.ano, mes: a.mes, valor: a.valor, escopo: a.escopo } } : {}) }) });
+      if (r.status === 401) { window.location.href = "/login"; return { ok: false }; }
+      if (!r.ok) return { ok: false, msg: r.status === 404 ? "Finanças está desligado no momento." : "Não consegui criar. Tente de novo." };
+      const j = await json(r) as { item?: { id?: unknown } };
+      return { ok: true, ...(typeof j.item?.id === "string" ? { id: j.item.id } : {}) };
+    }
+    if (a.kind === "receita_principal") return api(await put("/api/finance/config", { receita_principal_id: a.itemId }), "Não consegui definir a receita principal.");
     if (a.kind === "conta_paga") return api(await fetch(`/api/finance/itens/${a.itemId}/mes`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ano: a.ano, mes: a.mes, pago: true }) }), "Não consegui marcar a conta.");
     if (a.kind === "conta_desmarcar") return api(await fetch(`/api/finance/itens/${a.itemId}/mes`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ano: a.ano, mes: a.mes, pago: false }) }), "Não consegui desmarcar a conta.");
     if (a.kind === "salario" && a.salvar) return api(await fetch(`/api/finance/itens/${a.salvar.itemId}/mes`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ano: a.salvar.ano, mes: a.salvar.mes, valor: a.calc.liquido, escopo: "mes" }) }), "Não consegui salvar o salário.");
