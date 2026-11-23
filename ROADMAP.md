@@ -156,7 +156,7 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [x] Briefing da manhã no horário escolhido (padrão 7h): resumo da agenda, e-mails e lembretes; o toque abre o Começar o dia
 - [x] Tabelas `reminders`, `push_subscriptions`, `daily_briefings` com RLS
 - [ ] **Você: instalar o GaDu na tela de início do iPhone e ligar as notificações em Ajustes**
-- [ ] Spotify pela API (tocar o episódio do dia direto)
+- [ ] Spotify pela API (tocar o episódio do dia direto) · **plano pronto** em [docs/PLANO-SPOTIFY.md](docs/PLANO-SPOTIFY.md) (23/11, Cursor); espera o Eduardo: Premium, app no painel do Spotify, Client ID
 
 ## Evolução a partir das referências visuais (10/11)
 
