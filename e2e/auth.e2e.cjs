@@ -388,6 +388,7 @@ describe("app com login", () => {
     let chats = 0;
     d.on("request", (r) => { if (r.url().includes("/api/chat")) chats++; });
     await d.goto(`${BASE}/app?tab=hoje`);
+    await d.click("[aria-label='Abrir o assistente']");
     await d.waitForSelector("#assist-msg");
     const salvou = d.waitForResponse((r) => r.url().includes("/api/email/nao-importante") && r.request().method() === "POST");
     await d.fill("#assist-msg", "e-mails da vercel não são importantes");
