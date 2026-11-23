@@ -67,6 +67,10 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 17:50 · Cursor (Grok Bot), M4 resumo falado
+- Botão "Ouvir" nos painéis (evento `gadu:falar`, o GaduApp fala com o `Speaker`), "lê o resumo" (`parseLerResumo`, antes da navegação em `send()`) e resumo por voz que espera `#painel[data-falar]` (até 3 s). Empilhado sobre o PR do gasto do mês.
+- **Próximos:** G1 (voz imersiva), G3.
+
 ### 23/11/2026 17:30 · Cursor (Grok Bot), gasto do mês no Hoje
 - PR #108 publicado às 17:14 (CHANGELOG corrigido). Hoje ganhou "Gasto no mês" (contas pagas + dia a dia, de quanto está previsto) no resumo do dia, só com o Financeiro ligado; sem resposta, o indicador some.
 - **Próximos:** M4, G1, G3.
