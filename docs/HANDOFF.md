@@ -67,6 +67,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 15:46 · Cursor (Grok Bot), UX-7 G2: navegação por intenção
+- Branch `feat/ux7-navegar-intencao`. `src/lib/nav-intent.ts` (`parseNavIntent`, `pushTab`, `navSpoken`) e atalho local em `send()` do `GaduApp.tsx`, antes de chamar o modelo; pilha de telas em `tabStackRef`. Sem migração.
+- **A revisar por outra IA:** o regex de `parseNavIntent` (não pode pegar pedidos de conteúdo) e a pilha do "volta" junto com o Voltar do Android (`OverlayHistory`).
+- **Não feito:** nenhuma direção visual (A, B, C) nem ícones novos, à espera da escolha do Eduardo. Sem Claude Code.
+
 ### 23/11/2026 15:15 · Cursor (Grok Bot), UX-7 R6/M1: DESIGN.md e guias de design revisados
 - **Feito:** `DESIGN.md`; `docs/design/` com 4 textos de terceiros (licença, commit fixado, SHA-256, revisão registrada); crítica de Hoje, Conversa e Mais. Recusados: skill Impeccable (scripts/hooks) e skill `web-design-guidelines` (curl).
 - **Regra para todas as IAs:** não instalar skills de design; consultar `DESIGN.md` e `docs/design/`.

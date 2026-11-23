@@ -8,6 +8,7 @@ import type { Ajuste } from "@/lib/acoes";
 import { actionQuestion, describe, splitNavegacao } from "@/lib/chat-actions";
 import { GIVE_UP_LINE, parseAnswer, resultLine, RETRY_LINE } from "@/lib/voice-confirm";
 import { SourcesDetail, type SourcesData } from "./SourcesDetail";
+import { navSpoken, parseNavIntent, pushTab } from "@/lib/nav-intent";
 import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
 import { canListen, canSpeak, createRecognizer, SHORT_REPLY, Speaker, stripSourceTags } from "@/lib/speech";
@@ -110,6 +111,8 @@ export function GaduApp(props: {
 }) {
   const [tab, setTabState] = useState<ViewId>(props.initialView);
   const [assist, setAssist] = useState(false);
+  const navHiddenRef = useRef<(v: ViewId) => boolean>(() => false);
+  const setTabRef = useRef<(v: ViewId) => void>(() => {});
   /** Largura do painel do assistente no computador (arrastável), em px. */
   const [assistW, setAssistW] = useState(384);
   const [navMini, setNavMini] = useState(false);
@@ -302,6 +305,21 @@ export function GaduApp(props: {
       void sendRef.current(f.message, { voice: opts.voice ?? f.voice });
       return;
     }
+    // "Abre finanças", "vai para as metas", "volta": navegação entendida aqui, sem modelo e sem custo (UX-7 G2).
+    const nav = message ? parseNavIntent(message) : null;
+    if (nav && (nav.tipo === "voltar" || !navHiddenRef.current(nav.view))) {
+      setDraft("");
+      let alvo: ViewId | null = nav.tipo === "abrir" ? nav.view : null;
+      if (nav.tipo === "voltar") {
+        const st = tabStackRef.current;
+        alvo = st.length ? st[st.length - 1] : null;
+        if (alvo) { tabStackRef.current = st.slice(0, -1); skipPushRef.current = true; }
+      }
+      if (alvo) { if (window.innerWidth < 1024) openAssist(false); setTabRef.current(alvo); }
+      if (opts.voice && prefsRef.current.voice) speaker?.announce(navSpoken(nav, alvo));
+      else if (!alvo) setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: navSpoken(nav, null) }]);
+      return;
+    }
     if (!message || busy) return;
     if (!navigator.onLine) {
       failChat({ text: MSG.offline, retry: true }, message, Boolean(opts.voice));
@@ -436,6 +454,15 @@ export function GaduApp(props: {
   const prefsRef = useRef(prefs);
   useEffect(() => { prefsRef.current = prefs; }, [prefs]);
   const tabRef = useRef(tab);
+  // Telas visitadas, para o "volta" por voz (G2).
+  const tabStackRef = useRef<ViewId[]>([]);
+  const skipPushRef = useRef(false);
+  const lastTabRef = useRef(tab);
+  useEffect(() => {
+    if (skipPushRef.current) skipPushRef.current = false;
+    else tabStackRef.current = pushTab(tabStackRef.current, lastTabRef.current, tab);
+    lastTabRef.current = tab;
+  }, [tab]);
   useEffect(() => { tabRef.current = tab; }, [tab]);
   const sendRef = useRef(send);
   const listenRef = useRef(listen);
@@ -844,6 +871,8 @@ export function GaduApp(props: {
   /** Tela que acende no menu: Perfil e Integrações são a mesma tela de Configurações. */
   const current = view ? canonicalView(view) : null;
   const hidden = (v: ViewId) => (v === "financeiro" && !props.financeEnabled) || (v === "metas" && !props.goalsEnabled);
+  navHiddenRef.current = (v: ViewId) => hidden(v) || (v === "studio3d" && !props.modeling3dEnabled) || (v === "admin" && !props.admin);
+  setTabRef.current = setTab;
   /** Menu lateral do computador: os mesmos nomes do celular, agrupados por áreas como a tela Mais (UX-7). Sem planejados. */
   const navItem = (v: { id: ViewId; label: string; icon: string }, extra?: React.ReactNode) => (
     <button key={v.id} className="nav-item" aria-current={current === v.id ? "page" : undefined} onClick={() => setTab(v.id)} title={navMini ? v.label : undefined}>
