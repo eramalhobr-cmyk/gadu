@@ -67,6 +67,7 @@ begin
   insert into public.fin_item_meses (user_id, item_id, ano, mes, valor) values (uid, item, 2026, 11, 10);
   insert into public.fin_gastos (user_id, ano, mes, dia, valor) values (uid, 2026, 11, 1, 5);
   insert into public.fin_config (user_id) values (uid);
+  insert into public.fin_tetos (user_id, categoria, valor) values (uid, 'Mercado', 800);
   insert into public.pecas_3d (id, user_id, titulo, pedido) values (('00000000-0000-0000-0000-00000000992' || n)::uuid, uid, 'peça', 'cubo');
   insert into public.pecas_3d_versoes (user_id, peca_id, modo, scad) values (uid, ('00000000-0000-0000-0000-00000000992' || n)::uuid, 'novo', 'cube(1);');
   insert into public.messages (conversation_id, user_id, role, content) values (conv, uid, 'user', 'hi');
@@ -97,6 +98,7 @@ create function pg_temp.cmds(n int) returns table (tab text, ins text, upd text,
    ('memories',          'insert into public.memories (content) values (''n'')', 'update public.memories set content=''z''', 'delete from public.memories where user_id = auth.uid()'),
    ('messages',          'insert into public.messages (conversation_id,role,content) values (' || (7000 + n) || ',''user'',''n'')', 'update public.messages set content=''z''', 'delete from public.messages where user_id = auth.uid()'),
    ('profiles',          'insert into public.profiles (id) values (auth.uid())', 'update public.profiles set settings=''{"a":1}''::jsonb where id=auth.uid()', 'delete from public.profiles where id = auth.uid()'),
+   ('fin_tetos',         'insert into public.fin_tetos (categoria,valor) values (''Lazer'',1)', 'update public.fin_tetos set valor=2', 'delete from public.fin_tetos where user_id = auth.uid()'),
    ('pecas_3d',          'insert into public.pecas_3d (titulo,pedido) values (''n'',''n'')', 'update public.pecas_3d set titulo=''z''', 'delete from public.pecas_3d where user_id = auth.uid()'),
    ('pecas_3d_versoes',  'insert into public.pecas_3d_versoes (peca_id,modo,scad) values (''00000000-0000-0000-0000-00000000992' || n || ''',''refinar'',''cube(2);'')', 'update public.pecas_3d_versoes set scad=''cube(3);''', 'delete from public.pecas_3d_versoes where user_id = auth.uid()'),
    ('projects',          'insert into public.projects (name) values (''n'')', 'update public.projects set name=''z''', 'delete from public.projects where user_id = auth.uid()'),
@@ -107,8 +109,8 @@ create function pg_temp.cmds(n int) returns table (tab text, ins text, upd text,
 $f$;
 
 -- ===== Estrutura: 20 tabelas x 2 comandos (insert, update) + 2 de reminders; nenhuma de delete; função só para quem deve ===========================
-select pg_temp.check((select count(*) from pg_policies where schemaname = 'public' and permissive = 'RESTRICTIVE' and policyname like '%\_ativo\_%') = 40,
-  '40 políticas restritivas de acesso (20 tabelas x insert, update)');
+select pg_temp.check((select count(*) from pg_policies where schemaname = 'public' and permissive = 'RESTRICTIVE' and policyname like '%\_ativo\_%') = 42,
+  '42 políticas restritivas de acesso (21 tabelas x insert, update)');
 select pg_temp.check((select count(*) from pg_policies where schemaname = 'public' and permissive = 'RESTRICTIVE' and cmd = 'DELETE') = 0,
   'nenhuma política restritiva de delete (bloqueada pode apagar os próprios dados)');
 select pg_temp.check((select count(*) from pg_policies where schemaname = 'public' and tablename = 'reminders' and policyname like 'reminders\_conversa\_propria\_%') = 2,
@@ -126,7 +128,7 @@ select pg_temp.check(pg_temp.val_as('anon', '', 'select public.can_write()') lik
 
 -- ===== Ativa e sem linha gravam em todas as tabelas =============================================================
 -- 20 tabelas x 3 comandos = 60. Por desenho, 4 não gravam: profiles (sem política de insert nem de delete), messages
--- (sem política de update) e o insert de goal_tasks deste teste (só há uma tarefa por pessoa). Sobram 56 que gravam.
+-- (sem política de update) e o insert de goal_tasks deste teste (só há uma tarefa por pessoa). Sobram 59 que gravam (21 tabelas x 3 = 63).
 do $$
 declare r record; u text; n int; gravou int; recusados text;
 begin
@@ -138,8 +140,8 @@ begin
       if pg_temp.exec_as(u, r.upd) = 'GRAVOU' then gravou := gravou + 1; else recusados := recusados || r.tab || '.update '; end if;
       if pg_temp.exec_as(u, r.del) = 'GRAVOU' then gravou := gravou + 1; else recusados := recusados || r.tab || '.delete '; end if;
     end loop;
-    if gravou <> 56 then raise exception 'FALHOU: % gravou em % de 60 comandos (esperado 56); sem gravar: %', u, gravou, recusados; end if;
-    raise notice 'ok - % grava em 56 de 60 comandos (os 4 restantes não têm política por desenho: %)', case when n = 1 then 'ativa' else 'sem linha em members' end, trim(recusados);
+    if gravou <> 59 then raise exception 'FALHOU: % gravou em % de 63 comandos (esperado 59); sem gravar: %', u, gravou, recusados; end if;
+    raise notice 'ok - % grava em 59 de 63 comandos (os 4 restantes não têm política por desenho: %)', case when n = 1 then 'ativa' else 'sem linha em members' end, trim(recusados);
   end loop;
 end $$;
 
@@ -153,10 +155,10 @@ begin
     if pg_temp.exec_as(b, r.del) = 'GRAVOU' then apagou := apagou + 1; else nao_apagou := nao_apagou || r.tab || ' '; end if;
   end loop;
   if gravou <> 0 then raise exception 'FALHOU: bloqueada ainda insere/altera em % comandos: %', gravou, falhas; end if;
-  raise notice 'ok - bloqueada insere/altera em 0 dos 40 comandos';
-  -- 19 de 20: profiles não tem política de delete para ninguém (por desenho).
-  if apagou <> 19 or trim(nao_apagou) <> 'profiles' then raise exception 'FALHOU: bloqueada apagou % de 20 (esperado 19, só profiles sem delete); não apagou: %', apagou, nao_apagou; end if;
-  raise notice 'ok - bloqueada apaga os próprios dados em 19 de 20 tabelas (profiles não tem delete por desenho)';
+  raise notice 'ok - bloqueada insere/altera em 0 dos 42 comandos';
+  -- 20 de 21: profiles não tem política de delete para ninguém (por desenho).
+  if apagou <> 20 or trim(nao_apagou) <> 'profiles' then raise exception 'FALHOU: bloqueada apagou % de 21 (esperado 20, só profiles sem delete); não apagou: %', apagou, nao_apagou; end if;
+  raise notice 'ok - bloqueada apaga os próprios dados em 20 de 21 tabelas (profiles não tem delete por desenho)';
 end $$;
 select pg_temp.check(pg_temp.exec_as(:'B', $$delete from public.memories where user_id = auth.uid()$$) = 'GRAVOU', 'bloqueada apaga a própria memória (decisão do Eduardo)');
 select pg_temp.check(pg_temp.exec_as(:'B', $$delete from public.tasks where user_id = '00000000-0000-0000-0000-0000000f6001'$$) = '0 linhas', 'bloqueada não apaga dados de outra pessoa');
@@ -211,7 +213,7 @@ select pg_temp.check(pg_temp.exec_as('00000000-0000-0000-0000-0000000f6004', $$i
 -- ===== Rollback documentado: desfaz tudo e a pessoa bloqueada volta a gravar (dentro de uma transação desfeita) ===
 begin;
 do $$ declare t text; begin
-  foreach t in array array['agents','conversations','fin_config','fin_gastos','fin_item_meses','fin_itens','goal_milestones','goal_progress','goal_tasks','goals','google_connections','memories','messages','pecas_3d','pecas_3d_versoes','profiles','projects','push_subscriptions','reminders','tasks'] loop
+  foreach t in array array['agents','conversations','fin_config','fin_gastos','fin_item_meses','fin_itens','fin_tetos','goal_milestones','goal_progress','goal_tasks','goals','google_connections','memories','messages','pecas_3d','pecas_3d_versoes','profiles','projects','push_subscriptions','reminders','tasks'] loop
     execute format('drop policy if exists %I on public.%I', t || '_ativo_insert', t);
     execute format('drop policy if exists %I on public.%I', t || '_ativo_update', t);
   end loop;
@@ -224,6 +226,6 @@ select pg_temp.check((select count(*) from pg_proc where proname = 'can_write') 
 update public.members set access = 'blocked' where user_id = '00000000-0000-0000-0000-0000000f6004';
 select pg_temp.check(pg_temp.exec_as('00000000-0000-0000-0000-0000000f6004', $$insert into public.memories (content) values ('x')$$) = 'GRAVOU', 'rollback: o comportamento anterior volta (bloqueada grava de novo, S-05 aberto)');
 rollback;
-select pg_temp.check((select count(*) from pg_policies where permissive = 'RESTRICTIVE' and schemaname = 'public') = 42, 'depois do rollback de teste, as 42 políticas continuam (transação desfeita)');
+select pg_temp.check((select count(*) from pg_policies where permissive = 'RESTRICTIVE' and schemaname = 'public') = 44, 'depois do rollback de teste, as 44 políticas continuam (transação desfeita)');
 
 \echo 's05: todos os testes SQL passaram'
