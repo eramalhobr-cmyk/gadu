@@ -67,6 +67,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 16:46 · Cursor (Grok Bot), tema JARVIS (G2)
+- Eduardo escolheu a G2 JARVIS às 16:33 (claro padrão, escuro opção, barra flutuante da E com microfone sólido por cima, sem traço acima do microfone). Branch `feat/jarvis-tema`: `src/app/jarvis.css` (importado depois de `ux7.css` no `layout.tsx`), cores do `theme-color`/manifest em `theme.ts` e `manifest.webmanifest`, `DESIGN.md` atualizado.
+- **Próximos:** painéis de resumo e gráficos (só dados reais), M4, G1 (voz imersiva no estilo JARVIS com anéis reagindo à voz) e G3 (design system v2 com testes visuais).
+- **A revisar por outra IA:** contraste do ciano `#007f99` em fundos claros translúcidos e o custo do `backdrop-filter` em aparelhos fracos.
+
 ### 23/11/2026 16:19 · Cursor (Grok Bot), UX-7 M6: paleta Ctrl+K e menu compacto por voz
 - Branch `feat/ux7-m6-ctrlk`. `src/lib/paleta.ts` (itens, filtro, `parseMenuCommand`, `isPaletaKey`), `src/components/CommandPalette.tsx`, botão `.pal-btn` no topo e atalho global no `GaduApp.tsx`, CSS em `ux7.css`. CHANGELOG: #104 marcado como publicado.
 - **Pausado por decisão do Eduardo (16:13):** M4, G1 e G3 esperam a escolha da direção visual (A a G2, em `/workspace/gadu-review/visual-direcoes`). Sem Claude Code.

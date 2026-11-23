@@ -329,6 +329,26 @@ describe("app com login", () => {
     await d.context().close();
   });
 
+  test("tema JARVIS (G2): barra flutuante, microfone sólido por cima e nada escondido atrás dela", async () => {
+    const p = await page(PHONE);
+    await p.goto(`${BASE}/app?tab=hoje`);
+    await p.waitForSelector(".dock-mic");
+    const r = await p.evaluate(() => {
+      const mic = document.querySelector(".dock-mic"), bar = document.querySelector(".dockbar");
+      const cs = getComputedStyle(mic), bs = getComputedStyle(bar);
+      const main = document.querySelector("main.page") || document.querySelector("#conteudo");
+      const lineAbove = [...document.querySelectorAll(".dock-item[aria-current]")].map((e) => getComputedStyle(e, "::before").display);
+      return { z: cs.zIndex, bg: cs.backgroundImage, border: cs.borderTopWidth, radius: bs.borderTopLeftRadius, micTop: mic.getBoundingClientRect().top, mainBottom: main ? main.getBoundingClientRect().bottom : 0, lineAbove };
+    });
+    assert.equal(r.z, "3", "microfone por cima da barra e do conteúdo");
+    assert.match(r.bg, /linear-gradient/, "microfone preenchido");
+    assert.equal(r.border, "0px", "sem traço em volta do microfone");
+    assert.equal(r.radius, "30px", "barra flutuante arredondada");
+    assert.ok(r.lineAbove.every((d) => d === "none"), "sem traço por cima do item atual");
+    assert.ok(r.mainBottom > 0 && r.mainBottom <= r.micTop + 1, `a área rolável termina acima do microfone (${r.mainBottom} ≤ ${r.micTop})`);
+    await p.context().close();
+  });
+
   test("voz: microfone negado mostra aviso claro", async () => {
     const p = await page(PHONE, { voice: "deny" });
     await p.goto(`${BASE}/app?tab=conversa`);

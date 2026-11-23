@@ -1,0 +1,116 @@
+/* GaDu · tema JARVIS (direção G2, escolhida pelo Eduardo em 23/11/2026, 16:33).
+   HUD holográfico ciano/âmbar: o avatar é o núcleo com anéis, painéis com cantos em colchete, números em fonte mono,
+   grade fina e linhas de varredura bem fracas. Barra de baixo flutuante de vidro (da direção E) com o microfone
+   sólido em destaque. Claro é o padrão; escuro é opção (cookie gadu_theme). Carregado por último (layout.tsx).
+   Ver DESIGN.md e docs/DESIGN_SYSTEM.md (seção "Tema JARVIS"). */
+
+/* ---------- Tokens ---------- */
+:root, .on-dark {
+  --hud-rgb: 63 230 255; --amb-rgb: 255 179 71; --hud-bg-rgb: 5 15 26;
+  --hud: #3fe6ff; --amb: #ffb347; --hud-panel: rgb(8 28 42 / 0.78); --hud-line: rgb(63 230 255 / 0.32); --hud-glow: rgb(63 230 255 / 0.40); --scan: rgb(63 230 255 / 0.04);
+  --bg-rgb: 5 15 26; --bg: #050f1a; --panel-rgb: 9 27 41; --panel: #091b29; --surface: #0c2131; --surface-2: #0f2739; --deep-rgb: 3 9 16; --deep: #03090f;
+  --ink: #e2f8ff; --ink-2: #b2d9e6; --ink-3: #82aebd;
+  --sig-rgb: 63 230 255; --sig: #3fe6ff; --sig-ink: #021018; --hot-rgb: 255 179 71; --hot: #ffb347; --line-rgb: 120 210 235;
+  --mic-a: #6ff0ff; --mic-b: #12b5d6; --mic-ink: #021018;
+}
+:root[data-theme="light"] {
+  --hud-rgb: 0 127 153; --amb-rgb: 180 95 0; --hud-bg-rgb: 238 244 249;
+  --hud: #007f99; --amb: #b45f00; --hud-panel: rgb(255 255 255 / 0.82); --hud-line: rgb(0 127 153 / 0.30); --hud-glow: rgb(0 170 200 / 0.28); --scan: rgb(0 90 120 / 0.03);
+  --bg-rgb: 238 244 249; --bg: #eef4f9; --panel-rgb: 255 255 255; --panel: #ffffff; --surface: #ffffff; --surface-2: #f4f8fb;
+  --ink: #06202b; --ink-2: #1f4150; --ink-3: #46636f;
+  --sig-rgb: 0 127 153; --sig: #007f99; --sig-ink: #ffffff; --hot-rgb: 180 95 0; --hot: #b45f00; --line-rgb: 20 70 95;
+  --mic-a: #14b8d6; --mic-b: #007f99; --mic-ink: #ffffff;
+}
+:root { --r-sm: 5px; --r-md: 7px; --r-lg: 9px; --r-xl: 12px; }
+
+/* ---------- Fundo: brilho no topo, grade fina e linhas de varredura ---------- */
+body {
+  background:
+    radial-gradient(70% 38% at 50% 8%, rgb(var(--hud-rgb) / 0.13), transparent 70%),
+    linear-gradient(rgb(var(--hud-rgb) / 0.06) 1px, transparent 1px) 0 0 / 22px 22px,
+    linear-gradient(90deg, rgb(var(--hud-rgb) / 0.06) 1px, transparent 1px) 0 0 / 22px 22px,
+    var(--bg);
+}
+body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 1000; background: repeating-linear-gradient(180deg, var(--scan) 0 1px, transparent 1px 3px); }
+@media (forced-colors: active) { body::after { display: none; } }
+.page, .chat2 { background: transparent; }
+
+/* ---------- Topo ---------- */
+.bar { background: rgb(var(--hud-bg-rgb) / 0.84); border-bottom-color: var(--hud-line); }
+.bar-title h1 { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.16em; font-size: calc(15px * var(--ts, 1)); color: var(--hud); }
+.bar-title h1::before { content: "◢ "; color: var(--amb); }
+
+/* ---------- Títulos de seção e números em mono ---------- */
+.band-t, .sec-head h2, .sec-head h3 { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.18em; color: var(--hud); }
+.band-t i { background: var(--amb); box-shadow: 0 0 8px var(--amb); }
+.greet-date { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.12em; color: var(--amb); }
+.later-i time, .prog-ring, .prog-day b, .kpi-v, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.later-i time { color: var(--amb); }
+
+/* ---------- Painéis: vidro holográfico com cantos em colchete ---------- */
+.hud-frame, .now-card, .panel, .attn-card, .band-depois, .band-prog, .sug, .chat-box, .card {
+  --cut: 14px;
+  background:
+    linear-gradient(var(--hud), var(--hud)) top left / var(--cut) 2px no-repeat, linear-gradient(var(--hud), var(--hud)) top left / 2px var(--cut) no-repeat,
+    linear-gradient(var(--hud), var(--hud)) top right / var(--cut) 2px no-repeat, linear-gradient(var(--hud), var(--hud)) top right / 2px var(--cut) no-repeat,
+    linear-gradient(var(--amb), var(--amb)) bottom left / var(--cut) 2px no-repeat, linear-gradient(var(--amb), var(--amb)) bottom left / 2px var(--cut) no-repeat,
+    linear-gradient(var(--hud), var(--hud)) bottom right / var(--cut) 2px no-repeat, linear-gradient(var(--hud), var(--hud)) bottom right / 2px var(--cut) no-repeat,
+    var(--hud-panel);
+  border: 1px solid var(--hud-line);
+  box-shadow: 0 0 24px -10px var(--hud-glow), inset 0 0 30px -20px var(--hud-glow);
+}
+
+/* ---------- Núcleo: o avatar como reator, com anéis ---------- */
+.greet { background: transparent; border: 0; box-shadow: none; }
+.greet h1 { text-shadow: 0 0 18px var(--hud-glow); }
+.hud-core, .greet-ava, .chat-ava { position: relative; overflow: visible; isolation: isolate; }
+.greet-ava { background: transparent; border: 0; }
+.greet-ava .avatar, .chat-ava .avatar { z-index: 1; border-radius: 50%; overflow: hidden;
+  box-shadow: 0 0 0 2px var(--hud), 0 0 0 8px rgb(var(--hud-rgb) / 0.12), 0 0 0 9px var(--hud-line), 0 0 44px 8px var(--hud-glow); }
+.greet-ava::before, .chat-ava::before { content: ""; position: absolute; inset: -16%; border-radius: 50%; pointer-events: none; z-index: 0;
+  background: repeating-conic-gradient(var(--hud) 0 2deg, transparent 2deg 10deg);
+  -webkit-mask: radial-gradient(closest-side, transparent 87%, #000 88% 96%, transparent 97%); mask: radial-gradient(closest-side, transparent 87%, #000 88% 96%, transparent 97%);
+  animation: hud-spin 18s linear infinite; }
+.greet-ava::after, .chat-ava::after { content: ""; position: absolute; inset: -26%; border-radius: 50%; pointer-events: none; z-index: 0;
+  border: 2px solid transparent; border-top-color: var(--amb); border-bottom-color: var(--hud); box-shadow: 0 0 0 1px rgb(var(--hud-rgb) / 0.16);
+  animation: hud-spin 9s linear infinite reverse; scale: calc(1 + var(--lvl, 0) * 0.1); transition: scale 90ms linear; }
+.chat-ava::before { inset: -9%; } .chat-ava::after { inset: -15%; }
+.chat-stage { overflow: visible; padding-top: var(--s-6); }
+@keyframes hud-spin { to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) { .greet-ava::before, .greet-ava::after, .chat-ava::before, .chat-ava::after { animation: none; } }
+@media (max-width: 1023px) {
+  .greet { grid-template-columns: minmax(0, 1fr) !important; grid-template-areas: "ava" "txt" "acts" !important; justify-items: center; text-align: center; padding-top: var(--s-6); }
+  .greet-ava { width: 136px !important; height: 136px !important; margin: 18px auto 26px; }
+  .greet-acts { width: 100%; }
+  .chat-stage { background: transparent; border: 0; }
+}
+@media (min-width: 1024px) { .greet-ava { width: 104px; height: 104px; margin: 14px; } .greet { grid-template-columns: 132px minmax(0, 1fr) auto; } }
+
+/* ---------- Botões ---------- */
+.talk-big, .btn-pri { background: linear-gradient(90deg, rgb(var(--hud-rgb) / 0.16), rgb(var(--hud-rgb) / 0.30)); color: var(--ink); border: 1px solid var(--hud);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); box-shadow: inset 0 0 18px var(--hud-glow); }
+.talk-big { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.1em; }
+.btn-pri:hover, .talk-big:hover { background: linear-gradient(90deg, rgb(var(--hud-rgb) / 0.24), rgb(var(--hud-rgb) / 0.40)); }
+.prog-ring { background: radial-gradient(closest-side, var(--bg) 80%, transparent 81%), conic-gradient(var(--hud) calc(var(--p) * 1%), rgb(var(--hud-rgb) / 0.14) 0); color: var(--hud); box-shadow: 0 0 20px -4px var(--hud-glow); }
+.rec-ico, .now-ico { background: transparent; border: 1px solid var(--hud-line); border-radius: 3px; color: var(--hud); }
+
+/* ---------- Barra de baixo (celular): vidro flutuante, microfone sólido por cima de tudo ---------- */
+@media (max-width: 1023px) {
+  .frame { padding-bottom: calc(var(--dock-h) + var(--safe-b) + 46px); }
+  .dockbar { left: 12px; right: 12px; bottom: calc(10px + var(--safe-b)); height: var(--dock-h); padding-bottom: 0; border-radius: 30px; overflow: visible;
+    background: linear-gradient(180deg, rgb(var(--hud-rgb) / 0.10), rgb(var(--hud-rgb) / 0.03)), var(--hud-panel);
+    backdrop-filter: blur(24px) saturate(1.6); -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    border: 1px solid var(--hud-line); box-shadow: 0 18px 40px -14px var(--hud-glow), inset 0 1px 0 rgb(var(--hud-rgb) / 0.30); }
+  .dock-item { height: var(--dock-h); font-family: var(--mono); font-size: calc(10.5px * var(--ts, 1)); letter-spacing: 0.06em; text-transform: uppercase; }
+  .dock-item[aria-current="page"] { color: var(--hud); text-shadow: 0 0 10px var(--hud-glow); }
+  .dock-item[aria-current="page"]::before { display: none; }
+  /* Pedido do Eduardo (16:33): sem traço por cima do microfone; botão de verdade, sólido, em relevo e por cima da barra e do conteúdo. */
+  .dock-mic { z-index: 3; width: 66px; height: 66px; margin-top: -30px; border: 0; color: var(--mic-ink);
+    background: radial-gradient(circle at 50% 30%, rgb(255 255 255 / 0.35), transparent 55%), linear-gradient(180deg, var(--mic-a), var(--mic-b));
+    box-shadow: 0 10px 22px -6px rgb(var(--hud-rgb) / 0.75), 0 4px 0 rgb(0 0 0 / 0.22), 0 0 0 4px var(--bg), 0 0 0 5px var(--hud-line), 0 0 26px rgb(var(--hud-rgb) / 0.55), inset 0 2px 0 rgb(255 255 255 / 0.45), inset 0 -3px 6px rgb(0 0 0 / 0.18);
+    transition: transform 90ms ease, box-shadow 90ms ease; }
+  .dock-mic:active { transform: translateY(3px) scale(0.97); box-shadow: 0 4px 10px -4px rgb(var(--hud-rgb) / 0.7), 0 1px 0 rgb(0 0 0 / 0.22), 0 0 0 4px var(--bg), 0 0 0 5px var(--hud-line), 0 0 16px rgb(var(--hud-rgb) / 0.45), inset 0 3px 6px rgb(0 0 0 / 0.22); }
+  .dock-mic.s-listening { background: linear-gradient(180deg, #ffc56b, var(--amb)); color: #1a0f00; }
+  .dock-mic.s-thinking, .dock-mic.s-speaking { background: linear-gradient(180deg, var(--surface), var(--surface-2)); color: var(--hud); }
+  .assist { bottom: calc(var(--dock-h) + var(--safe-b) + 22px); }
+}
