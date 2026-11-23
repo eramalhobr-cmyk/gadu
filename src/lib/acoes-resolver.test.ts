@@ -353,3 +353,21 @@ test("abrir peça do 3D: a mais recente ou pelo nome, só da própria pessoa; in
   assert.deepEqual(r2.actions, []);
   assert.equal(off.calls.length, 0, "3D desligado: nenhuma leitura");
 });
+
+test("teto por categoria: nome padrão, valor anterior só da própria pessoa; tirar sem teto vira aviso; Financeiro desligado não lê", async () => {
+  const tdb = fakeDb({ fin_tetos: [{ categoria: "Restaurantes", valor: 600, user_id: U }, { categoria: "Lazer", valor: 99, user_id: "outra" }] });
+  const r = await resolveAcoes(tdb, U, [
+    { tipo: "teto_definir", categoria: "restaurante", valor: 800 },
+    { tipo: "teto_definir", categoria: "lazer", valor: 300 },
+    { tipo: "teto_definir", categoria: "lazer", valor: null },
+  ], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(r.actions, [
+    { kind: "teto", categoria: "Restaurantes", valor: 800, anterior: 600 },
+    { kind: "teto", categoria: "Lazer", valor: 300, anterior: null },
+  ]);
+  assert.equal(r.misses.length, 1);
+  assert.ok(tdb.calls.every((c) => c.filters.some(([k, v]) => k === "user_id" && v === U)));
+  const off = fakeDb({ fin_tetos: [] });
+  assert.deepEqual((await resolveAcoes(off, U, [{ tipo: "teto_definir", categoria: "Lazer", valor: 1 }], { goals: true, finance: false, now: NOW })).actions, []);
+  assert.equal(off.calls.length, 0);
+});

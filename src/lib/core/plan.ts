@@ -44,7 +44,9 @@ export function planFor(intent: Intent, over: Partial<Pick<Plan, "maxFacts" | "m
 // ---- Finanças: intenções simples, sem IA ----
 export type FinanceKind = "resumo" | "contas" | "categoria" | "gasto";
 /** `categoria`: categoria padrão reconhecida; `termo`: palavra livre (estabelecimento) quando a categoria não é conhecida. */
-export type FinanceIntent = { kind: FinanceKind; categoria?: string; termo?: string };
+/** `ano`: a pergunta é sobre o ano até hoje ("este ano", "no ano", "em 2026", "acumulado"). */
+export type FinanceIntent = { kind: FinanceKind; categoria?: string; termo?: string; ano?: true };
+const ANO = /\b(este|esse|neste|nesse|deste|desse|no|do) ano\b|\bem 20\d\d\b|\bdesde janeiro\b|\bacumulad[oa]\b/;
 
 const GASTO_REGISTRAR: RegExp[] = [
   /\b(gastei|paguei)\b.*\d/,
@@ -71,9 +73,16 @@ const FIM_TERMO = /\b(este|esse|neste|nesse|no|nesta|essa|esta|durante|hoje|onte
 export function detectFinanceIntent(message: string): FinanceIntent | null {
   const t = norm(message.slice(0, 400));
   if (!t) return null;
-  if (GASTO_REGISTRAR.some((r) => r.test(t))) return { kind: "gasto" };
+  const r = detectFinanceBase(t);
+  return r && r.kind !== "gasto" && r.kind !== "contas" && ANO.test(t) ? { ...r, ano: true } : r;
+}
+
+function detectFinanceBase(t: string): FinanceIntent | null {
+  // "quanto gastei em 2026?" é pergunta, não lançamento.
+  if (!/^quanto\b/.test(t) && GASTO_REGISTRAR.some((r) => r.test(t))) return { kind: "gasto" };
   const m = PREP.exec(t);
-  if (m) {
+  // "quanto gastei em 2026" / "no ano" fala do período, não de uma categoria.
+  if (m && !/^(?:(?:o|este|esse) )?(?:ano|20\d\d)\b/.test(m[1].trim())) {
     const trecho = m[1].replace(FIM_TERMO, "").trim() || m[1].trim();
     const palavras = trecho.split(" ").filter(Boolean).slice(0, 4);
     const candidatos = [trecho, ...palavras, ...palavras.slice(0, -1).map((p, i) => `${p} ${palavras[i + 1]}`)];

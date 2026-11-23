@@ -62,6 +62,15 @@ async function capture(a: ChatAction): Promise<Prep | null> {
         if (!antes) return null;
         return () => () => backApi(patch(`/api/goals/${a.goalId}`, { status: antes }));
       }
+      case "teto": {
+        const r = await fetch("/api/finance/tetos", { cache: "no-store" });
+        const j = r.ok ? await json(r) as { tetos?: { categoria: string; valor: number }[] } : null;
+        if (!j?.tetos) return null;
+        const antes = j.tetos.find((t) => t.categoria === a.categoria)?.valor ?? null;
+        return () => () => backApi(antes === null
+          ? fetch(`/api/finance/tetos?categoria=${encodeURIComponent(a.categoria)}`, { method: "DELETE" })
+          : put("/api/finance/tetos", { categoria: a.categoria, valor: antes }));
+      }
       case "conta_nova": return (r) => (r.id ? () => backApi(fetch(`/api/finance/itens/${r.id}`, { method: "DELETE" })) : undefined);
       case "receita_principal": {
         const r = await fetch("/api/finance/config", { cache: "no-store" });
@@ -155,6 +164,9 @@ async function execute(a: ChatAction): Promise<Result> {
     // Adiar: volta para "pendente" (se já tinha avisado) e o servidor avisa de novo no novo horário.
     if (a.kind === "lembrete_adiar") return saved(await supabaseBrowser().from("reminders").update({ due_at: a.novoDueAt, status: "pending", sent_at: null }).eq("id", a.id).in("status", ["pending", "sent"]).select("id"));
     if (a.kind === "lembrete_off") return saved(await supabaseBrowser().from("reminders").update({ status: "cancelled" }).eq("id", a.id).select("id"));
+    if (a.kind === "teto") return api(a.valor === null
+      ? await fetch(`/api/finance/tetos?categoria=${encodeURIComponent(a.categoria)}`, { method: "DELETE" })
+      : await put("/api/finance/tetos", { categoria: a.categoria, valor: a.valor }), "Não consegui salvar o teto.");
     if (a.kind === "conta_nova") {
       const r = await fetch("/api/finance/itens", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tipo: a.contaTipo, nome: a.nome, grupo: a.grupo, ...(a.dia ? { dia: a.dia } : {}), ...(a.valor !== null ? { inicial: { ano: a.ano, mes: a.mes, valor: a.valor, escopo: a.escopo } } : {}) }) });
       if (r.status === 401) { window.location.href = "/login"; return { ok: false }; }

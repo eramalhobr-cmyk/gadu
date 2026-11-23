@@ -184,3 +184,11 @@ test("cartão e pergunta de abrir peça do 3D", async () => {
   assert.equal(d(a).confirm, "Abrir peça");
   assert.equal(actionQuestion(a, NOW), "Abro a peça Suporte de celular no 3D?");
 });
+
+test("cartão e pergunta do teto por categoria", async () => {
+  const { actionQuestion, describe: d } = await import("./chat-actions.ts");
+  const a: ChatAction = { kind: "teto", categoria: "Restaurantes", valor: 800, anterior: null };
+  assert.equal(d(a).confirm, "Salvar teto");
+  assert.equal(actionQuestion(a, NOW), "Ponho um teto de 800 reais por mês para Restaurantes?");
+  assert.equal(actionQuestion({ kind: "teto", categoria: "Lazer", valor: null, anterior: 200 }, NOW), "Tiro o teto de Lazer?");
+});

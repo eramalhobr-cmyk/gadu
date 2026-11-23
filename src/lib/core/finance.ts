@@ -10,6 +10,8 @@ import { formatBRL } from "../finance/money.ts";
 import { previsaoRecebimento } from "../finance/previsao.ts";
 import { resumoMensal } from "../finance/summary.ts";
 import { MEIO_LABEL, MESES } from "../finance/types.ts";
+import { GASTO_COLS, toGasto } from "../finance/load.ts";
+import { acumuladoAno, statusTetos, type Teto } from "../finance/tetos.ts";
 import { personalUserId, resolveScopes } from "./scopes.ts";
 import { hidden } from "./privacy.ts";
 import type { FinanceIntent } from "./plan.ts";
@@ -63,13 +65,37 @@ export async function collectFinance(input: { userId: string; db: SessionDb; blo
   });
 
   const out: F[] = [];
+  const out0: F[] = [];
   const credito = resumo.credito.qtd
     ? [fact("Crédito", resumo.credito.naFatura
       ? `${formatBRL(resumo.credito.total)} em ${resumo.credito.qtd} gasto${resumo.credito.qtd === 1 ? "" : "s"} no crédito, já dentro da fatura do cartão (não soma duas vezes).`
       : `${formatBRL(resumo.credito.total)} em ${resumo.credito.qtd} gasto${resumo.credito.qtd === 1 ? "" : "s"} no crédito, somados ao mês (a fatura do cartão não está lançada).`, "fin_gastos", `${hoje.ano}-${hoje.mes}:credito`)]
     : [];
 
+  // Tetos por categoria (só se a leitura der certo; sem tetos, nada muda). Situação do mês, determinística.
+  const tetosR = await input.db.from("fin_tetos").select("id, categoria, valor").eq("user_id", userId).limit(100);
+  const tetos: Teto[] = tetosR.error || !Array.isArray(tetosR.data) ? [] : (tetosR.data as Record<string, unknown>[]).map((r) => ({ id: String(r.id), categoria: String(r.categoria), valor: Number(r.valor) }));
+  const st = statusTetos(tetos, d.gastos);
+  const NIVEL = { ok: "dentro do teto", alerta: "passou de 80% do teto", estourou: "estourou o teto" } as const;
+  const tetoFato = (s: (typeof st)[number]) => {
+    const n = nome(s.categoria);
+    return fact("Teto da categoria", `${n ?? OMITTED}: gastou ${formatBRL(s.gasto)} de ${formatBRL(s.valor)} em ${mesLabel} (${s.pct}%, ${NIVEL[s.nivel]}${s.nivel === "estourou" ? `, ${formatBRL(s.gasto - s.valor)} acima` : `, restam ${formatBRL(s.resta)}`}).`, "fin_tetos", s.id, n === null);
+  };
+
   const { intent } = input;
+  // Ano até hoje: soma no servidor, a partir dos gastos do ano (nunca pelo modelo).
+  if (intent.ano) {
+    const r = await input.db.from("fin_gastos").select(GASTO_COLS).eq("user_id", userId).eq("ano", hoje.ano).lte("mes", hoje.mes).limit(20000);
+    if (r.error) throw new Error("fin_leitura");
+    const gastosAno = ((r.data ?? []) as Record<string, unknown>[]).map(toGasto);
+    const cat = intent.kind === "categoria" ? intent.categoria ?? null : null;
+    const ac = acumuladoAno(gastosAno, hoje.ano, hoje.mes, cat);
+    const rot = cat ? (hidden(cat, blocked) ? OMITTED : cat) : "dia a dia";
+    out0.push(fact("Acumulado do ano", `${rot}: ${formatBRL(ac.total)} em ${ac.qtd} gasto${ac.qtd === 1 ? "" : "s"} de janeiro até ${MESES[hoje.mes - 1]} de ${hoje.ano} (contas fixas fora).`, "fin_gastos", `${hoje.ano}:acumulado`, cat !== null && hidden(cat, blocked)));
+    const meses = ac.porMes.filter((m) => m.total > 0).map((m) => `${m.nome.slice(0, 3)} ${formatBRL(m.total)}`).join("; ");
+    if (meses) out0.push(fact("Acumulado por mês", meses, "fin_gastos", `${hoje.ano}:acumulado-mes`));
+    if (!cat) ac.porCategoria.slice(0, 6).forEach((c, i) => { const n = nome(c.categoria); out0.push(fact("Acumulado por categoria", `${n ?? OMITTED} ${formatBRL(c.total)} (${c.qtd})`, "fin_gastos", `${hoje.ano}:acumulado-cat-${i + 1}`, n === null)); });
+  }
   if (intent.kind === "categoria") {
     const alvo = intent.categoria ? sem(intent.categoria) : sem(intent.termo ?? "");
     const doTermo = d.gastos.filter((g) => (intent.categoria ? sem(g.categoria) === alvo : sem(g.categoria).includes(alvo) || sem(g.descricao).includes(alvo)));
@@ -90,6 +116,10 @@ export async function collectFinance(input: { userId: string; db: SessionDb; blo
   } else {
     out.push(sumario, diaLinha, ...catFatos, ...credito, contasLinha, ...abertasFatos.slice(0, 4));
   }
+  // Tetos: a categoria perguntada; senão os que passaram de 80% (e os demais, até 4, numa pergunta geral).
+  const tetosVer = intent.kind === "categoria" && intent.categoria ? st.filter((s) => sem(s.categoria) === sem(intent.categoria!)) : st.filter((s, i) => s.nivel !== "ok" || (intent.kind === "resumo" && i < 4));
+  out.unshift(...tetosVer.slice(0, 6).map(tetoFato));
+  out.unshift(...out0);
   for (const a of resumo.avisos) out.push(fact("Aviso", a, "fin_item_meses", `${hoje.ano}-${hoje.mes}:aviso`));
   if (intent.kind !== "categoria") {
     const p = previsaoRecebimento({ hoje, itens: d.itens, meses: d.meses, config: d.config });

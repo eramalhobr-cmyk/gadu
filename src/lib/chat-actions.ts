@@ -53,6 +53,7 @@ export type ChatAction =
   | { kind: "conta_nova"; contaTipo: "despesa" | "receita"; nome: string; grupo: string; valor: number | null; dia: number | null; escopo: "mes" | "proximos"; ano: number; mes: number }
   | { kind: "receita_principal"; itemId: string; nome: string }
   | { kind: "peca3d_abrir"; id: string; titulo: string; quando: string }
+  | { kind: "teto"; categoria: string; valor: number | null; anterior: number | null }
   | { kind: "nova_conversa" }
   | { kind: "conversa_abrir"; id: number; titulo: string; quando: string }
   | { kind: "guia" }
@@ -231,6 +232,10 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
       return { icon: "coin", proposed: "Receita principal?", done: "Receita principal definida", undone: "Descartado", title: a.nome, detail: "O simulador de salário salva o líquido nela", confirm: "Definir", busy: "Salvando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } };
     case "peca3d_abrir":
       return { icon: "chevron", proposed: "Abrir esta peça no 3D?", done: "Abrindo a peça", undone: "Descartado", title: a.titulo, detail: `Salva em ${a.quando} · abre no 3D Studio`, confirm: "Abrir peça", busy: "Abrindo…", applied: false };
+    case "teto":
+      return a.valor === null
+        ? { icon: "coin", proposed: "Tirar o teto?", done: "Teto removido", undone: "Descartado", title: a.categoria, detail: a.anterior !== null ? `Hoje o teto é ${formatBRL(a.anterior)} por mês` : "Sem teto definido", confirm: "Tirar teto", busy: "Salvando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } }
+        : { icon: "coin", proposed: a.anterior !== null ? "Mudar o teto?" : "Teto novo para confirmar", done: "Teto salvo", undone: "Descartado", title: a.categoria, detail: `${formatBRL(a.valor)} por mês${a.anterior !== null ? ` (antes ${formatBRL(a.anterior)})` : ""} · aviso em 80% e 100%`, confirm: "Salvar teto", busy: "Salvando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } };
     case "nova_conversa":
       return { icon: "plus", proposed: "Começar uma conversa nova?", done: "Conversa nova", undone: "Descartado", title: "Nova conversa", detail: "A conversa atual fica guardada no histórico", confirm: "Começar", busy: "Abrindo…", applied: false };
     case "conversa_abrir":
@@ -324,6 +329,7 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     case "memoria_recusar": return `Descarto a memória: ${a.texto}? Não dá para desfazer.`;
     case "memoria_esquecer": return `Esqueço isto: ${a.texto}? Não dá para desfazer.`;
     case "nova_conversa": return "Começo uma conversa nova?";
+    case "teto": return a.valor === null ? `Tiro o teto de ${a.categoria}?` : `Ponho um teto de ${spokenMoney(a.valor)} por mês para ${a.categoria}?`;
     case "peca3d_abrir": return `Abro a peça ${a.titulo} no 3D?`;
     case "conta_nova": return `Crio a ${a.contaTipo === "receita" ? "receita" : "conta"} ${a.nome}${a.valor !== null ? `, de ${spokenMoney(a.valor)}${a.escopo === "proximos" ? " por mês" : ""}` : ""}${a.dia ? `, no dia ${a.dia}` : ""}?`;
     case "receita_principal": return `Defino ${a.nome} como sua receita principal?`;

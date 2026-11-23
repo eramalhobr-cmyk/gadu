@@ -200,3 +200,10 @@ test("peca3d_abrir: sem busca ou 'última' = a mais recente", () => {
   assert.deepEqual(validAcao({ tipo: "peca3d_abrir", busca: "última peça" }, NOW), { tipo: "peca3d_abrir", busca: null });
   assert.deepEqual(validAcao({ tipo: "peca3d_abrir", busca: "suporte de celular" }, NOW), { tipo: "peca3d_abrir", busca: "suporte de celular" });
 });
+
+test("teto_definir: valor em reais ou null para tirar", () => {
+  assert.deepEqual(validAcao({ tipo: "teto_definir", categoria: "restaurante", valor: "800" }, NOW), { tipo: "teto_definir", categoria: "restaurante", valor: 800 });
+  assert.deepEqual(validAcao({ tipo: "teto_definir", categoria: "Lazer", valor: null }, NOW), { tipo: "teto_definir", categoria: "Lazer", valor: null });
+  assert.equal(validAcao({ tipo: "teto_definir", categoria: "Lazer", valor: -5 }, NOW), null);
+  assert.equal(validAcao({ tipo: "teto_definir", valor: 100 }, NOW), null);
+});

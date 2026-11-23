@@ -56,7 +56,7 @@ test("coleta: só fatos de A, com etiquetas F1.., origem, números e tela Financ
   assert.match(texto, /1 em aberto somando R\$ 200,00; 1 paga/);
   // Defesa em profundidade: todas as consultas filtram pelo user_id da sessão.
   const eqUsers = calls.filter((c) => c.op === "eq" && c.args[0] === "user_id").map((c) => c.args[1]);
-  assert.equal(eqUsers.length, 4);
+  assert.equal(eqUsers.length, 5, "itens, meses, gastos, config e tetos");
   assert.ok(eqUsers.every((u) => u === A));
   assert.equal(toItem(r.facts[0]).view, "financeiro");
   assert.equal(summarizeSources(r.facts.map(toItem)), `${r.facts.length} dados financeiros`);
@@ -136,4 +136,22 @@ test("bloco para o modelo: etiquetas, regra de citar, crédito sem somar duas ve
   assert.match(regras, /Você NÃO grava/);
   assert.match(regras, /"gastos":\[/);
   assert.match(regras, /2026-11-22/);
+});
+
+test("ano até hoje e tetos: intenção 'este ano', somas no servidor e tetos do mês; nada de B", async () => {
+  assert.deepEqual(detectFinanceIntent("quanto gastei com mercado este ano?"), { kind: "categoria", categoria: "Mercado", ano: true });
+  assert.deepEqual(detectFinanceIntent("quanto gastei em 2026"), { kind: "resumo", ano: true });
+  assert.deepEqual(detectFinanceIntent("gastei 45 no mercado este ano"), { kind: "gasto" });
+  const ds = dataset();
+  const tabelas = {
+    ...ds,
+    fin_gastos: [...ds.fin_gastos, gs("g0", A, 200, { mes: 3 }), gs("gb2", B, 4321, { mes: 2 })],
+    fin_tetos: [{ id: "t1", user_id: A, categoria: "Mercado", valor: 150 }, { id: "tb", user_id: B, categoria: "Mercado", valor: 1 }],
+  };
+  const { db } = fakeDb(A, tabelas);
+  const r = await collectFinance({ userId: A, db, blocked: [], intent: { kind: "categoria", categoria: "Mercado", ano: true }, now: NOW });
+  const texto = r.facts.map((f) => f.text).join("\n");
+  assert.match(texto, /Acumulado do ano: Mercado: R\$\s?325,50 em 3 gastos/);
+  assert.match(texto, /Teto da categoria: Mercado: gastou R\$\s?125,50 de R\$\s?150,00 .*\(83%, passou de 80% do teto/);
+  assert.ok(!texto.includes("4.321") && !texto.includes("SEGREDO-B"));
 });

@@ -13,7 +13,7 @@ const DEFAULTS: Record<string, () => Row> = {
   pecas_3d: () => ({ valores: {}, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }),
   pecas_3d_versoes: () => ({ created_at: new Date(Date.now() + seq++).toISOString() }),
 };
-const UNIQUE: Record<string, string[]> = { goal_tasks: ["goal_id", "task_id"] };
+const UNIQUE: Record<string, string[]> = { goal_tasks: ["goal_id", "task_id"], fin_tetos: ["user_id", "categoria"] };
 const KEYS: Record<string, string[]> = { fin_item_meses: ["item_id", "ano", "mes"], fin_config: ["user_id"] };
 
 export function makeFinDb(store: FinStore, user: () => string | null, log: { tables: string[]; writes: { table: string; op: string; rows: Row[] }[] }) {
@@ -95,6 +95,7 @@ export function makeFinDb(store: FinStore, user: () => string | null, log: { tab
         eq: (c: string, v: unknown) => { filters.push((r) => r[c] === v); return b; },
         in: (c: string, v: unknown[]) => { filters.push((r) => v.includes(r[c])); return b; },
         gte: (c: string, v: number) => { filters.push((r) => (r[c] as number) >= v); return b; },
+        lte: (c: string, v: number) => { filters.push((r) => (r[c] as number) <= v); return b; },
         order: (c: string, o?: { ascending?: boolean }) => { orderBy = [c, o?.ascending !== false]; return b; },
         limit: (n: number) => { limitN = n; return b; },
         maybeSingle: () => Promise.resolve(result("maybe")),

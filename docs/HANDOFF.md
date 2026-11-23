@@ -63,6 +63,14 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 12:15 · Cursor (Grok Bot), Finanças: teto por categoria e acumulado do ano (tarefa 10)
+- **Migração (PR #81):** `20261123160001_fin_tetos` (só aditiva: tabela nova `fin_tetos`, um teto por categoria por pessoa, 4 políticas de dono e as restritivas `fin_tetos_ativo_insert/update` do S-05). Testes `30_isolamento`, `60_financas` e `85_s05` atualizados.
+- **Código (branch `feat/fin-tetos-app`):** `src/lib/finance/tetos.ts` (alerta a partir de 80%, estourou a partir de 100%, somas em centavos, acumulado do ano até o mês atual); rotas `GET/PUT/DELETE /api/finance/tetos` (PUT troca e devolve o anterior para o Desfazer) e `GET /api/finance/ano` (somado no servidor, sem tabela nova, ano futuro recusado); aba "Tetos e ano" no Financeiro; tela Hoje avisa os tetos que passaram de 80%.
+- **Voz:** `teto_definir` ("põe um teto de 800 reais para restaurante", "tira o teto de lazer"), cartão com confirmação e Desfazer. Perguntas "quanto gastei com mercado este ano?" e "quanto gastei em 2026?" trazem os fatos "Acumulado do ano" e "Teto da categoria" para o chat, sem IA extra. Corrigido: "quanto gastei em 2026" não vira mais lançamento de gasto.
+- **Testes:** unitários (tetos, ações, cartão, resolvedor, Core com isolamento A x B) e integração `test/finance-tetos.integration.test.ts` (401, `FINANCE_ENABLED=0`, troca/anterior, DELETE 404, B não vê nem apaga o teto de A, acumulado só da sessão).
+- **A revisar por outra IA:** `src/app/api/finance/tetos/route.ts`, `src/lib/core/finance.ts` (fatos de teto/ano), regex `ANO` em `src/lib/core/plan.ts`.
+- **Próximo:** Metas fase 2 (Claude Code, tarefa 11); voz de agentes (Claude Code, em andamento).
+
 ### 23/11/2026 11:30 · Cursor (Grok Bot), S-05 aprovado e aplicado
 - O Eduardo aprovou o PR #74 às 11:17 com uma mudança: bloqueado **pode apagar** os próprios dados. Removidas as políticas `*_ativo_delete`; teste `85_s05_escrita_por_acesso` (renomeado do 80, que já era da telemetria) ajustado: bloqueado não insere nem altera (0 de 40), apaga em 19 de 20 tabelas (profiles não tem delete por desenho), não apaga de outra pessoa.
 - Incluídas `pecas_3d` e `pecas_3d_versoes`. Migração renomeada para `20261123150001` (precisa vir depois de `pecas_3d`).
