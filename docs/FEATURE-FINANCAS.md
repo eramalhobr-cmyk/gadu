@@ -336,3 +336,17 @@ Cuidados que apareceram na prática:
 - Perguntar em lote ("estes 10 eu não sei o que são") funciona melhor que perguntar um por um.
 - Valores que mudam "daqui para a frente" são comuns (reajuste, troca de escola, cancelamento): a edição precisa da opção "só este mês" ou "este e os próximos".
 - Por voz, a pessoa fala nomes aproximados ("Ou Champê" para um estabelecimento escrito de outro jeito no extrato): a IA deve casar por semelhança e confirmar quando houver dúvida.
+
+
+## Simulador de salário bruto → líquido (23/11/2026)
+Código: `src/lib/finance/salario.ts` (cálculo), `salario-texto.ts` (reconhece o pedido na conversa e escreve o resumo), `src/components/SalarioSimulador.tsx` (aba "Salário"). Puro e determinístico; a conversa e a tela chamam a mesma função e o modelo nunca calcula. Tudo em centavos, cada imposto arredondado uma vez (meio centavo sobe).
+
+**Tabelas de 2026 e fontes oficiais** (conferidas em 23/11/2026):
+- **INSS** (empregado): Portaria Interministerial MPS/MF nº 13, de 09/01/2026, [tabela do gov.br/inss](https://www.gov.br/inss/pt-br/direitos-e-deveres/inscricao-e-contribuicao/tabela-de-contribuicao-mensal). Até R$ 1.621,00: 7,5%; até R$ 2.902,84: 9%; até R$ 4.354,27: 12%; até R$ 8.475,55: 14%. Progressivo, cada alíquota só na parte da faixa; o teto do salário de contribuição é R$ 8.475,55 (INSS máximo R$ 988,09).
+- **IRRF mensal** ([Receita Federal, tabelas 2026](https://www.gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda/tabelas/2026)): até R$ 2.428,80 isento; até R$ 2.826,65, 7,5% menos R$ 182,16; até R$ 3.751,05, 15% menos R$ 394,16; até R$ 4.664,68, 22,5% menos R$ 675,49; acima, 27,5% menos R$ 908,73. Dependente: R$ 189,59. Desconto simplificado: R$ 607,20, no lugar das deduções legais (INSS e dependentes) quando for maior.
+- **Redução do imposto** (art. 3º-A da Lei 9.250/1995, incluído pela [Lei 15.270/2025](https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2025/lei/L15270.htm), a partir de jan/2026), sobre o rendimento tributável bruto: até R$ 5.000,00, redução até R$ 312,89 (zera o imposto); de R$ 5.000,01 a R$ 7.350,00, R$ 978,62 − 0,133145 × rendimento; acima, nenhuma. Limitada ao imposto da tabela (§ 1º).
+- **Imposto de até R$ 10,00 não é retido:** art. 67 da Lei 9.430/1996 (a página de tabelas da Receita não menciona; a base é a lei).
+
+**Limites:** só salário mensal de empregado CLT. Não inclui 13º (tributação exclusiva), férias, PLR, pensão alimentícia, previdência privada nem outras deduções. Os valores de INSS por faixa na tela são parciais; o total é a soma exata arredondada uma vez (pode diferir em 1 centavo da soma das linhas). **Manutenção:** ao mudar o ano, troque só as constantes de `salario.ts` e os casos de `salario.test.ts`.
+
+**Conversa:** "quanto fica líquido um salário de 8 mil?" (com "com 2 dependentes"). `pedidoSalario` exige palavra de salário, palavra de líquido/desconto e um valor; o servidor calcula, injeta o bloco "Cálculo do salário" no contexto e manda o cartão `salario`. O modelo também pode propor `salario_simular` (com `salvar: true` para guardar o líquido como salário do mês); o valor e os dependentes do cartão são os que a pessoa disse. Guardar: `PUT /api/finance/itens/:id/mes` na receita principal da própria pessoa (`fin_config.receita_principal_id`), com confirmação e Desfazer; sem receita principal, só mostra o cálculo. Sem migração. `FINANCE_ENABLED=0` desliga tudo.

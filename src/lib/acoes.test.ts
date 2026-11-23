@@ -150,3 +150,13 @@ test("guia: abrir o guia de primeiro uso por voz (sem dados, sem gravar)", () =>
   assert.ok((TIPOS as readonly string[]).includes("guia"));
   assert.match(acoesRules(), /"tipo":"guia"/);
 });
+
+test("salario_simular: valor e dependentes validados; 'salvar' só quando dito; nada é adivinhado", () => {
+  assert.deepEqual(validAcao({ tipo: "salario_simular", bruto: 8000 }, NOW), { tipo: "salario_simular", bruto: 8000, dependentes: 0, salvar: false });
+  assert.deepEqual(validAcao({ tipo: "salario_simular", bruto: "R$ 6.500,00", dependentes: "2", salvar: true }, NOW), { tipo: "salario_simular", bruto: 6500, dependentes: 2, salvar: true });
+  assert.deepEqual(validAcao({ tipo: "salario_simular", bruto: 5000, salvar: "talvez" }, NOW), { tipo: "salario_simular", bruto: 5000, dependentes: 0, salvar: false });
+  for (const bad of [{ bruto: 0 }, { bruto: -1 }, { bruto: "abc" }, {}, { bruto: 5000, dependentes: -1 }, { bruto: 5000, dependentes: 1.5 }, { bruto: 5000, dependentes: 99 }, { bruto: 5000, dependentes: "x" }]) {
+    assert.equal(validAcao({ tipo: "salario_simular", ...bad }, NOW), null, JSON.stringify(bad));
+  }
+  assert.match(acoesRules(), /salario_simular/);
+});

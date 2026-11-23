@@ -59,6 +59,7 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Resumo do mês: receitas, contas, dia a dia, sobra, por categoria, sem dupla contagem do crédito | beta (publicado em 22/11/2026, PR #26) | P1 | `src/lib/finance/summary.ts`, `src/app/api/finance/resumo/route.ts` | sem saldo do banco nem acumulado do ano |
 | Previsão até o próximo recebimento (dia 15 e dia 1) | beta (publicado em 22/11/2026, PR #26) | P2 | `src/lib/finance/previsao.ts`, `fin_config` | não é o fluxo de caixa completo |
 | Perguntar ao GaDu sobre gastos e contas (fonte `finance` do Core, [F1]…, Fontes) | beta (publicado em 22/11/2026, PR #26) | P1 | `src/lib/core/finance.ts`, `src/lib/core/plan.ts`, `src/app/api/chat/route.ts` | sem IA extra; `CORE_MVP=0` desliga |
+| Simulador de salário bruto → líquido (INSS progressivo com teto, IRRF com dependentes e desconto simplificado, redução da Lei 15.270/2025; tabelas de 2026) | desenvolvido e testado (branch `feat/financas-simulador`, 23/11/2026) | P1 | `src/lib/finance/{salario,salario-texto}.ts`, `src/components/SalarioSimulador.tsx` (aba "Salário"), `src/lib/{acoes,acoes-resolver,chat-actions}.ts` (`salario_simular`), `src/app/api/chat/route.ts` | só empregado CLT mensal (sem 13º, férias, pensão, previdência privada); constantes e testes mudam a cada ano; `FINANCE_ENABLED=0` desliga; sem migração; validar com pessoa logada |
 | Lançar gasto pela conversa (proposta que a pessoa confirma) | beta (publicado em 22/11/2026, PR #26) | P1 | `src/lib/finance/lancamento.ts`, `src/lib/meta.ts`, `src/components/GastoCard.tsx` | pela reserva/cota de sempre |
 | Interruptor de emergência `FINANCE_ENABLED=0` | beta (publicado em 22/11/2026, PR #26) | P1 | `src/lib/finance/flag.ts`, `src/app/api/finance/_guard.ts`, `test/finance*.integration.test.ts` | ligado por padrão |
 | Lançar por print, PDF de extrato e áudio; marcar pago por texto; log; "a confirmar" | planejado | P1 | — | fases 2 e 3 da especificação |
@@ -174,7 +175,9 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Finanças | mudar o valor do mês (só este mês ou até dezembro) | sim | `conta_valor` (valor maior que zero; zerar a conta do mês fica na tela) | — |
 | Finanças | editar gasto (valor, categoria, descrição, forma de pagamento, dia) | sim | `gasto_editar` (acha pelo nome, valor e dia; se couber em mais de um, pede mais detalhe) | — |
 | Finanças | apagar gasto | sim | `gasto_apagar` (confirmação explícita; não dá para desfazer) | — |
-| Finanças | criar conta, configurar salário | **não** | — | lacuna |
+| Finanças | quanto fica líquido um salário de X (com dependentes) | sim | `salario_simular` (o servidor calcula com `calcularSalario`; o modelo não escreve valores; cartão só de informação, sem botões e fora da confirmação falada; o servidor também propõe o cartão se o modelo não propuser, com o valor e os dependentes que a pessoa disse) | quem está falando ouve a resposta do modelo; o cartão tem o passo a passo |
+| Finanças | guardar o líquido como salário do mês | sim | `salario_simular` com `salvar: true` (cartão + "sim"; grava na receita principal da própria pessoa pela rota `PUT /api/finance/itens/:id/mes`, com Desfazer; sem receita principal definida, só mostra o cálculo e avisa) | — |
+| Finanças | criar conta, configurar a receita principal | **não** | — | lacuna |
 | Metas | criar (número, percentual, marcos, tarefas) | sim | `meta_criar` | — |
 | Metas | registrar progresso, concluir | sim | `meta_registrar`, `meta_concluir` (pelo nome) e `"metas"` (pela etiqueta [M1]) | — |
 | Metas | adicionar marco, concluir marco | sim | `meta_marco`, `meta_marco_concluir` | — |

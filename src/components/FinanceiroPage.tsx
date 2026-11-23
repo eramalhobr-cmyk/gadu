@@ -8,12 +8,13 @@ import type { PrevisaoRecebimento } from "@/lib/finance/previsao";
 import type { ResumoMensal } from "@/lib/finance/summary";
 import { CATEGORIAS, GRUPOS, MEIOS, MEIO_LABEL, MESES, type Config, type Gasto, type Meio } from "@/lib/finance/types";
 import { ConfirmCard } from "./ConfirmCard";
+import { SalarioSimulador } from "./SalarioSimulador";
 import { EmptyState, Field, ModuleScreen, Panel, PrimaryAction } from "./kit";
 import { showUndo } from "@/lib/undo";
 import { Icon, todayKey } from "./ui";
 
 type Payload = { enabled: boolean; config: Config; configSalva: boolean; itens: ItemComMes[]; gastos: Gasto[]; resumo: ResumoMensal; previsao: PrevisaoRecebimento | null };
-type Tab = "contas" | "dia";
+type Tab = "contas" | "dia" | "salario";
 type Filtro = "todas" | "aberto" | "pagas";
 
 async function api(path: string, init?: RequestInit): Promise<{ ok: boolean; status: number; json: Record<string, unknown> }> {
@@ -80,10 +81,13 @@ export function FinanceiroPage() {
             <div className="seg" role="tablist" aria-label="Seções do Financeiro">
               <button role="tab" id="tab-contas" aria-selected={tab === "contas"} aria-controls="pn-contas" onClick={() => setTab("contas")}>Contas</button>
               <button role="tab" id="tab-dia" aria-selected={tab === "dia"} aria-controls="pn-dia" onClick={() => setTab("dia")}>Dia a dia</button>
+              <button role="tab" id="tab-salario" aria-selected={tab === "salario"} aria-controls="pn-salario" onClick={() => setTab("salario")}>Salário</button>
             </div>
             {tab === "contas"
               ? <div role="tabpanel" id="pn-contas" aria-labelledby="tab-contas" className="stack"><Contas data={data} ano={ano} mes={mes} run={run} /><ConfigPanel data={data} run={run} /></div>
-              : <div role="tabpanel" id="pn-dia" aria-labelledby="tab-dia" className="stack"><DiaADia data={data} ano={ano} mes={mes} isAtual={isAtual} run={run} /></div>}
+              : tab === "dia"
+                ? <div role="tabpanel" id="pn-dia" aria-labelledby="tab-dia" className="stack"><DiaADia data={data} ano={ano} mes={mes} isAtual={isAtual} run={run} /></div>
+                : <div role="tabpanel" id="pn-salario" aria-labelledby="tab-salario"><SalarioSimulador config={data.config} itens={data.itens} ano={ano} mes={mes} run={run} /></div>}
           </>
         )}
     </ModuleScreen>

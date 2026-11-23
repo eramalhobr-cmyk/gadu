@@ -6,6 +6,7 @@ import { lerData, hojeSP, isoDia, ordinal } from "./finance/datas.ts";
 import { parseNumero } from "./goals/numero.ts";
 import { normalizarCategoria, normalizarMeio } from "./finance/lancamento.ts";
 import { parseValor } from "./finance/money.ts";
+import { MAX_DEPENDENTES } from "./finance/salario.ts";
 import type { Meio } from "./finance/types.ts";
 import { CATEGORIAS, MEDICOES, type Categoria, type Medicao } from "./goals/types.ts";
 
@@ -43,6 +44,7 @@ export type AcaoProposta =
   | { tipo: "guia" }
   | { tipo: "navegar"; destino: Destino }
   | { tipo: "projeto_criar"; nome: string; objetivo: string | null }
+  | { tipo: "salario_simular"; bruto: number; dependentes: number; salvar: boolean }
   | { tipo: "ajuste"; ajuste: Ajuste };
 
 /** Telas que a conversa abre (instantâneo, sem gravar nada). Admin e telas em desenvolvimento ficam de fora. */
@@ -56,7 +58,7 @@ export function destinoDe(v: unknown): Destino | null {
   return (DESTINOS as readonly string[]).includes(k) ? (k as Destino) : DESTINO_APELIDO[k] ?? null;
 }
 
-export const TIPOS = ["meta_criar", "meta_registrar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "nova_conversa", "guia", "navegar", "projeto_criar", "ajuste"] as const;
+export const TIPOS = ["meta_criar", "meta_registrar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "nova_conversa", "guia", "navegar", "projeto_criar", "salario_simular", "ajuste"] as const;
 
 const txt = (v: unknown, max: number): string => (typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "");
 
@@ -254,6 +256,13 @@ export function validAcao(raw: unknown, now = Date.now()): AcaoProposta | null {
       const nome = txt(o.nome, 80);
       return nome ? { tipo: "projeto_criar", nome, objetivo: txt(o.objetivo, 400) || null } : null;
     }
+    case "salario_simular": {
+      // Só o pedido: o cálculo é feito no servidor (calcularSalario). Sem valor válido ou com dependentes fora do limite, não há o que propor.
+      const bruto = parseValor(o.bruto);
+      const dep = o.dependentes === undefined || o.dependentes === null || o.dependentes === "" ? 0 : Number(o.dependentes);
+      if (bruto === null || !Number.isInteger(dep) || dep < 0 || dep > MAX_DEPENDENTES) return null;
+      return { tipo: "salario_simular", bruto, dependentes: dep, salvar: o.salvar === true || o.salvar === "true" };
+    }
     case "ajuste": {
       const ajuste = validAjuste(o);
       return ajuste ? { tipo: "ajuste", ajuste } : null;
@@ -333,6 +342,7 @@ export function acoesRules(): string {
   {"tipo":"memoria_aprovar","memoria":"palavras da memória pendente"} ou {"tipo":"memoria_aprovar","todas":true}; {"tipo":"memoria_recusar","memoria":"..."} (descarta uma memória pendente); {"tipo":"memoria_esquecer","memoria":"palavras do fato"} ("esquece que eu…": apaga uma memória aprovada; use as palavras da lista de memória);
   {"tipo":"nova_conversa"} ("começa uma conversa nova"); {"tipo":"guia"} ("me mostra o guia de novo", "como o GaDu funciona?": abre o guia de primeiro uso na hora, sem confirmação; não grava nada); {"tipo":"navegar","destino":"hoje|conversa|tarefas|agenda|financeiro|metas|projetos|memoria|agentes|ajustes|mais"} ("abre o Financeiro", "vai para Metas", "mostra minhas tarefas": abre a tela na hora, sem confirmação; use só quando a pessoa pedir para ir ou abrir uma tela);
   {"tipo":"projeto_criar","nome":"...","objetivo":"..."};
+  {"tipo":"salario_simular","bruto":8000,"dependentes":0,"salvar":false} ("quanto fica líquido um salário de 8 mil?", "e com 2 dependentes?": o SERVIDOR calcula INSS e imposto de renda e mostra o cartão com o passo a passo; você NUNCA calcula nem escreve valores de INSS, imposto ou líquido: diga só que o cartão tem o cálculo, ou repita os números do bloco "Cálculo do salário" se ele estiver no contexto. "salvar":true só quando a pessoa pedir para guardar o líquido como o salário deste mês: vira um cartão de confirmação);
   {"tipo":"ajuste","opcao":"texto","valor":"100|115|130"} (letra normal, grande, maior), {"tipo":"ajuste","opcao":"maos_livres|respostas_curtas|voz","valor":true|false}, {"tipo":"ajuste","opcao":"tema","valor":"dark|light"}.
   Diga em uma frase o que preparou ("Preparei, é só confirmar"). Não diga que não consegue fazer algo que está nesta lista. No máximo 5 itens; quase sempre a lista fica vazia.`;
 }
