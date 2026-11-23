@@ -457,7 +457,8 @@ export function GaduApp(props: {
     if (!ans) { retryOrGiveUp(); return; }
     if (ans.kind === "change") {
       // "muda para 60 reais": descarta a proposta e manda o pedido para a conversa, que propõe de novo.
-      void cardOp(item.id, item.a, "discard");
+      // O que o servidor já criou (lembrete, tarefa anotada) é desfeito; senão o novo pedido duplicaria o item.
+      void (initialCard(item.a).state === "created" ? cardOp(item.id, item.a, "undo") : cardOp(item.id, item.a, "discard"));
       closeConfirm();
       void sendRef.current(text, { voice: true });
       return;
