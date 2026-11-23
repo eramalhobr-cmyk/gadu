@@ -502,7 +502,7 @@ Estágio: **publicada** em 22/11/2026 às 18:33 (Brasília), PR #30, merge `901e
 
 ## Por último (combinado em 10/11)
 - [x] Tudo por voz: criar e editar agentes (`agente_criar`, `agente_editar`); falta apagar agente
-- [x] Telemetria de erros: rota, captura no servidor e no navegador, lista no Admin e alerta diário por issue do GitHub (docs/OBSERVABILIDADE.md); falta o Eduardo criar `TELEMETRIA_TOKEN`
+- [x] Telemetria de erros: rota, captura no servidor e no navegador, lista no Admin e alerta diário por issue do GitHub (docs/OBSERVABILIDADE.md); o alerta diário só liga com o `TELEMETRIA_TOKEN` (passo manual do Eduardo, movido para o fim do roadmap em 23/11)
 - [ ] (histórico) Testes automáticos de ponta a ponta antes de publicar (feito: `e2e-auth.yml`) e alerta de erro (tela de erro própria: feita no PR #9; migração da telemetria mergeada no PR #76, aplicada pelo Cursor; rota, Admin e alerta depois)
 - [ ] Ações com aprovação no Gmail (rascunhos) e foco na agenda
 - [ ] Voz natural paga (ElevenLabs/OpenAI) com teto próprio
@@ -516,3 +516,6 @@ Estágio: **publicada** em 22/11/2026 às 18:33 (Brasília), PR #30, merge `901e
 - [x] Monitoramento de erros (tabela própria, Admin e alerta diário; docs/OBSERVABILIDADE.md). Alerta de saúde do site fora do ar segue em aberto
 - [ ] Backups do banco conferidos (plano grátis: diário, 7 dias)
 - [ ] Domínio próprio
+
+## Fim do roadmap · passos manuais do Eduardo (decisão de 23/11/2026, 13:44)
+- [ ] **Ligar o alerta diário de erros:** criar o mesmo valor aleatório como `TELEMETRIA_TOKEN` (1) na Vercel (variável de ambiente do projeto `gadu-agent`, Production) e (2) como segredo do repositório no GitHub (Settings › Secrets and variables › Actions). Até lá, a telemetria grava e o Admin mostra os erros; só a issue diária não é aberta. Passo a passo em docs/OBSERVABILIDADE.md; uma IA acompanha o Eduardo quando ele quiser fazer.
