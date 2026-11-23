@@ -14,6 +14,8 @@ import { CommandPalette } from "./CommandPalette";
 import { isPaletaKey, parseMenuCommand, type PaletaItem } from "@/lib/paleta";
 import { navSpoken, parseNavIntent, pushTab } from "@/lib/nav-intent";
 import { EVENTO_FALAR, parseLerResumo } from "@/lib/painel-fala";
+import { parseModoVoz } from "@/lib/nivel-visual";
+import { useNivel } from "./VoiceCore";
 import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
 import { canListen, canSpeak, createRecognizer, SHORT_REPLY, Speaker, stripSourceTags } from "@/lib/speech";
@@ -119,6 +121,8 @@ export function GaduApp(props: {
   const [sayOpen, setSayOpen] = useState(false);
   const [paleta, setPaleta] = useState(false);
   const menuRef = useRef<(m: "mini" | "full") => void>(() => {});
+  const dockTalkRef = useRef<() => void>(() => {});
+  const chatAvaRef = useRef<HTMLDivElement>(null);
   const navHiddenRef = useRef<(v: ViewId) => boolean>(() => false);
   const setTabRef = useRef<(v: ViewId) => void>(() => {});
   /** Largura do painel do assistente no computador (arrastável), em px. */
@@ -160,6 +164,7 @@ export function GaduApp(props: {
   const [drawer, setDrawer] = useState(false);
   /** Tela de escuta (UX-3): aberta pelo microfone central e pelo "Falar com o GaDu". `heard` = fala final esperando o envio. */
   const [voiceSheet, setVoiceSheet] = useState(false);
+  useNivel(chatAvaRef, listening ? "listening" : mode);
   const [heard, setHeard] = useState<string | null>(null);
   const voiceSheetRef = useRef(false);
   useEffect(() => { voiceSheetRef.current = voiceSheet; }, [voiceSheet]);
@@ -334,6 +339,8 @@ export function GaduApp(props: {
       if (opts.voice && prefsRef.current.voice) speaker?.announce(menu === "mini" ? "Menu recolhido." : "Menu expandido.");
       return;
     }
+    // "Modo voz" / "modo Jarvis" (G1): abre a escuta em tela cheia, sem modelo.
+    if (message && parseModoVoz(message)) { setDraft(""); if (!voiceSheetRef.current) dockTalkRef.current(); return; }
     // "Lê o resumo": lê o painel da tela atual (M4), sem modelo. Sem painel nesta tela, avisa.
     if (message && parseLerResumo(message)) {
       setDraft("");
@@ -733,6 +740,7 @@ export function GaduApp(props: {
   }
 
   // Voz em um toque (UX-3): abre a tela de escuta, de qualquer tela. Sem reconhecimento de voz, abre o lugar de escrever.
+  dockTalkRef.current = () => dockTalk();
   function dockTalk() {
     speaker?.unlock();
     if (!voiceOk) { if (tabRef.current === "conversa") document.getElementById("msg")?.focus(); else openAssist(true); return; }
@@ -1055,7 +1063,7 @@ export function GaduApp(props: {
         {view === "conversa" && (
           <main className={`chat2 ${active || messages.length === 0 ? "stage-big" : ""}`} data-mode={listening ? "listening" : mode} id="conteudo">
             <aside className="chat-stage" aria-label="GaDu">
-              <div className="chat-ava"><Avatar mode={mode} label={`GaDu: ${stateLabel}`} /></div>
+              <div className="chat-ava" ref={chatAvaRef}><Avatar mode={mode} label={`GaDu: ${stateLabel}`} /></div>
               <div className="meta">
                 <b className="who">GaDu</b>
                 <span className={`state ${mode === "thinking" ? "hot" : ""}`}><i />{stateLabel}</span>

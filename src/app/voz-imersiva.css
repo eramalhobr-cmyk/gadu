@@ -1,0 +1,27 @@
+/* UX-7 · G1 · Modo voz imersivo (tema JARVIS). A escuta ocupa a tela inteira, com o núcleo no centro. */
+.listen-wrap.imersivo { place-items: stretch; background: radial-gradient(120% 80% at 50% 30%, rgb(var(--hud-rgb) / 0.16), transparent 60%), var(--bg); }
+.listen-wrap.imersivo::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+  background-image: linear-gradient(rgb(var(--hud-rgb) / 0.07) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--hud-rgb) / 0.07) 1px, transparent 1px); background-size: 32px 32px; }
+.listen-wrap.imersivo .listen { max-width: none; width: 100%; height: 100dvh; max-height: none; border-radius: 0; background: transparent; box-shadow: none; border: 0;
+  justify-content: center; padding: max(var(--s-6), env(safe-area-inset-top)) var(--s-4) max(var(--s-5), env(safe-area-inset-bottom)); }
+.listen-wrap.imersivo .listen > * { max-width: 560px; }
+.listen-chip { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border: 1px solid rgb(var(--hud-rgb) / 0.45); border-radius: 4px;
+  font: 600 calc(12px * var(--ts, 1)) var(--mono); letter-spacing: 0.22em; text-transform: uppercase; color: var(--hud); background: rgb(var(--hud-rgb) / 0.06); }
+.listen-chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--hud); box-shadow: 0 0 8px var(--hud); }
+.listen-chip[data-modo="thinking"] { color: var(--amb); border-color: rgb(var(--amb-rgb) / 0.5); } .listen-chip[data-modo="thinking"] i { background: var(--amb); box-shadow: 0 0 8px var(--amb); }
+.listen-wrap.imersivo .listen-status { font-family: var(--mono); color: var(--hud); }
+
+.vcore { position: relative; flex: none; width: min(78vw, 340px); aspect-ratio: 1; --lvl: 0; }
+@media (max-height: 640px) { .vcore { width: min(52vw, 220px); } }
+.vcore-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.vcore-svg circle { fill: none; transform-origin: 100px 100px; }
+.vc-r1 { stroke: var(--hud); stroke-width: 1.4; stroke-dasharray: 1 3.19; opacity: 0.8; animation: hud-spin 24s linear infinite; }
+.vc-r2 { stroke: var(--amb); stroke-width: 2.2; stroke-dasharray: 46 12 8 12; opacity: 0.9; animation: hud-spin 11s linear infinite reverse;
+  scale: calc(1 + var(--lvl) * 0.06); filter: drop-shadow(0 0 3px rgb(var(--amb-rgb) / 0.6)); }
+.vc-r3 { stroke: rgb(var(--hud-rgb) / 0.35); stroke-width: 0.8; scale: calc(1 + var(--lvl) * 0.04); }
+.vc-spec line { stroke: var(--hud); stroke-width: 1.6; stroke-linecap: round; opacity: calc(0.35 + var(--lvl) * 0.65); filter: drop-shadow(0 0 2px var(--hud-glow, rgb(var(--hud-rgb) / 0.6))); }
+.vcore[data-modo="thinking"] .vc-spec line { stroke: var(--amb); }
+.vcore-ava { position: absolute; inset: 19%; border-radius: 50%; box-shadow: 0 0 calc(20px + var(--lvl) * 50px) rgb(var(--hud-rgb) / calc(0.25 + var(--lvl) * 0.4)); }
+.vcore-ava .listen-ava { position: absolute; inset: 0; width: auto; height: auto; }
+@media (prefers-reduced-motion: reduce) { .vc-r1, .vc-r2 { animation: none; } }
+@media (forced-colors: active) { .listen-wrap.imersivo::before { display: none; } .vc-spec line, .vcore-svg circle { stroke: CanvasText; filter: none; } }
