@@ -7,6 +7,29 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-22 · Tudo por voz: ações de todos os módulos pela conversa, com confirmação (PR #42, merge `61334a1`) · **publicado**
+- **Feito por:** Cursor (Grok Bot). Pedido do Eduardo às 20:43: "tudo no GaDu precisa poder ser feito por voz ou pela conversa".
+- **Estágio:** **publicado** em 22/11/2026 às 21:11 (Brasília), PR #42, merge `61334a1`. CI verde (verify, e2e-public, database); deploy Vercel `success` (status do GitHub). Ainda não validado com pessoa logada em aparelho nem com a IA real.
+- **O que a conversa passa a fazer (sempre como proposta; a pessoa confirma com um toque ou dizendo "sim"):** criar meta (número, percentual, marcos ou tarefas); registrar progresso e concluir meta pelo nome; adicionar e concluir marco; criar tarefa da meta; concluir e adiar tarefa; cancelar lembrete; marcar a conta do mês como paga ("paguei a luz"); criar projeto; ajustes do aparelho (tamanho do texto, conversa contínua, respostas curtas, resposta falada, tema). Tarefa anotada pela conversa vira cartão com **Desfazer**.
+- **Como:** bloco de controle `"acoes"` com validação estrita (`src/lib/acoes.ts`, regras no prompt estável); o servidor resolve os nomes para ids só entre os itens da pessoa, com o cliente da sessão e `user_id` (`src/lib/acoes-resolver.ts`), respeitando `GOALS_ENABLED`, `FINANCE_ENABLED` e os termos bloqueados; o que não acha vira aviso. As gravações são as mesmas rotas e consultas das telas, com a sessão da pessoa. Sem migração.
+- **Correção junto:** o estado dos cartões passou a morar no app, então a confirmação falada funciona mesmo quando o cartão não está à vista no painel do celular.
+- **Testes executados (22/11/2026):** `npm run typecheck`; `npm test` 228 unitários e 149 de integração, 0 falhas (novos `acoes.test.ts`, `acoes-resolver.test.ts`, casos em `chat-actions.test.ts`, 4 em `goals-chat` e 2 em `finance-chat`, incluindo isolamento entre pessoas e interruptores); `npm run build`; Playwright a 412 × 915 com voz simulada (criar meta, conta paga, concluir tarefa, texto Maior, Desfazer da tarefa, toque no cartão sem voz).
+- **Lacunas registradas** na matriz "Tudo por voz" (docs/FEATURE_MATRIX.md, seção 11). Regra nova para toda função: [AGENTS.md](AGENTS.md), seção 8.1.
+
+## 2026-11-22 · UX-3 · Confirmações faladas e respostas faladas curtas (PR #39, merge `87ab3bf`) · **publicado**
+- **Feito por:** Cursor (Grok Bot).
+- **Estágio:** **publicado** em 22/11/2026 às 20:59 (Brasília), PR #39, merge `87ab3bf` (refeito sobre a `main` depois do PR #40, com o CI verde de novo). CI verde (verify, e2e-public, database); deploy Vercel `success`; CSS novo (`confirm-sheet`) conferido no site no ar.
+- **Confirmações faladas:** quando a mensagem foi falada e a voz da resposta está ligada, o GaDu lê o que vai gravar (gasto, meta, evento, lembrete) e espera "sim", "não" ou "muda para…". Tela com a pergunta em letra grande e botões Sim/Não grandes; sem resposta, pergunta de novo e depois deixa o cartão; Voltar e Esc fecham sem gravar. Lembrete criado vira cartão com Desfazer.
+- **Respostas faladas curtas:** fala cerca de 20 s e diz "O resto está na tela"; opção em Configurações › Voz (ligada por padrão); o briefing fala inteiro; o prompt pede a resposta direta em 1 ou 2 frases primeiro.
+- **Código:** `src/lib/voice-confirm.ts`, `src/lib/chat-actions.ts`, `ActionCard.tsx` (substitui `EventCard`, `GastoCard` e `MetaCard`), `ConfirmSheet.tsx`, `Speaker.maxChars` em `src/lib/speech.ts`.
+- **Testes executados:** typecheck; `npm test` 184 unitários e 126 de integração, 0 falhas; build; Playwright com voz simulada (sim grava, não apaga o lembrete, "muda para 60 reais" reenvia, silêncio desiste, toque em Sim, Voltar, resposta longa resumida, opção desligada fala tudo).
+
+## 2026-11-22 · UX-3 · Texto grande em Configurações (PR #38, merge `ba3c6c5`) · **publicado**
+- **Feito por:** Cursor (Grok Bot).
+- **Estágio:** **publicado** em 22/11/2026 às 20:43 (Brasília), PR #38, merge `ba3c6c5`. CI verde; deploy Vercel `success`; CSS novo (`data-texto`, `--ts`) conferido no site no ar.
+- Opção **Tamanho do texto** (Normal, Grande 115%, Maior 130%), aplicada pelo servidor (cookie `gadu_texto`) sem piscar. Todas as fontes do CSS viraram `calc(Npx * var(--ts, 1))`; corpo de 16 px no normal e textos secundários acima de 16 px no Grande e no Maior.
+- **Testes executados:** typecheck; `npm test` 167 + 126, 0 falhas; build; Playwright a 412 × 915 (corpo 18,4 px e 20,8 px, sem rolagem lateral, a escolha sobrevive ao recarregar).
+
 ## 2026-11-22 · Passagem de bastão entre IAs (PR #33, merge `0b1c707`) · só documentação
 - `AGENTS.md` (regras para qualquer IA), `CLAUDE.md` apontando para ele, diário `docs/HANDOFF.md` e modelo de PR com "Feito por (IA)" e "Revisar". Feito pelo Cursor (Grok Bot). Integrado em 22/11/2026 às 19:26 (Brasília), com CI verde rodado manualmente.
 

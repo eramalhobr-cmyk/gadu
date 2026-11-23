@@ -66,6 +66,14 @@ Ficam ligados por padrão. Com valor `0`, a função é desligada sem novo deplo
 - Botão Voltar do Android: cada camada aberta (painel, folha, tela de escuta) ocupa uma entrada no histórico. Não quebre esse comportamento; o e2e mobile cobre isso.
 - Tokens e componentes: [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md).
 
+## 8.1 Tudo por voz (obrigatório para toda função nova)
+Princípio do Eduardo (22/11/2026): **tudo no GaDu precisa poder ser feito pela conversa, falando ou escrevendo; a conversa com a IA é o centro do app.**
+- Toda função nova que grava ou muda algo na tela **sai no mesmo PR com a ação pela conversa**: um tipo no bloco `"acoes"` ([src/lib/acoes.ts](src/lib/acoes.ts): validação e regra no prompt), a resolução de nomes para ids só entre os itens da própria pessoa ([src/lib/acoes-resolver.ts](src/lib/acoes-resolver.ts)), o cartão e a execução ([src/lib/chat-actions.ts](src/lib/chat-actions.ts) e [src/components/ActionCard.tsx](src/components/ActionCard.tsx)) e a pergunta da confirmação falada (`actionQuestion`).
+- A IA **só propõe**; quem grava é a pessoa, com um toque ou dizendo "sim" (confirmação falada). Nada é gravado no servidor a partir da resposta do modelo, exceto o que já era assim (lembretes, tarefas e memórias pendentes), e esses ganham **Desfazer**.
+- **Testes obrigatórios:** unitário da validação, do cartão e da pergunta; integração do `/api/chat` mostrando que a ação só acha itens da sessão (nunca de outra pessoa), respeita o interruptor do módulo e os termos bloqueados e não grava nada antes da confirmação.
+- Atualize a matriz **"Tudo por voz"** em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md) (seção 11). Se uma ação não puder ser feita por voz (por exemplo, a permissão de notificação, que o navegador exige que seja um toque), registre lá o motivo.
+- Uma frente com IA própria (exemplo: o 3D, do Claude Code) adiciona as próprias ações seguindo o mesmo padrão.
+
 ## 9. Depois de cada entrega (obrigatório)
 Atualize, no mesmo PR ou num PR de docs logo depois:
 - [ROADMAP.md](ROADMAP.md): marque o checklist.

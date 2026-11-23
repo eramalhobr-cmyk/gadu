@@ -409,13 +409,23 @@ Objetivo: o GaDu fácil para qualquer pessoa, inclusive quem não é digital, co
 - [x] Ao rolar, o botão Falar fica sempre à mão (microfone da barra de baixo, UX-1); voltar ao topo tocando no título
 - [x] Criar lembrete pela voz ou pelo botão "+", em vez do formulário fixo no meio da tela
 
-### UX-3 · Voz primeiro (P0/P1) · primeira parte feita e publicada em 22/11/2026 pelo Cursor (Grok Bot), PR #36; faltam confirmações faladas, respostas faladas mais curtas e a opção de texto grande
+### UX-3 · Voz primeiro (P0/P1) · feito e publicado em 22/11/2026 pelo Cursor (Grok Bot), PRs #36, #38 e #39
 - [x] Um toque para falar em qualquer tela; tela de escuta com **texto grande** ("Estou ouvindo…", transcrição ao vivo) e botão grande "Parar"
 - [x] Envio automático depois do silêncio, com 3 s de "Enviando… Cancelar" (em vez de revisar e tocar em Enviar); revisar continua como opção
 - [x] **Modo mãos-livres** ligável na própria tela de escuta (não só em Configurações), com aviso visível de que está ligado
-- [ ] **Confirmações faladas** para ações (gasto, meta, lembrete, evento): o GaDu lê o que vai gravar e aceita "sim", "não" ou "muda para…" por voz; o cartão continua para quem prefere tocar
-- [ ] Respostas por voz mais curtas (resumo falado, detalhe na tela)
-- [ ] **Texto grande**: opção em Configurações (115% a 130%) e corpo mínimo de 16 px
+- [x] **Confirmações faladas** para ações (gasto, meta, lembrete, evento): o GaDu lê o que vai gravar e aceita "sim", "não" ou "muda para…" por voz; o cartão continua para quem prefere tocar (PR #39; vale para todas as ações do "Tudo por voz" desde o PR #42)
+- [x] Respostas por voz mais curtas (resumo falado, detalhe na tela) (PR #39)
+- [x] **Texto grande**: opção em Configurações (115% a 130%) e corpo mínimo de 16 px (PR #38)
+
+### TV · Tudo por voz (P0, princípio do Eduardo, 22/11/2026 às 20:43)
+Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa. A IA propõe, a pessoa confirma (toque ou "sim"). Regra para toda função nova em [AGENTS.md](AGENTS.md), seção 8.1; matriz completa em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md), seção 11.
+- [x] Metas pela conversa: criar, registrar, concluir, marcos (adicionar e concluir) e tarefas da meta (PR #42)
+- [x] Tarefas: concluir e adiar; tarefa anotada com Desfazer (PR #42)
+- [x] Lembretes: cancelar; lembrete criado com Desfazer (PRs #39 e #42)
+- [x] Finanças: "paguei a luz" marca a conta do mês como paga (PR #42)
+- [x] Projetos: criar (PR #42)
+- [x] Configurações: tamanho do texto, conversa contínua, respostas curtas, resposta falada e tema (PR #42)
+- [ ] Lacunas: cancelar, reabrir e editar tarefa; adiar lembrete; editar ou apagar gasto e evento; desmarcar conta e mudar valor; pausar, arquivar e editar meta; editar e arquivar projeto; aprovar e esquecer memória; criar agente; nova conversa e navegação por voz ("abre o Financeiro")
 
 ### UX-4 · Acessibilidade para quem não é digital (P1)
 - [ ] Linguagem simples: sem "Beta", "Planejado", "Plataforma", "Core", "via modelo" e etiquetas [T1] na tela principal (ficam em "Detalhes")
@@ -436,7 +446,7 @@ Objetivo: o GaDu fácil para qualquer pessoa, inclusive quem não é digital, co
 
 ## Próximo ciclo (prioridades, em ordem; revisado em 22/11/2026)
 1. Validar com pessoa logada, em aparelho, o que foi publicado em 22/11 (Hoje e Fontes, Financeiro, Metas, voz, notificações) e fechar os passos manuais da segurança (senhas vazadas, S-09).
-2. ~~UX-1 a UX-3~~ (navegação, Hoje, voz em um toque): **publicados em 22/11** (PRs #34, #35, #36). Falta do UX-3: confirmações faladas, respostas faladas mais curtas e opção de texto grande.
+2. ~~UX-1 a UX-3~~ (navegação, Hoje, voz): **publicados em 22/11** (PRs #34, #35, #36, #38, #39). **Tudo por voz** publicado em 22/11 (PR #42); fechar as lacunas da matriz (FEATURE_MATRIX, seção 11).
 3. **3D-1** (MVP conversa → OpenSCAD), conforme [docs/FEATURE-3D.md](docs/FEATURE-3D.md).
 4. UX-4 a UX-6 (acessibilidade, consistência, teste com pessoa não digital).
 5. Financeiro: simulador bruto → líquido, tetos por categoria, fase Conversa.
