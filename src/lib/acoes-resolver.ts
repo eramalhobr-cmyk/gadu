@@ -336,6 +336,22 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           actions.push({ kind: "registro_apagar", goalId: g.id, registroId: reg.id, meta: g.titulo, valor: Number(reg.valor), unidade: g.unidade ?? null, data: reg.data });
           break;
         }
+        case "conta_criar": {
+          if (!opts.finance) break;
+          if (blocked(`${a.nome} ${a.grupo ?? ""}`)) break;
+          const hoje = hojeSP(now);
+          actions.push({ kind: "conta_nova", contaTipo: a.contaTipo, nome: a.nome, grupo: a.grupo ?? (a.contaTipo === "receita" ? "Receitas" : "Geral"), valor: a.valor, dia: a.dia, escopo: a.todoMes ? "proximos" : "mes", ano: hoje.ano, mes: hoje.mes });
+          break;
+        }
+        case "receita_principal": {
+          if (!opts.finance) break;
+          const r = await db.from("fin_itens").select("id, nome, tipo").eq("user_id", userId).eq("tipo", "receita").limit(100);
+          const lista = (r.error || !Array.isArray(r.data) ? [] : r.data) as { id: string; nome: string }[];
+          const it = matchByName(lista, (x) => x.nome, a.receita);
+          if (!it) { misses.push(`Não achei a receita "${a.receita}" no Financeiro.`); break; }
+          actions.push({ kind: "receita_principal", itemId: it.id, nome: it.nome });
+          break;
+        }
         case "nova_conversa":
           actions.push({ kind: "nova_conversa" });
           break;

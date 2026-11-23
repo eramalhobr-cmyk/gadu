@@ -472,3 +472,23 @@ test("salário: o custo continua passando por limites → reserva → cota → I
   assert.deepEqual(rpcNames.slice(0, 3), ["month_spend_by_provider", "server_reserve_ai_budget", "consume_daily_quota"]);
   assert.ok(rpcNames.includes("server_settle_ai_budget"));
 });
+
+test("tudo por voz: criar conta e definir a receita principal só propõem; receita de B nunca; FINANCE_ENABLED=0 desliga", async () => {
+  modelText = ACOES_TXT([
+    { tipo: "conta_criar", contaTipo: "despesa", nome: "Água", valor: 90, dia: 10, grupo: "Moradia", todoMes: true },
+    { tipo: "conta_criar", nome: "Conta Acme" },
+    { tipo: "receita_principal", receita: "salário" },
+    { tipo: "receita_principal", receita: "SEGREDO-B conta" },
+  ]);
+  const ev = await chat("cria a conta de água de 90 todo dia 10 e o salário é a receita principal");
+  const items = eventosDe(ev);
+  assert.deepEqual(items.map((i) => i.kind), ["conta_nova", "receita_principal"], "termo bloqueado (acme) não vira cartão");
+  assert.equal(items[0].escopo, "proximos");
+  assert.equal(items[0].valor, 90);
+  assert.equal(items[1].itemId, "i1");
+  assert.ok(!JSON.stringify(ev).includes("\"ib\""));
+  assert.equal(log.writes.length, 0, "nada gravado antes de confirmar");
+  process.env.FINANCE_ENABLED = "0";
+  const off = await chat("cria a conta de água");
+  assert.equal(off.find((e) => e.t === "acoes"), undefined);
+});

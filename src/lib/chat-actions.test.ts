@@ -168,3 +168,12 @@ test("cartão e pergunta de apagar registro de meta", async () => {
   assert.match(d(a).detail, /5 km em 21\/11/);
   assert.match(actionQuestion(a, NOW), /^Apago o registro de 5 km de .+ na meta Correr 50 km\?$/);
 });
+
+test("cartão e pergunta de conta nova e receita principal", async () => {
+  const { actionQuestion, describe: d } = await import("./chat-actions.ts");
+  const c: ChatAction = { kind: "conta_nova", contaTipo: "despesa", nome: "Água", grupo: "Moradia", valor: 90, dia: 10, escopo: "proximos", ano: 2026, mes: 11 };
+  assert.equal(d(c).confirm, "Criar conta");
+  assert.equal(d(c).detail, "Moradia · R$ 90,00 por mês até dezembro · dia 10");
+  assert.equal(actionQuestion(c, NOW), "Crio a conta Água, de 90 reais por mês, no dia 10?");
+  assert.equal(actionQuestion({ kind: "receita_principal", itemId: "i1", nome: "Salário" }, NOW), "Defino Salário como sua receita principal?");
+});

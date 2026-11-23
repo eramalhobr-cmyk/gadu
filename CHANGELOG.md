@@ -7,6 +7,11 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · Tudo por voz: criar conta ou receita e definir a receita principal · desenvolvido e testado
+- **Feito por:** Cursor (Grok Bot).
+- "Cria uma conta de água de 90 reais todo dia 10" ou "adiciona a receita de aluguel": cartão "Conta nova" (grupo, valor, dia; "todo mês" vale até dezembro) que usa a mesma rota da tela (`POST /api/finance/itens`) e tem Desfazer. "Meu salário principal é o da empresa": acha a receita da própria pessoa e define como principal (`PUT /api/finance/config`), com Desfazer que volta a anterior. Termos bloqueados e `FINANCE_ENABLED=0` respeitados.
+- **Testes:** `acoes.test.ts`, `chat-actions.test.ts`, `test/finance-chat.integration.test.ts` (receita de outra pessoa nunca, nada gravado antes de confirmar); integração 195/195.
+
 ## 2026-11-23 · Tudo por voz: apagar um registro de progresso de meta · desenvolvido e testado
 - **Feito por:** Cursor (Grok Bot).
 - "Apaga o último registro da meta de corrida" ou "aquele de 5 km de ontem foi engano": acha o registro da própria pessoa (o mais recente, ou pelo valor e data) e mostra o cartão "Apagar registro?" com "sim" falado; usa a rota `DELETE /api/goals/:id/progresso/:pid` da tela. Sem Desfazer (o cartão avisa). `GOALS_ENABLED=0` desliga.
