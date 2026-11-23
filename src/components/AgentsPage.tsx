@@ -5,7 +5,8 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { AGENT_PRESETS, AREAS } from "@/lib/presets";
 import { FERRAMENTAS, FERRAMENTA_NOME, TETO_MAX_USD, ferramentasDe, mesSP, type Ferramenta } from "@/lib/agentes/ferramentas";
 import { ConfirmCard } from "./ConfirmCard";
-import { EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
+import { Bars, Kpi, KpiRow, Meter } from "./charts";
+import { EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction } from "./kit";
 import { COLORS, colorVar, Icon, ICONS } from "./ui";
 
 export type Agent = { id: number; name: string; area: string; instructions: string; color: string; icon: string; active: boolean; ferramentas?: Ferramenta[]; teto_mensal_usd?: number | string | null };
@@ -56,7 +57,7 @@ export function AgentsPage({ onTalk }: { onTalk: (a: { id: number; name: string 
   return (
     <ModuleScreen title="Agentes" text="Versões do GaDu com instruções próprias para cada área da sua vida. Todos usam a mesma memória, agenda e tarefas."
       action={<PrimaryAction onClick={() => setEdit("new")}>Novo agente</PrimaryAction>}
-      summary={items && items.length > 0 ? <Summary items={[{ n: items.filter((a) => a.active).length, label: "ativos" }, { n: items.filter((a) => !a.active).length, label: "desligados" }]} /> : undefined}>
+      summary={items && items.length > 0 ? <AgentesPainel items={items} uso={uso} /> : undefined}>
         {err && <div className="notice" role="alert">{err}</div>}
         {items === null ? (
           <div className="ag-grid" aria-busy="true"><p className="sr" role="status">Carregando agentes…</p>{[0, 1, 2].map((i) => <div key={i} className="ag-card skel" aria-hidden="true" />)}</div>
@@ -207,5 +208,36 @@ function AgentForm({ agent, onDone }: { agent: Agent | null; onDone: (saved: boo
         )}
       </div>
     </main>
+  );
+}
+
+/** Painel de resumo dos Agentes (tema JARVIS): gasto do mês (registrado em agent_uso) e gasto × teto por agente. */
+function AgentesPainel({ items, uso }: { items: Agent[]; uso: Record<number, number> }) {
+  const total = Object.values(uso).reduce((a, b) => a + b, 0);
+  const comGasto = items.filter((a) => (uso[a.id] ?? 0) > 0).sort((a, b) => (uso[b.id] ?? 0) - (uso[a.id] ?? 0));
+  const comTeto = items.filter((a) => Number(a.teto_mensal_usd ?? 0) > 0);
+  return (
+    <section className="pnl" id="painel" aria-labelledby="painel-agentes">
+      <h2 className="pnl-h" id="painel-agentes">Resumo dos agentes <small>Diga: “mostra o resumo dos agentes”</small></h2>
+      <div className="pnl-grid">
+        <div className="hud-frame pnl-box">
+          <KpiRow label="Agentes em números">
+            <Kpi label="Ativos" value={items.filter((a) => a.active).length} sub={`${items.filter((a) => !a.active).length} desligados`} />
+            <Kpi label="Gasto no mês" value={usd(total)} sub={comGasto.length ? `${comGasto.length} com uso` : "nenhum uso registrado"} />
+          </KpiRow>
+        </div>
+        <div className="hud-frame pnl-box">
+          <h3 className="pnl-sub">Gasto por agente · mês atual</h3>
+          {comGasto.length > 0 ? <Bars data={comGasto.slice(0, 6).map((a) => ({ label: a.name, value: uso[a.id] ?? 0 }))} label="Gasto por agente no mês atual" fmt={usd} destaque={-1} />
+            : <p className="muted small">Nenhum gasto dos agentes registrado este mês.</p>}
+        </div>
+        {comTeto.length > 0 && (
+          <div className="hud-frame pnl-box">
+            <h3 className="pnl-sub">Gasto × teto</h3>
+            <div className="stack">{comTeto.slice(0, 4).map((a) => <Meter key={a.id} label={a.name} value={uso[a.id] ?? 0} max={Number(a.teto_mensal_usd ?? 0)} fmt={usd} />)}</div>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

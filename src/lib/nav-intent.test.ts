@@ -28,3 +28,14 @@ test("pilha do voltar e frase falada", () => {
   assert.equal(navSpoken({ tipo: "voltar" }, "hoje"), "Voltando para Hoje.");
   assert.equal(navSpoken({ tipo: "voltar" }, null), "Não há tela anterior.");
 });
+
+test("resumo por voz: abre a tela e marca o painel", () => {
+  const casos: [string, string][] = [
+    ["mostra meu resumo de finanças", "financeiro"], ["resumo das tarefas", "tarefas"], ["me mostra o painel das metas", "metas"],
+    ["quero ver o resumo dos agentes", "agentes"], ["resumo do dia", "hoje"], ["mostra o resumo de hoje", "hoje"],
+  ];
+  for (const [f, v] of casos) assert.deepEqual(parseNavIntent(f), { tipo: "abrir", view: v, painel: true }, f);
+  assert.deepEqual(parseNavIntent("resumo da memória"), { tipo: "abrir", view: "memoria" });
+  assert.equal(parseNavIntent("faz um resumo da reunião de ontem com o João"), null);
+  assert.equal(navSpoken({ tipo: "abrir", view: "financeiro", painel: true }, "financeiro"), "Mostrando o resumo de Financeiro.");
+});

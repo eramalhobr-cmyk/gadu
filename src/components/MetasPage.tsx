@@ -10,7 +10,8 @@ import {
   type Categoria, type Marco, type Medicao, type MetaView, type Registro, type Status, type TarefaVinculada,
 } from "@/lib/goals/types";
 import { ConfirmCard } from "./ConfirmCard";
-import { BackButton, EmptyState, Field, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
+import { Kpi, KpiRow, Ring } from "./charts";
+import { BackButton, EmptyState, Field, ModuleScreen, PageHeader, Panel, PrimaryAction } from "./kit";
 import { showUndo } from "@/lib/undo";
 import { Icon, todayKey } from "./ui";
 
@@ -58,7 +59,7 @@ export function MetasPage(props: { onAsk: (q: string) => void; onOpenTasks: () =
   return (
     <ModuleScreen title="Metas" text="Objetivos com prazo, ritmo e progresso real: só conta o que você registra."
       action={<PrimaryAction onClick={() => setCriando(true)}>Nova meta</PrimaryAction>}
-      summary={metas && metas.length > 0 && aba !== "arquivada" ? <Summary items={resumo} /> : undefined}>
+      summary={metas && metas.length > 0 && aba !== "arquivada" ? <MetasPainel metas={todas} resumo={resumo} onOpen={setAberta} /> : undefined}>
         {toast && <p className={`fin-toast ${toast.err ? "err" : ""}`} role="status">{toast.text}</p>}
         {criando && (
           <Panel title="Nova meta" icon="target">
@@ -404,5 +405,29 @@ function MetaForm({ goal, onClose, onSaved, say }: { goal?: MetaView["goal"]; on
       <label className="fld"><span>Prazo <em className="opt">(opcional)</em></span><input className="field" type="date" value={prazo} onChange={(e) => setPrazo(e.target.value)} /></label>
       <div className="form-actions"><button className="btn btn-pri" type="submit" disabled={busy}>{busy ? "Salvando…" : "Salvar"}</button><button className="btn" type="button" onClick={onClose}>Cancelar</button></div>
     </form>
+  );
+}
+
+/** Painel de resumo das Metas (tema JARVIS): indicadores e um anel por meta ativa. Só progresso registrado; sem registro, "–". */
+function MetasPainel({ metas, resumo, onOpen }: { metas: MetaView[]; resumo: { n: number; label: string; tone?: "ok" | "hot" }[]; onOpen: (id: string) => void }) {
+  const ordem: Record<string, number> = { vencida: 0, atrasada: 1, no_ritmo: 2, sem_prazo: 3, sem_dados: 4, batida: 5 };
+  const ativas = metas.filter((m) => m.goal.status === "ativa").sort((a, b) => (ordem[a.ritmo.situacao] ?? 9) - (ordem[b.ritmo.situacao] ?? 9)).slice(0, 6);
+  return (
+    <section className="pnl" id="painel" aria-labelledby="painel-metas">
+      <h2 className="pnl-h" id="painel-metas">Resumo das metas <small>Diga: “como estou nas minhas metas?”</small></h2>
+      <KpiRow label="Metas em números">
+        {resumo.map((r) => <Kpi key={r.label} label={r.label} value={r.n} tone={r.tone} />)}
+      </KpiRow>
+      {ativas.length > 0 && (
+        <ul className="grings hud-frame pnl-rings" aria-label="Progresso das metas ativas">
+          {ativas.map((m) => (
+            <li key={m.goal.id}><button className="gring-btn" onClick={() => onOpen(m.goal.id)} title={`Abrir a meta ${m.goal.titulo}`}>
+              <Ring pct={m.progresso.semDados ? null : m.progresso.pct} label={m.goal.titulo} sub={SITUACAO_LABEL[m.ritmo.situacao]}
+                tone={m.ritmo.situacao === "atrasada" || m.ritmo.situacao === "vencida" ? "hot" : m.ritmo.situacao === "batida" ? "ok" : undefined} />
+            </button></li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

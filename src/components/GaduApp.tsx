@@ -338,6 +338,13 @@ export function GaduApp(props: {
         if (alvo) { tabStackRef.current = st.slice(0, -1); skipPushRef.current = true; }
       }
       if (alvo) { if (window.innerWidth < 1024) openAssist(false); setTabRef.current(alvo); }
+      // "Mostra meu resumo de finanças": depois de trocar de tela, leva o painel de resumo para a vista.
+      if (alvo && nav.tipo === "abrir" && nav.painel) window.setTimeout(() => {
+        const el = document.getElementById("painel");
+        el?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+        const h = el?.querySelector<HTMLElement>("h2");
+        if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
+      }, 350);
       if (opts.voice && prefsRef.current.voice) speaker?.announce(navSpoken(nav, alvo));
       else if (!alvo) setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: navSpoken(nav, null) }]);
       return;

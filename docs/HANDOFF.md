@@ -67,6 +67,10 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 17:05 · Cursor (Grok Bot), painéis de resumo
+- Tema JARVIS publicado (PR #107, merge às 17:03). Painéis de resumo com gráficos leves em Hoje, Finanças, Metas, Tarefas e Agentes (`charts.tsx`, `paineis.css`, `painel.ts`), só dados reais; voz "mostra meu resumo de finanças" (`nav-intent.ts`, `painel: true`, rola até `#painel`). Classes com prefixo próprio (`gkpi`, `gring`, `pnl-*`) porque `.kpi`, `.ring` e `.dash` já existiam no CSS antigo.
+- **Próximos:** M4, G1 (voz imersiva com anéis reagindo à voz), G3 (design system v2 com testes visuais).
+
 ### 23/11/2026 16:46 · Cursor (Grok Bot), tema JARVIS (G2)
 - Eduardo escolheu a G2 JARVIS às 16:33 (claro padrão, escuro opção, barra flutuante da E com microfone sólido por cima, sem traço acima do microfone). Branch `feat/jarvis-tema`: `src/app/jarvis.css` (importado depois de `ux7.css` no `layout.tsx`), cores do `theme-color`/manifest em `theme.ts` e `manifest.webmanifest`, `DESIGN.md` atualizado.
 - **Próximos:** painéis de resumo e gráficos (só dados reais), M4, G1 (voz imersiva no estilo JARVIS com anéis reagindo à voz) e G3 (design system v2 com testes visuais).
