@@ -159,6 +159,8 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 
 **UX-5 (23/11/2026):** toda tela de módulo vazia convida a falar: mostra uma frase de exemplo (só de ações que já existem nesta matriz) e o botão "Falar com o GaDu", que abre a tela de escuta num toque. Agentes: o convite sugere "Cria um agente para me ajudar com os estudos" (ação `agente_criar`). A confirmação falada mostra o mesmo cartão da conversa.
 
+**UX-7 M5 (23/11/2026):** "o que posso dizer aqui". Toda tela tem o botão de balão no topo com 3 ou 4 frases de ações desta matriz; pela voz, "o que posso dizer aqui?" abre o mesmo cartão e lê exemplos (comando local, sem modelo). Tocar numa frase só leva o texto ao campo.
+
 **UX-7 G2 (23/11/2026):** navegação por intenção. "Abre finanças", "vai para as metas", "abre o 3D" e "volta" (tela anterior) funcionam por voz e por texto em qualquer tela, entendidos no aparelho (sem modelo). Frases que pedem conteúdo continuam com o GaDu.
 
 **UX-7 (23/11/2026):** palco de voz. O avatar do GaDu fica grande na tela de escuta, na Conversa e no painel do assistente enquanto ele ouve, pensa ou fala, e reage ao som real. É só apresentação: não há ação nova a cobrir nesta matriz.

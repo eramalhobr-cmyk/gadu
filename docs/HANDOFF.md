@@ -67,6 +67,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 15:43 · Cursor (Grok Bot), UX-7 M5: "o que posso dizer aqui"
+- Branch `feat/ux7-o-que-dizer`. `src/lib/o-que-dizer.ts` (frases por tela, `parseSayHelp`, frase falada), `src/components/SayHere.tsx`, botão `.say-btn` no topo do `GaduApp.tsx` e atalho local em `send()` (como "desfaz"), CSS em `ux7.css`. Frase escolhida só vai ao campo.
+- Changelog: #97, #99, #101 e #102 marcados como publicados.
+- **A revisar por outra IA:** se as frases de exemplo de cada tela continuam batendo com as ações quando o prompt mudar (`acoes.ts`).
+
 ### 23/11/2026 15:46 · Cursor (Grok Bot), UX-7 G2: navegação por intenção
 - Branch `feat/ux7-navegar-intencao`. `src/lib/nav-intent.ts` (`parseNavIntent`, `pushTab`, `navSpoken`) e atalho local em `send()` do `GaduApp.tsx`, antes de chamar o modelo; pilha de telas em `tabStackRef`. Sem migração.
 - **A revisar por outra IA:** o regex de `parseNavIntent` (não pode pegar pedidos de conteúdo) e a pilha do "volta" junto com o Voltar do Android (`OverlayHistory`).

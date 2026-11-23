@@ -8,6 +8,8 @@ import type { Ajuste } from "@/lib/acoes";
 import { actionQuestion, describe, splitNavegacao } from "@/lib/chat-actions";
 import { GIVE_UP_LINE, parseAnswer, resultLine, RETRY_LINE } from "@/lib/voice-confirm";
 import { SourcesDetail, type SourcesData } from "./SourcesDetail";
+import { SayHere } from "./SayHere";
+import { parseSayHelp, sayHereSpoken } from "@/lib/o-que-dizer";
 import { navSpoken, parseNavIntent, pushTab } from "@/lib/nav-intent";
 import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
@@ -111,6 +113,7 @@ export function GaduApp(props: {
 }) {
   const [tab, setTabState] = useState<ViewId>(props.initialView);
   const [assist, setAssist] = useState(false);
+  const [sayOpen, setSayOpen] = useState(false);
   const navHiddenRef = useRef<(v: ViewId) => boolean>(() => false);
   const setTabRef = useRef<(v: ViewId) => void>(() => {});
   /** Largura do painel do assistente no computador (arrastável), em px. */
@@ -303,6 +306,13 @@ export function GaduApp(props: {
       lastFailRef.current = null;
       setDraft("");
       void sendRef.current(f.message, { voice: opts.voice ?? f.voice });
+      return;
+    }
+    // "O que posso dizer aqui?": mostra as frases da tela atual (e fala, se veio por voz). Sem modelo e sem custo.
+    if (message && parseSayHelp(message)) {
+      setDraft("");
+      setSayOpen(true);
+      if (opts.voice && prefsRef.current.voice) speaker?.announce(sayHereSpoken(tabRef.current));
       return;
     }
     // "Abre finanças", "vai para as metas", "volta": navegação entendida aqui, sem modelo e sem custo (UX-7 G2).
@@ -775,6 +785,14 @@ export function GaduApp(props: {
   const title = view ? viewDef(view).label : "Ajuda";
   const tip = view ? TIP_OF[view] : undefined;
   const showAssist = assist && view !== "conversa";
+  const closeSay = useCallback(() => setSayOpen(false), []);
+  // Frase escolhida vai para o campo (fora da Conversa, abre o assistente desta tela) para conferir antes de enviar.
+  const pickSay = (s: string) => {
+    setSayOpen(false);
+    setDraft(s);
+    if (view !== "conversa") openAssist(true);
+    requestAnimationFrame(() => (document.getElementById(view === "conversa" ? "msg" : "assist-msg") ?? document.getElementById("msg"))?.focus());
+  };
   const stop = () => { if (listening) recRef.current?.stop(); else { abortRef.current?.abort(); speaker?.cancel(); setMode("idle"); } };
   const initial = (name || props.email || "G").trim().charAt(0).toUpperCase();
 
@@ -957,6 +975,7 @@ export function GaduApp(props: {
           <div className="bar-actions">
             {/* Estado só quando há algo acontecendo (escutando, pensando, respondendo). */}
             {active && <span className={`mono state ${mode === "thinking" ? "hot" : ""}`} role="status"><i />{stateLabel}</span>}
+            <button className={`icon-btn say-btn ${sayOpen ? "on" : ""}`} onClick={() => setSayOpen((o) => !o)} aria-label="O que posso dizer aqui?" title="O que posso dizer aqui?" aria-expanded={sayOpen}><Icon name="chat" /></button>
             <button className="icon-btn desk-only" onClick={() => toggleTheme()} aria-label={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"}><Icon name={theme === "dark" ? "sun" : "moon"} /></button>
             {view !== "conversa" && (
               <button className="icon-btn desk-only" onClick={() => openAssist(!assist)} aria-label={assist ? "Fechar o assistente" : "Abrir o assistente"} aria-pressed={assist}><Icon name="panel" /></button>
@@ -964,6 +983,7 @@ export function GaduApp(props: {
             <a className="icon-btn desk-only" href="/app/guia" aria-label="Guia do GaDu" title="Guia do GaDu"><b aria-hidden="true">?</b></a>
           </div>
         </header>
+        {sayOpen && <SayHere view={view ?? tab} onClose={closeSay} onPick={pickSay} />}
         {!online && <div className="banner" role="status">{MSG.offlineBanner}</div>}
         {tip && !seen.has(tip) && <TipCard key={`tip-${tip}`} id={tip} onDone={() => markTip(tip)} />}
         {pageOpen && <main className="page doc-page" id="conteudo">{props.page}</main>}
