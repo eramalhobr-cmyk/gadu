@@ -57,3 +57,24 @@ test("tudo por voz: cartões e perguntas de tarefa (cancelar, reabrir, editar) e
   assert.equal(d(ad).applied, false);
   assert.equal(actionQuestion(ad, NOW), "Adio o lembrete Tomar o remédio para amanhã 09:00?");
 });
+
+test("tudo por voz: cartões e perguntas de conta, gasto e evento (apagar avisa que não dá para desfazer)", async () => {
+  const { actionQuestion, describe: d } = await import("./chat-actions.ts");
+  assert.equal(actionQuestion({ kind: "conta_desmarcar", itemId: "i", nome: "Luz", valor: 180, ano: 2026, mes: 11 }, NOW), "Volto a conta Luz para em aberto?");
+  const cv: ChatAction = { kind: "conta_valor", itemId: "i", nome: "Luz", antes: 180, valor: 210.5, escopo: "proximos", ano: 2026, mes: 11 };
+  assert.equal(d(cv).detail, "R$ 180,00 → R$ 210,50 · 11/2026 até dezembro");
+  assert.equal(actionQuestion(cv, NOW), "Mudo a conta Luz para 210 reais e 50 centavos, deste mês até dezembro?");
+  const ga: ChatAction = { kind: "gasto_apagar", id: "g", valor: 45.5, categoria: "Mercado", descricao: "feira", data: "2026-11-20" };
+  assert.equal(d(ga).title, "R$ 45,50 · feira");
+  assert.match(d(ga).detail, /não dá para desfazer/);
+  assert.match(actionQuestion(ga, NOW), /Não dá para desfazer\.$/);
+  const ge: ChatAction = { kind: "gasto_editar", id: "g", atual: { valor: 100, categoria: "Mercado", descricao: "", data: "2026-11-20" }, mudancas: { valor: 120, meio: "pix", data: "2026-11-21" } };
+  assert.equal(d(ge).detail, "Agora: R$ 120,00 · Pix · 21/11");
+  assert.equal(actionQuestion(ge, NOW), "No gasto de 100 reais, Mercado, mudo o valor para 120 reais, a forma de pagamento para Pix, o dia para ontem?");
+  const ea: ChatAction = { kind: "evento_apagar", eventId: "e", title: "Dentista", start: "2026-11-23T10:00:00-03:00", end: "2026-11-23T11:00:00-03:00" };
+  assert.equal(actionQuestion(ea, NOW), "Apago o evento Dentista, de amanhã 10:00? Não dá para desfazer.");
+  assert.match(d(ea).detail, /não dá para desfazer/);
+  const ee: ChatAction = { kind: "evento_editar", eventId: "e", title: "Dentista", start: "2026-11-23T10:00:00-03:00", end: "2026-11-23T11:00:00-03:00", mudancas: { title: "Dentista da Ana", start: "2026-11-23T15:00:00-03:00", end: "2026-11-23T16:00:00-03:00" } };
+  assert.equal(actionQuestion(ee, NOW), "No evento Dentista, mudo o título para Dentista da Ana, o horário para amanhã 15:00?");
+  for (const a of [ga, ea, ge, ee, cv]) assert.equal(d(a).applied, false, "nunca pré-aplicado: só grava depois do toque ou do sim");
+});

@@ -24,6 +24,8 @@ let rpcFail: string | null = null;
 let reserveAllowed = true;
 let modelText = "Resposta [F1].";
 let finFail = false;
+let calendarFail = false;
+let calEvents: { id?: string; title: string; start: string; end: string; allDay: boolean; where?: string; meet: boolean; declined: boolean }[] = [];
 
 const finDb = () => makeFinDb(store, () => sessionUser, log);
 
@@ -92,7 +94,7 @@ const fmt = await import(src("lib/google-format.ts"));
 mock.module(src("lib/google.ts"), {
   namedExports: {
     googleIntent: fmt.googleIntent, formatEvents: fmt.formatEvents, formatMails: fmt.formatMails, GoogleError: class extends Error {},
-    accessToken: async () => "tok", events: async () => [], inbox: async () => [],
+    accessToken: async () => "tok", events: async () => { if (calendarFail) throw new Error("google fora"); return calEvents; }, inbox: async () => [],
   },
 });
 class BudgetReached extends Error {}
@@ -150,7 +152,7 @@ function seed() {
   };
 }
 function resetAll() {
-  sessionUser = A; tablesRead = []; providerCalls = []; completeCalls = 0; rpcNames = []; rpcFail = null; reserveAllowed = true; modelText = "Resposta [F1]."; finFail = false;
+  sessionUser = A; tablesRead = []; providerCalls = []; completeCalls = 0; rpcNames = []; rpcFail = null; reserveAllowed = true; modelText = "Resposta [F1]."; finFail = false; calendarFail = false; calEvents = [];
   log = { tables: [], writes: [] };
   delete process.env.FINANCE_ENABLED; delete process.env.CORE_MVP;
   seed();
@@ -328,4 +330,73 @@ test("tudo por voz: FINANCE_ENABLED=0 não gera cartão de conta", async () => {
   modelText = `Ok.\n<<<META>>>\n${JSON.stringify({ acoes: [{ tipo: "conta_paga", conta: "aluguel" }] })}`;
   const events = await chat("paguei o aluguel");
   assert.equal(events.find((e) => e.t === "acoes"), undefined);
+});
+
+// ---- "Tudo por voz": desmarcar conta, valor do mês, gasto editar/apagar, evento editar/apagar ----
+const ACOES_TXT = (acoes: unknown[]) => `Preparei, é só confirmar.\n<<<META>>>\n${JSON.stringify({ acoes })}`;
+const eventosDe = (evs: Ev[]) => evs.find((e) => e.t === "acoes")?.items ?? [];
+
+test("tudo por voz: desmarcar conta, mudar valor do mês, editar e apagar gasto só propõem e só acham itens de A", async () => {
+  const { ano, mes } = HOJE;
+  store.fin_itens.push({ id: "i4", user_id: A, tipo: "despesa", grupo: "Moradia", nome: "Internet", nota: null, ordem: 1, dia: 10, dia_estimado: false, movivel: false, nao_caixa: false, cartao_id: null, segue_id: null });
+  store.fin_item_meses.push({ item_id: "i4", user_id: A, ano, mes, valor: 120, pago: true, via_reserva: false, nota: null });
+  modelText = ACOES_TXT([
+    { tipo: "conta_desmarcar", conta: "internet" },
+    { tipo: "conta_valor", conta: "aluguel", valor: "1.650,00", escopo: "proximos" },
+    { tipo: "gasto_apagar", gasto: "mercado", valor: 45.5 },
+    { tipo: "gasto_editar", gasto: "feira", valor: 120, meio: "credito" },
+    { tipo: "gasto_apagar", gasto: "SEGREDO-B gasto" },
+    { tipo: "conta_valor", conta: "SEGREDO-B conta", valor: 1 },
+  ]);
+  const events = await chat("a internet ainda não foi paga, o aluguel subiu, apaga o gasto de 45,50 e a feira foi 120 no crédito");
+  const items = eventosDe(events);
+  assert.deepEqual(items.map((i) => i.kind), ["conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar"]);
+  assert.deepEqual(items[0], { kind: "conta_desmarcar", itemId: "i4", nome: "Internet", valor: 120, ano, mes });
+  assert.deepEqual(items[1], { kind: "conta_valor", itemId: "i2", nome: "Aluguel", antes: 1500, valor: 1650, escopo: "proximos", ano, mes });
+  assert.equal(items[2].id, "g2");
+  assert.deepEqual(items[3].mudancas, { valor: 120, meio: "credito" });
+  assert.equal(items[3].id, "g1");
+  assert.ok(events.filter((e) => e.t === "notice").length >= 1, "o que é de B vira aviso");
+  assert.ok(!JSON.stringify(events).includes("SEGREDO-B") && !JSON.stringify(events).includes("8888") && !JSON.stringify(events).includes("7777"), "nada de B");
+  assert.equal(log.writes.length, 0, "nada gravado antes de confirmar");
+});
+
+test("tudo por voz: FINANCE_ENABLED=0 não gera cartão de conta nem de gasto (e a agenda continua)", async () => {
+  process.env.FINANCE_ENABLED = "0";
+  calEvents = [{ id: "ev1", title: "Dentista", start: new Date(Date.now() + 86_400_000).toISOString(), end: new Date(Date.now() + 90_000_000).toISOString(), allDay: false, meet: false, declined: false }];
+  modelText = ACOES_TXT([{ tipo: "conta_desmarcar", conta: "salário" }, { tipo: "conta_valor", conta: "aluguel", valor: 1 }, { tipo: "gasto_apagar", gasto: "feira" }, { tipo: "gasto_editar", gasto: "feira", valor: 3 }, { tipo: "evento_apagar", evento: "dentista" }]);
+  const events = await chat("faz tudo isso");
+  assert.deepEqual(eventosDe(events).map((i) => i.kind), ["evento_apagar"]);
+  assert.deepEqual(finTablesRead(), []);
+});
+
+test("tudo por voz: evento editar e apagar acham o evento na agenda da pessoa, só propõem e mantêm a duração", async () => {
+  const ini = new Date(Date.now() + 2 * 86_400_000); ini.setUTCMinutes(0, 0, 0);
+  const fim = new Date(ini.getTime() + 3_600_000);
+  const novo = new Date(ini.getTime() + 7_200_000).toISOString();
+  calEvents = [
+    { id: "ev1", title: "Dentista", start: ini.toISOString(), end: fim.toISOString(), allDay: false, meet: false, declined: false },
+    { id: "ev2", title: "Aniversário", start: ini.toISOString().slice(0, 10), end: ini.toISOString().slice(0, 10), allDay: true, meet: false, declined: false },
+  ];
+  modelText = ACOES_TXT([
+    { tipo: "evento_editar", evento: "dentista", titulo: "Dentista da Ana", inicio: novo, local: "Clínica Sorriso" },
+    { tipo: "evento_editar", evento: "aniversário", inicio: novo },
+    { tipo: "evento_apagar", evento: "dentista" },
+    { tipo: "evento_apagar", evento: "reunião inexistente" },
+  ]);
+  const events = await chat("muda o dentista pras duas horas depois, apaga o dentista");
+  const items = eventosDe(events);
+  assert.deepEqual(items.map((i) => i.kind), ["evento_editar", "evento_apagar"]);
+  assert.deepEqual(items[0].mudancas, { title: "Dentista da Ana", location: "Clínica Sorriso", start: novo, end: new Date(Date.parse(novo) + 3_600_000).toISOString() });
+  assert.equal(items[1].eventId, "ev1");
+  assert.equal(events.filter((e) => e.t === "notice" && e.kind === "acao").length, 2, "dia inteiro e evento inexistente viram aviso");
+  assert.equal(log.writes.length, 0);
+});
+
+test("tudo por voz: agenda do Google fora do ar vira aviso, sem cartão", async () => {
+  calendarFail = true;
+  modelText = ACOES_TXT([{ tipo: "evento_apagar", evento: "dentista" }]);
+  const events = await chat("apaga o dentista");
+  assert.equal(eventosDe(events).length, 0);
+  assert.ok(events.some((e) => e.t === "notice" && /agenda do Google/.test(e.text ?? "")));
 });

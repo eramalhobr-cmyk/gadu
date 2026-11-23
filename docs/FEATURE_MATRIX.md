@@ -158,10 +158,15 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Lembretes | cancelar | sim | `lembrete_cancelar` | — |
 | Lembretes | adiar (soneca) | sim | `lembrete_adiar` (novo horário em Brasília; vale também para lembrete já avisado, que volta a pendente) | — |
 | Agenda | criar evento | sim | `"eventos"` (proposta) | — |
-| Agenda | editar ou apagar evento | **não** | — | lacuna: não há rota de edição; exige permissão nova do Google |
+| Agenda | editar (título, horário, local) | sim | `evento_editar` (acha o evento na agenda de ontem a 45 dias; sem "fim" mantém a duração; evento de dia inteiro só muda título e local) | permissão: o escopo `calendar.events` que já pedimos para criar também edita e apaga; OAuth **não mudou**. Quem conectou sem esse escopo recebe "Falta permissão" e reconecta |
+| Agenda | apagar evento | sim | `evento_apagar` (confirmação explícita; não dá para desfazer) | — |
 | Finanças | lançar gasto | sim | `"gastos"` (proposta) | — |
 | Finanças | marcar conta do mês como paga ("paguei a luz") | sim | `conta_paga` (com os vínculos de cartão e "segue") | — |
-| Finanças | desmarcar paga, mudar valor do mês, criar conta, editar ou apagar gasto, configurar salário | **não** | — | lacuna |
+| Finanças | desmarcar paga | sim | `conta_desmarcar` (`PUT /api/finance/itens/:id/mes` com `pago:false`) | — |
+| Finanças | mudar o valor do mês (só este mês ou até dezembro) | sim | `conta_valor` (valor maior que zero; zerar a conta do mês fica na tela) | — |
+| Finanças | editar gasto (valor, categoria, descrição, forma de pagamento, dia) | sim | `gasto_editar` (acha pelo nome, valor e dia; se couber em mais de um, pede mais detalhe) | — |
+| Finanças | apagar gasto | sim | `gasto_apagar` (confirmação explícita; não dá para desfazer) | — |
+| Finanças | criar conta, configurar salário | **não** | — | lacuna |
 | Metas | criar (número, percentual, marcos, tarefas) | sim | `meta_criar` | — |
 | Metas | registrar progresso, concluir | sim | `meta_registrar`, `meta_concluir` (pelo nome) e `"metas"` (pela etiqueta [M1]) | — |
 | Metas | adicionar marco, concluir marco | sim | `meta_marco`, `meta_marco_concluir` | — |

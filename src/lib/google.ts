@@ -60,7 +60,7 @@ async function tokenRequest(params: Record<string, string>): Promise<TokenRespon
 }
 
 export class GoogleError extends Error {
-  constructor(public kind: "revoked" | "token" | "api" | "not_connected" | "scope") { super(kind); }
+  constructor(public kind: "revoked" | "token" | "api" | "not_connected" | "scope" | "gone") { super(kind); }
 }
 
 /** E-mail da conta Google, lido do id_token que veio direto do Google por TLS. */
@@ -193,4 +193,38 @@ export async function createEvent(token: string, ev: { title: string; start: str
   if (r.status === 403) throw new GoogleError("scope");
   if (!r.ok) throw new GoogleError("api");
   return (await r.json()) as { id: string; htmlLink: string };
+}
+
+const EVENT_FIELDS = "fields=id,htmlLink,summary,start,end";
+function eventUrl(id: string) {
+  return `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(id)}`;
+}
+function checkWrite(r: Response) {
+  if (r.status === 401) throw new GoogleError("revoked");
+  if (r.status === 403) throw new GoogleError("scope");
+  if (r.status === 404 || r.status === 410) throw new GoogleError("gone");
+  if (!r.ok) throw new GoogleError("api");
+}
+
+/** Muda título, horário e/ou local de um evento da agenda principal (escopo calendar.events, o mesmo de criar). Só depois que a pessoa confirma. */
+export async function updateEvent(token: string, id: string, ev: { title?: string; start?: string; end?: string; location?: string }) {
+  const r = await fetch(`${eventUrl(id)}?${EVENT_FIELDS}`, {
+    method: "PATCH",
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      ...(ev.title ? { summary: ev.title } : {}),
+      ...(ev.location ? { location: ev.location } : {}),
+      ...(ev.start ? { start: { dateTime: ev.start, timeZone: TZ } } : {}),
+      ...(ev.end ? { end: { dateTime: ev.end, timeZone: TZ } } : {}),
+    }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  checkWrite(r);
+  return (await r.json()) as { id: string; htmlLink: string };
+}
+
+/** Apaga um evento da agenda principal. Só depois que a pessoa confirma ("Apagar" no cartão ou "sim" falado). */
+export async function deleteEvent(token: string, id: string) {
+  const r = await fetch(eventUrl(id), { method: "DELETE", headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) });
+  checkWrite(r);
 }

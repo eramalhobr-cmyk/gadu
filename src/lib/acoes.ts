@@ -3,6 +3,9 @@
 // e manda cartões; quem grava é a pessoa, com um toque ou dizendo "sim". Puro: sem banco nem rede.
 import { lerData, hojeSP, isoDia, ordinal } from "./finance/datas.ts";
 import { parseNumero } from "./goals/numero.ts";
+import { normalizarCategoria, normalizarMeio } from "./finance/lancamento.ts";
+import { parseValor } from "./finance/money.ts";
+import type { Meio } from "./finance/types.ts";
 import { CATEGORIAS, MEDICOES, type Categoria, type Medicao } from "./goals/types.ts";
 
 export type Ajuste = { opcao: "texto"; valor: "100" | "115" | "130" } | { opcao: "maos_livres" | "respostas_curtas" | "voz"; valor: boolean } | { opcao: "tema"; valor: "dark" | "light" };
@@ -22,10 +25,16 @@ export type AcaoProposta =
   | { tipo: "lembrete_cancelar"; lembrete: string }
   | { tipo: "lembrete_adiar"; lembrete: string; quando: string }
   | { tipo: "conta_paga"; conta: string }
+  | { tipo: "conta_desmarcar"; conta: string }
+  | { tipo: "conta_valor"; conta: string; valor: number; escopo: "mes" | "proximos" }
+  | { tipo: "gasto_apagar"; gasto: string; valor: number | null; data: string | null }
+  | { tipo: "gasto_editar"; gasto: string; de_valor: number | null; de_data: string | null; valor: number | null; categoria: string | null; descricao: string | null; meio: Meio | null; data: string | null }
+  | { tipo: "evento_editar"; evento: string; titulo: string | null; inicio: string | null; fim: string | null; local: string | null }
+  | { tipo: "evento_apagar"; evento: string }
   | { tipo: "projeto_criar"; nome: string; objetivo: string | null }
   | { tipo: "ajuste"; ajuste: Ajuste };
 
-export const TIPOS = ["meta_criar", "meta_registrar", "meta_concluir", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "projeto_criar", "ajuste"] as const;
+export const TIPOS = ["meta_criar", "meta_registrar", "meta_concluir", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "projeto_criar", "ajuste"] as const;
 
 const txt = (v: unknown, max: number): string => (typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "");
 
@@ -55,6 +64,8 @@ function quandoFuturo(v: unknown, now: number): string | null {
   if (!t || Number.isNaN(d.getTime())) return null;
   return d.getTime() >= now + 20_000 && d.getTime() <= now + 366 * 86_400_000 ? d.toISOString() : null;
 }
+
+const valorOuNulo = (v: unknown): number | null => { const n = parseValor(v); return n !== null && n > 0 ? n : null; };
 
 function validAjuste(o: Record<string, unknown>): Ajuste | null {
   const v = o.valor;
@@ -153,6 +164,37 @@ export function validAcao(raw: unknown, now = Date.now()): AcaoProposta | null {
       const conta = txt(o.conta, 80);
       return conta ? { tipo: "conta_paga", conta } : null;
     }
+    case "conta_desmarcar": {
+      const conta = txt(o.conta, 80);
+      return conta ? { tipo: "conta_desmarcar", conta } : null;
+    }
+    case "conta_valor": {
+      const conta = txt(o.conta, 80), valor = parseValor(o.valor);
+      return conta && valor !== null && valor > 0 ? { tipo: "conta_valor", conta, valor, escopo: o.escopo === "proximos" ? "proximos" : "mes" } : null;
+    }
+    case "gasto_apagar": {
+      const gasto = txt(o.gasto, 120), valor = valorOuNulo(o.valor), data = dataPassada(o.data, now);
+      return gasto || valor !== null || data ? { tipo: "gasto_apagar", gasto, valor, data } : null;
+    }
+    case "gasto_editar": {
+      const gasto = txt(o.gasto, 120), de_valor = valorOuNulo(o.de_valor), de_data = dataPassada(o.de_data, now);
+      const valor = valorOuNulo(o.valor), data = dataPassada(o.data, now);
+      const categoria = txt(o.categoria, 40) ? normalizarCategoria(o.categoria) : null;
+      const descricao = typeof o.descricao === "string" ? txt(o.descricao, 120) : null;
+      const meio = txt(o.meio, 40) ? normalizarMeio(o.meio) : null;
+      if (!(gasto || de_valor !== null || de_data)) return null;
+      if (valor === null && !categoria && descricao === null && !meio && !data) return null;
+      return { tipo: "gasto_editar", gasto, de_valor, de_data, valor, categoria, descricao, meio, data };
+    }
+    case "evento_editar": {
+      const evento = txt(o.evento, 160), titulo = txt(o.titulo, 160) || null, local = txt(o.local, 160) || null;
+      const inicio = quandoFuturo(o.inicio, now), fim = quandoFuturo(o.fim, now);
+      return evento && (titulo || inicio || fim || local) ? { tipo: "evento_editar", evento, titulo, inicio, fim, local } : null;
+    }
+    case "evento_apagar": {
+      const evento = txt(o.evento, 160);
+      return evento ? { tipo: "evento_apagar", evento } : null;
+    }
     case "projeto_criar": {
       const nome = txt(o.nome, 80);
       return nome ? { tipo: "projeto_criar", nome, objetivo: txt(o.objetivo, 400) || null } : null;
@@ -227,6 +269,9 @@ export function acoesRules(): string {
   {"tipo":"tarefa_editar","tarefa":"nome atual","titulo":"novo título","prioridade":1,"prazo":"AAAA-MM-DD","projeto":"nome do projeto"} (só os campos que mudam; prioridade 1 alta, 2 normal, 3 baixa);
   {"tipo":"lembrete_adiar","lembrete":"...","quando":"AAAA-MM-DDTHH:MM:00-03:00"} ("me lembra daqui a 1 hora", "adia para amanhã às 9": calcule o novo horário a partir de agora, no horário de Brasília);
   {"tipo":"conta_paga","conta":"luz"} ("paguei a luz", "a internet já foi paga": marca a conta do mês como paga);
+  {"tipo":"conta_desmarcar","conta":"luz"} ("a luz ainda não foi paga": volta a conta do mês para em aberto); {"tipo":"conta_valor","conta":"luz","valor":210.5,"escopo":"mes|proximos"} ("a luz veio 210,50 este mês"; "proximos" = deste mês até dezembro);
+  {"tipo":"gasto_apagar","gasto":"mercado","valor":50,"data":"AAAA-MM-DD"} (apaga um gasto já lançado: nome ou categoria, e o valor ou a data se ajudarem a achar); {"tipo":"gasto_editar","gasto":"mercado","de_valor":50,"de_data":"AAAA-MM-DD","valor":55,"categoria":"Mercado","descricao":"...","meio":"pix","data":"AAAA-MM-DD"} (de_* só para achar o gasto; valor, categoria, descricao, meio e data são o que muda);
+  {"tipo":"evento_editar","evento":"título atual","titulo":"novo título","inicio":"AAAA-MM-DDTHH:MM:00-03:00","fim":"AAAA-MM-DDTHH:MM:00-03:00","local":"..."} (só o que muda; sem "fim", a duração é mantida); {"tipo":"evento_apagar","evento":"título"} (eventos da agenda do Google);
   {"tipo":"projeto_criar","nome":"...","objetivo":"..."};
   {"tipo":"ajuste","opcao":"texto","valor":"100|115|130"} (letra normal, grande, maior), {"tipo":"ajuste","opcao":"maos_livres|respostas_curtas|voz","valor":true|false}, {"tipo":"ajuste","opcao":"tema","valor":"dark|light"}.
   Diga em uma frase o que preparou ("Preparei, é só confirmar"). Não diga que não consegue fazer algo que está nesta lista. No máximo 5 itens; quase sempre a lista fica vazia.`;

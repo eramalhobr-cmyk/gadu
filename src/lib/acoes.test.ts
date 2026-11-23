@@ -82,3 +82,34 @@ test("lembrete_adiar exige horário futuro (sem fuso = Brasília) e até 1 ano",
   assert.equal(validAcao({ tipo: "lembrete_adiar", lembrete: "Remédio", quando: "amanhã" }, NOW), null);
   assert.equal(validAcao({ tipo: "lembrete_adiar", quando: "2026-11-23T09:00:00" }, NOW), null);
 });
+
+test("conta_desmarcar e conta_valor: valor positivo, 'proximos' só quando dito", () => {
+  assert.deepEqual(validAcao({ tipo: "conta_desmarcar", conta: "luz" }, NOW), { tipo: "conta_desmarcar", conta: "luz" });
+  assert.equal(validAcao({ tipo: "conta_desmarcar" }, NOW), null);
+  assert.deepEqual(validAcao({ tipo: "conta_valor", conta: "luz", valor: "R$ 210,50" }, NOW), { tipo: "conta_valor", conta: "luz", valor: 210.5, escopo: "mes" });
+  assert.deepEqual(validAcao({ tipo: "conta_valor", conta: "luz", valor: 100, escopo: "proximos" }, NOW), { tipo: "conta_valor", conta: "luz", valor: 100, escopo: "proximos" });
+  assert.equal(validAcao({ tipo: "conta_valor", conta: "luz", valor: 0 }, NOW), null, "zero tiraria a conta do mês: não por voz");
+  assert.equal(validAcao({ tipo: "conta_valor", conta: "luz", valor: "abc" }, NOW), null);
+});
+
+test("gasto_apagar e gasto_editar: precisam de como achar o gasto; editar precisa de uma mudança", () => {
+  assert.deepEqual(validAcao({ tipo: "gasto_apagar", gasto: "mercado", valor: 50, data: "2026-11-20" }, NOW), { tipo: "gasto_apagar", gasto: "mercado", valor: 50, data: "2026-11-20" });
+  assert.deepEqual(validAcao({ tipo: "gasto_apagar", valor: "45,5" }, NOW), { tipo: "gasto_apagar", gasto: "", valor: 45.5, data: null });
+  assert.equal(validAcao({ tipo: "gasto_apagar" }, NOW), null, "sem nome, valor nem data");
+  assert.equal(validAcao({ tipo: "gasto_apagar", gasto: "x", valor: -1, data: "2026-11-30" }, NOW)?.tipo, "gasto_apagar", "valor e data inválidos só deixam de filtrar");
+  const e = validAcao({ tipo: "gasto_editar", gasto: "feira", de_valor: 100, valor: 120, categoria: "supermercado", meio: "Cartão de crédito", data: "2026-11-21" }, NOW);
+  assert.deepEqual(e, { tipo: "gasto_editar", gasto: "feira", de_valor: 100, de_data: null, valor: 120, categoria: "Mercado", descricao: null, meio: "credito", data: "2026-11-21" });
+  assert.equal(validAcao({ tipo: "gasto_editar", gasto: "feira" }, NOW), null, "sem mudança");
+  assert.equal(validAcao({ tipo: "gasto_editar", valor: 5 }, NOW), null, "sem como achar");
+  assert.equal(validAcao({ tipo: "gasto_editar", gasto: "feira", data: "2026-11-25" }, NOW), null, "data futura");
+  assert.equal((validAcao({ tipo: "gasto_editar", gasto: "feira", descricao: "" }, NOW) as { descricao: string }).descricao, "", "limpar a descrição vale");
+});
+
+test("evento_editar e evento_apagar", () => {
+  assert.deepEqual(validAcao({ tipo: "evento_editar", evento: "Dentista", titulo: "Dentista da Ana", inicio: "2026-11-24T15:00:00-03:00", local: "Clínica" }, NOW),
+    { tipo: "evento_editar", evento: "Dentista", titulo: "Dentista da Ana", inicio: "2026-11-24T18:00:00.000Z", fim: null, local: "Clínica" });
+  assert.equal(validAcao({ tipo: "evento_editar", evento: "Dentista" }, NOW), null);
+  assert.equal(validAcao({ tipo: "evento_editar", evento: "Dentista", inicio: "2026-11-01T15:00:00-03:00" }, NOW), null, "início no passado");
+  assert.deepEqual(validAcao({ tipo: "evento_apagar", evento: "Dentista" }, NOW), { tipo: "evento_apagar", evento: "Dentista" });
+  assert.equal(validAcao({ tipo: "evento_apagar", evento: " " }, NOW), null);
+});

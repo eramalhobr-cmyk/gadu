@@ -32,6 +32,12 @@ export type ChatAction =
   | { kind: "lembrete_off"; id: number; text: string; dueAt: string }
   | { kind: "lembrete_adiar"; id: number; text: string; dueAt: string; novoDueAt: string }
   | { kind: "conta_paga"; itemId: string; nome: string; valor: number; ano: number; mes: number }
+  | { kind: "conta_desmarcar"; itemId: string; nome: string; valor: number; ano: number; mes: number }
+  | { kind: "conta_valor"; itemId: string; nome: string; antes: number; valor: number; escopo: "mes" | "proximos"; ano: number; mes: number }
+  | { kind: "gasto_apagar"; id: string; valor: number; categoria: string; descricao: string; data: string }
+  | { kind: "gasto_editar"; id: string; atual: { valor: number; categoria: string; descricao: string; data: string }; mudancas: GastoMudancas }
+  | { kind: "evento_editar"; eventId: string; title: string; start: string; end: string; mudancas: { title?: string; start?: string; end?: string; location?: string } }
+  | { kind: "evento_apagar"; eventId: string; title: string; start: string; end: string }
   | { kind: "projeto"; nome: string; objetivo: string | null }
   | { kind: "ajuste"; ajuste: Ajuste };
 
@@ -46,6 +52,19 @@ export function mudancasTexto(m: TarefaMudancas): string {
   if (m.projeto) l.push(`projeto ${m.projeto}`);
   return l.join(" · ");
 }
+
+export type GastoMudancas = { valor?: number; categoria?: string; descricao?: string; meio?: Meio; data?: string };
+const dmy = (ymd: string) => `${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
+export function gastoMudancasTexto(m: GastoMudancas): string {
+  const l: string[] = [];
+  if (m.valor !== undefined) l.push(formatBRL(m.valor));
+  if (m.categoria) l.push(m.categoria);
+  if (m.descricao !== undefined) l.push(m.descricao ? `descrição: ${m.descricao}` : "sem descrição");
+  if (m.meio) l.push(MEIO_LABEL[m.meio]);
+  if (m.data) l.push(dmy(m.data));
+  return l.join(" · ");
+}
+const gastoNome = (g: { valor: number; categoria: string; descricao: string }) => `${formatBRL(g.valor)} · ${g.descricao || g.categoria}`;
 
 export type ActionView = {
   icon: string;
@@ -141,6 +160,21 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
       return { icon: "bell", proposed: "Cancelar lembrete?", done: "Lembrete cancelado", undone: "Descartado", title: a.text, detail: whenLabel(a.dueAt, now), confirm: "Cancelar lembrete", busy: "Salvando…", applied: false, open: { label: "Ver no Hoje", view: "hoje" } };
     case "conta_paga":
       return { icon: "coin", proposed: "Marcar conta como paga?", done: "Conta paga", undone: "Descartado", title: a.nome, detail: `${formatBRL(a.valor)} · ${String(a.mes).padStart(2, "0")}/${a.ano}`, confirm: "Marcar paga", busy: "Salvando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } };
+    case "conta_desmarcar":
+      return { icon: "coin", proposed: "Desmarcar conta paga?", done: "Conta em aberto", undone: "Descartado", title: a.nome, detail: `${formatBRL(a.valor)} · ${String(a.mes).padStart(2, "0")}/${a.ano} · volta para em aberto`, confirm: "Desmarcar", busy: "Salvando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } };
+    case "conta_valor":
+      return { icon: "coin", proposed: "Mudar o valor da conta?", done: "Valor mudado", undone: "Descartado", title: a.nome, detail: `${formatBRL(a.antes)} → ${formatBRL(a.valor)} · ${String(a.mes).padStart(2, "0")}/${a.ano}${a.escopo === "proximos" ? " até dezembro" : ""}`, confirm: "Mudar valor", busy: "Salvando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } };
+    case "gasto_apagar":
+      return { icon: "coin", proposed: "Apagar gasto?", done: "Gasto apagado", undone: "Descartado", title: gastoNome(a), detail: `${dmy(a.data)} · ${a.categoria} · não dá para desfazer`, confirm: "Apagar gasto", busy: "Apagando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } };
+    case "gasto_editar":
+      return { icon: "coin", proposed: "Mudar gasto?", done: "Gasto mudado", undone: "Descartado", title: gastoNome(a.atual), detail: `Agora: ${gastoMudancasTexto(a.mudancas)}`, confirm: "Mudar gasto", busy: "Salvando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } };
+    case "evento_editar": {
+      const m = a.mudancas;
+      const quando = m.start || m.end ? ` · ${eventWhen(m.start ?? a.start, m.end ?? a.end)}` : "";
+      return { icon: "calendar", proposed: "Mudar evento?", done: "Evento mudado", undone: "Descartado", title: a.title, detail: `${m.title ? `Novo título: ${m.title}` : "Mesmo título"}${quando}${m.location ? ` · ${m.location}` : ""}`, confirm: "Mudar evento", busy: "Salvando…", applied: false, open: { label: "Ver Agenda", view: "agenda" } };
+    }
+    case "evento_apagar":
+      return { icon: "calendar", proposed: "Apagar evento?", done: "Evento apagado", undone: "Descartado", title: a.title, detail: `${eventWhen(a.start, a.end)} · não dá para desfazer`, confirm: "Apagar evento", busy: "Apagando…", applied: false, open: { label: "Ver Agenda", view: "agenda" } };
     case "projeto":
       return { icon: "folder", proposed: "Projeto novo para confirmar", done: "Projeto criado", undone: "Descartado", title: a.nome, detail: a.objetivo || "Sem objetivo por enquanto", confirm: "Criar projeto", busy: "Criando…", applied: false, open: { label: "Ver Projetos", view: "projetos" } };
     case "ajuste":
@@ -180,6 +214,12 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     case "lembrete_adiar": return `Adio o lembrete ${a.text} para ${whenLabel(a.novoDueAt, now)}?`;
     case "lembrete_off": return `Cancelo o lembrete ${a.text}?`;
     case "conta_paga": return `Marco a conta ${a.nome}, de ${spokenMoney(a.valor)}, como paga?`;
+    case "conta_desmarcar": return `Volto a conta ${a.nome} para em aberto?`;
+    case "conta_valor": return `Mudo a conta ${a.nome} para ${spokenMoney(a.valor)}${a.escopo === "proximos" ? ", deste mês até dezembro" : " neste mês"}?`;
+    case "gasto_apagar": return `Apago o gasto de ${spokenMoney(a.valor)}, ${a.descricao || a.categoria}? Não dá para desfazer.`;
+    case "gasto_editar": return `No gasto de ${spokenMoney(a.atual.valor)}, ${a.atual.descricao || a.atual.categoria}, mudo ${gastoFalado(a.mudancas, now)}?`;
+    case "evento_editar": return `No evento ${a.title}, mudo ${eventoFalado(a, now)}?`;
+    case "evento_apagar": return `Apago o evento ${a.title}, de ${whenLabel(a.start, now)}? Não dá para desfazer.`;
     case "projeto": return `Crio o projeto ${a.nome}?`;
     case "ajuste": return `${ajusteLabel(a.ajuste)}?`;
   }
@@ -191,6 +231,23 @@ function mudancasFalada(m: TarefaMudancas, now: Date): string {
   if (m.prioridade) l.push(`a prioridade para ${PRIO[m.prioridade]}`);
   if (m.prazo) l.push(`o prazo para ${spokenDay(m.prazo, now)}`);
   if (m.projeto) l.push(`o projeto para ${m.projeto}`);
+  return l.join(", ");
+}
+
+function gastoFalado(m: GastoMudancas, now: Date): string {
+  const l: string[] = [];
+  if (m.valor !== undefined) l.push(`o valor para ${spokenMoney(m.valor)}`);
+  if (m.categoria) l.push(`a categoria para ${m.categoria}`);
+  if (m.descricao !== undefined) l.push(m.descricao ? `a descrição para ${m.descricao}` : "a descrição para vazia");
+  if (m.meio) l.push(`a forma de pagamento para ${MEIO_LABEL[m.meio]}`);
+  if (m.data) l.push(`o dia para ${spokenDay(m.data, now)}`);
+  return l.join(", ");
+}
+function eventoFalado(a: Extract<ChatAction, { kind: "evento_editar" }>, now: Date): string {
+  const m = a.mudancas, l: string[] = [];
+  if (m.title) l.push(`o título para ${m.title}`);
+  if (m.start || m.end) l.push(`o horário para ${whenLabel(m.start ?? a.start, now)}`);
+  if (m.location) l.push(`o local para ${m.location}`);
   return l.join(", ");
 }
 

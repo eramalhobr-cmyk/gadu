@@ -1,15 +1,19 @@
 // Servidor: transforma as ações propostas pelo modelo (src/lib/acoes.ts) em cartões, resolvendo os nomes para ids
 // SÓ entre os itens da própria pessoa (cliente da SESSÃO + filtro por user_id, além da RLS). Nada é gravado aqui.
 import type { AcaoProposta } from "./acoes.ts";
-import { matchByName } from "./acoes.ts";
-import type { ChatAction, TarefaMudancas } from "./chat-actions.ts";
+import { matchByName, norm } from "./acoes.ts";
+import type { ChatAction, GastoMudancas, TarefaMudancas } from "./chat-actions.ts";
+import type { CalEvent } from "./google-format.ts";
 import type { SessionDb } from "./core/types.ts";
 import { hojeSP, isoDia } from "./finance/datas.ts";
-import { loadMes } from "./finance/load.ts";
+import { GASTO_COLS, loadMes, toGasto } from "./finance/load.ts";
+import type { Gasto } from "./finance/types.ts";
 import type { Agregacao, Medicao } from "./goals/types.ts";
 
 type GoalRow = { id: string; titulo: string; medicao: Medicao; unidade: string | null; agregacao: Agregacao; status: string };
-type Opts = { goals: boolean; finance: boolean; now?: number; blocked?: (text: string) => boolean };
+/** Agenda do Google (só no servidor, com o token da própria pessoa); ausente nos testes que não usam agenda. */
+export type CalendarLookup = (from: Date, to: Date) => Promise<CalEvent[]>;
+type Opts = { goals: boolean; finance: boolean; calendar?: CalendarLookup; now?: number; blocked?: (text: string) => boolean };
 
 /** Ações resolvidas e avisos do que não deu para achar (o app mostra, sem inventar). */
 export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoProposta[], opts: Opts): Promise<{ actions: ChatAction[]; misses: string[] }> {
@@ -17,7 +21,7 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
   const misses: string[] = [];
   const now = opts.now ?? Date.now();
   const blocked = opts.blocked ?? (() => false);
-  const cache: { goals?: GoalRow[]; tasks?: { id: number; title: string }[]; reminders?: { id: number; text: string; due_at: string }[]; closed?: { id: number; title: string }[]; projects?: { id: number; name: string }[]; snoozable?: { id: number; text: string; due_at: string }[] } = {};
+  const cache: { goals?: GoalRow[]; tasks?: { id: number; title: string }[]; reminders?: { id: number; text: string; due_at: string }[]; closed?: { id: number; title: string }[]; projects?: { id: number; name: string }[]; snoozable?: { id: number; text: string; due_at: string }[]; gastos?: Gasto[]; eventos?: CalEvent[] } = {};
 
   const goals = async () => {
     if (!cache.goals) {
@@ -61,6 +65,40 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
       cache.snoozable = r.error ? [] : (r.data as { id: number; text: string; due_at: string }[]);
     }
     return cache.snoozable;
+  };
+  // Gastos já lançados (os 300 mais recentes) e eventos da agenda de ontem a 45 dias à frente.
+  const gastos = async () => {
+    if (!cache.gastos) {
+      const r = await db.from("fin_gastos").select(GASTO_COLS).eq("user_id", userId).order("ano", { ascending: false }).order("mes", { ascending: false }).order("dia", { ascending: false }).limit(300);
+      cache.gastos = r.error ? [] : (r.data as Record<string, unknown>[]).map(toGasto);
+    }
+    return cache.gastos;
+  };
+  const eventos = async () => {
+    if (!cache.eventos) {
+      if (!opts.calendar) throw new Error("sem agenda");
+      cache.eventos = (await opts.calendar(new Date(now - 86_400_000), new Date(now + 45 * 86_400_000))).filter((e) => e.id && !e.declined);
+    }
+    return cache.eventos;
+  };
+  const noEventos = () => misses.push("Não consegui abrir sua agenda do Google agora. Confira a conexão em Configurações.");
+  /** Acha UM gasto: o valor e a data (se ditos) filtram; o nome casa com a descrição ou a categoria. Ambíguo: pede mais detalhe. */
+  const findGasto = async (nome: string, valor: number | null, data: string | null): Promise<Gasto | null> => {
+    const iso = (g: Gasto) => isoDia({ ano: g.ano, mes: g.mes, dia: g.dia });
+    const cand = (await gastos()).filter((g) => (valor === null || Math.abs(g.valor - valor) < 0.005) && (!data || iso(g) === data));
+    const label = (x: Gasto) => `${x.descricao} ${x.categoria}`;
+    // Apagar ou mudar gasto é sério: se o nome cabe em mais de um gasto, não escolhe (pede valor ou dia).
+    const q = norm(nome);
+    const varios = q ? cand.filter((x) => norm(label(x)).includes(q)).length > 1 : false;
+    const g = varios ? null : nome ? matchByName(cand, label, nome) : cand.length === 1 ? cand[0] : null;
+    if (!g) misses.push(cand.length > 1 || (nome && !cand.length) ? (cand.length > 1 ? "Achei mais de um gasto assim. Diga o valor e o dia." : `Não achei o gasto "${nome}".`) : "Não achei esse gasto. Diga o nome, o valor ou o dia.");
+    return g;
+  };
+  const contasDoMes = async () => {
+    const hoje = hojeSP(now);
+    const d = await loadMes(db, userId, hoje.ano, hoje.mes);
+    const doMes = new Map(d.meses.filter((m) => m.ano === hoje.ano && m.mes === hoje.mes).map((m) => [m.item_id, m]));
+    return { hoje, doMes, contas: d.itens.filter((i) => i.tipo === "despesa" && doMes.has(i.id)) };
   };
   const findGoal = async (nome: string) => {
     const g = matchByName(await goals(), (x) => x.titulo, nome);
@@ -159,17 +197,67 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           else misses.push(`Não achei o lembrete "${a.lembrete}" entre os pendentes.`);
           break;
         }
-        case "conta_paga": {
+        case "conta_paga": case "conta_desmarcar": case "conta_valor": {
           if (!opts.finance) break;
-          const hoje = hojeSP(now);
-          const d = await loadMes(db, userId, hoje.ano, hoje.mes);
-          const doMes = new Map(d.meses.filter((m) => m.ano === hoje.ano && m.mes === hoje.mes).map((m) => [m.item_id, m]));
-          const contas = d.itens.filter((i) => i.tipo === "despesa" && doMes.has(i.id));
+          const { hoje, doMes, contas } = await contasDoMes();
           const c = matchByName(contas, (x) => x.nome, a.conta);
           if (!c) { misses.push(`Não achei a conta "${a.conta}" neste mês. Confira o nome em Financeiro.`); break; }
           const m = doMes.get(c.id)!;
-          if (m.pago) { misses.push(`A conta "${c.nome}" já está marcada como paga neste mês.`); break; }
-          actions.push({ kind: "conta_paga", itemId: c.id, nome: c.nome, valor: m.valor, ano: hoje.ano, mes: hoje.mes });
+          if (a.tipo === "conta_paga") {
+            if (m.pago) { misses.push(`A conta "${c.nome}" já está marcada como paga neste mês.`); break; }
+            actions.push({ kind: "conta_paga", itemId: c.id, nome: c.nome, valor: m.valor, ano: hoje.ano, mes: hoje.mes });
+          } else if (a.tipo === "conta_desmarcar") {
+            if (!m.pago) { misses.push(`A conta "${c.nome}" já está em aberto neste mês.`); break; }
+            actions.push({ kind: "conta_desmarcar", itemId: c.id, nome: c.nome, valor: m.valor, ano: hoje.ano, mes: hoje.mes });
+          } else {
+            if (Math.abs(m.valor - a.valor) < 0.005) { misses.push(`A conta "${c.nome}" já está com esse valor neste mês.`); break; }
+            actions.push({ kind: "conta_valor", itemId: c.id, nome: c.nome, antes: m.valor, valor: a.valor, escopo: a.escopo, ano: hoje.ano, mes: hoje.mes });
+          }
+          break;
+        }
+        case "gasto_apagar": {
+          if (!opts.finance) break;
+          const g = await findGasto(a.gasto, a.valor, a.data);
+          if (g) actions.push({ kind: "gasto_apagar", id: g.id, valor: g.valor, categoria: g.categoria, descricao: g.descricao, data: isoDia({ ano: g.ano, mes: g.mes, dia: g.dia }) });
+          break;
+        }
+        case "gasto_editar": {
+          if (!opts.finance) break;
+          if (a.descricao && blocked(a.descricao)) break;
+          const g = await findGasto(a.gasto, a.de_valor, a.de_data);
+          if (!g) break;
+          const mudancas: GastoMudancas = {};
+          if (a.valor !== null && Math.abs(a.valor - g.valor) >= 0.005) mudancas.valor = a.valor;
+          if (a.categoria && a.categoria !== g.categoria) mudancas.categoria = a.categoria;
+          if (a.descricao !== null && a.descricao !== g.descricao) mudancas.descricao = a.descricao;
+          if (a.meio && a.meio !== g.meio) mudancas.meio = a.meio;
+          const atual = isoDia({ ano: g.ano, mes: g.mes, dia: g.dia });
+          if (a.data && a.data !== atual) mudancas.data = a.data;
+          if (!Object.keys(mudancas).length) { misses.push("O gasto já está assim. Nada para mudar."); break; }
+          actions.push({ kind: "gasto_editar", id: g.id, atual: { valor: g.valor, categoria: g.categoria, descricao: g.descricao, data: atual }, mudancas });
+          break;
+        }
+        case "evento_editar": case "evento_apagar": {
+          if (a.tipo === "evento_editar" && a.titulo && blocked(a.titulo)) break;
+          let lista: CalEvent[];
+          try { lista = await eventos(); } catch { noEventos(); break; }
+          const e = matchByName(lista, (x) => x.title, a.evento);
+          if (!e || !e.id) { misses.push(`Não achei o evento "${a.evento}" nos próximos dias.`); break; }
+          if (a.tipo === "evento_apagar") { actions.push({ kind: "evento_apagar", eventId: e.id, title: e.title, start: e.start, end: e.end }); break; }
+          const mudancas: { title?: string; start?: string; end?: string; location?: string } = {};
+          if (a.titulo && a.titulo !== e.title) mudancas.title = a.titulo;
+          if (a.local && a.local !== e.where) mudancas.location = a.local;
+          if (a.inicio || a.fim) {
+            if (e.allDay) { misses.push(`O evento "${e.title}" dura o dia inteiro: mude o horário direto no Google Agenda.`); break; }
+            const dur = Date.parse(e.end) - Date.parse(e.start);
+            const start = a.inicio ?? e.start;
+            const end = a.fim ?? new Date(Date.parse(start) + dur).toISOString();
+            if (!(Date.parse(end) > Date.parse(start)) || Date.parse(end) - Date.parse(start) > 24 * 3_600_000) { misses.push("O fim do evento precisa ser depois do início, no máximo 24 horas."); break; }
+            mudancas.start = new Date(start).toISOString();
+            mudancas.end = new Date(end).toISOString();
+          }
+          if (!Object.keys(mudancas).length) { misses.push("O evento já está assim. Nada para mudar."); break; }
+          actions.push({ kind: "evento_editar", eventId: e.id, title: e.title, start: e.start, end: e.end, mudancas });
           break;
         }
         case "projeto_criar":

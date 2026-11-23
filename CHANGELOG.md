@@ -7,7 +7,14 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
-## 2026-11-23 · Tudo por voz, PR A: tarefas (cancelar, reabrir, editar) e lembretes (adiar) · **testado** (branch `feat/voz-tarefas-lembretes`)
+## 2026-11-23 · Tudo por voz, PR B: finanças (conta e gasto) e agenda (editar e apagar evento) · **testado** (branch `feat/voz-financas-agenda`)
+- **Feito por:** Claude Code.
+- **Novo pela conversa (cartão + "sim" falado; nada é gravado antes):** `conta_desmarcar`, `conta_valor` (este mês ou até dezembro), `gasto_editar`, `gasto_apagar`, `evento_editar`, `evento_apagar`. Apagar tem confirmação explícita ("não dá para desfazer" no cartão e na pergunta falada). Gasto: valor, nome e dia ajudam a achar; se couber em mais de um, o GaDu pede mais detalhe em vez de escolher. Finanças desligado (`FINANCE_ENABLED=0`) não gera cartão de conta nem de gasto.
+- **Agenda:** o escopo OAuth atual (`calendar.events`, já pedido para criar evento) permite editar e apagar, então **o OAuth não mudou**. Rotas novas `PATCH` e `DELETE /api/calendar/:id` (sessão, zod estrito, token da própria pessoa) e `updateEvent`/`deleteEvent` em `src/lib/google.ts`. O servidor lê a agenda (ontem a 45 dias) só para achar o evento pelo nome.
+- **Evidência:** typecheck; unit 242/242; integração 160/160 (4 testes novos em `finance-chat`, `calendar-write.integration.test.ts` novo); build; e2e público 10/10 e mobile 44/44; rota nova sem sessão = 401 contra `next start`. Sem migração. **Não testado:** Google real (evento de verdade) e IA real.
+- **Publicação do PR A (registrada aqui):** PR #47, merge `3eed4eb` em 23/11/2026 às 05:49 (Brasília), CI verde (verify, e2e-public, database), deploy da Vercel `success`, site no ar (`/login` 200).
+
+## 2026-11-23 · Tudo por voz, PR A: tarefas (cancelar, reabrir, editar) e lembretes (adiar) · **publicado** (PR #47, merge `3eed4eb`, 05:49)
 - **Feito por:** Claude Code.
 - **Novo pela conversa (proposta com cartão e "sim" falado; nada é gravado antes):** `tarefa_cancelar`, `tarefa_reabrir`, `tarefa_editar` (título, prioridade, prazo, projeto pelo nome) e `lembrete_adiar` ("me lembra daqui a 1 hora", "adia para amanhã às 9"). Nomes só entre os itens da própria pessoa (sessão + `user_id`); título bloqueado não vira cartão. As gravações são as mesmas consultas das telas, com a sessão e a RLS. Sem migração.
 - **Evidência:** typecheck; unit 235/235; integração 152/152 (3 testes novos: cartões sem gravar, isolamento entre pessoas, interruptores desligados); build; e2e público 10/10 e mobile 44/44 contra `next start`. `scripts/test-db.sh` não rodou (sem mudança de banco).
