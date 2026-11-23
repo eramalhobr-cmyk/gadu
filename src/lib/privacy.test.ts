@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { blockedTerm, isSensitive } from "./privacy.ts";
+import { blockedTerm, cnpjValido, cpfValido, isSensitive, luhn } from "./privacy.ts";
 import { splitMeta, visiblePart } from "./meta.ts";
 
 test("detecta dados sensíveis", () => {
@@ -13,6 +13,34 @@ test("detecta dados sensíveis", () => {
 test("não bloqueia conversa comum", () => {
   assert.equal(isSensitive("planeje minha semana com foco na Stratprice"), false);
   assert.equal(isSensitive("reunião às 15h com 3 pessoas"), false);
+});
+
+test("dados brasileiros: CPF e CNPJ pelos dígitos verificadores, cartão pelo Luhn", () => {
+  assert.equal(cpfValido("123.456.789-09"), true);
+  assert.equal(cpfValido("123.456.789-00"), false);
+  assert.equal(cpfValido("111.111.111-11"), false, "repetido não é CPF");
+  assert.equal(cnpjValido("11.222.333/0001-81"), true);
+  assert.equal(cnpjValido("11.222.333/0001-82"), false);
+  assert.equal(luhn("4111 1111 1111 1111"), true);
+  assert.equal(luhn("4111 1111 1111 1112"), false);
+  assert.equal(isSensitive("12345678909"), true, "CPF sem pontos, válido");
+  assert.equal(isSensitive("pedido 12345678901 chegou"), false, "11 dígitos que não são CPF");
+  assert.equal(isSensitive("CNPJ 11222333000181"), true);
+  assert.equal(isSensitive("rastreio 4111111111111112"), false, "16 dígitos fora do Luhn");
+  assert.equal(isSensitive("CPF 987.654.321-00 do cadastro"), true, "CPF formatado bloqueia mesmo com DV errado (formato é sinal forte)");
+});
+
+test("agência, conta, Pix e senhas: bloqueia o dado, não a palavra", () => {
+  for (const t of ["ag 0001 cc 12345-6", "agência: 1234, conta corrente 98765-4", "conta poupança 1234567-8", "paga no pix: ana@exemplo.com", "minha chave pix é 11 98765-4321",
+    "pix 123e4567-e89b-12d3-a456-426614174000", "00020126580014br.gov.bcb.pix0136123e4567", "a senha é Gadu@2026", "password: hunter22", "senha do wifi 123", "senha 4321", "cvv 123", "RG 12.345.678-9", "CNH 12345678901",
+    "ghp_abcdefghijklmnopqrstuvwxyz123456", "token: abcdefghijklmnopqrstuvwx"]) assert.equal(isSensitive(t), true, t);
+  for (const t of ["como troco minha senha?", "a senha do banco caiu ontem", "quanto gastei no cartão de crédito em outubro?", "meu cpf venceu?", "paguei 50 reais no pix ontem às 15h", "me liga 11 98765-4321",
+    "imposto de renda 2026: o que preciso juntar?", "qual o saldo da minha conta?", "abrir conta no banco amanhã", "extrato bancário de outubro chegou"]) assert.equal(isSensitive(t), false, t);
+});
+
+test("saúde continua por palavra (LGPD)", () => {
+  assert.equal(isSensitive("saiu o laudo da ressonância"), true);
+  assert.equal(isSensitive("marcar consulta com o dentista"), false);
 });
 
 test("termos bloqueados", () => {

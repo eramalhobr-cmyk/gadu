@@ -202,7 +202,7 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [ ] Detecção de fim de fala e interrupção natural
 
 ## Fase 4 · Privacidade
-- [ ] Presidio com regras brasileiras (CPF, conta, Pix) no lugar das palavras-chave
+- [x] Regras brasileiras (CPF e CNPJ com dígito verificador, cartão pelo Luhn, agência e conta, chave Pix, Pix copia e cola, senha com valor, tokens) no lugar das palavras-chave (23/11, Cursor; sem Presidio nem serviço novo, roda no servidor)
 - [ ] Transcrição local para assunto sensível
 
 ## Pessoas e administração
