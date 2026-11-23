@@ -4,6 +4,7 @@ import { describe, type ChatAction } from "@/lib/chat-actions";
 import type { ViewId } from "@/lib/modules";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { applyTextSize } from "@/lib/text-size";
+import { CardFrame } from "./ConfirmCard";
 import { Icon } from "./ui";
 
 export type Result = { ok: boolean; msg?: string; link?: string; /** Id do que foi criado (gasto, evento), para o Desfazer. */ id?: string; /** Como voltar atrás, quando dá: usado pelo aviso "Feito · Desfazer" (UX-4). */ undo?: () => Promise<Result> };
@@ -210,15 +211,7 @@ export function ActionCard({ a, st, onConfirm, onDiscard, onUndo, onOpen }: { a:
   const label = state === "created" ? v.done : state === "discarded" ? v.undone : v.proposed;
   const pending = state === "proposed" || state === "error" || state === "saving";
   return (
-    <div className={`evc ${state}`} data-kind={a.kind}>
-      <div className="evc-top">
-        <span className="evc-ico"><Icon name={state === "created" ? "check" : v.icon} size={18} /></span>
-        <div className="evc-body">
-          <span className="evc-label">{label}</span>
-          <b className="evc-title">{v.title}</b>
-          <span className="evc-when">{v.detail}</span>
-        </div>
-      </div>
+    <CardFrame state={state} kind={a.kind} icon={v.icon} label={label} title={v.title} detail={v.detail}>
       {v.applied ? (
         !undone && (state === "created" || state === "saving" || state === "error") && (
           <div className="evc-actions">
@@ -234,6 +227,6 @@ export function ActionCard({ a, st, onConfirm, onDiscard, onUndo, onOpen }: { a:
       {state === "created" && link && <a className="evc-link" href={link} target="_blank" rel="noopener noreferrer">Abrir no Google Agenda<Icon name="chevron" size={14} /></a>}
       {state === "created" && !link && v.open && onOpen && <button className="evc-link link-btn" onClick={() => onOpen(v.open!.view)}>{v.open.label}<Icon name="chevron" size={14} /></button>}
       {msg && state === "error" && <span className="evc-err" role="alert">{msg}</span>}
-    </div>
+    </CardFrame>
   );
 }

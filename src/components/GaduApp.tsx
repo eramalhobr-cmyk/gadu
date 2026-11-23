@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "./RobotFace";
 import { ActionCard, initialCard, runAction, undoAction, type CardState } from "./ActionCard";
 import { ConfirmSheet } from "./ConfirmSheet";
-import type { ChatAction, EventDraft, GastoDraft } from "@/lib/chat-actions";
+import type { ActionView, ChatAction, EventDraft, GastoDraft } from "@/lib/chat-actions";
 import type { Ajuste } from "@/lib/acoes";
 import { actionQuestion, describe, splitNavegacao } from "@/lib/chat-actions";
 import { GIVE_UP_LINE, parseAnswer, resultLine, RETRY_LINE } from "@/lib/voice-confirm";
@@ -150,7 +150,7 @@ export function GaduApp(props: {
   const voiceSheetRef = useRef(false);
   useEffect(() => { voiceSheetRef.current = voiceSheet; }, [voiceSheet]);
   /** Confirmação falada (UX-3): fila das ações a confirmar, etapa atual e comandos enviados aos cartões. */
-  const [confirm, setConfirm] = useState<{ question: string; stage: "asking" | "listening" | "working"; heard: string; step: number; total: number } | null>(null);
+  const [confirm, setConfirm] = useState<{ question: string; view?: ActionView; stage: "asking" | "listening" | "working"; heard: string; step: number; total: number } | null>(null);
   /** Estado de cada cartão de ação (o mesmo no painel e na Conversa). */
   const [cards, setCards] = useState<Record<string, CardState>>({});
   const cardsRef = useRef(cards);
@@ -474,7 +474,7 @@ export function GaduApp(props: {
     confirmStep.current += 1;
     confirmTries.current = 0;
     const question = actionQuestion(item.a);
-    setConfirm({ question, stage: "asking", heard: "", step: confirmStep.current, total: confirmTotal.current });
+    setConfirm({ question, view: describe(item.a), stage: "asking", heard: "", step: confirmStep.current, total: confirmTotal.current });
     say(`${question} Diga sim ou não.`, "asking");
     return true;
   }
@@ -1034,7 +1034,7 @@ export function GaduApp(props: {
           onClose={closeVoice} />
       )}
       {confirm && (
-        <ConfirmSheet question={confirm.question} stage={confirm.stage} heard={confirm.heard} step={confirm.step} total={confirm.total}
+        <ConfirmSheet question={confirm.question} view={confirm.view} stage={confirm.stage} heard={confirm.heard} step={confirm.step} total={confirm.total}
           onYes={() => tapConfirm(true)} onNo={() => tapConfirm(false)} onClose={cancelConfirm} />
       )}
       {drawer && (

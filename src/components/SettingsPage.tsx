@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { canSpeak, listVoices, voiceLabel, type Speaker } from "@/lib/speech";
 import { DENIED_HELP, deviceLabel, permissionMessage, pushSupport, type PushSupport } from "@/lib/push-client";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { ConfirmCard } from "./ConfirmCard";
 
 export type Prefs = { voice: boolean; handsFree: boolean; voiceURI: string; rate: number ; autoSend: boolean; shortVoice: boolean };
 type Usage = {
@@ -395,10 +396,7 @@ function ConnectionsCard({ morningLink }: { morningLink: string }) {
               ? <div className="mono" style={{ color: "var(--sig)" }}>✓ Pode criar eventos (sempre com sua confirmação)</div>
               : <div className="notice" style={{ fontSize: "var(--fs-sm)" }}>Para criar eventos pela voz, reconecte uma vez e marque a permissão de agenda. <a className="btn btn-sm" style={{ marginTop: 8 }} href="/api/google/connect">Reconectar Google</a></div>}
             {confirm ? (
-              <div className="row">
-                <button className="btn btn-sm" style={{ borderColor: "var(--bad)", color: "var(--bad)" }} onClick={disconnect}>Desconectar de vez</button>
-                <button className="btn btn-sm" onClick={() => setConfirm(false)}>Cancelar</button>
-              </div>
+              <ConfirmCard danger icon="link" title="Desconectar o Google?" detail="O GaDu deixa de ver agenda e e-mails. Você pode conectar de novo." confirmLabel="Desconectar de vez" onConfirm={disconnect} onCancel={() => setConfirm(false)} />
             ) : (
               <div><button className="btn btn-sm" onClick={() => setConfirm(true)}>Desconectar</button></div>
             )}

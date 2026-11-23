@@ -3,6 +3,7 @@ import { MSG, actionFailed, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { AGENT_PRESETS, AREAS } from "@/lib/presets";
+import { ConfirmCard } from "./ConfirmCard";
 import { EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
 import { COLORS, colorVar, Icon, ICONS } from "./ui";
 
@@ -161,17 +162,9 @@ function AgentForm({ agent, onDone }: { agent: Agent | null; onDone: (saved: boo
           </div>
         </form>
         {agent && (
-          <Panel className="danger">
-            {confirm ? (
-              <>
-                <p className="muted small">Apagar {agent.name}? As conversas com ele continuam no histórico.</p>
-                <div className="form-actions">
-                  <button className="btn btn-sm btn-bad" onClick={remove}>Apagar agente</button>
-                  <button className="btn btn-sm" onClick={() => setConfirm(false)}>Cancelar</button>
-                </div>
-              </>
-            ) : <button className="btn btn-sm btn-quiet" onClick={() => setConfirm(true)}>Apagar agente</button>}
-          </Panel>
+          confirm
+            ? <ConfirmCard danger title={`Apagar ${agent.name}?`} detail="As conversas com ele continuam no histórico." confirmLabel="Apagar agente" onConfirm={remove} onCancel={() => setConfirm(false)} />
+            : <button className="btn btn-sm btn-quiet" onClick={() => setConfirm(true)}>Apagar agente</button>
         )}
       </div>
     </main>
