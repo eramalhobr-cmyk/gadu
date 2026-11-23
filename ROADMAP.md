@@ -436,7 +436,7 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa. A
 - [x] Alvos de toque de pelo menos 48 px no celular e em telas de toque (PR #44; a base era 44 px)
 - [x] Menos escolhas por tela: 1 ação principal e no máximo 2 secundárias (Hoje: "Mais opções" recolhido; PR A `feat/ux4-linguagem`)
 - [ ] **Primeiro uso guiado** em 3 passos, falado: nome, testar microfone e voz, conectar o Google (no lugar das dicas soltas por tela)
-- [ ] **Desfazer** em toda ação que grava (concluir, adiar, apagar, marcar pago): aviso "Feito · Desfazer" por alguns segundos
+- [x] **Desfazer** em toda ação que grava (concluir, adiar, apagar, marcar pago): aviso "Feito · Desfazer" por alguns segundos (PR B `feat/ux4-desfazer`, 23/11/2026: componente único `UndoToast` + `src/lib/undo.ts`; "desfaz" falado ou escrito; apagar memória, gasto e evento pela conversa não tem Desfazer)
 - [ ] Erros claros com o que fazer agora ("Sem internet. Sua mensagem ficou guardada. Tentar de novo"), falados quando a pessoa estiver usando voz
 
 ### UX-5 · Consistência entre módulos (P1)

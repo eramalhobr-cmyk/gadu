@@ -1,15 +1,15 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ActionItem } from "@/lib/core/format";
 import type { ViewId } from "@/lib/modules";
 import { SITUACAO_LABEL, type Situacao } from "@/lib/goals/types";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { showNotice, showUndo, UNDO_TEXT } from "@/lib/undo";
 import { Icon } from "./ui";
 import { EmptyState, Panel } from "./kit";
 
 type Data = { enabled: boolean; items?: ActionItem[]; more?: number; unavailable?: { source: string; reason: string; text: string }[] };
 type Goals = { ativas: number; atencao: { id: string; titulo: string; situacao: Situacao; pct: number; semDados: boolean; prazo: string | null }[] };
-type Undo = { text: string; revert: () => Promise<unknown> };
 
 const ORIGIN: Partial<Record<ViewId, string>> = { tarefas: "Tarefas", agenda: "Agenda", metas: "Metas", financeiro: "Financeiro", memoria: "Revisar" };
 const ICON: Record<ActionItem["kind"], string> = { atrasada: "check", tarefa_hoje: "check", prioridade: "check", lembrete: "bell", evento: "calendar", email: "chat", financa: "coin", meta: "target" };
@@ -31,8 +31,6 @@ export function AttentionCard(props: {
   const [goals, setGoals] = useState<Goals | null>(null);
   const [failed, setFailed] = useState(false);
   const [gone, setGone] = useState<Set<string>>(new Set());
-  const [undo, setUndo] = useState<Undo | null>(null);
-  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const load = useCallback(async () => {
     setFailed(false);
     try {
@@ -51,7 +49,6 @@ export function AttentionCard(props: {
       .then((j: Goals | null) => setGoals(j && Array.isArray(j.atencao) ? j : null))
       .catch(() => setGoals(null));
   }, [props.goalsEnabled]);
-  useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current); }, []);
 
   const items = (data?.items ?? []).filter((s) => !gone.has(s.tag));
   const goalRows = goals?.atencao ?? [];
@@ -63,12 +60,6 @@ export function AttentionCard(props: {
   if (data && !data.enabled) return null;
   const unavailable = data?.unavailable ?? [];
   const reconnect = unavailable.some((u) => u.reason !== "error");
-
-  function showUndo(u: Undo) {
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-    setUndo(u);
-    undoTimer.current = setTimeout(() => setUndo(null), 6000);
-  }
 
   /** Feito ou Adiar no próprio item. Grava com a sessão da pessoa (RLS) e oferece Desfazer por alguns segundos. */
   async function act(s: ActionItem, kind: "done" | "later") {
@@ -100,13 +91,11 @@ export function AttentionCard(props: {
     }
     if (error) {
       setGone((g) => { const n = new Set(g); n.delete(s.tag); return n; });
-      showUndo({ text: "Não consegui gravar. Tente de novo.", revert: async () => {} });
+      showNotice(UNDO_TEXT.failSave);
       return;
     }
-    showUndo({
-      text: kind === "done" ? "Feito." : table === "tasks" ? "Passou para amanhã." : "Adiado para amanhã.",
-      revert: async () => { await revert(); setGone((g) => { const n = new Set(g); n.delete(s.tag); return n; }); },
-    });
+    showUndo(kind === "done" ? UNDO_TEXT.done : table === "tasks" ? UNDO_TEXT.later : "Adiado para amanhã.",
+      async () => { const r = await revert(); setGone((g) => { const n = new Set(g); n.delete(s.tag); return n; }); return r; });
   }
 
   return (
@@ -166,14 +155,6 @@ export function AttentionCard(props: {
           </ul>
         )}
       </Panel>
-      {undo && (
-        <div className="undo-toast" role="status">
-          <span>{undo.text}</span>
-          {undo.text !== "Não consegui gravar. Tente de novo." && (
-            <button className="btn btn-sm" onClick={() => { const u = undo; setUndo(null); void u.revert(); }}>Desfazer</button>
-          )}
-        </div>
-      )}
     </>
   );
 }

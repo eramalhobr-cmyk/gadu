@@ -5,21 +5,76 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { applyTextSize } from "@/lib/text-size";
 import { Icon } from "./ui";
 
-export type Result = { ok: boolean; msg?: string; link?: string };
+export type Result = { ok: boolean; msg?: string; link?: string; /** Id do que foi criado (gasto, evento), para o Desfazer. */ id?: string; /** Como voltar atrás, quando dá: usado pelo aviso "Feito · Desfazer" (UX-4). */ undo?: () => Promise<Result> };
 export type State = "proposed" | "saving" | "created" | "discarded" | "error";
 
 async function json(r: Response): Promise<Record<string, unknown>> {
   return r.json().catch(() => ({}));
 }
 
-/** Executa a ação, com a sessão da pessoa. Nada é gravado antes desta chamada (exceto o lembrete, que já existe). */
+/** Executa a ação, com a sessão da pessoa. Nada é gravado antes desta chamada (exceto o lembrete, que já existe).
+ * Quando dá para voltar atrás, o resultado traz `undo` (aviso "Feito · Desfazer"). */
 export async function runAction(a: ChatAction): Promise<Result> {
+  const prep = await capture(a);
+  const r = await execute(a);
+  if (r.ok && prep) { const undo = prep(r); if (undo) r.undo = undo; }
+  return r;
+}
+
+type Prep = (r: Result) => (() => Promise<Result>) | undefined;
+const back = async (p: PromiseLike<{ error: unknown }>, fail = "Não consegui desfazer. Tente de novo."): Promise<Result> => { const { error } = await p; return error ? { ok: false, msg: fail } : { ok: true }; };
+const backApi = async (p: Promise<Response>): Promise<Result> => { try { const r = await p; return r.ok ? { ok: true } : { ok: false, msg: "Não consegui desfazer. Tente de novo." }; } catch { return { ok: false, msg: "Sem conexão. Tente de novo." }; } };
+const put = (path: string, body: unknown) => fetch(path, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+const patch = (path: string, body: unknown) => fetch(path, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+
+/** Guarda o que a ação vai mudar, para poder desfazer. Devolve, depois da gravação, como voltar atrás.
+ * Só as ações que dá para desfazer sem perder nada. Apagar (memória, gasto, evento) não tem Desfazer: o cartão já pediu o "sim". */
+async function capture(a: ChatAction): Promise<Prep | null> {
+  const db = supabaseBrowser();
+  try {
+    switch (a.kind) {
+      case "tarefa_ok": case "tarefa_cancelar": case "tarefa_reabrir": case "tarefa_adiar": case "tarefa_editar": {
+        const { data } = await db.from("tasks").select("status, done_at, due_date, title, priority, project_id").eq("id", a.id).maybeSingle();
+        if (!data) return null;
+        return () => () => back(db.from("tasks").update(data).eq("id", a.id));
+      }
+      case "lembrete_adiar": case "lembrete_off": {
+        const { data } = await db.from("reminders").select("due_at, status, sent_at").eq("id", a.id).maybeSingle();
+        if (!data) return null;
+        return () => () => back(db.from("reminders").update(data).eq("id", a.id));
+      }
+      case "memoria_aprovar": return () => () => back(db.from("memories").update({ status: "pending" }).in("id", a.ids).eq("status", "approved"));
+      case "projeto_arquivar": {
+        const { data } = await db.from("projects").select("status").eq("id", a.id).maybeSingle();
+        if (!data) return null;
+        return () => () => back(db.from("projects").update({ status: data.status }).eq("id", a.id));
+      }
+      case "conta_paga": return () => () => backApi(put(`/api/finance/itens/${a.itemId}/mes`, { ano: a.ano, mes: a.mes, pago: false }));
+      case "conta_desmarcar": return () => () => backApi(put(`/api/finance/itens/${a.itemId}/mes`, { ano: a.ano, mes: a.mes, pago: true }));
+      case "marco_ok": return () => () => backApi(patch(`/api/goals/${a.goalId}/marcos/${a.marcoId}`, { concluido: false }));
+      case "meta_status": {
+        const r = await fetch(`/api/goals/${a.goalId}`, { cache: "no-store" });
+        const j = r.ok ? await json(r) as { meta?: { goal?: { status?: string } } } : null;
+        const antes = j?.meta?.goal?.status;
+        if (!antes) return null;
+        return () => () => backApi(patch(`/api/goals/${a.goalId}`, { status: antes }));
+      }
+      case "gasto": return (r) => (r.id ? () => backApi(fetch(`/api/finance/gastos/${r.id}`, { method: "DELETE" })) : undefined);
+      case "evento": return (r) => (r.id ? () => backApi(fetch(`/api/calendar/${encodeURIComponent(r.id!)}`, { method: "DELETE" })) : undefined);
+      default: return null;
+    }
+  } catch { return null; }
+}
+
+async function execute(a: ChatAction): Promise<Result> {
   try {
     if (a.kind === "gasto") {
       const [ano, mes, dia] = a.g.data.split("-").map(Number);
       const r = await fetch("/api/finance/gastos", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ano, mes, dia, valor: a.g.valor, categoria: a.g.categoria, descricao: a.g.descricao, meio: a.g.meio, origem: "conversa" }) });
       if (r.status === 401) { window.location.href = "/login"; return { ok: false }; }
-      return r.ok ? { ok: true } : { ok: false, msg: r.status === 404 ? "Finanças está desligado no momento." : "Não consegui lançar. Tente de novo." };
+      if (!r.ok) return { ok: false, msg: r.status === 404 ? "Finanças está desligado no momento." : "Não consegui lançar. Tente de novo." };
+      const gj = await json(r) as { gasto?: { id?: unknown } };
+      return { ok: true, ...(typeof gj.gasto?.id === "string" ? { id: gj.gasto.id } : {}) };
     }
     if (a.kind === "meta") {
       const reg = a.d.acao === "registrar";
@@ -32,7 +87,7 @@ export async function runAction(a: ChatAction): Promise<Result> {
     if (a.kind === "evento") {
       const r = await fetch("/api/calendar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: a.ev.title, start: a.ev.start, end: a.ev.end, ...(a.ev.location ? { location: a.ev.location } : {}) }) });
       const j = await json(r);
-      return r.ok ? { ok: true, link: typeof j.link === "string" ? j.link : "" } : { ok: false, msg: (typeof j.message === "string" && j.message) || "Não consegui criar. Tente de novo." };
+      return r.ok ? { ok: true, link: typeof j.link === "string" ? j.link : "", ...(typeof j.id === "string" ? { id: j.id } : {}) } : { ok: false, msg: (typeof j.message === "string" && j.message) || "Não consegui criar. Tente de novo." };
     }
     if (a.kind === "meta_nova") {
       const r = await fetch("/api/goals", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
