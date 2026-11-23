@@ -791,7 +791,7 @@ export function GaduApp(props: {
     setSayOpen(false);
     setDraft(s);
     if (view !== "conversa") openAssist(true);
-    requestAnimationFrame(() => document.getElementById("msg")?.focus());
+    requestAnimationFrame(() => (document.getElementById(view === "conversa" ? "msg" : "assist-msg") ?? document.getElementById("msg"))?.focus());
   };
   const stop = () => { if (listening) recRef.current?.stop(); else { abortRef.current?.abort(); speaker?.cancel(); setMode("idle"); } };
   const initial = (name || props.email || "G").trim().charAt(0).toUpperCase();
