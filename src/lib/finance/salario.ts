@@ -15,13 +15,21 @@
 // - Dispensa de retenção de imposto de até R$ 10,00: art. 67 da Lei 9.430/1996.
 // Estas tabelas mudam: ao atualizar o ano, troque só as constantes abaixo e os testes (src/lib/finance/salario.test.ts).
 //
-// Limites do simulador (dito na tela): só salário mensal de empregado (sem 13º, férias, PLR, pensão alimentícia, previdência privada nem outras deduções).
+// - Exemplos oficiais de aplicação da Lei 15.270/2025 (usados nos testes, com o INSS dado em cada exemplo):
+//   https://www.gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda/tabelas/exemplos-de-aplicacao-da-lei-15-270-2025
+//
+// Entradas: bruto, dependentes, outras deduções (pensão alimentícia, previdência privada: entram na dedução legal do IR e saem do líquido, mas NÃO na
+// base do INSS) e benefícios não tributáveis (VR, VA: não mudam INSS nem IR; só somam ao total recebido).
+// 13º e férias + 1/3 são ESTIMATIVAS: cada um é tratado como pagamento separado, com INSS (com teto) e IRRF próprios, pela mesma função do mensal.
+//
+// Limites do simulador (dito na tela): empregado CLT; sem PLR, abono e venda de férias, 13º em parcelas nem pagamento de férias junto com o mensal.
 
 export const SALARIO_ANO = 2026;
 export const SALARIO_FONTES = [
   { nome: "INSS: Portaria Interministerial MPS/MF nº 13, de 09/01/2026", url: "https://www.gov.br/inss/pt-br/direitos-e-deveres/inscricao-e-contribuicao/tabela-de-contribuicao-mensal" },
   { nome: "IRRF 2026: tabela mensal da Receita Federal", url: "https://www.gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda/tabelas/2026" },
   { nome: "Redução do IR: Lei 15.270/2025 (art. 3º-A da Lei 9.250/1995)", url: "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2025/lei/L15270.htm" },
+  { nome: "Exemplos oficiais da Receita Federal para a Lei 15.270/2025", url: "https://www.gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda/tabelas/exemplos-de-aplicacao-da-lei-15-270-2025" },
 ] as const;
 
 // Centavos e alíquotas em milésimos (7,5% = 75).
@@ -54,9 +62,21 @@ export const MAX_DEPENDENTES = 20;
 export const MAX_BRUTO = 10_000_000;
 
 export type FaixaInss = { de: number; ate: number; aliquota: number; base: number; valor: number };
+/** Estimativa de um pagamento separado (13º ou férias + 1/3): INSS e IRRF calculados à parte, com o teto do INSS. */
+export type Pagamento = { bruto: number; inss: number; irrf: number; outrasDeducoes: number; liquido: number };
+export type OpcoesSalario = { outrasDeducoes?: number; beneficios?: number };
 export type Salario = {
   bruto: number;
   dependentes: number;
+  /** Outras deduções legais do IR (pensão, previdência privada): saem do líquido e entram na dedução legal; não entram na base do INSS. */
+  outrasDeducoes: number;
+  /** Benefícios não tributáveis (VR, VA): não mudam INSS nem IR. */
+  beneficios: number;
+  /** Líquido do salário + benefícios. */
+  totalRecebido: number;
+  /** Estimativa do 13º (uma parcela, pagamento separado) e das férias + 1/3 (bruto × 4/3, pagamento separado). */
+  decimoTerceiro: Pagamento;
+  ferias: Pagamento;
   inss: number;
   /** Detalhe de cada faixa do INSS que pegou parte do salário. */
   inssFaixas: FaixaInss[];
@@ -66,6 +86,7 @@ export type Salario = {
   deducaoLegal: number;
   deducaoSimplificada: number;
   deducaoDependentes: number;
+  deducaoOutras: number;
   baseIr: number;
   aliquotaIr: number;
   impostoTabela: number;
@@ -90,49 +111,96 @@ function paraCentavos(v: number): number | null {
   return c > 0 ? c : null;
 }
 
-/** Calcula o líquido. Devolve null se o bruto ou os dependentes forem inválidos (nunca adivinha). */
-export function calcularSalario(bruto: number, dependentes = 0): Salario | null {
-  const b = paraCentavos(bruto);
-  if (b === null) return null;
-  if (!Number.isInteger(dependentes) || dependentes < 0 || dependentes > MAX_DEPENDENTES) return null;
+/** Valor opcional (outras deduções, benefícios): ausente = 0; senão não negativo, até o teto e com no máximo centavos; null se inválido. */
+function opcionalCentavos(v: number | undefined): number | null {
+  if (v === undefined) return 0;
+  if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > MAX_BRUTO) return null;
+  const c = Math.round(v * 100);
+  return Math.abs(v * 100 - c) < 1e-6 ? c : null;
+}
 
-  // INSS progressivo: cada faixa cobra só a parte do salário que cai nela; o teto limita o salário de contribuição.
+/** INSS progressivo: cada faixa cobra só a parte do salário que cai nela; o teto limita o salário de contribuição. */
+function calcularInss(b: number) {
   const contrib = Math.min(b, INSS_TETO_CENTAVOS);
   let inssNum = 0; // em centavos × 1000, para arredondar uma vez só
   let de = 0;
-  const inssFaixas: FaixaInss[] = [];
+  const faixas: FaixaInss[] = [];
   for (const f of INSS_FAIXAS) {
     if (contrib <= de) break;
     const parte = Math.min(contrib, f.ateCentavos) - de;
     inssNum += parte * f.milesimos;
-    inssFaixas.push({ de: reais(de), ate: reais(f.ateCentavos), aliquota: f.milesimos / 10, base: reais(parte), valor: reais(divRound(parte * f.milesimos, 1000)) });
+    faixas.push({ de: reais(de), ate: reais(f.ateCentavos), aliquota: f.milesimos / 10, base: reais(parte), valor: reais(divRound(parte * f.milesimos, 1000)) });
     de = f.ateCentavos;
   }
-  const inss = divRound(inssNum, 1000);
+  return { inss: divRound(inssNum, 1000), faixas };
+}
 
-  // IRRF: o modelo com a MAIOR dedução vence (legal = INSS + dependentes; simplificado = valor fixo, nunca mais que o bruto).
-  const depC = dependentes * DEPENDENTE_CENTAVOS;
-  const legal = inss + depC;
+/**
+ * IRRF de um pagamento com o INSS já conhecido (centavos). O modelo com a MAIOR dedução vence (legal = INSS + dependentes + outras;
+ * simplificado = valor fixo, nunca mais que o rendimento). A redução da Lei 15.270/2025 usa o rendimento tributável, não a base.
+ */
+function calcularIr(b: number, inss: number, depC: number, outrasC: number) {
+  const legal = inss + depC + outrasC;
   const simples = Math.min(DESCONTO_SIMPLIFICADO_CENTAVOS, b);
   const modelo: Salario["modelo"] = simples > legal ? "simplificado" : "legal";
   const baseIr = Math.max(0, b - Math.max(legal, simples));
   const faixa = IRRF_FAIXAS.find((f) => baseIr <= f.ateCentavos)!;
   const impostoTabela = Math.max(0, divRound(baseIr * faixa.milesimos, 1000) - faixa.deduzirCentavos);
-
-  // Redução da Lei 15.270/2025: calculada sobre o rendimento tributável bruto e limitada ao imposto da tabela.
   let reducao = 0;
   if (b <= REDUCAO_TOTAL_ATE_CENTAVOS) reducao = Math.min(REDUCAO_MAXIMA_CENTAVOS, impostoTabela);
   else if (b <= REDUCAO_PARCIAL_ATE_CENTAVOS) reducao = Math.min(impostoTabela, Math.max(0, REDUCAO_PARCIAL_BASE_CENTAVOS - divRound(b * REDUCAO_PARCIAL_COEF_MILIONESIMOS, 1_000_000)));
-
   let irrf = Math.max(0, impostoTabela - reducao);
   const irrfDispensado = irrf > 0 && irrf <= IRRF_NAO_RETIDO_ATE_CENTAVOS;
   if (irrfDispensado) irrf = 0;
+  return { modelo, legal, simples, baseIr, aliquotaIr: faixa.milesimos / 10, impostoTabela, reducao, irrf, irrfDispensado };
+}
 
-  const liquido = b - inss - irrf;
+export type IrrfCalculo = { modelo: Salario["modelo"]; deducaoLegal: number; deducaoSimplificada: number; baseIr: number; impostoTabela: number; reducao: number; irrf: number };
+/** Só a parte do IR, com o INSS informado (reais). Serve para conferir os exemplos oficiais da Receita, que trazem o INSS dado. null se inválido. */
+export function calcularIrrf(bruto: number, inss: number, dependentes = 0, outrasDeducoes = 0): IrrfCalculo | null {
+  const b = paraCentavos(bruto), i = opcionalCentavos(inss), o = opcionalCentavos(outrasDeducoes);
+  if (b === null || i === null || o === null || !Number.isInteger(dependentes) || dependentes < 0 || dependentes > MAX_DEPENDENTES) return null;
+  const r = calcularIr(b, i, dependentes * DEPENDENTE_CENTAVOS, o);
+  return { modelo: r.modelo, deducaoLegal: reais(r.legal), deducaoSimplificada: reais(r.simples), baseIr: reais(r.baseIr), impostoTabela: reais(r.impostoTabela), reducao: reais(r.reducao), irrf: reais(r.irrf) };
+}
+
+/** Um pagamento separado (mensal, 13º ou férias): INSS com teto e IRRF próprios. */
+function pagamento(b: number, depC: number, outrasC: number) {
+  const { inss, faixas } = calcularInss(b);
+  const ir = calcularIr(b, inss, depC, outrasC);
+  return { inss, faixas, ir, liquido: b - inss - ir.irrf - outrasC };
+}
+
+const resumoPagamento = (b: number, depC: number, outrasC: number): Pagamento | null => {
+  const p = pagamento(b, depC, outrasC);
+  return p.liquido < 0 ? null : { bruto: reais(b), inss: reais(p.inss), irrf: reais(p.ir.irrf), outrasDeducoes: reais(outrasC), liquido: reais(p.liquido) };
+};
+
+/**
+ * Calcula o líquido mensal e as estimativas de 13º e férias + 1/3. Devolve null se o bruto, os dependentes, as outras deduções ou os
+ * benefícios forem inválidos (nunca adivinha), ou se as deduções passarem do que sobra do salário.
+ */
+export function calcularSalario(bruto: number, dependentes = 0, opts: OpcoesSalario = {}): Salario | null {
+  const b = paraCentavos(bruto);
+  if (b === null) return null;
+  if (!Number.isInteger(dependentes) || dependentes < 0 || dependentes > MAX_DEPENDENTES) return null;
+  const outrasC = opcionalCentavos(opts.outrasDeducoes);
+  const benC = opcionalCentavos(opts.beneficios);
+  if (outrasC === null || benC === null) return null;
+
+  const depC = dependentes * DEPENDENTE_CENTAVOS;
+  const m = pagamento(b, depC, outrasC);
+  if (m.liquido < 0) return null;
+  const decimo = resumoPagamento(b, depC, outrasC);
+  const ferias = resumoPagamento(divRound(b * 4, 3), depC, outrasC);
+  if (!decimo || !ferias) return null;
+  const { inss, faixas: inssFaixas, ir } = m;
   return {
-    bruto: reais(b), dependentes, inss: reais(inss), inssFaixas, modelo,
-    deducaoLegal: reais(legal), deducaoSimplificada: reais(simples), deducaoDependentes: reais(depC),
-    baseIr: reais(baseIr), aliquotaIr: faixa.milesimos / 10, impostoTabela: reais(impostoTabela), reducao: reais(reducao),
-    irrf: reais(irrf), irrfDispensado, liquido: reais(liquido), pctLiquido: Math.round((liquido / b) * 1000) / 10,
+    bruto: reais(b), dependentes, outrasDeducoes: reais(outrasC), beneficios: reais(benC), totalRecebido: reais(m.liquido + benC),
+    decimoTerceiro: decimo, ferias,
+    inss: reais(inss), inssFaixas, modelo: ir.modelo,
+    deducaoLegal: reais(ir.legal), deducaoSimplificada: reais(ir.simples), deducaoDependentes: reais(depC), deducaoOutras: reais(outrasC),
+    baseIr: reais(ir.baseIr), aliquotaIr: ir.aliquotaIr, impostoTabela: reais(ir.impostoTabela), reducao: reais(ir.reducao),
+    irrf: reais(ir.irrf), irrfDispensado: ir.irrfDispensado, liquido: reais(m.liquido), pctLiquido: Math.round((m.liquido / b) * 1000) / 10,
   };
 }

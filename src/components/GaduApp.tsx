@@ -14,6 +14,7 @@ import { CommandPalette } from "./CommandPalette";
 import { isPaletaKey, parseMenuCommand, type PaletaItem } from "@/lib/paleta";
 import { navSpoken, parseNavIntent, pushTab } from "@/lib/nav-intent";
 import { EVENTO_FALAR, parseLerResumo } from "@/lib/painel-fala";
+import { calcularPedido, pedeSalvarSalario, pedidoSalario, resumoSalario } from "@/lib/finance/salario-texto";
 import { parseModoVoz } from "@/lib/nivel-visual";
 import { useNivel } from "./VoiceCore";
 import { AdminPage } from "./AdminPage";
@@ -350,6 +351,21 @@ export function GaduApp(props: {
       else setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: txt }]);
       return;
     }
+    // "Quanto fica líquido um salário de 12 mil?": calculado aqui (calcularSalario), mostrado em cartão e falado. Sem modelo e sem custo.
+    // Pedido para guardar o líquido segue para a conversa (confirmação e Desfazer). Financeiro desligado: segue como antes.
+    const salario = message && props.financeEnabled && !pedeSalvarSalario(message) ? pedidoSalario(message) : null;
+    const salarioCalc = salario ? calcularPedido(salario) : null;
+    if (salarioCalc) {
+      setDraft("");
+      const fala = resumoSalario(salarioCalc);
+      setMessages((ms) => [...ms,
+        { id: crypto.randomUUID(), role: "user", content: message },
+        { id: crypto.randomUUID(), role: "assistant", content: fala, via: "Cálculo local · sem IA" },
+        { id: crypto.randomUUID(), role: "action", content: "salario", action: { kind: "salario", calc: salarioCalc, salvar: null } },
+      ]);
+      if (prefsRef.current.voice || opts.voice) { speaker?.cancel(); speaker?.announce(fala); }
+      return;
+    }
     // "Abre finanças", "vai para as metas", "volta": navegação entendida aqui, sem modelo e sem custo (UX-7 G2).
     const nav = message ? parseNavIntent(message) : null;
     if (nav && (nav.tipo === "voltar" || !navHiddenRef.current(nav.view))) {
@@ -499,7 +515,7 @@ export function GaduApp(props: {
         if (answer && !ctrl.signal.aborted && handsFreeRef.current) setTimeout(() => { if (modeRef.current === "idle" && !busyRef.current && !listeningRef.current) listenRef.current(); }, 600);
       }
     }
-  }, [busy, conversationId, failChat, prefs.voice, refreshPending, speaker, props.morningLink, target]);
+  }, [busy, conversationId, failChat, prefs.voice, refreshPending, speaker, props.morningLink, props.financeEnabled, target]);
 
   const modeRef = useRef(mode);
   useEffect(() => { modeRef.current = mode; }, [mode]);

@@ -402,29 +402,35 @@ test("tudo por voz: agenda do Google fora do ar vira aviso, sem cartão", async 
 });
 
 // ---- Simulador de salário bruto → líquido: o servidor calcula, o modelo só repete; salvar só com confirmação ----
-test("salário: 'quanto fica líquido um salário de 8 mil?' calcula no servidor, injeta o resultado no contexto e manda o cartão (sem gravar)", async () => {
-  modelText = "O líquido fica em R$ 6.040,64. O cartão tem o passo a passo.";
+test("salário: 'quanto fica líquido um salário de 8 mil?' é respondido NO SERVIDOR, sem modelo: texto e cartão, sem gravar e sem custo", async () => {
+  modelText = "NÃO DEVIA SER USADO";
   const events = await chat("Quanto fica líquido um salário de 8 mil?");
-  const c = ctxOf();
-  assert.match(c, /Cálculo do salário \(feito pelo servidor/);
-  assert.match(c, /líquido R\$ 6\.040,64/);
-  assert.match(c, /INSS R\$ 921,51, imposto de renda R\$ 1\.037,85/);
+  assert.equal(providerCalls.length, 0, "o modelo não é chamado");
+  assert.equal(completeCalls, 0, "nenhuma IA extra");
+  assert.equal(rpcNames.includes("server_reserve_ai_budget") || rpcNames.includes("consume_daily_quota"), false, "sem reserva de orçamento e sem cota");
+  const texto = events.filter((e) => e.t === "delta").map((e) => e.text).join("");
+  assert.match(texto, /líquido R\$ 6\.040,64/);
+  assert.match(texto, /INSS R\$ 921,51, imposto de renda R\$ 1\.037,85/);
+  assert.match(texto, /Estimativas: 13º líquido de R\$ 6\.040,64/);
+  assert.ok(!texto.includes("NÃO DEVIA"));
+  assert.ok(events.some((e) => e.t === "provider") && events.at(-1)?.t === "done");
   const items = eventosDe(events);
-  assert.equal(items.length, 1, "o servidor propõe o cartão mesmo sem a ação do modelo");
+  assert.equal(items.length, 1);
   assert.equal(items[0].kind, "salario");
   assert.equal(items[0].salvar, null, "só informa");
   assert.deepEqual({ liquido: items[0].calc.liquido, inss: items[0].calc.inss, irrf: items[0].calc.irrf }, { liquido: 6040.64, inss: 921.51, irrf: 1037.85 });
-  assert.equal(completeCalls, 0, "nenhuma IA extra");
   assert.equal(log.writes.length, 0, "calcular não grava nada");
 });
 
-test("salário: dependentes ditos entram no cálculo; o valor do cartão é o que a pessoa disse, não o que o modelo repetiu", async () => {
-  modelText = ACOES_TXT([{ tipo: "salario_simular", bruto: 9999, dependentes: 5 }]);
-  const events = await chat("quanto sobra de um salário bruto de R$ 6.500 com 2 dependentes?");
-  const items = eventosDe(events);
-  assert.equal(items.length, 1, "uma ação só (a do modelo é trocada pela do servidor)");
-  assert.deepEqual({ bruto: items[0].calc.bruto, dependentes: items[0].calc.dependentes, liquido: items[0].calc.liquido }, { bruto: 6500, dependentes: 2, liquido: 5322.84 });
-  assert.match(ctxOf(), /líquido R\$ 5\.322,84/);
+test("salário: a frase de voz de 12 mil, com dependentes, outras deduções e benefícios ditos, usa os números do cálculo (sem modelo)", async () => {
+  const sim = await chat("quanto fica líquido um salário de 12 mil?");
+  assert.match(sim.filter((e) => e.t === "delta").map((e) => e.text).join(""), /líquido R\$ 8\.892,36 \(74,1% do bruto\)/);
+  const events = await chat("quanto fica líquido um salário de 12 mil descontando 500 de previdência com 800 de benefícios?");
+  const c = eventosDe(events)[0].calc;
+  assert.deepEqual({ bruto: c.bruto, outras: c.outrasDeducoes, ben: c.beneficios, liquido: c.liquido, total: c.totalRecebido, ferias: c.ferias.bruto }, { bruto: 12000, outras: 500, ben: 800, liquido: 8529.86, total: 9329.86, ferias: 16000 });
+  const dep = await chat("quanto sobra de um salário bruto de R$ 6.500 com 2 dependentes?");
+  assert.equal(eventosDe(dep)[0].calc.liquido, 5322.84);
+  assert.equal(providerCalls.length, 0);
 });
 
 test("salário: sem receita principal, 'salvar' só mostra o cálculo e avisa; nada de B vaza", async () => {
@@ -455,6 +461,7 @@ test("salário: FINANCE_ENABLED=0 desliga o cálculo (sem bloco no contexto e se
   process.env.FINANCE_ENABLED = "0";
   modelText = ACOES_TXT([{ tipo: "salario_simular", bruto: 8000, dependentes: 0 }]);
   const events = await chat("Quanto fica líquido um salário de 8 mil?");
+  assert.equal(providerCalls.length, 1, "sem o Financeiro, não há curto-circuito: segue para o modelo como qualquer mensagem");
   assert.ok(!/Cálculo do salário/.test(ctxOf()));
   assert.equal(events.find((e) => e.t === "acoes"), undefined);
   assert.equal(log.writes.length, 0);
@@ -467,8 +474,9 @@ test("salário: conversa comum não ganha o bloco de cálculo; ação do modelo 
   assert.equal(eventosDe(events).filter((i) => i.kind === "salario").length, 0);
 });
 
-test("salário: o custo continua passando por limites → reserva → cota → IA", async () => {
-  await chat("Quanto fica líquido um salário de 8 mil?");
+test("salário: pedido para SALVAR segue o fluxo normal (modelo): limites → reserva → cota → IA", async () => {
+  await chat("guarda o líquido de um salário de 8 mil como meu salário do mês");
+  assert.equal(providerCalls.length, 1);
   assert.deepEqual(rpcNames.slice(0, 3), ["month_spend_by_provider", "server_reserve_ai_budget", "consume_daily_quota"]);
   assert.ok(rpcNames.includes("server_settle_ai_budget"));
 });

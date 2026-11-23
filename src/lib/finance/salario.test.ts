@@ -1,7 +1,7 @@
 // Valores de referência calculados à parte, em Decimal (fora do TypeScript), com as tabelas de 2026 citadas em salario.ts.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { calcularSalario, INSS_FAIXAS, INSS_TETO_CENTAVOS, SALARIO_FONTES } from "./salario.ts";
+import { calcularIrrf, calcularSalario, INSS_FAIXAS, INSS_TETO_CENTAVOS, SALARIO_FONTES } from "./salario.ts";
 
 type Esperado = [bruto: number, dep: number, inss: number, modelo: "legal" | "simplificado", baseIr: number, impostoTabela: number, reducao: number, irrf: number, liquido: number];
 const CASOS: Esperado[] = [
@@ -93,6 +93,87 @@ test("entradas inválidas devolvem null (nunca adivinha)", () => {
 });
 
 test("as fontes oficiais estão citadas", () => {
-  assert.equal(SALARIO_FONTES.length, 3);
+  assert.equal(SALARIO_FONTES.length, 4);
+  assert.ok(SALARIO_FONTES.some((f) => f.url.endsWith("exemplos-de-aplicacao-da-lei-15-270-2025")));
   for (const f of SALARIO_FONTES) assert.ok(f.url.startsWith("https://www.gov.br/") || f.url.startsWith("https://www.planalto.gov.br/"));
+});
+
+// Exemplos oficiais da Receita Federal (Lei 15.270/2025). Eles trazem o INSS DADO (tabela de 2025): por isso o teste usa calcularIrrf,
+// que recebe o INSS, e não força o INSS de 2026 a coincidir. https://www.gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda/tabelas/exemplos-de-aplicacao-da-lei-15-270-2025
+test("exemplos oficiais da Receita (Lei 15.270/2025): IR com o INSS dado", () => {
+  const ex = [
+    // [bruto, inss dado, modelo, base, imposto da tabela, redução, IRRF]
+    [4000, 373.41, "simplificado", 3392.8, 114.76, 114.76, 0], // ex. 2: simplificado (607,20) vence; a redução zera
+    [5000, 509.6, "simplificado", 4392.8, 312.89, 312.89, 0], // ex. 3
+    [6000, 649.6, "legal", 5350.4, 562.63, 179.75, 382.88], // ex. 4: 978,62 − 0,133145 × 6.000 = 179,75
+    [7607.2, 0, "simplificado", 7000, 1016.27, 0, 1016.27], // ex. 5: sem INSS dado; a redução usa o rendimento (7.607,20 > 7.350), não a base (7.000)
+  ] as const;
+  for (const [bruto, inss, modelo, baseIr, impostoTabela, reducao, irrf] of ex) {
+    const r = calcularIrrf(bruto, inss)!;
+    assert.deepEqual({ modelo: r.modelo, baseIr: r.baseIr, impostoTabela: r.impostoTabela, reducao: r.reducao, irrf: r.irrf }, { modelo, baseIr, impostoTabela, reducao, irrf }, `exemplo com bruto ${bruto}`);
+  }
+  assert.equal(calcularIrrf(6000, 649.6)!.deducaoSimplificada, 607.2);
+  assert.equal(calcularIrrf(-1, 0), null);
+  assert.equal(calcularIrrf(6000, -5), null);
+});
+
+test("outras deduções: aumentam a dedução legal, saem do líquido e NÃO entram na base do INSS", () => {
+  const sem = calcularSalario(6000)!, com = calcularSalario(6000, 0, { outrasDeducoes: 1000 })!;
+  assert.equal(com.inss, sem.inss, "INSS não muda");
+  assert.equal(com.deducaoLegal, sem.deducaoLegal + 1000);
+  assert.equal(com.deducaoOutras, 1000);
+  assert.ok(com.baseIr < sem.baseIr && com.irrf < sem.irrf);
+  assert.equal(com.liquido, Math.round((6000 - com.inss - com.irrf - 1000) * 100) / 100);
+  assert.equal(com.totalRecebido, com.liquido, "sem benefícios");
+  // outras deduções fazem o modelo legal vencer o simplificado
+  assert.equal(calcularSalario(3200, 0)!.modelo, "simplificado");
+  assert.equal(calcularSalario(3200, 0, { outrasDeducoes: 500 })!.modelo, "legal");
+});
+
+test("benefícios: não mudam INSS nem IR; só somam ao total recebido", () => {
+  const sem = calcularSalario(8000, 1)!, com = calcularSalario(8000, 1, { beneficios: 800 })!;
+  assert.deepEqual({ inss: com.inss, irrf: com.irrf, liquido: com.liquido, baseIr: com.baseIr }, { inss: sem.inss, irrf: sem.irrf, liquido: sem.liquido, baseIr: sem.baseIr });
+  assert.equal(com.beneficios, 800);
+  assert.equal(com.totalRecebido, Math.round((sem.liquido + 800) * 100) / 100);
+  assert.equal(com.pctLiquido, sem.pctLiquido, "o % é só do salário");
+});
+
+test("13º e férias + 1/3: pagamentos separados, mesma função, teto do INSS e redução da lei", () => {
+  const s = calcularSalario(12000)!;
+  assert.equal(s.decimoTerceiro.bruto, 12000);
+  assert.equal(s.decimoTerceiro.inss, s.inss, "acima do teto: o 13º tem o mesmo INSS do mensal (988,09)");
+  assert.equal(s.decimoTerceiro.irrf, s.irrf);
+  assert.equal(s.ferias.bruto, 16000, "12.000 × 4/3");
+  assert.equal(s.ferias.inss, 988.09, "teto também nas férias");
+  assert.equal(s.ferias.irrf, 3219.55, "base 15.011,91 × 27,5% − 908,73");
+  // 13º de salário baixo: a redução da lei vale (zera o imposto), como no mensal
+  assert.deepEqual(calcularSalario(4000)!.decimoTerceiro, { bruto: 4000, inss: 368.6, irrf: 0, outrasDeducoes: 0, liquido: 3631.4 });
+  // salário de 6.000: o 13º tem a mesma redução parcial do mensal
+  assert.equal(calcularSalario(6000)!.decimoTerceiro.irrf, calcularSalario(6000)!.irrf);
+  // outras deduções e dependentes entram como no mensal
+  const o = calcularSalario(12000, 0, { outrasDeducoes: 500 })!;
+  assert.equal(o.decimoTerceiro.irrf, o.irrf);
+  assert.equal(o.decimoTerceiro.liquido, o.liquido);
+  assert.equal(o.ferias.irrf, 3082.05);
+  assert.equal(o.ferias.liquido, 11429.86);
+  // arredondamento do 4/3: 1.000,01 → 1.333,35
+  assert.equal(calcularSalario(1000.01)!.ferias.bruto, 1333.35);
+});
+
+test("R$ 12.000,00 (exemplo de voz): líquido fecha com bruto − INSS − IRRF − outras deduções", () => {
+  const puro = calcularSalario(12000)!;
+  assert.deepEqual({ inss: puro.inss, baseIr: puro.baseIr, irrf: puro.irrf, liquido: puro.liquido, pct: puro.pctLiquido }, { inss: 988.09, baseIr: 11011.91, irrf: 2119.55, liquido: 8892.36, pct: 74.1 });
+  const s = calcularSalario(12000, 0, { outrasDeducoes: 500, beneficios: 800 })!;
+  assert.deepEqual({ inss: s.inss, baseIr: s.baseIr, irrf: s.irrf, liquido: s.liquido, total: s.totalRecebido }, { inss: 988.09, baseIr: 10511.91, irrf: 1982.05, liquido: 8529.86, total: 9329.86 });
+  assert.equal(Math.round(s.liquido * 100), 1_200_000 - Math.round(s.inss * 100) - Math.round(s.irrf * 100) - 50_000);
+});
+
+test("outras deduções e benefícios inválidos devolvem null (nunca adivinha)", () => {
+  for (const v of [-1, NaN, Infinity, 10_000_001, 10.005, "500" as unknown as number, null as unknown as number]) {
+    assert.equal(calcularSalario(5000, 0, { outrasDeducoes: v }), null, `outras ${String(v)}`);
+    assert.equal(calcularSalario(5000, 0, { beneficios: v }), null, `benefícios ${String(v)}`);
+  }
+  assert.equal(calcularSalario(5000, 0, { outrasDeducoes: 6000 }), null, "deduções maiores que o salário");
+  assert.notEqual(calcularSalario(5000, 0, { outrasDeducoes: 0, beneficios: 0 }), null, "zero vale");
+  assert.equal(calcularSalario(5000, 0, { outrasDeducoes: undefined })!.outrasDeducoes, 0);
 });

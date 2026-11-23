@@ -175,6 +175,10 @@ test("salário: cartão só de informação (sem botões) e cartão de salvar (c
   assert.match(actionQuestion(salvar, NOW), /líquido de .*6\.040.* como o salário de novembro de 2026\?$/);
   assert.match(actionQuestion({ kind: "salario", calc, salvar: null }, NOW), /líquido R\$ 6\.040,64/);
   assert.match(d({ kind: "salario", calc: calcularSalario(3000, 1)!, salvar: null }).detail, /IR R\$ 0,00 \(isento\)/);
+  const ext = d({ kind: "salario", calc: calcularSalario(12000, 0, { outrasDeducoes: 500, beneficios: 800 })!, salvar: null });
+  assert.equal(ext.title, "R$ 8.529,86");
+  assert.match(ext.detail, /outras deduções R\$ 500,00 · benefícios R\$ 800,00 \(total R\$ 9\.329,86\)/);
+  assert.match(ext.detail, /13º líquido .* \(estimativas\)/);
 });
 
 test("pergunta falada dos ajustes de velocidade e voz", async () => {
