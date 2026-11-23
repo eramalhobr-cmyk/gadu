@@ -7,13 +7,14 @@ export type FinStore = Record<string, Row[]>;
 let seq = 0;
 // Padrões que o banco aplicaria (colunas com default). Só para as tabelas de Metas.
 const DEFAULTS: Record<string, () => Row> = {
+  tasks: () => ({ id: 1000 + seq++, status: "open", priority: 2 }),
   goals: () => ({ status: "ativa", concluida_em: null, created_at: new Date().toISOString() }),
   goal_progress: () => ({ created_at: new Date().toISOString() }),
   goal_milestones: () => ({ ordem: 0, concluido_em: null }),
   pecas_3d: () => ({ valores: {}, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }),
   pecas_3d_versoes: () => ({ created_at: new Date(Date.now() + seq++).toISOString() }),
 };
-const UNIQUE: Record<string, string[]> = { goal_tasks: ["goal_id", "task_id"], goal_projects: ["goal_id", "project_id"], goal_events: ["goal_id", "event_id"], fin_tetos: ["user_id", "categoria"] };
+const UNIQUE: Record<string, string[]> = { goal_tasks: ["goal_id", "task_id"], goal_projects: ["goal_id", "project_id"], goal_events: ["goal_id", "event_id"], fin_tetos: ["user_id", "categoria"], insight_respostas: ["user_id", "dia", "tipo"] };
 const KEYS: Record<string, string[]> = { fin_item_meses: ["item_id", "ano", "mes"], fin_config: ["user_id"] };
 
 export function makeFinDb(store: FinStore, user: () => string | null, log: { tables: string[]; writes: { table: string; op: string; rows: Row[] }[] }) {
@@ -96,6 +97,7 @@ export function makeFinDb(store: FinStore, user: () => string | null, log: { tab
         in: (c: string, v: unknown[]) => { filters.push((r) => v.includes(r[c])); return b; },
         gte: (c: string, v: number) => { filters.push((r) => (r[c] as number) >= v); return b; },
         lte: (c: string, v: number) => { filters.push((r) => (r[c] as number) <= v); return b; },
+        lt: (c: string, v: string | number) => { filters.push((r) => r[c] !== null && r[c] !== undefined && (r[c] as string | number) < v); return b; },
         order: (c: string, o?: { ascending?: boolean }) => { orderBy = [c, o?.ascending !== false]; return b; },
         limit: (n: number) => { limitN = n; return b; },
         maybeSingle: () => Promise.resolve(result("maybe")),

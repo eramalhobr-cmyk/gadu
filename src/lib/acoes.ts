@@ -56,6 +56,8 @@ export type AcaoProposta =
   | { tipo: "receita_principal"; receita: string }
   | { tipo: "peca3d_abrir"; busca: string | null }
   | { tipo: "teto_definir"; categoria: string; valor: number | null }
+  /** Aceitar ou ignorar uma percepção de hoje (atrasos, conflito, e-mail parado, janela livre, dia cheio). */
+  | { tipo: "percepcao"; percepcao: "conflito" | "livre" | "atrasadas" | "email" | "cheio"; decisao: "aceitar" | "ignorar" }
   | { tipo: "nova_conversa" }
   | { tipo: "conversa_abrir"; busca: string }
   | { tipo: "guia" }
@@ -75,7 +77,7 @@ export function destinoDe(v: unknown): Destino | null {
   return (DESTINOS as readonly string[]).includes(k) ? (k as Destino) : DESTINO_APELIDO[k] ?? null;
 }
 
-export const TIPOS = ["meta_criar", "meta_registrar", "meta_registro_apagar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "meta_projeto", "meta_agenda", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "conta_criar", "receita_principal", "teto_definir", "peca3d_abrir", "nova_conversa", "conversa_abrir", "guia", "navegar", "projeto_criar", "agente_criar", "agente_editar", "salario_simular", "ajuste"] as const;
+export const TIPOS = ["meta_criar", "meta_registrar", "meta_registro_apagar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "meta_projeto", "meta_agenda", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "conta_criar", "receita_principal", "teto_definir", "percepcao", "peca3d_abrir", "nova_conversa", "conversa_abrir", "guia", "navegar", "projeto_criar", "agente_criar", "agente_editar", "salario_simular", "ajuste"] as const;
 
 /** Instruções de agente: mantém as quebras de linha (até 2 seguidas), tira espaços sobrando. */
 const instr = (v: unknown): string | null => (typeof v === "string" ? v.replace(/\r/g, "").replace(/[ \t]+/g, " ").replace(/ ?\n ?/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, 4000) : null);
@@ -313,6 +315,13 @@ export function validAcao(raw: unknown, now = Date.now()): AcaoProposta | null {
       const busca = txt(o.busca, 80);
       return { tipo: "peca3d_abrir", busca: busca && !/^(a\s+)?[uú]ltima( pe[cç]a)?$/i.test(busca) ? busca : null };
     }
+    case "percepcao": {
+      const k = norm(String(o.percepcao ?? ""));
+      const percepcao = (["conflito", "livre", "atrasadas", "email", "cheio"] as const).find((x) => x === k) ?? (k === "atrasada" || k === "atraso" || k === "atrasos" ? "atrasadas" : k === "e-mail" || k === "emails" ? "email" : null);
+      const d = norm(String(o.decisao ?? ""));
+      const decisao = d === "aceitar" || d === "aceita" ? "aceitar" : d === "ignorar" || d === "ignora" ? "ignorar" : null;
+      return percepcao && decisao ? { tipo: "percepcao", percepcao, decisao } : null;
+    }
     case "teto_definir": {
       // valor null (ou "tirar") = remove o teto da categoria.
       const categoria = txt(o.categoria, 40);
@@ -432,6 +441,7 @@ export function acoesRules(): string {
   {"tipo":"gasto_apagar","gasto":"mercado","valor":50,"data":"AAAA-MM-DD"} (apaga um gasto já lançado: nome ou categoria, e o valor ou a data se ajudarem a achar); {"tipo":"gasto_editar","gasto":"mercado","de_valor":50,"de_data":"AAAA-MM-DD","valor":55,"categoria":"Mercado","descricao":"...","meio":"pix","data":"AAAA-MM-DD"} (de_* só para achar o gasto; valor, categoria, descricao, meio e data são o que muda);
   {"tipo":"evento_editar","evento":"título atual","titulo":"novo título","inicio":"AAAA-MM-DDTHH:MM:00-03:00","fim":"AAAA-MM-DDTHH:MM:00-03:00","local":"..."} (só o que muda; sem "fim", a duração é mantida); {"tipo":"evento_apagar","evento":"título"} (eventos da agenda do Google);
   {"tipo":"memoria_aprovar","memoria":"palavras da memória pendente"} ou {"tipo":"memoria_aprovar","todas":true}; {"tipo":"memoria_recusar","memoria":"..."} (descarta uma memória pendente); {"tipo":"memoria_esquecer","memoria":"palavras do fato"} ("esquece que eu…": apaga uma memória aprovada; use as palavras da lista de memória);
+  {"tipo":"percepcao","percepcao":"conflito|livre|atrasadas|email|cheio","decisao":"aceitar|ignorar"} ("pode passar as atrasadas para hoje", "ignora o aviso do e-mail", "reserva o foco na janela livre": só as percepções listadas em "Percepções de hoje"; "cheio" só dá para ignorar);
   {"tipo":"conta_criar","contaTipo":"despesa|receita","nome":"Água","valor":90,"dia":10,"grupo":"Moradia","todoMes":true} ("cria uma conta de água de 90 reais todo dia 10", "adiciona minha receita de aluguel de 1500": valor, dia e grupo são opcionais; todoMes = o valor vale deste mês até dezembro); {"tipo":"receita_principal","receita":"nome da receita"} ("meu salário principal é o da empresa": define a receita principal do Financeiro, que o simulador de salário usa para salvar); {"tipo":"peca3d_abrir","busca":"nome da peça ou vazio"} ("abre a minha última peça", "abre o suporte de celular no 3D": abre uma peça salva do 3D Studio, com confirmação; sem busca = a mais recente); {"tipo":"teto_definir","categoria":"Restaurantes","valor":800} ("põe um teto de 800 para restaurante", "meu limite de mercado é 1500 por mês"; "tira o teto de lazer" = valor null): teto mensal de gasto por categoria do dia a dia, com aviso a 80% e 100%; {"tipo":"nova_conversa"} ("começa uma conversa nova"); {"tipo":"conversa_abrir","busca":"assunto ou título"} ("abre a conversa sobre o condomínio", "volta naquela conversa da viagem": abre uma conversa anterior da pessoa, com confirmação); {"tipo":"guia"} ("me mostra o guia de novo", "como o GaDu funciona?": abre o guia de primeiro uso na hora, sem confirmação; não grava nada); {"tipo":"navegar","destino":"hoje|conversa|tarefas|agenda|financeiro|metas|projetos|memoria|agentes|ajustes|mais"} ("abre o Financeiro", "vai para Metas", "mostra minhas tarefas": abre a tela na hora, sem confirmação; use só quando a pessoa pedir para ir ou abrir uma tela);
   {"tipo":"projeto_criar","nome":"...","objetivo":"..."}; {"tipo":"agente_criar","nome":"Mentor de estudos","area":"Estudos","instrucoes":"como o agente deve pensar e falar"} ("cria um agente para me ajudar com as finanças da casa": nome até 60 letras; area opcional entre Pessoal, Preferências, Saúde, Finanças, Estudos, Família, Projetos, Trabalho; escreva instruções curtas e claras na voz da pessoa); {"tipo":"agente_editar","agente":"nome atual","nome":"novo nome","area":"...","instrucoes":"texto novo que SUBSTITUI o anterior","ativo":true|false} ("muda as instruções do agente Mentor para ser mais direto", "desativa o agente de estudos": só o que muda);
   {"tipo":"salario_simular","bruto":8000,"dependentes":0,"salvar":false} ("quanto fica líquido um salário de 8 mil?", "e com 2 dependentes?": o SERVIDOR calcula INSS e imposto de renda e mostra o cartão com o passo a passo; você NUNCA calcula nem escreve valores de INSS, imposto ou líquido: diga só que o cartão tem o cálculo, ou repita os números do bloco "Cálculo do salário" se ele estiver no contexto. "salvar":true só quando a pessoa pedir para guardar o líquido como o salário deste mês: vira um cartão de confirmação);

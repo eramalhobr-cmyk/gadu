@@ -66,6 +66,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 14:30 · Cursor (Grok Bot), percepções com Aceitar/Ignorar (fila, item 1)
+- **Migração (PR #89):** `20261123180001_insight_respostas` (aditiva: uma tabela; guarda só dia, tipo e decisão, nenhum conteúdo; RLS, 4 políticas de dono, restritivas S-05). Testes `30_isolamento` e `85_s05` (24 tabelas, 48 políticas). **Aplicada** pelo Cursor via MCP às 14:00 (versão `20261123170034`; RLS, 4 + 2 políticas, `anon` sem acesso).
+- **Código (`feat/percepcoes-app`):** `src/lib/percepcoes.ts` (o que cada Aceitar faz, filtro do que já foi respondido); `POST /api/insights` (Aceitar: atrasadas → passam para hoje, até 20; e-mail importante parado → tarefa "Responder e-mail: assunto (remetente)"; janela livre → "Foco" de até 2 h no Google; conflito → anota e abre a Agenda; dia cheio → só ignora) e `POST /api/insights/desfazer` (volta só o que o Aceitar fez, só nas linhas da sessão, e apaga a resposta de hoje). Tela Hoje: painel "O GaDu percebeu" com Aceitar/Ignorar e Desfazer. `/api/today`, o chat e o briefing deixam de mostrar o que a pessoa já respondeu hoje.
+- **Voz:** `percepcao` ("passa as atrasadas para hoje", "ignora o aviso do e-mail", "reserva o foco na janela livre"): o servidor recalcula as percepções de hoje (mesma regra, só dados da sessão) e mostra o cartão; o modelo não escolhe texto nem horário.
+- **A revisar por outra IA:** `src/app/api/insights/**` (Desfazer de tarefa de outra pessoa é ignorado pelo `eq("user_id")`; evento só apaga pelo id devolvido), `PercepcoesCard.tsx`.
 ### 23/11/2026 13:50 · Cursor (Grok Bot), fila nova e token da telemetria
 - **Decisão do Eduardo (13:44):** o `TELEMETRIA_TOKEN` (Vercel + segredo do GitHub) foi para o **fim do roadmap**, como passo manual dele ("Fim do roadmap · passos manuais do Eduardo" no ROADMAP). Não é pendência das IAs.
 - Conferido às 13:47: migração `metas_fase2` aplicada (versão `20261123161155`), `goal_projects` e `goal_events` com RLS, 4 políticas de dono + 2 restritivas S-05 cada, `anon` sem acesso; deploy da `main` (`bf513d5`, PR #87) `success`.

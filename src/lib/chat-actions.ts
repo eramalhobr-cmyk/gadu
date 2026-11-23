@@ -60,6 +60,8 @@ export type ChatAction =
   | { kind: "receita_principal"; itemId: string; nome: string }
   | { kind: "peca3d_abrir"; id: string; titulo: string; quando: string }
   | { kind: "teto"; categoria: string; valor: number | null; anterior: number | null }
+  /** Resposta a uma percepção de hoje, achada no SERVIDOR (só as que ainda não foram respondidas). Aceitar faz a ação do tipo. */
+  | { kind: "percepcao"; tipo: "conflito" | "livre" | "atrasadas" | "email" | "cheio"; decisao: "aceita" | "ignorada"; texto: string; rotulo: string | null; ref?: { inicio?: string; fim?: string; from?: string; subject?: string } }
   | { kind: "nova_conversa" }
   | { kind: "conversa_abrir"; id: number; titulo: string; quando: string }
   | { kind: "guia" }
@@ -140,6 +142,21 @@ export function whenLabel(iso: string, now = new Date()): string {
   if (k(d) === k(new Date(now.getTime() + 86_400_000))) return `amanhã ${hm(iso)}`;
   return `${d.toLocaleDateString("pt-BR", { timeZone: TZ, weekday: "short", day: "2-digit", month: "2-digit" }).replace(".", "")} ${hm(iso)}`;
 }
+
+const PERCEPCAO_DETALHE: Record<"conflito" | "livre" | "atrasadas" | "email" | "cheio", string> = {
+  atrasadas: "As tarefas abertas com prazo vencido passam para hoje (até 20)",
+  email: "Cria uma tarefa para hoje com o assunto e o remetente",
+  livre: "Reserva \"Foco\" na sua agenda do Google, até 2 horas",
+  conflito: "Fica anotado; a Agenda abre para você resolver",
+  cheio: "Só aviso",
+};
+const PERCEPCAO_PERGUNTA: Record<"conflito" | "livre" | "atrasadas" | "email" | "cheio", string> = {
+  atrasadas: "Passo as tarefas atrasadas para hoje?",
+  email: "Crio uma tarefa para responder esse e-mail hoje?",
+  livre: "Reservo um bloco de foco na sua janela livre?",
+  conflito: "Anoto o conflito e abro a Agenda?",
+  cheio: "Ignoro o aviso de dia cheio?",
+};
 
 export function describe(a: ChatAction, now = new Date()): ActionView {
   switch (a.kind) {
@@ -273,6 +290,10 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
       return a.valor === null
         ? { icon: "coin", proposed: "Tirar o teto?", done: "Teto removido", undone: "Descartado", title: a.categoria, detail: a.anterior !== null ? `Hoje o teto é ${formatBRL(a.anterior)} por mês` : "Sem teto definido", confirm: "Tirar teto", busy: "Salvando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } }
         : { icon: "coin", proposed: a.anterior !== null ? "Mudar o teto?" : "Teto novo para confirmar", done: "Teto salvo", undone: "Descartado", title: a.categoria, detail: `${formatBRL(a.valor)} por mês${a.anterior !== null ? ` (antes ${formatBRL(a.anterior)})` : ""} · aviso em 80% e 100%`, confirm: "Salvar teto", busy: "Salvando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } };
+    case "percepcao":
+      return a.decisao === "ignorada"
+        ? { icon: "bell", proposed: "Ignorar este aviso hoje?", done: "Aviso ignorado hoje", undone: "Descartado", title: a.texto, detail: "Ele não volta hoje; amanhã o GaDu olha de novo", confirm: "Ignorar", busy: "Salvando…", applied: false }
+        : { icon: a.tipo === "conflito" || a.tipo === "livre" ? "calendar" : "check", proposed: `${a.rotulo ?? "Aceitar"}?`, done: a.tipo === "conflito" ? "Anotado" : "Feito", undone: "Descartado", title: a.texto, detail: PERCEPCAO_DETALHE[a.tipo], confirm: a.rotulo ?? "Aceitar", busy: "Salvando…", applied: false, ...(a.tipo === "conflito" ? { open: { label: "Agenda", view: "agenda" as const } } : {}) };
     case "nova_conversa":
       return { icon: "plus", proposed: "Começar uma conversa nova?", done: "Conversa nova", undone: "Descartado", title: "Nova conversa", detail: "A conversa atual fica guardada no histórico", confirm: "Começar", busy: "Abrindo…", applied: false };
     case "conversa_abrir":
@@ -374,6 +395,7 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     case "memoria_recusar": return `Descarto a memória: ${a.texto}? Não dá para desfazer.`;
     case "memoria_esquecer": return `Esqueço isto: ${a.texto}? Não dá para desfazer.`;
     case "nova_conversa": return "Começo uma conversa nova?";
+    case "percepcao": return a.decisao === "ignorada" ? `Ignoro hoje o aviso: ${a.texto}` : `${PERCEPCAO_PERGUNTA[a.tipo]}`;
     case "teto": return a.valor === null ? `Tiro o teto de ${a.categoria}?` : `Ponho um teto de ${spokenMoney(a.valor)} por mês para ${a.categoria}?`;
     case "peca3d_abrir": return `Abro a peça ${a.titulo} no 3D?`;
     case "conta_nova": return `Crio a ${a.contaTipo === "receita" ? "receita" : "conta"} ${a.nome}${a.valor !== null ? `, de ${spokenMoney(a.valor)}${a.escopo === "proximos" ? " por mês" : ""}` : ""}${a.dia ? `, no dia ${a.dia}` : ""}?`;

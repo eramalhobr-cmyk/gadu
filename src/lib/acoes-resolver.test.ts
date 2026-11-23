@@ -402,3 +402,27 @@ test("agentes: criar e editar só entre os da própria pessoa; sem mudança, rep
   const b = await resolveAcoes(dbAg, U, [{ tipo: "agente_criar", nome: "Acme", area: null, instrucoes: null }, { tipo: "agente_editar", agente: "mentor", nome: null, area: null, instrucoes: "para a Acme", ativo: null }], { goals: true, finance: true, now: NOW, blocked: (t) => /acme/i.test(t) });
   assert.deepEqual(b.actions, []);
 });
+
+test("percepções: recalculadas no servidor só com dados da própria pessoa; já respondida ou ausente vira aviso; dia cheio só ignora", async () => {
+  const pdb = fakeDb({
+    tasks: [
+      { title: "Pagar boleto", due_date: "2026-11-20", priority: 2, status: "open", user_id: U },
+      { title: "SEGREDO-B tarefa", due_date: "2026-11-01", priority: 2, status: "open", user_id: "outra" },
+    ],
+    insight_respostas: [{ tipo: "email", decisao: "ignorada", dia: "2026-11-22", user_id: U }, { tipo: "atrasadas", decisao: "ignorada", dia: "2026-11-22", user_id: "outra" }],
+  });
+  const ev = (title: string, s: string, e: string) => ({ id: title, title, start: `2026-11-22T${s}:00-03:00`, end: `2026-11-22T${e}:00-03:00`, allDay: false, meet: false, declined: false });
+  const calendar = async () => [ev("Dentista", "16:00", "17:00"), ev("Reunião", "16:30", "17:30")];
+  const inbox = async () => [{ from: "Banco", subject: "Fatura", snippet: "", date: "2026-11-20T10:00:00-03:00", important: true }];
+  const r = await resolveAcoes(pdb, U, [
+    { tipo: "percepcao", percepcao: "atrasadas", decisao: "aceitar" },
+    { tipo: "percepcao", percepcao: "conflito", decisao: "ignorar" },
+    { tipo: "percepcao", percepcao: "email", decisao: "aceitar" },
+    { tipo: "percepcao", percepcao: "cheio", decisao: "aceitar" },
+  ], { goals: true, finance: true, now: NOW, calendar, inbox });
+  assert.deepEqual(r.actions.map((a) => a.kind === "percepcao" && [a.tipo, a.decisao, a.rotulo]), [["atrasadas", "aceita", "Passar para hoje"], ["conflito", "ignorada", "Ver na agenda"]]);
+  const t = r.actions[0]!;
+  assert.ok(t.kind === "percepcao" && /Pagar boleto/.test(t.texto) && !/SEGREDO-B/.test(t.texto));
+  assert.deepEqual(r.misses, ["Não há esse aviso entre as percepções de hoje (ou você já respondeu)."], "e-mail já respondido hoje e dia cheio ausente (avisos iguais aparecem uma vez)");
+  assert.ok(pdb.calls.filter((c) => c.table === "tasks" || c.table === "insight_respostas").every((c) => c.filters.some(([k, v]) => k === "user_id" && v === U)));
+});

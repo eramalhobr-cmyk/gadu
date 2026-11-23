@@ -90,6 +90,8 @@ async function capture(a: ChatAction): Promise<Prep | null> {
         if (!data) return null;
         return () => () => back(db.from("agents").update(data).eq("id", a.id));
       }
+      // O que o Aceitar fez volta do servidor (r.id, em JSON); Desfazer reverte só isso e apaga a resposta de hoje.
+      case "percepcao": return (r) => () => backApi(fetch("/api/insights/desfazer", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tipo: a.tipo, desfazer: r.id ? JSON.parse(r.id) : {} }) }));
       case "gasto": return (r) => (r.id ? () => backApi(fetch(`/api/finance/gastos/${r.id}`, { method: "DELETE" })) : undefined);
       case "evento": return (r) => (r.id ? () => backApi(fetch(`/api/calendar/${encodeURIComponent(r.id!)}`, { method: "DELETE" })) : undefined);
       default: return null;
@@ -173,6 +175,13 @@ async function execute(a: ChatAction): Promise<Result> {
       const r = await fetch(`/api/goals/${a.goalId}/tarefas`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ task_id: data.id }) });
       if (!r.ok) { await db.from("tasks").update({ status: "cancelled" }).eq("id", data.id); return api(r, "Não consegui ligar a tarefa à meta."); }
       return { ok: true };
+    }
+    if (a.kind === "percepcao") {
+      const r = await fetch("/api/insights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tipo: a.tipo, decisao: a.decisao, ...(a.ref ? { ref: a.ref } : {}) }) });
+      if (r.status === 401) { window.location.href = "/login"; return { ok: false }; }
+      const j = await json(r) as { desfazer?: unknown; message?: string };
+      if (!r.ok) return { ok: false, msg: (typeof j.message === "string" && j.message) || "Não consegui agora. Tente de novo." };
+      return { ok: true, id: JSON.stringify(j.desfazer ?? {}) };
     }
     if (a.kind === "meta_agenda") {
       const r = await fetch(`/api/goals/${a.goalId}/agenda`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ blocos: a.blocos }) });

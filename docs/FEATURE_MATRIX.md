@@ -45,7 +45,7 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Memória com aprovação, importação de outras IAs | implementado | — | `src/components/MemoryPage.tsx`, `src/lib/importer.ts`, `src/app/api/memories/import` | — |
 | Resumo automático de conversas (memória v2) | implementado | — | `src/app/api/chat/route.ts` | — |
 | Busca por significado (pgvector) em memórias, conversas, tarefas e projetos | implementado | — | `src/app/api/search`, `src/lib/embeddings.ts`, `search_index` | — |
-| Insights: conflito de agenda, janela livre, atrasos, e-mail parado | implementado | — | `src/lib/insights.ts` | — |
+| Insights: conflito de agenda, janela livre, atrasos, e-mail parado, com Aceitar/Ignorar | implementado (Aceitar/Ignorar em 23/11) | — | `src/lib/insights.ts`, `src/lib/percepcoes.ts`, `src/components/PercepcoesCard.tsx` | — |
 | Regra de privacidade (dado sensível não sai nem é gravado) | implementado | — | `src/lib/privacy.ts` | Presidio com regras brasileiras (P2) |
 | Contexto entre módulos com permissões (Finanças, Office) | planejado | P2 | — | módulos ainda não existem |
 
@@ -189,6 +189,7 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Metas | criar tarefa da meta | sim | `meta_tarefa` (cria e vincula) | — |
 | Metas | ligar e desligar a meta de um projeto ("liga a meta de corrida ao projeto Saúde") | sim | `meta_projeto` (`POST`/`DELETE /api/goals/:id/projetos`; cartão com "sim"; **Desfazer** religa ou desliga; só meta e projeto da própria pessoa; vínculo repetido vira aviso) | — |
 | Metas | reservar horários na agenda para a meta ("reserva 3 manhãs por semana para a meta de corrida") e liberar | sim | `meta_agenda` (o servidor escolhe dias e horários pulando compromissos; cartão mostra os horários; cria no Google só depois do "sim"; **Desfazer** libera os blocos; liberar um bloco pela tela da meta). Reservar não conta como progresso | Claude Code e Cursor, 23/11 |
+| Hoje | aceitar ou ignorar uma percepção do dia ("passa as atrasadas para hoje", "ignora o aviso do e-mail", "reserva o foco na janela livre") | sim | `percepcao` (o servidor recalcula as percepções de hoje e tira as já respondidas; cartão com confirmação; Aceitar faz a ação do tipo; **Desfazer** volta só o que foi feito; "dia cheio" só ignora) | Cursor, 23/11 |
 | Metas | pausar, retomar, arquivar | sim | `meta_pausar`, `meta_retomar`, `meta_arquivar` (`PATCH /api/goals/:id` com `status`; arquivar não apaga nada e avisa que dá para restaurar em Metas) | — |
 | Metas | editar título, alvo (meta numérica) e prazo | sim | `meta_editar` | — |
 | Metas | apagar registro de progresso ("apaga o último registro da corrida") | sim | `meta_registro_apagar` (o mais recente, ou pelo valor e data; cartão com "sim"; não tem Desfazer), PR do Cursor de 23/11 | — |
