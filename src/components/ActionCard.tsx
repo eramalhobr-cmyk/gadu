@@ -68,6 +68,21 @@ export async function runAction(a: ChatAction): Promise<Result> {
     if (a.kind === "lembrete_adiar") return saved(await supabaseBrowser().from("reminders").update({ due_at: a.novoDueAt, status: "pending", sent_at: null }).eq("id", a.id).in("status", ["pending", "sent"]).select("id"));
     if (a.kind === "lembrete_off") return saved(await supabaseBrowser().from("reminders").update({ status: "cancelled" }).eq("id", a.id).select("id"));
     if (a.kind === "conta_paga") return api(await fetch(`/api/finance/itens/${a.itemId}/mes`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ano: a.ano, mes: a.mes, pago: true }) }), "Não consegui marcar a conta.");
+    if (a.kind === "conta_desmarcar") return api(await fetch(`/api/finance/itens/${a.itemId}/mes`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ano: a.ano, mes: a.mes, pago: false }) }), "Não consegui desmarcar a conta.");
+    if (a.kind === "conta_valor") return api(await fetch(`/api/finance/itens/${a.itemId}/mes`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ano: a.ano, mes: a.mes, valor: a.valor, escopo: a.escopo }) }), "Não consegui mudar o valor.");
+    if (a.kind === "gasto_apagar") return api(await fetch(`/api/finance/gastos/${a.id}`, { method: "DELETE" }), "Não consegui apagar o gasto.");
+    if (a.kind === "gasto_editar") {
+      const m = a.mudancas;
+      const body: Record<string, unknown> = {};
+      if (m.valor !== undefined) body.valor = m.valor;
+      if (m.categoria) body.categoria = m.categoria;
+      if (m.descricao !== undefined) body.descricao = m.descricao;
+      if (m.meio) body.meio = m.meio;
+      if (m.data) { const [ano, mes, dia] = m.data.split("-").map(Number); Object.assign(body, { ano, mes, dia }); }
+      return api(await fetch(`/api/finance/gastos/${a.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }), "Não consegui mudar o gasto.");
+    }
+    if (a.kind === "evento_editar") return api(await fetch(`/api/calendar/${encodeURIComponent(a.eventId)}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(a.mudancas) }), "Não consegui mudar o evento.");
+    if (a.kind === "evento_apagar") return api(await fetch(`/api/calendar/${encodeURIComponent(a.eventId)}`, { method: "DELETE" }), "Não consegui apagar o evento.");
     if (a.kind === "projeto") return saved(await supabaseBrowser().from("projects").insert({ name: a.nome, goal: a.objetivo, color: "sig", status: "active" }).select("id"));
     if (a.kind === "ajuste") {
       // Configurações deste aparelho: o texto é aplicado aqui; voz, conversa contínua e tema, pelo app (evento).

@@ -115,3 +115,79 @@ test("tarefa/projeto de outra pessoa, projeto inexistente e título bloqueado n�
   assert.equal(r.actions.length, 0);
   assert.equal(r.misses.length, 3);
 });
+
+const MES = { ano: 2026, mes: 11 };
+const db3 = fakeDb({
+  fin_itens: [
+    { id: "i1", tipo: "despesa", grupo: "Moradia", nome: "Luz", ordem: 1, user_id: U }, { id: "i2", tipo: "despesa", grupo: "Moradia", nome: "Internet", ordem: 2, user_id: U },
+    { id: "iX", tipo: "despesa", grupo: "Geral", nome: "Conta secreta", ordem: 1, user_id: "outra" },
+  ],
+  fin_item_meses: [
+    { item_id: "i1", ...MES, valor: 180, pago: false, user_id: U }, { item_id: "i2", ...MES, valor: 100, pago: true, user_id: U },
+    { item_id: "iX", ...MES, valor: 999, pago: true, user_id: "outra" },
+  ],
+  fin_gastos: [
+    { id: "g1", ...MES, dia: 3, valor: 100, categoria: "Mercado", descricao: "feira", meio: "pix", origem: "manual", user_id: U },
+    { id: "g2", ...MES, dia: 5, valor: 45.5, categoria: "Mercado", descricao: "", meio: "debito", origem: "manual", user_id: U },
+    { id: "g3", ...MES, dia: 6, valor: 30, categoria: "Lazer", descricao: "cinema", meio: "credito", origem: "manual", user_id: U },
+    { id: "gX", ...MES, dia: 6, valor: 77, categoria: "Lazer", descricao: "cinema secreto", meio: "pix", origem: "manual", user_id: "outra" },
+  ],
+  fin_config: [],
+});
+const agenda = [
+  { id: "e1", title: "Dentista", start: "2026-11-23T13:00:00.000Z", end: "2026-11-23T14:00:00.000Z", allDay: false, meet: false, declined: false },
+  { id: "e2", title: "Aniversário", start: "2026-11-25", end: "2026-11-26", allDay: true, meet: false, declined: false },
+  { id: "e3", title: "Reunião recusada", start: "2026-11-24T13:00:00.000Z", end: "2026-11-24T14:00:00.000Z", allDay: false, meet: false, declined: true },
+];
+
+test("conta desmarcar/valor e gasto apagar/editar: só da própria pessoa, filtrando por valor", async () => {
+  const r = await resolveAcoes(db3, U, [
+    { tipo: "conta_desmarcar", conta: "internet" },
+    { tipo: "conta_valor", conta: "luz", valor: 210, escopo: "mes" },
+    { tipo: "gasto_apagar", gasto: "mercado", valor: 45.5, data: null },
+    { tipo: "gasto_editar", gasto: "cinema", de_valor: null, de_data: null, valor: 35, categoria: "Lazer", descricao: null, meio: "pix", data: "2026-11-07" },
+  ], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(r.actions, [
+    { kind: "conta_desmarcar", itemId: "i2", nome: "Internet", valor: 100, ano: 2026, mes: 11 },
+    { kind: "conta_valor", itemId: "i1", nome: "Luz", antes: 180, valor: 210, escopo: "mes", ano: 2026, mes: 11 },
+    { kind: "gasto_apagar", id: "g2", valor: 45.5, categoria: "Mercado", descricao: "", data: "2026-11-05" },
+    { kind: "gasto_editar", id: "g3", atual: { valor: 30, categoria: "Lazer", descricao: "cinema", data: "2026-11-06" }, mudancas: { valor: 35, meio: "pix", data: "2026-11-07" } },
+  ]);
+  assert.deepEqual(r.misses, []);
+  assert.ok(db3.calls.every((c) => c.filters.some(([k, v]) => k === "user_id" && v === U)), "toda leitura filtra por user_id");
+});
+test("gasto ambíguo, de outra pessoa ou já assim; conta já no estado pedido; finanças desligado", async () => {
+  const r = await resolveAcoes(db3, U, [
+    { tipo: "gasto_apagar", gasto: "mercado", valor: null, data: null },
+    { tipo: "gasto_apagar", gasto: "cinema secreto", valor: 77, data: null },
+    { tipo: "gasto_editar", gasto: "feira", de_valor: null, de_data: null, valor: 100, categoria: null, descricao: null, meio: null, data: null },
+    { tipo: "conta_desmarcar", conta: "luz" },
+    { tipo: "conta_valor", conta: "luz", valor: 180, escopo: "mes" },
+  ], { goals: true, finance: true, now: NOW });
+  assert.equal(r.actions.length, 0);
+  assert.equal(r.misses.length, 3, "avisos únicos e no máximo 3");
+  const off = await resolveAcoes(db3, U, [{ tipo: "gasto_apagar", gasto: "feira", valor: null, data: null }, { tipo: "conta_valor", conta: "luz", valor: 1, escopo: "mes" }, { tipo: "conta_desmarcar", conta: "internet" }], { goals: true, finance: false, now: NOW });
+  assert.deepEqual(off.actions, []);
+  assert.deepEqual(off.misses, []);
+});
+test("evento editar e apagar: acha na agenda, mantém a duração, recusa dia inteiro e agenda fora do ar", async () => {
+  const calendar = async () => agenda;
+  const r = await resolveAcoes(db3, U, [
+    { tipo: "evento_editar", evento: "dentista", titulo: "Dentista da Ana", inicio: "2026-11-23T16:00:00.000Z", fim: null, local: null },
+    { tipo: "evento_apagar", evento: "aniversário" },
+    { tipo: "evento_editar", evento: "aniversário", titulo: null, inicio: "2026-11-25T16:00:00.000Z", fim: null, local: null },
+    { tipo: "evento_apagar", evento: "recusada" },
+  ], { goals: true, finance: true, now: NOW, calendar });
+  assert.deepEqual(r.actions, [
+    { kind: "evento_editar", eventId: "e1", title: "Dentista", start: "2026-11-23T13:00:00.000Z", end: "2026-11-23T14:00:00.000Z", mudancas: { title: "Dentista da Ana", start: "2026-11-23T16:00:00.000Z", end: "2026-11-23T17:00:00.000Z" } },
+    { kind: "evento_apagar", eventId: "e2", title: "Aniversário", start: "2026-11-25", end: "2026-11-26" },
+  ]);
+  assert.equal(r.misses.length, 2, "dia inteiro e evento recusado (fora da lista)");
+  const fora = await resolveAcoes(db3, U, [{ tipo: "evento_apagar", evento: "dentista" }], { goals: true, finance: true, now: NOW, calendar: async () => { throw new Error("google"); } });
+  assert.deepEqual(fora.actions, []);
+  assert.match(fora.misses[0], /agenda do Google/);
+  const semAgenda = await resolveAcoes(db3, U, [{ tipo: "evento_apagar", evento: "dentista" }], { goals: true, finance: true, now: NOW });
+  assert.match(semAgenda.misses[0], /agenda do Google/);
+  const bloqueado = await resolveAcoes(db3, U, [{ tipo: "evento_editar", evento: "dentista", titulo: "Reunião Acme", inicio: null, fim: null, local: null }], { goals: true, finance: true, now: NOW, calendar, blocked: (t) => /acme/i.test(t) });
+  assert.deepEqual(bloqueado.actions, []);
+});

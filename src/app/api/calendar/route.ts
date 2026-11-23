@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { accessToken, createEvent, events, GoogleError } from "@/lib/google";
+import { accessToken, createEvent, events } from "@/lib/google";
 import { signedIn } from "../google/_auth";
+import { fail } from "./_fail";
 
 export const dynamic = "force-dynamic";
 
@@ -13,16 +14,6 @@ const Create = z.object({
   location: z.string().trim().max(160).optional(),
 }).strict();
 
-function fail(e: unknown) {
-  const kind = e instanceof GoogleError ? e.kind : "api";
-  const status = kind === "not_connected" ? 409 : kind === "scope" ? 403 : 502;
-  const message = {
-    not_connected: "Conecte o Google em Perfil › Ajustes › Conexões.",
-    scope: "Falta permissão para criar eventos. Reconecte o Google em Perfil › Ajustes › Conexões.",
-    revoked: "O acesso ao Google expirou. Reconecte em Perfil › Ajustes › Conexões.",
-  }[kind as string] ?? "Não consegui falar com o Google agora. Tente de novo.";
-  return NextResponse.json({ error: kind, message }, { status });
-}
 
 // Agenda de um período (horário de Brasília).
 export async function GET(request: Request) {

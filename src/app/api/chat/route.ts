@@ -396,6 +396,8 @@ export async function POST(request: Request) {
         if (acoesOk.length) {
           const { actions, misses } = await resolveAcoes(supabase, user.id, acoesOk, {
             goals: goalsEnabled(), finance: financeEnabled(),
+            // Agenda do Google só para achar o evento pelo nome (token da própria pessoa, só no servidor).
+            calendar: async (from, to) => events(await accessToken(supabase, user.id), from, to),
             blocked: (t) => isSensitive(t) || Boolean(blockedTerm(t, blocked)),
           });
           if (actions.length) send({ t: "acoes", items: actions });
