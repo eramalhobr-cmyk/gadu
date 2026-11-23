@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { embed, embeddingsAvailable, toVector } from "@/lib/embeddings";
+import { allowPaidSearch } from "@/lib/rate-limit";
 import { signedIn } from "../google/_auth";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,8 @@ export async function GET(request: Request) {
   const p = Query.safeParse(Object.fromEntries(new URL(request.url).searchParams));
   if (!p.success) return NextResponse.json({ error: "invalid" }, { status: 400 });
   if (!embeddingsAvailable()) return NextResponse.json({ results: [], semantic: false });
+  // Chamada paga: limite por pessoa, fail closed (a tela continua com a busca por texto).
+  if (!(await allowPaidSearch(a.user.id))) return NextResponse.json({ results: [], semantic: false, limited: true }, { headers: { "cache-control": "no-store" } });
   try {
     const [v] = await embed([p.data.q]);
     const { data, error } = await a.supabase.rpc("search_similar", { query_embedding: toVector(v), match_count: 12 });
