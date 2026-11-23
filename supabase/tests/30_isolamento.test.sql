@@ -78,6 +78,7 @@ begin
     insert into public.fin_item_meses (user_id, item_id, ano, mes, valor) select u, id, 2026, 11, 1.00 from public.fin_itens where user_id = u;
     insert into public.fin_gastos (user_id, ano, mes, dia, valor) values (u, 2026, 11, 5, 1.00);
     insert into public.fin_config (user_id) values (u);
+    insert into public.fin_tetos (user_id, categoria, valor) values (u, 'Mercado', 800);
     -- Metas (sintético)
     insert into public.goals (user_id, titulo, medicao, valor_alvo) values (u, 'meta sintética', 'numerica', 10);
     insert into public.goal_progress (user_id, goal_id, valor, data) select u, id, 1, current_date from public.goals where user_id = u;
@@ -115,6 +116,7 @@ insert into iso_cases values
   ('fin_itens',          'user_id',    'nome = ''x''',        'insert into public.fin_itens (user_id, tipo, nome) values (%L, ''despesa'', ''x'')'),
   ('fin_item_meses',     'user_id',    'valor = 2',           'insert into public.fin_item_meses (user_id, item_id, ano, mes, valor) values (%1$L, (select id from public.fin_itens where user_id = %1$L limit 1), 2026, 12, 1)'),
   ('fin_gastos',         'user_id',    'valor = 2',           'insert into public.fin_gastos (user_id, ano, mes, dia, valor) values (%L, 2026, 11, 6, 1)'),
+  ('fin_tetos',          'user_id',    'valor = 1',           'insert into public.fin_tetos (user_id, categoria, valor) values (%L, ''Lazer'', 1)'),
   ('fin_config',         'user_id',    'dia_restante = 5',    'insert into public.fin_config (user_id) values (%L)'),
   ('goals',              'user_id',    'titulo = ''x''',      'insert into public.goals (user_id, titulo, medicao, valor_alvo) values (%L, ''x'', ''numerica'', 5)'),
   ('goal_progress',      'user_id',    'valor = 2',           'insert into public.goal_progress (user_id, goal_id, valor, data) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), 1, current_date)'),
@@ -154,7 +156,7 @@ end $$;
 select pg_temp.check(not exists (select 1 from pg_tables t where t.schemaname = 'public' and t.tablename not in (select c.t from iso_cases c)),
   'toda tabela do schema public está na suíte de isolamento');
 select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public') = (select count(*) from iso_cases), 'a suíte não lista tabela que não existe');
-select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public' and t.tablename like 'fin\_%' and t.rowsecurity) = 4, 'as 4 tabelas fin_* existem e têm RLS ligado');
+select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public' and t.tablename like 'fin\_%' and t.rowsecurity) = 5, 'as 5 tabelas fin_* existem e têm RLS ligado');
 select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public' and t.tablename like 'goal%' and t.rowsecurity) = 4, 'as 4 tabelas de metas existem e têm RLS ligado');
 
 -- Vínculos cruzados: B não usa um projeto, conversa ou agente de A nos próprios registros.
