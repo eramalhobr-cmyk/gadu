@@ -116,6 +116,9 @@ Atualizado em 23/11/2026 às 11:05 (Brasília): **3D Studio ligado em produção
 - **Migração `20261123110001_telemetria_erros.sql`** (PR #76, merge `a3b4a79`, 10:51): tabela `error_events` (só servidor escreve, só administrador lê, sem texto de mensagem). aplicada em produção pelo Cursor (~10:57, via MCP).
 - **e2e com login no CI** (workflow `e2e-auth.yml`, Supabase local, sem segredo): 17 de 17. Detalhe e achados em docs/TESTES_E2E.md. Corrigidos: CSP para Supabase local, link "Pular o guia" com 44 px, testes antigos.
 
+## Telemetria de erros, código (23/11/2026)
+- Rota `/api/telemetria/erro`, captura do servidor (`instrumentation.ts`) e do navegador, Admin › Erros recentes, resumo `POST /api/cron/telemetria-resumo` e alerta diário (`alerta-erros.yml`). Interruptor `TELEMETRIA_ENABLED`. Falta o Eduardo criar `TELEMETRIA_TOKEN` (GitHub e Vercel). Ver docs/OBSERVABILIDADE.md.
+
 ## Problemas conhecidos e riscos
 Matriz completa, com evidências e o **status de cada S-xx**: [docs/SECURITY_AUDIT_2026-11-15.md](docs/SECURITY_AUDIT_2026-11-15.md).
 **Corrigidos pela segurança P1, publicada em 22/11/2026** (descrições abaixo são do risco original; evidências de produção em "Segurança P1: publicação"):

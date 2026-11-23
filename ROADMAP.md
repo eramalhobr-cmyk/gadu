@@ -500,7 +500,8 @@ Estágio: **publicada** em 22/11/2026 às 18:33 (Brasília), PR #30, merge `901e
 - [ ] Caixa, Plano, Simulador e Ano
 
 ## Por último (combinado em 10/11)
-- [ ] Testes automáticos de ponta a ponta antes de publicar (feito: `e2e-auth.yml`) e alerta de erro (tela de erro própria: feita no PR #9; migração da telemetria mergeada no PR #76, aplicada pelo Cursor; rota, Admin e alerta depois)
+- [x] Telemetria de erros: rota, captura no servidor e no navegador, lista no Admin e alerta diário por issue do GitHub (docs/OBSERVABILIDADE.md); falta o Eduardo criar `TELEMETRIA_TOKEN`
+- [ ] (histórico) Testes automáticos de ponta a ponta antes de publicar (feito: `e2e-auth.yml`) e alerta de erro (tela de erro própria: feita no PR #9; migração da telemetria mergeada no PR #76, aplicada pelo Cursor; rota, Admin e alerta depois)
 - [ ] Ações com aprovação no Gmail (rascunhos) e foco na agenda
 - [ ] Voz natural paga (ElevenLabs/OpenAI) com teto próprio
 
@@ -510,6 +511,6 @@ Estágio: **publicada** em 22/11/2026 às 18:33 (Brasília), PR #30, merge `901e
 - [ ] Guia de instalação para outra pessoa (um projeto Supabase + Vercel por pessoa, ou multiusuário)
 
 ## Operação
-- [ ] Monitoramento de erros e alerta de saúde
+- [x] Monitoramento de erros (tabela própria, Admin e alerta diário; docs/OBSERVABILIDADE.md). Alerta de saúde do site fora do ar segue em aberto
 - [ ] Backups do banco conferidos (plano grátis: diário, 7 dias)
 - [ ] Domínio próprio

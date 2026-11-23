@@ -46,8 +46,10 @@ describe("telas públicas", () => {
     const st = await p.evaluate(async () => ({
       chat: (await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: "oi" }) })).status,
       usage: (await fetch("/api/usage")).status,
+      erro: (await fetch("/api/telemetria/erro", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ rota: "/app", nome: "TypeError" }) })).status,
+      erros: (await fetch("/api/admin/erros")).status,
     }));
-    assert.deepEqual(st, { chat: 401, usage: 401 });
+    assert.deepEqual(st, { chat: 401, usage: 401, erro: 401, erros: 401 });
     await p.context().close();
   });
   test("Core: /api/attention (cartão Merece sua atenção) recusa sem login, mesmo com parâmetros", async () => {

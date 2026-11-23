@@ -1,10 +1,11 @@
 "use client";
 import { useEffect } from "react";
 import { ErrorScreen } from "@/components/ErrorScreen";
+import { avisarErro } from "@/lib/telemetria/cliente";
 
 // Erro inesperado numa tela: mostra uma mensagem clara e deixa tentar de novo sem perder o app.
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  useEffect(() => { console.error("tela com erro", error.digest ?? ""); }, [error]);
+  useEffect(() => { console.error("tela com erro", error.digest ?? ""); avisarErro(error); }, [error]);
   return (
     <ErrorScreen
       title="Algo deu errado nesta tela"
