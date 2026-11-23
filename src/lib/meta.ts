@@ -5,6 +5,7 @@
 import { lerData, hojeSP, isoDia, ordinal } from "./finance/datas.ts";
 import { validGasto, type GastoProposta } from "./finance/lancamento.ts";
 import { parseNumero } from "./goals/numero.ts";
+import { parseAcoes, type AcaoProposta } from "./acoes.ts";
 
 export const META = "<<<META>>>";
 export const AREAS = ["Pessoal", "Preferências", "Saúde", "Finanças", "Estudos", "Família", "Projetos", "Trabalho"] as const;
@@ -85,16 +86,16 @@ export function validMetaProposta(o: { meta?: unknown; acao?: unknown; valor?: u
   return { meta, acao: "registrar", valor, data };
 }
 
-export function splitMeta(text: string, now = Date.now()): { body: string; memories: MemoryProposal[]; reminders: ReminderProposal[]; tasks: TaskProposal[]; events: EventProposal[]; gastos: GastoProposta[]; metas: MetaProposta[] } {
+export function splitMeta(text: string, now = Date.now()): { body: string; memories: MemoryProposal[]; reminders: ReminderProposal[]; tasks: TaskProposal[]; events: EventProposal[]; gastos: GastoProposta[]; metas: MetaProposta[]; acoes: AcaoProposta[] } {
   const i = text.indexOf(META);
-  if (i < 0) return { body: visiblePart(text), memories: [], reminders: [], tasks: [], events: [], gastos: [], metas: [] };
+  if (i < 0) return { body: visiblePart(text), memories: [], reminders: [], tasks: [], events: [], gastos: [], metas: [], acoes: [] };
   const body = text.slice(0, i).trim();
   const raw = text.slice(i + META.length);
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
-  if (start < 0 || end <= start) return { body, memories: [], reminders: [], tasks: [], events: [], gastos: [], metas: [] };
+  if (start < 0 || end <= start) return { body, memories: [], reminders: [], tasks: [], events: [], gastos: [], metas: [], acoes: [] };
   try {
-    const parsed = JSON.parse(raw.slice(start, end + 1)) as { memorias?: unknown; lembretes?: unknown; tarefas?: unknown; eventos?: unknown; gastos?: unknown; metas?: unknown };
+    const parsed = JSON.parse(raw.slice(start, end + 1)) as { memorias?: unknown; lembretes?: unknown; tarefas?: unknown; eventos?: unknown; gastos?: unknown; metas?: unknown; acoes?: unknown };
     const list = Array.isArray(parsed.memorias) ? parsed.memorias : [];
     const memories = list
       .map((m) => {
@@ -127,8 +128,10 @@ export function splitMeta(text: string, now = Date.now()): { body: string; memor
       .map((m) => validMetaProposta((m ?? {}) as Record<string, unknown>, now))
       .filter((m): m is MetaProposta => Boolean(m))
       .slice(0, 1);
-    return { body, memories, reminders, tasks, events, gastos, metas };
+    // "Tudo por voz": ações de qualquer módulo, só propostas (o servidor resolve os nomes e a pessoa confirma).
+    const acoes = parseAcoes(parsed.acoes, now);
+    return { body, memories, reminders, tasks, events, gastos, metas, acoes };
   } catch {
-    return { body, memories: [], reminders: [], tasks: [], events: [], gastos: [], metas: [] };
+    return { body, memories: [], reminders: [], tasks: [], events: [], gastos: [], metas: [], acoes: [] };
   }
 }

@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { resolveAcoes } from "@/lib/acoes-resolver";
+import type { ChatAction } from "@/lib/chat-actions";
 import { checkDailyQuota, checkProviderSpend, safeRpc } from "@/lib/chat-budget-guard";
 import { readBudgets, serverConfig } from "@/lib/config";
 import { accessOf } from "@/lib/access";
@@ -57,8 +59,9 @@ type Out =
   | { t: "events"; items: { title: string; start: string; end: string; location: string | null }[] }
   | { t: "gastos"; items: GastoProposta[] }
   | { t: "metas"; items: MetaDraft[] }
+  | { t: "acoes"; items: ChatAction[] }
   | { t: "sources"; items: SourceItem[]; unavailable: string[] }
-  | { t: "notice"; text: string; kind: "privacy" | "quota" | "engine" | "error" };
+  | { t: "notice"; text: string; kind: "privacy" | "quota" | "engine" | "error" | "acao" };
 
 export async function POST(request: Request) {
   const supabase = await supabaseServer();
@@ -310,7 +313,7 @@ export async function POST(request: Request) {
         }
 
         // 6. Grava a conversa e as memórias propostas (sempre pendentes).
-        const { body: answer, memories: proposals, reminders, tasks: taskProposals, events: eventProposals, gastos: gastoProposals, metas: metaProposals } = splitMeta(full);
+        const { body: answer, memories: proposals, reminders, tasks: taskProposals, events: eventProposals, gastos: gastoProposals, metas: metaProposals, acoes: acaoProposals } = splitMeta(full);
         await supabase.from("messages").insert([
           { conversation_id: conversationId, role: "user", content: message },
           {
@@ -376,6 +379,7 @@ export async function POST(request: Request) {
           send({ t: "gastos", items: gastoProposals.map((g) => (isSensitive(g.descricao) || blockedTerm(g.descricao, blocked) ? { ...g, descricao: "" } : g)) });
         }
         // Metas: só propostas (nada é gravado aqui). A etiqueta vira o id real NO SERVIDOR, só entre as metas que a pessoa pode atualizar por aqui.
+        let metaSent = false;
         if (goalsIntent?.kind === "atualizar" && goalRefs.length && metaProposals.length) {
           const drafts = metaProposals.flatMap((p) => {
             const ref = goalRefs.find((r) => r.tag === p.meta);
@@ -384,7 +388,18 @@ export async function POST(request: Request) {
             if (p.acao === "registrar" && ref.medicao === "percentual" && (p.valor ?? 0) > 100) return [];
             return [{ goalId: ref.id, titulo: ref.titulo, unidade: ref.medicao === "percentual" ? "%" : ref.unidade, acao: p.acao, valor: p.valor, data: p.acao === "registrar" ? (p.data ?? isoDia(hojeSP())) : null, agregacao: ref.agregacao } satisfies MetaDraft];
           });
-          if (drafts.length) send({ t: "metas", items: drafts });
+          if (drafts.length) { send({ t: "metas", items: drafts }); metaSent = true; }
+        }
+        // "Tudo por voz": ações de qualquer módulo (criar meta, marco, concluir tarefa, conta paga, ajustes…). Só propostas:
+        // os nomes viram ids SÓ entre os itens da pessoa (sessão + user_id) e ela confirma no cartão ou dizendo "sim".
+        const acoesOk = metaSent ? acaoProposals.filter((a) => a.tipo !== "meta_registrar" && a.tipo !== "meta_concluir") : acaoProposals;
+        if (acoesOk.length) {
+          const { actions, misses } = await resolveAcoes(supabase, user.id, acoesOk, {
+            goals: goalsEnabled(), finance: financeEnabled(),
+            blocked: (t) => isSensitive(t) || Boolean(blockedTerm(t, blocked)),
+          });
+          if (actions.length) send({ t: "acoes", items: actions });
+          for (const text of misses) send({ t: "notice", kind: "acao", text });
         }
         if (coreSources) send({ t: "sources", ...coreSources });
         send({ t: "done", memories: added });

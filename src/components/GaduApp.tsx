@@ -1,11 +1,12 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "./RobotFace";
-import { ActionCard, type VoiceCmd } from "./ActionCard";
+import { ActionCard, initialCard, runAction, undoAction, type CardState } from "./ActionCard";
 import { ConfirmSheet } from "./ConfirmSheet";
 import type { ChatAction, EventDraft, GastoDraft } from "@/lib/chat-actions";
-import { toConfirmItem } from "@/lib/chat-actions";
-import { confirmPrompt, confirmQuestion, GIVE_UP_LINE, parseAnswer, resultLine, RETRY_LINE } from "@/lib/voice-confirm";
+import type { Ajuste } from "@/lib/acoes";
+import { actionQuestion } from "@/lib/chat-actions";
+import { GIVE_UP_LINE, parseAnswer, resultLine, RETRY_LINE } from "@/lib/voice-confirm";
 import { SourcesDetail, type SourcesData } from "./SourcesDetail";
 import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
@@ -141,14 +142,16 @@ export function GaduApp(props: {
   useEffect(() => { voiceSheetRef.current = voiceSheet; }, [voiceSheet]);
   /** Confirmação falada (UX-3): fila das ações a confirmar, etapa atual e comandos enviados aos cartões. */
   const [confirm, setConfirm] = useState<{ question: string; stage: "asking" | "listening" | "working"; heard: string; step: number; total: number } | null>(null);
-  const [cmds, setCmds] = useState<Record<string, VoiceCmd>>({});
+  /** Estado de cada cartão de ação (o mesmo no painel e na Conversa). */
+  const [cards, setCards] = useState<Record<string, CardState>>({});
+  const cardsRef = useRef(cards);
+  cardsRef.current = cards;
   const confirmQ = useRef<{ id: string; a: ChatAction }[]>([]);
   const confirmStage = useRef<null | "asking" | "listening" | "working" | "result">(null);
   const confirmListenRef = useRef(false);
   const confirmStep = useRef(0);
   const confirmTotal = useRef(0);
   const confirmTries = useRef(0);
-  const cmdN = useRef(0);
   const confirmFns = useRef({ next: () => false as boolean, answer: (_t: string) => {}, noAnswer: () => {}, idle: () => false as boolean });
   const [pending, setPending] = useState(0);
   const logRef = useRef<HTMLDivElement>(null);
@@ -319,14 +322,18 @@ export function GaduApp(props: {
           } else if (ev.t === "metas") {
             addActions((ev.items as MetaDraft[]).map((d) => ({ kind: "meta" as const, d })), (a) => (a.kind === "meta" ? a.d.titulo : ""));
           } else if (ev.t === "tasks") {
-            const items = ev.items as { title: string; due: string | null }[];
-            setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: `${items.length === 1 ? "Tarefa anotada" : "Tarefas anotadas"}: ${items.map((t) => t.title).join("; ")}. Veja em Projetos › Tarefas.` }]);
+            // Tarefa já anotada: cartão com Desfazer.
+            const items = ev.items as { id: number; title: string; due: string | null }[];
+            addActions(items.map((t) => ({ kind: "tarefa_criada" as const, id: t.id, titulo: t.title, prazo: t.due })), (a) => (a.kind === "tarefa_criada" ? a.titulo : ""));
           } else if (ev.t === "reminders") {
             // Lembrete já criado: cartão com Desfazer (e "está certo?" na confirmação falada).
             const items = ev.items as { id: number; text: string; dueAt: string }[];
             addActions(items.map((r) => ({ kind: "lembrete" as const, id: r.id, text: r.text, dueAt: r.dueAt })), (a) => (a.kind === "lembrete" ? a.text : ""));
             const push = typeof Notification !== "undefined" && Notification.permission === "granted";
             if (!push) setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "Ative as notificações em Configurações para receber o aviso do lembrete no celular." }]);
+          } else if (ev.t === "acoes") {
+            // "Tudo por voz": ações de qualquer módulo, resolvidas no servidor; a pessoa confirma.
+            addActions(ev.items as ChatAction[], (a) => a.kind);
           } else if (ev.t === "notice") {
             setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: ev.text }]);
           } else if (ev.t === "done" && ev.memories > 0) {
@@ -396,6 +403,18 @@ export function GaduApp(props: {
     };
   }, [speaker]);
 
+  // Ajustes pedidos pela conversa ("aumenta a letra" é aplicado no cartão; voz, conversa contínua e tema chegam aqui).
+  useEffect(() => {
+    const on = (e: Event) => {
+      const j = (e as CustomEvent<Ajuste>).detail;
+      if (j.opcao === "tema") { setTheme(j.valor); applyTheme(j.valor); return; }
+      const key = j.opcao === "maos_livres" ? "handsFree" : j.opcao === "respostas_curtas" ? "shortVoice" : j.opcao === "voz" ? "voice" : null;
+      if (key && typeof j.valor === "boolean") setPrefs({ ...prefsRef.current, [key]: j.valor });
+    };
+    window.addEventListener("gadu:ajuste", on);
+    return () => window.removeEventListener("gadu:ajuste", on);
+  }, []);
+
   // ---- Confirmação falada (src/lib/voice-confirm.ts) ----
   function closeConfirm() {
     confirmStage.current = null;
@@ -414,9 +433,9 @@ export function GaduApp(props: {
     if (!item) { closeConfirm(); return false; }
     confirmStep.current += 1;
     confirmTries.current = 0;
-    const ci = toConfirmItem(item.a);
-    setConfirm({ question: confirmQuestion(ci), stage: "asking", heard: "", step: confirmStep.current, total: confirmTotal.current });
-    say(confirmPrompt(ci), "asking");
+    const question = actionQuestion(item.a);
+    setConfirm({ question, stage: "asking", heard: "", step: confirmStep.current, total: confirmTotal.current });
+    say(`${question} Diga sim ou não.`, "asking");
     return true;
   }
   function listenConfirm() {
@@ -438,14 +457,40 @@ export function GaduApp(props: {
     if (!ans) { retryOrGiveUp(); return; }
     if (ans.kind === "change") {
       // "muda para 60 reais": descarta a proposta e manda o pedido para a conversa, que propõe de novo.
-      setCmds((m) => ({ ...m, [item.id]: { n: ++cmdN.current, action: "no" } }));
+      void cardOp(item.id, item.a, "discard");
       closeConfirm();
       void sendRef.current(text, { voice: true });
       return;
     }
     confirmStage.current = "working";
     setConfirm((c) => (c ? { ...c, stage: "working" } : c));
-    setCmds((m) => ({ ...m, [item.id]: { n: ++cmdN.current, action: ans.kind } }));
+    const action = ans.kind;
+    void decide(item.id, item.a, action).then((ok) => cardResult(item.id, action, ok));
+  }
+  /** "sim" grava (o que já existe fica); "não" descarta ou, no que o servidor já criou, desfaz. */
+  async function decide(id: string, a: ChatAction, action: "yes" | "no"): Promise<boolean> {
+    const st = (cardsRef.current[id] ?? initialCard(a)).state;
+    const applied = initialCard(a).state === "created";
+    if (action === "yes") {
+      if (applied || st === "created") return true;
+      if (st === "discarded") return false;
+      return cardOp(id, a, "confirm");
+    }
+    if (st === "discarded") return true;
+    if (applied) return cardOp(id, a, "undo");
+    if (st === "created") return false;
+    return cardOp(id, a, "discard");
+  }
+  /** Toque no cartão (ou decisão falada): grava, descarta ou desfaz, e guarda o estado do cartão. */
+  async function cardOp(id: string, a: ChatAction, op: "confirm" | "discard" | "undo"): Promise<boolean> {
+    const set = (c: CardState) => setCards((m) => ({ ...m, [id]: c }));
+    if (op === "discard") { set({ state: "discarded" }); return true; }
+    if ((cardsRef.current[id]?.state) === "saving") return false;
+    set({ state: "saving" });
+    const r = op === "confirm" ? await runAction(a) : await undoAction(a);
+    if (!r.ok) { set({ state: "error", msg: r.msg }); return false; }
+    set(op === "confirm" ? { state: "created", link: r.link } : { state: "discarded", undone: true });
+    return true;
   }
   /** O cartão gravou (ou descartou): fala o resultado e segue para a próxima. */
   function cardResult(id: string, action: "yes" | "no", ok: boolean) {
@@ -814,7 +859,7 @@ export function GaduApp(props: {
                 )}
                 {messages.map((m) =>
                   m.role === "user" ? <div key={m.id} className="bub u">{m.content}</div>
-                  : m.role === "action" && m.action ? <ActionCard key={m.id} a={m.action} cmd={cmds[m.id]} onResult={(act, ok) => cardResult(m.id, act, ok)} onOpen={setTab} />
+                  : m.role === "action" && m.action ? <ActionCard key={m.id} a={m.action} st={cards[m.id]} onConfirm={() => void cardOp(m.id, m.action!, "confirm")} onDiscard={() => void cardOp(m.id, m.action!, "discard")} onUndo={() => void cardOp(m.id, m.action!, "undo")} onOpen={setTab} />
                   : m.role === "notice" ? (
                     <div key={m.id} className="notice" role="status">
                       {m.content}
@@ -863,7 +908,7 @@ export function GaduApp(props: {
       </div>
 
       <Assistant
-        cmds={cmds} onCardResult={cardResult}
+        cards={cards} onCard={(id, a, op) => void cardOp(id, a, op)}
         open={showAssist} width={assistW} onResizeStart={startResize} onResizeStep={stepAssistW} context={contextOf(tab)} messages={messages} draft={draft} mode={mode} listening={listening} busy={busy} voiceOk={voiceOk}
         onDraft={setDraft} onSend={(t) => { speaker?.unlock(); void send(t); }} onMic={micClick} onStop={stop}
         onClose={() => openAssist(false)}
