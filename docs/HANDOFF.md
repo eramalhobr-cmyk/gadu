@@ -51,12 +51,13 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
-### 23/11/2026 · 06:47–07:40 · Claude Code, UX-4 (PRs A a D)
+### 23/11/2026 · 06:47–07:33 · Claude Code, UX-4 (PRs A a D)
 - **Feito e publicado (quatro PRs pequenos, em sequência, merge antes do próximo):**
   - **PR #52** `feat/ux4-linguagem`, merge `ed64dc0` às 06:57: sem "Beta", "Pessoal", "Agent Office" e "Plataforma" no topo das telas; bolha do GaDu só com "GaDu" e sem etiquetas [T1]/[M1] no texto (ficam em "Fontes"); Hoje com 1 ação principal e "Mais opções" recolhido; versão do app em "Detalhes".
   - **PR #53** `feat/ux4-desfazer`, merge `850f01b` às 07:09: aviso único "Feito · Desfazer" (`UndoToast`, `src/lib/undo.ts`, 8 s) em tarefas, lembretes, Revisão do dia, Financeiro, Metas, Memória e cartões da conversa; "desfaz" falado ou escrito.
   - **PR #54** `feat/ux4-erros`, merge `a79578f` às 07:18: catálogo `src/lib/errors.ts`, "Sem internet. Sua mensagem ficou guardada." com **Tentar de novo**, erro falado quando a pessoa usa voz, "tenta de novo" por voz.
   - **PR #55** `feat/ux4-primeiro-uso`, merge `36a41fb` às 07:29: guia de primeiro uso em 3 passos (nome; microfone e voz; Google), falado, com Pular, Voltar do Android e refazer em Configurações e por voz (`guia` no bloco "acoes"). Preferência em `profiles.settings.onboarding` (sem migração).
+- **Registro da publicação:** este diário e a matriz foram publicados pelo PR de docs #56 (merge `f21e5d6`, 07:33, CI rodado à mão: verify, e2e-public e database verdes).
 - **Verificado de fato (em cada PR):** typecheck, unit (até 273), integração (até 181), build, e2e público 10/10 e mobile 44/44 contra `next start`; CI verde (verify, e2e-public, database) e deploy da Vercel `success`; `/login` 200 depois de cada merge. Capturas a 412 × 915 com dados fictícios em `/workspace/gadu-review/ux-after/` (20 a 32). `scripts/test-db.sh` não rodou (sem mudança de banco; o job `database` do CI passou).
 - **Não verificado:** nada com login no Supabase real e nada no aparelho (voz, microfone, gravação do nome e da marca do guia, Desfazer dos cartões da conversa). O teste novo do guia em `e2e/auth.e2e.cjs` foi escrito sem rodar.
 - **Decisões:** (1) "desfaz" e "tenta de novo" são comandos locais (sem IA, sem custo), não ações do bloco "acoes"; só `guia` é ação nova. (2) Apagar memória, gasto ou evento pela conversa não ganhou Desfazer (o cartão já pede o "sim"). (3) O selo "Beta" da entrada 3D em Mais não foi tocado (frente 3D). (4) Não revisei os itens abertos de outras IAs nesta sessão (a tarefa era só o UX-4).
