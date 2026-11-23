@@ -97,3 +97,19 @@ test("tudo por voz: cartões e perguntas de meta (pausar, retomar, arquivar, edi
   assert.equal(actionQuestion(pa, NOW), "Arquivo o projeto Casa? Ele fica como concluído.");
   for (const a of [ms("pausada"), me, pe, pa]) assert.equal(d(a).applied, false);
 });
+
+test("tudo por voz: cartões e perguntas de memória, nova conversa e navegação; splitNavegacao separa o que abre na hora", async () => {
+  const { actionQuestion, describe: d, splitNavegacao } = await import("./chat-actions.ts");
+  assert.equal(actionQuestion({ kind: "memoria_aprovar", ids: [1], texto: "Mora em Curitiba" }, NOW), "Aprovo a memória: Mora em Curitiba?");
+  assert.equal(actionQuestion({ kind: "memoria_aprovar", ids: [1, 2, 3], texto: "3 memórias pendentes" }, NOW), "Aprovo as 3 memórias pendentes?");
+  assert.equal(actionQuestion({ kind: "memoria_recusar", id: 1, texto: "Gosta de café" }, NOW), "Descarto a memória: Gosta de café? Não dá para desfazer.");
+  assert.equal(actionQuestion({ kind: "memoria_esquecer", id: 1, texto: "Mora em Curitiba" }, NOW), "Esqueço isto: Mora em Curitiba? Não dá para desfazer.");
+  assert.match(d({ kind: "memoria_esquecer", id: 1, texto: "x" }).detail, /Não dá para desfazer/);
+  assert.equal(actionQuestion({ kind: "nova_conversa" }, NOW), "Começo uma conversa nova?");
+  assert.equal(d({ kind: "nova_conversa" }).confirm, "Começar");
+  assert.equal(actionQuestion({ kind: "navegar", view: "financeiro" }, NOW), "Abro Financeiro?");
+  const r = splitNavegacao([{ kind: "navegar", view: "metas" }, { kind: "nova_conversa" }, { kind: "navegar", view: "tarefas" }]);
+  assert.equal(r.destino, "tarefas", "vale o último pedido");
+  assert.deepEqual(r.cards, [{ kind: "nova_conversa" }], "gravações e conversa nova continuam como cartão");
+  assert.equal(splitNavegacao([{ kind: "nova_conversa" }]).destino, null);
+});

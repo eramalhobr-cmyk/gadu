@@ -129,3 +129,17 @@ test("meta pausar, retomar, arquivar e editar; projeto editar e arquivar", () =>
   assert.deepEqual(validAcao({ tipo: "projeto_arquivar", projeto: "Casa" }, NOW), { tipo: "projeto_arquivar", projeto: "Casa" });
   assert.equal(validAcao({ tipo: "projeto_arquivar" }, NOW), null);
 });
+
+test("memória aprovar, recusar e esquecer; nova conversa; navegar", () => {
+  assert.deepEqual(validAcao({ tipo: "memoria_aprovar", memoria: "mora em Curitiba" }, NOW), { tipo: "memoria_aprovar", memoria: "mora em Curitiba", todas: false });
+  assert.deepEqual(validAcao({ tipo: "memoria_aprovar", todas: true }, NOW), { tipo: "memoria_aprovar", memoria: null, todas: true });
+  assert.equal(validAcao({ tipo: "memoria_aprovar" }, NOW), null);
+  assert.deepEqual(validAcao({ tipo: "memoria_recusar", memoria: "gosta de café" }, NOW), { tipo: "memoria_recusar", memoria: "gosta de café" });
+  assert.deepEqual(validAcao({ tipo: "memoria_esquecer", memoria: "Curitiba" }, NOW), { tipo: "memoria_esquecer", memoria: "Curitiba" });
+  assert.equal(validAcao({ tipo: "memoria_esquecer", memoria: "" }, NOW), null);
+  assert.deepEqual(validAcao({ tipo: "nova_conversa" }, NOW), { tipo: "nova_conversa" });
+  for (const [dito, view] of [["Financeiro", "financeiro"], ["finanças", "financeiro"], ["Metas", "metas"], ["tarefas", "tarefas"], ["Início", "hoje"], ["Configurações", "ajustes"], ["mais", "modulos"], ["Memória", "memoria"]] as const) {
+    assert.deepEqual(validAcao({ tipo: "navegar", destino: dito }, NOW), { tipo: "navegar", destino: view }, dito);
+  }
+  for (const ruim of ["admin", "3d", "studio", "casa", "../etc", "", 5, null]) assert.equal(validAcao({ tipo: "navegar", destino: ruim }, NOW), null, String(ruim));
+});

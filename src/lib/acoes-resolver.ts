@@ -1,7 +1,7 @@
 // Servidor: transforma as ações propostas pelo modelo (src/lib/acoes.ts) em cartões, resolvendo os nomes para ids
 // SÓ entre os itens da própria pessoa (cliente da SESSÃO + filtro por user_id, além da RLS). Nada é gravado aqui.
 import type { AcaoProposta } from "./acoes.ts";
-import { matchByName, norm } from "./acoes.ts";
+import { DESTINO_NOME, matchByName, norm } from "./acoes.ts";
 import type { ChatAction, GastoMudancas, TarefaMudancas } from "./chat-actions.ts";
 import type { CalEvent } from "./google-format.ts";
 import type { SessionDb } from "./core/types.ts";
@@ -21,7 +21,7 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
   const misses: string[] = [];
   const now = opts.now ?? Date.now();
   const blocked = opts.blocked ?? (() => false);
-  const cache: { goals?: GoalRow[]; tasks?: { id: number; title: string }[]; reminders?: { id: number; text: string; due_at: string }[]; closed?: { id: number; title: string }[]; projects?: { id: number; name: string; goal?: string | null }[]; snoozable?: { id: number; text: string; due_at: string }[]; gastos?: Gasto[]; eventos?: CalEvent[] } = {};
+  const cache: { goals?: GoalRow[]; tasks?: { id: number; title: string }[]; reminders?: { id: number; text: string; due_at: string }[]; closed?: { id: number; title: string }[]; projects?: { id: number; name: string; goal?: string | null }[]; snoozable?: { id: number; text: string; due_at: string }[]; memorias?: { id: number; content: string; status: string }[]; gastos?: Gasto[]; eventos?: CalEvent[] } = {};
 
   const goals = async () => {
     if (!cache.goals) {
@@ -99,6 +99,14 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
     const d = await loadMes(db, userId, hoje.ano, hoje.mes);
     const doMes = new Map(d.meses.filter((m) => m.ano === hoje.ano && m.mes === hoje.mes).map((m) => [m.item_id, m]));
     return { hoje, doMes, contas: d.itens.filter((i) => i.tipo === "despesa" && doMes.has(i.id)) };
+  };
+  // Memórias da pessoa (pendentes e aprovadas): aprovar só acha pendentes; recusar, só pendentes; esquecer, só aprovadas.
+  const memorias = async (status: "pending" | "approved") => {
+    if (!cache.memorias) {
+      const r = await db.from("memories").select("id, content, status").eq("user_id", userId).order("created_at", { ascending: false }).limit(400);
+      cache.memorias = r.error ? [] : (r.data as { id: number; content: string; status: string }[]);
+    }
+    return cache.memorias.filter((m) => m.status === status);
   };
   const findGoal = async (nome: string) => {
     const g = matchByName(await goals(), (x) => x.titulo, nome);
@@ -297,6 +305,33 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           actions.push({ kind: "evento_editar", eventId: e.id, title: e.title, start: e.start, end: e.end, mudancas });
           break;
         }
+        case "memoria_aprovar": {
+          const pend = await memorias("pending");
+          if (a.todas) {
+            if (!pend.length) { misses.push("Não há memórias pendentes para aprovar."); break; }
+            actions.push({ kind: "memoria_aprovar", ids: pend.map((m) => m.id), texto: `${pend.length} ${pend.length === 1 ? "memória pendente" : "memórias pendentes"}` });
+            break;
+          }
+          const m = matchByName(pend, (x) => x.content, a.memoria ?? "");
+          if (m) actions.push({ kind: "memoria_aprovar", ids: [m.id], texto: m.content });
+          else misses.push(`Não achei a memória pendente "${a.memoria}".`);
+          break;
+        }
+        case "memoria_recusar": case "memoria_esquecer": {
+          const lista = await memorias(a.tipo === "memoria_recusar" ? "pending" : "approved");
+          const m = matchByName(lista, (x) => x.content, a.memoria);
+          if (m) actions.push({ kind: a.tipo, id: m.id, texto: m.content });
+          else misses.push(a.tipo === "memoria_recusar" ? `Não achei a memória pendente "${a.memoria}".` : `Não achei nada guardado sobre "${a.memoria}". Diga com outras palavras.`);
+          break;
+        }
+        case "nova_conversa":
+          actions.push({ kind: "nova_conversa" });
+          break;
+        case "navegar":
+          // Telas desligadas pelo interruptor não abrem (o menu também esconde).
+          if ((a.destino === "financeiro" && !opts.finance) || (a.destino === "metas" && !opts.goals)) { misses.push(`${DESTINO_NOME[a.destino]} está desligado no momento.`); break; }
+          actions.push({ kind: "navegar", view: a.destino });
+          break;
         case "projeto_criar":
           if (blocked(a.nome)) break;
           actions.push({ kind: "projeto", nome: a.nome, objetivo: a.objetivo });

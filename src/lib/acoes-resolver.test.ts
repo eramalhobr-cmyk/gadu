@@ -237,3 +237,50 @@ test("meta e projeto: de outra pessoa, estado errado, nada para mudar, alvo em m
   const bl = await resolveAcoes(db4, U, [{ tipo: "meta_editar", meta: "correr", titulo: "Meta Acme", alvo: null, prazo: null }, { tipo: "projeto_editar", projeto: "casa", nome: "Acme", objetivo: null }], { goals: true, finance: true, now: NOW, blocked: (t) => /acme/i.test(t) });
   assert.deepEqual(bl.actions, []);
 });
+
+const db5 = fakeDb({
+  memories: [
+    { id: 1, content: "A pessoa mora em Curitiba", status: "approved", user_id: U },
+    { id: 2, content: "Prefere reuniões pela manhã", status: "pending", user_id: U },
+    { id: 3, content: "Gosta de café sem açúcar", status: "pending", user_id: U },
+    { id: 4, content: "Memória secreta de outra pessoa", status: "pending", user_id: "outra" },
+    { id: 5, content: "Fato secreto aprovado de outra pessoa", status: "approved", user_id: "outra" },
+  ],
+});
+test("memória aprovar, recusar e esquecer: só da própria pessoa e do estado certo", async () => {
+  const r = await resolveAcoes(db5, U, [
+    { tipo: "memoria_aprovar", memoria: "reuniões pela manhã", todas: false },
+    { tipo: "memoria_recusar", memoria: "café", },
+    { tipo: "memoria_esquecer", memoria: "Curitiba" },
+    { tipo: "memoria_aprovar", memoria: null, todas: true },
+  ], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(r.actions, [
+    { kind: "memoria_aprovar", ids: [2], texto: "Prefere reuniões pela manhã" },
+    { kind: "memoria_recusar", id: 3, texto: "Gosta de café sem açúcar" },
+    { kind: "memoria_esquecer", id: 1, texto: "A pessoa mora em Curitiba" },
+    { kind: "memoria_aprovar", ids: [2, 3], texto: "2 memórias pendentes" },
+  ]);
+  assert.ok(db5.calls.every((c) => c.filters.some(([k, v]) => k === "user_id" && v === U)), "toda leitura filtra por user_id");
+});
+test("memória de outra pessoa, de outro estado ou inexistente vira aviso", async () => {
+  const r = await resolveAcoes(db5, U, [
+    { tipo: "memoria_recusar", memoria: "secreta" },
+    { tipo: "memoria_esquecer", memoria: "secreto aprovado" },
+    { tipo: "memoria_esquecer", memoria: "reuniões pela manhã" },
+    { tipo: "memoria_aprovar", memoria: "Curitiba", todas: false },
+  ], { goals: true, finance: true, now: NOW });
+  assert.equal(r.actions.length, 0, "a de Curitiba já está aprovada; a de reuniões ainda está pendente");
+  assert.equal(r.misses.length, 3);
+  const vazio = await resolveAcoes(fakeDb({ memories: [] }), U, [{ tipo: "memoria_aprovar", memoria: null, todas: true }], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(vazio.actions, []);
+  assert.equal(vazio.misses.length, 1);
+});
+test("nova conversa e navegação não leem nada; telas desligadas não abrem", async () => {
+  const sem = fakeDb({});
+  const r = await resolveAcoes(sem, U, [{ tipo: "nova_conversa" }, { tipo: "navegar", destino: "tarefas" }, { tipo: "navegar", destino: "financeiro" }, { tipo: "navegar", destino: "metas" }], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(r.actions, [{ kind: "nova_conversa" }, { kind: "navegar", view: "tarefas" }, { kind: "navegar", view: "financeiro" }, { kind: "navegar", view: "metas" }]);
+  assert.equal(sem.calls.length, 0, "nenhuma consulta ao banco");
+  const off = await resolveAcoes(sem, U, [{ tipo: "navegar", destino: "financeiro" }, { tipo: "navegar", destino: "metas" }, { tipo: "navegar", destino: "agenda" }], { goals: false, finance: false, now: NOW });
+  assert.deepEqual(off.actions, [{ kind: "navegar", view: "agenda" }]);
+  assert.equal(off.misses.length, 2);
+});

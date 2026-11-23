@@ -5,7 +5,7 @@ import { ActionCard, initialCard, runAction, undoAction, type CardState } from "
 import { ConfirmSheet } from "./ConfirmSheet";
 import type { ChatAction, EventDraft, GastoDraft } from "@/lib/chat-actions";
 import type { Ajuste } from "@/lib/acoes";
-import { actionQuestion } from "@/lib/chat-actions";
+import { actionQuestion, splitNavegacao } from "@/lib/chat-actions";
 import { GIVE_UP_LINE, parseAnswer, resultLine, RETRY_LINE } from "@/lib/voice-confirm";
 import { SourcesDetail, type SourcesData } from "./SourcesDetail";
 import { AdminPage } from "./AdminPage";
@@ -333,7 +333,10 @@ export function GaduApp(props: {
             if (!push) setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "Ative as notificações em Configurações para receber o aviso do lembrete no celular." }]);
           } else if (ev.t === "acoes") {
             // "Tudo por voz": ações de qualquer módulo, resolvidas no servidor; a pessoa confirma.
-            addActions(ev.items as ChatAction[], (a) => a.kind);
+            // "Abre o Financeiro" não grava nada: abre a tela na hora, sem cartão. Gravações sempre viram cartão.
+            const { cards: rest, destino } = splitNavegacao(ev.items as ChatAction[]);
+            if (rest.length) addActions(rest, (a) => a.kind);
+            if (destino) setTab(destino);
           } else if (ev.t === "notice") {
             setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: ev.text }]);
           } else if (ev.t === "done" && ev.memories > 0) {
@@ -491,6 +494,10 @@ export function GaduApp(props: {
     const r = op === "confirm" ? await runAction(a) : await undoAction(a);
     if (!r.ok) { set({ state: "error", msg: r.msg }); return false; }
     set(op === "confirm" ? { state: "created", link: r.link } : { state: "discarded", undone: true });
+    if (op === "confirm") {
+      if (a.kind === "nova_conversa") { newConversation(); setTab("conversa"); }
+      else if (a.kind === "memoria_aprovar" || a.kind === "memoria_recusar" || a.kind === "memoria_esquecer") void refreshPending();
+    }
     return true;
   }
   /** O cartão gravou (ou descartou): fala o resultado e segue para a próxima. */

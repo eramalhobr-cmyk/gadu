@@ -7,7 +7,13 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
-## 2026-11-23 · Tudo por voz, PR C: metas (pausar, retomar, arquivar, editar) e projetos (editar, arquivar) · **testado** (branch `feat/voz-metas-projetos`)
+## 2026-11-23 · Tudo por voz, PR D: memória, nova conversa e navegação · **testado** (branch `feat/voz-memoria-navegacao`)
+- **Feito por:** Claude Code.
+- **Novo pela conversa:** `memoria_aprovar` (uma ou todas as pendentes), `memoria_recusar` e `memoria_esquecer` (cartão + "sim"; apagar avisa que não dá para desfazer; só acham memórias da própria pessoa e do estado certo), `nova_conversa` (cartão + "sim") e `navegar` ("abre o Financeiro", "vai para Metas", "mostra minhas tarefas": abre a tela **na hora, sem cartão e sem gravar**; Financeiro e Metas desligados pelos interruptores não abrem; Admin e telas em desenvolvimento não abrem pela conversa). O app separa a navegação dos cartões em `splitNavegacao` (`src/lib/chat-actions.ts`) e trata `nova_conversa` e a atualização do contador de memórias em `cardOp` (`GaduApp.tsx`).
+- **Evidência:** typecheck; unit 251/251; integração 165/165 (2 testes novos em `goals-chat`); build; e2e público 10/10 e mobile 44/44. Sem migração. **Não testado:** navegar e conversa nova **no navegador** (o e2e com login não roda aqui), nem a IA real.
+- **Publicação do PR C (registrada aqui):** PR #49, merge `d3c9955` em 23/11/2026 às 06:14 (Brasília), CI verde (verify, e2e-public, database), deploy da Vercel `success`, `/login` 200.
+
+## 2026-11-23 · Tudo por voz, PR C: metas (pausar, retomar, arquivar, editar) e projetos (editar, arquivar) · **publicado** (PR #49, merge `d3c9955`, 06:14)
 - **Feito por:** Claude Code.
 - **Novo pela conversa (cartão + "sim" falado; nada é gravado antes):** `meta_pausar`, `meta_retomar`, `meta_arquivar` (nada é apagado), `meta_editar` (título, alvo só em meta numérica, prazo), `projeto_editar` (nome, objetivo) e `projeto_arquivar`. As metas respeitam `GOALS_ENABLED`; o projeto não depende dele. Gravações pelas mesmas rotas e consultas das telas (`PATCH /api/goals/:id`; `projects` pela sessão, com RLS).
 - **Decisão:** "arquivar projeto" grava o status `done` ("Concluído"), porque a tabela só tem `active`, `paused` e `done`; um status "arquivado" exigiria migração e não foi feito.
