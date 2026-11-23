@@ -1,0 +1,52 @@
+name: GaDu alerta de erros
+# Alerta gratuito: todo dia às 08:00 (Brasília) lê o resumo das últimas 24 h (só nome do erro, rota, contagem; nenhum dado de pessoa)
+# e abre ou atualiza UMA issue no GitHub se houver erros. O GitHub avisa por e-mail quem acompanha o repositório.
+# Precisa do segredo TELEMETRIA_TOKEN (GitHub) e da variável TELEMETRIA_TOKEN (Vercel) com o MESMO valor; sem ele, o job só avisa e termina.
+on:
+  schedule:
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  alerta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TELEMETRIA_TOKEN: ${{ secrets.TELEMETRIA_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+      SITE: https://gadu-agent.vercel.app
+      LIMITE: '1'
+    steps:
+      - name: Sem token, sem alerta
+        if: env.TELEMETRIA_TOKEN == ''
+        run: echo "::notice::Alerta de erros desligado: falta o segredo TELEMETRIA_TOKEN (docs/OBSERVABILIDADE.md)."
+      - name: Lê o resumo e abre a issue
+        if: env.TELEMETRIA_TOKEN != ''
+        run: |
+          set -euo pipefail
+          HTTP=$(curl -s -o resumo.json -w '%{http_code}' -X POST "$SITE/api/cron/telemetria-resumo" -H "Authorization: Bearer $TELEMETRIA_TOKEN")
+          if [ "$HTTP" != "200" ]; then echo "::error::Resumo de erros indisponível (HTTP $HTTP)."; exit 1; fi
+          TOTAL=$(jq -r '.total24h' resumo.json)
+          echo "Erros nas últimas 24 h: $TOTAL"
+          [ "$TOTAL" -ge "$LIMITE" ] || exit 0
+          DIA=$(TZ=America/Sao_Paulo date +%d/%m/%Y)
+          TITULO="Alerta de erros do GaDu · $DIA"
+          {
+            echo "Erros nas últimas 24 h: **$TOTAL** (servidor: $(jq -r .servidor resumo.json), celular ou computador: $(jq -r .cliente resumo.json))."
+            echo
+            echo "| Erro | Tela ou rota | Onde | Vezes |"
+            echo "|---|---|---|---|"
+            jq -r '.grupos[] | "| \(.nome) | `\(.rota)` | \(.local // "—") | \(.vezes) |"' resumo.json
+            echo
+            echo "Só o tipo do erro, a rota e a contagem: o GaDu não guarda mensagem nem dado de pessoa. Detalhe em Administração › Erros recentes."
+          } > corpo.md
+          if gh issue list --state open --search "\"$TITULO\" in:title" --json number --jq '.[0].number' | grep -q .; then
+            N=$(gh issue list --state open --search "\"$TITULO\" in:title" --json number --jq '.[0].number')
+            gh issue comment "$N" --body-file corpo.md
+          else
+            gh issue create --title "$TITULO" --body-file corpo.md
+          fi

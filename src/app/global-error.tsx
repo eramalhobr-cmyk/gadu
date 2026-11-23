@@ -1,9 +1,12 @@
 "use client";
 import "./globals.css";
 import "./v2.css";
+import { useEffect } from "react";
+import { avisarErro } from "@/lib/telemetria/cliente";
 
 // Erro no próprio layout: página mínima, sem depender do resto do app.
-export default function GlobalError({ reset }: { error: Error; reset: () => void }) {
+export default function GlobalError({ error, reset }: { error: Error; reset: () => void }) {
+  useEffect(() => { avisarErro(error); }, [error]);
   return (
     <html lang="pt-BR">
       <body>

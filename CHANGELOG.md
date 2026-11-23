@@ -7,6 +7,10 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · Telemetria de erros: rota, captura, Admin e alerta · desenvolvido e testado
+- **Feito por:** Claude Code. Registro gratuito dos erros do servidor e do navegador na tabela `error_events` (sem mensagem nem dado pessoal), lista no Admin e alerta diário por issue do GitHub. Interruptor `TELEMETRIA_ENABLED`. docs/OBSERVABILIDADE.md traz também o que a Vercel dá de graça (logs de 1 h no Hobby, 1 dia no Pro).
+- **Testes:** unit 322, integração 214 (401, user_id da sessão, campo extra recusado, limite 30/10 min, tabela ausente, interruptor, Admin só admin, token do resumo), build, e2e público 10/10 e mobile 44/44.
+
 ## 2026-11-23 · e2e com login no CI contra Supabase local · desenvolvido e testado
 - **Feito por:** Claude Code. Workflow `e2e-auth.yml` (PR, diário às 06:00 de Brasília e manual) + `scripts/e2e-auth-local.sh`: `supabase start` no runner, usuário de teste com senha aleatória, app apontando para o banco local, `npm run test:e2e:auth`. **Sem credenciais de produção.** 17 de 17 no CI.
 - **Correções que o teste com banco de verdade achou:** `connect-src` da CSP aceita `http`/`ws` só para Supabase em localhost (`src/lib/csp-connect.ts`); `.link-btn` com 44 px (o "Pular o guia" tinha 40 px no desktop); testes de guia e de Hoje atualizados (UX-4).

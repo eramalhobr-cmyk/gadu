@@ -9,8 +9,11 @@ type Person = {
   id: string; me: boolean; role: string; access: "active" | "blocked"; name: string | null; email: string | null; since: string; lastSeen: string | null;
   setup: { google: boolean; push: boolean; agents: number; projects: number; memories: number; tasks: number; conversations: number };
 };
+type GrupoErro = { impressao: string; origem: string; rota: string; nome: string; status: number | null; local: string | null; versao: string | null; vezes: number; ultima: string };
+type Erros = { ligado: boolean; disponivel: boolean; grupos: GrupoErro[]; total24h: number; total7d: number };
 type Invite = { id: number; email: string; name: string | null; expires_at: string; created_at: string };
 
+const dh = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 const d = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit" }) : "nunca");
 
 /** Área do administrador: convidar pessoas e acompanhar a configuração inicial (sem ver o conteúdo de ninguém). */
@@ -19,6 +22,7 @@ export function AdminPage() {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [err, setErr] = useState("");
   const [form, setForm] = useState(false);
+  const [erros, setErros] = useState<Erros | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -32,6 +36,9 @@ export function AdminPage() {
     }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    fetch("/api/admin/erros", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => setErros(j as Erros | null)).catch(() => setErros(null));
+  }, []);
 
   async function setAccess(p: Person, access: "active" | "blocked") {
     const r = await fetch("/api/admin/people", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId: p.id, access }) });
@@ -99,6 +106,27 @@ export function AdminPage() {
                     <div className="row-i" key={i.id}>
                       <div className="grow"><span className="t">{i.name || i.email}</span><span className="s">{i.email} · vale até {d(i.expires_at)}</span></div>
                       <button className="btn btn-sm btn-quiet" onClick={() => revoke(i.id)}>Cancelar</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Panel>
+            <Panel title={`Erros recentes${erros?.total24h ? ` · ${erros.total24h} em 24 h` : ""}`} icon="bell">
+              {erros === null ? <p className="muted small" role="status">Carregando…</p> : !erros.ligado ? (
+                <p className="muted small">O registro de erros está desligado (TELEMETRIA_ENABLED=0).</p>
+              ) : !erros.disponivel ? (
+                <p className="muted small">Não consegui ler os erros agora.</p>
+              ) : erros.grupos.length === 0 ? (
+                <p className="muted small">Nenhum erro nos últimos 7 dias. Aqui aparecem só o tipo, a tela e a hora, nunca texto de ninguém.</p>
+              ) : (
+                <div className="rows">
+                  <p className="muted small">Últimos 7 dias: {erros.total7d}. Só o tipo do erro, a tela e a hora; nenhuma mensagem nem dado de pessoa.</p>
+                  {erros.grupos.slice(0, 10).map((g) => (
+                    <div className="row-i" key={g.impressao}>
+                      <div className="grow">
+                        <span className="t">{g.nome} · {g.vezes}×</span>
+                        <span className="s">{g.origem === "servidor" ? "Servidor" : "Celular ou computador"} · {g.rota}{g.status ? ` · ${g.status}` : ""} · {dh(g.ultima)}{g.local ? ` · ${g.local}` : ""}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
