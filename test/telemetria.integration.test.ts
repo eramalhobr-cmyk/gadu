@@ -3,6 +3,10 @@
 import assert from "node:assert/strict";
 import { beforeEach, mock, test } from "node:test";
 
+// A captura do servidor lê o cookie com o endereço do Supabase; sem ele (como no CI) não há como saber a pessoa.
+process.env.NEXT_PUBLIC_SUPABASE_URL ||= "http://127.0.0.1:54321";
+process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||= "chave-publica-ficticia";
+
 const src = (p: string) => new URL(`../src/${p}`, import.meta.url).href;
 const A = "00000000-0000-4000-8000-0000000000a1";
 const B = "00000000-0000-4000-8000-0000000000b1";
