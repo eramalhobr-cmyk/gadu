@@ -36,7 +36,7 @@ import { withOnboarding, type OnboardingStatus } from "@/lib/onboarding";
 import { parseUndoCommand, showUndo, undoBus } from "@/lib/undo";
 import { ModulePage, ModulesHub, StatusPill } from "./ModulePage";
 import { contextOf } from "@/lib/assistant-context";
-import { canonicalView, isOverview, MAIN_VIEWS, MODULES, moduleOf, parseView, viewDef, type ViewId } from "@/lib/modules";
+import { canonicalView, isOverview, MODULES, moduleOf, navGroups, parseView, viewDef, type ViewId } from "@/lib/modules";
 import { applyTheme, readTheme, type Theme } from "@/lib/theme";
 import { voiceLevel } from "@/lib/voice-level";
 import { startMicMeter } from "@/lib/mic-meter";
@@ -841,7 +841,7 @@ export function GaduApp(props: {
   /** Tela que acende no menu: Perfil e Integrações são a mesma tela de Configurações. */
   const current = view ? canonicalView(view) : null;
   const hidden = (v: ViewId) => (v === "financeiro" && !props.financeEnabled) || (v === "metas" && !props.goalsEnabled);
-  /** Menu lateral do computador (UX-1): lista simples, na mesma ordem e com os mesmos nomes do celular. Sem grupos e sem planejados. */
+  /** Menu lateral do computador: os mesmos nomes do celular, agrupados por áreas como a tela Mais (UX-7). Sem planejados. */
   const navItem = (v: { id: ViewId; label: string; icon: string }, extra?: React.ReactNode) => (
     <button key={v.id} className="nav-item" aria-current={current === v.id ? "page" : undefined} onClick={() => setTab(v.id)} title={navMini ? v.label : undefined}>
       <Icon name={v.icon} size={19} /><span>{v.label}</span>
@@ -852,7 +852,16 @@ export function GaduApp(props: {
   const soonCount = MODULES.filter((m) => m.status === "planejado").length;
   const navList = () => (
     <div className="nav-scroll">
-      <div className="nav-flat">{MAIN_VIEWS.filter((v) => !hidden(v)).map((v) => navItem(viewDef(v)))}</div>
+      {/* UX-7: menu agrupado por áreas, as mesmas da tela Mais. */}
+      {navGroups(hidden).map((g) => (g.views.length > 0 || (g.id === "criacao" && props.modeling3dEnabled)) && (
+        <div key={g.id} className="nav-flat nav-group" role="group" aria-labelledby={`nav-g-${g.id}`}>
+          <span className="nav-group-t" id={`nav-g-${g.id}`}>{g.name}</span>
+          {g.views.map((v) => navItem(viewDef(v)))}
+          {g.id === "criacao" && props.modeling3dEnabled && (
+            <a className="nav-item" href="/app/3d" title={navMini ? "3D (Beta)" : undefined}><Icon name="cube" size={19} /><span>3D</span><span className="pill parcial">Beta</span></a>
+          )}
+        </div>
+      ))}
       <div className="nav-extra">
         <button className="nav-item" onClick={() => setDrawer(true)} aria-expanded={drawer} title={navMini ? "Conversas anteriores" : undefined}><Icon name="history" size={19} /><span>Conversas anteriores</span></button>
         {navItem(viewDef("ajustes"))}
