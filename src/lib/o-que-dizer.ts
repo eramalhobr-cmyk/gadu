@@ -11,7 +11,7 @@ export const SAY_HERE: Partial<Record<ViewId, string[]>> = {
   metas: ["Quero correr 50 km este mês", "Corri 5 km hoje", "Como estou nas minhas metas?", "Pausa a meta de leitura"],
   projetos: ["Cria o projeto Reforma da varanda", "Liga a meta de corrida ao projeto Saúde", "Cria a tarefa pintar a parede no projeto Reforma", "Arquiva o projeto antigo"],
   memoria: ["O que você sabe sobre mim?", "Aprova a memória sobre o café", "Esquece que eu moro em Campinas"],
-  agentes: ["Cria um agente para os estudos", "Muda as instruções do agente de estudos", "Define um teto de gasto para o agente de estudos"],
+  agentes: ["Cria um agente para os estudos", "Muda as instruções do agente de estudos", "Define um teto de gasto para o agente de estudos", "Mostra o resumo dos agentes"],
   ajustes: ["Muda para o tema escuro", "Aumenta a letra", "Fala mais devagar", "Liga a conversa contínua"],
   perfil: ["Muda para o tema escuro", "Aumenta a letra", "Fala mais devagar"],
   modulos: ["Abre finanças", "Abre as metas", "Mostra o guia"],

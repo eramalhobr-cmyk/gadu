@@ -302,6 +302,27 @@ describe("app com login", () => {
     await d.context().close();
   });
 
+  test("painéis de resumo (G2): “mostra o resumo das tarefas” abre o painel, sem número inventado", async () => {
+    const d = await page(DESK);
+    let chats = 0;
+    d.on("request", (r) => { if (r.url().includes("/api/chat")) chats++; });
+    await d.goto(`${BASE}/app?tab=hoje`);
+    await d.waitForSelector("#painel .gkpi-row");
+    await d.click("[aria-label='Abrir o assistente']");
+    await d.fill("#assist-msg", "mostra o resumo das tarefas");
+    await d.click(".assist-composer [aria-label=Enviar]");
+    await d.waitForURL(/tab=tarefas/);
+    await d.waitForSelector("#painel .gkpi-row");
+    for (const tab of ["tarefas", "metas", "agentes"]) {
+      await d.goto(`${BASE}/app?tab=${tab}`);
+      const txt = await d.waitForSelector("#painel", { timeout: 15000 }).then((el) => el.innerText()).catch(() => "");
+      if (tab === "tarefas") assert.ok(txt, `${tab}: tem painel`); // metas e agentes só mostram painel quando existe algum registro
+      assert.ok(!/NaN|undefined|Infinity/.test(txt), `${tab}: sem NaN/undefined no painel`);
+    }
+    assert.equal(chats, 0, "sem chamar o modelo");
+    await d.context().close();
+  });
+
   test("paleta Ctrl+K e menu compacto (UX-7 M6), sem chamar o modelo", async () => {
     const d = await page(DESK);
     let chats = 0;

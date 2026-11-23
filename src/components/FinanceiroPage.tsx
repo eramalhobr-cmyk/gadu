@@ -8,6 +8,8 @@ import type { PrevisaoRecebimento } from "@/lib/finance/previsao";
 import type { ResumoMensal } from "@/lib/finance/summary";
 import { CATEGORIAS, GRUPOS, MEIOS, MEIO_LABEL, MESES, type Config, type Gasto, type Meio } from "@/lib/finance/types";
 import { ConfirmCard } from "./ConfirmCard";
+import { Bars, Kpi, KpiRow, Meter, Ring } from "./charts";
+import { pctDe } from "@/lib/painel";
 import { SalarioSimulador } from "./SalarioSimulador";
 import { EmptyState, Field, ModuleScreen, Panel, PrimaryAction } from "./kit";
 import { showUndo } from "@/lib/undo";
@@ -78,6 +80,7 @@ export function FinanceiroPage() {
         {data && (
           <>
             <Resumo r={data.resumo} previsao={data.previsao} />
+            <FinPainel ano={ano} mes={mes} versao={data} resumo={data.resumo} onTetos={() => setTab("tetos")} />
             <div className="seg" role="tablist" aria-label="Seções do Financeiro">
               <button role="tab" id="tab-contas" aria-selected={tab === "contas"} aria-controls="pn-contas" onClick={() => setTab("contas")}>Contas</button>
               <button role="tab" id="tab-dia" aria-selected={tab === "dia"} aria-controls="pn-dia" onClick={() => setTab("dia")}>Dia a dia</button>
@@ -521,5 +524,53 @@ function TetosAno({ ano, mes, versao, run }: { ano: number; mes: number; versao:
           )}
       </Panel>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+/** Painel de resumo do Financeiro (tema JARVIS): contas pagas, gasto do dia a dia no ano, gasto × teto. Só dados lançados. */
+function FinPainel({ ano, mes, versao, resumo, onTetos }: { ano: number; mes: number; versao: unknown; resumo: ResumoMensal; onTetos: () => void }) {
+  const [tetos, setTetos] = useState<TetoSt[] | null>(null);
+  const [acum, setAcum] = useState<Acum | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    void Promise.all([api(`/api/finance/tetos?ano=${ano}&mes=${mes}`), api(`/api/finance/ano?ano=${ano}`)]).then(([t, a]) => {
+      if (!vivo) return;
+      setTetos(t.ok ? ((t.json.tetos as TetoSt[]) ?? []) : []);
+      setAcum(a.ok ? (a.json as unknown as Acum) : null);
+    });
+    return () => { vivo = false; };
+  }, [ano, mes, versao]);
+  const pagas = pctDe(resumo.contas.qtdPagas, resumo.contas.qtd);
+  const meses = (acum?.porMes ?? []).map((m) => ({ label: m.nome.slice(0, 3), value: m.total }));
+  const destaque = meses.findIndex((_, i) => (acum?.porMes[i]?.mes ?? 0) === mes);
+  const topo = [...(tetos ?? [])].sort((a, b) => b.pct - a.pct).slice(0, 4);
+  const acima = (tetos ?? []).filter((t) => t.nivel !== "ok").length;
+  return (
+    <section className="pnl" id="painel" aria-labelledby="painel-fin">
+      <h2 className="pnl-h" id="painel-fin">Resumo de {MESES[mes - 1]} <small>Diga: “mostra meu resumo de finanças”</small></h2>
+      <div className="pnl-grid">
+        <div className="hud-frame pnl-box">
+          <KpiRow label="Indicadores do mês">
+            <Kpi label="Dia a dia no ano" value={acum ? formatBRLRound(acum.total) : "–"} sub={acum && acum.qtd > 0 ? `média ${formatBRLRound(acum.total / Math.max(1, acum.ateMes))}/mês` : "nenhum gasto lançado"} />
+            <Kpi label="Tetos" value={tetos === null ? "–" : tetos.length === 0 ? "0" : `${acima}/${tetos.length}`} sub={tetos && tetos.length ? "acima de 80%" : "nenhum teto definido"} tone={acima > 0 ? "hot" : undefined} />
+          </KpiRow>
+          <div className="pnl-ring-row">
+            <Ring pct={pagas} label="Contas pagas" sub={resumo.contas.qtd ? `${resumo.contas.qtdPagas} de ${resumo.contas.qtd}` : "nenhuma conta"} tone={pagas === 100 ? "ok" : undefined} />
+            <p className="muted small">{resumo.contas.qtd ? `${formatBRL(resumo.contas.aberto)} em aberto de ${formatBRL(resumo.contas.total)}.` : "Cadastre suas contas para ver quanto falta pagar."}</p>
+          </div>
+        </div>
+        <div className="hud-frame pnl-box">
+          <h3 className="pnl-sub">Gasto do dia a dia por mês · {ano}</h3>
+          {acum && acum.qtd > 0 ? <Bars data={meses} label={`Gasto do dia a dia por mês em ${ano}`} fmt={formatBRLRound} destaque={destaque >= 0 ? destaque : undefined} />
+            : <p className="muted small">{acum ? `Nenhum gasto do dia a dia lançado em ${ano}.` : "Carregando…"}</p>}
+        </div>
+        <div className="hud-frame pnl-box">
+          <h3 className="pnl-sub">Gasto × teto</h3>
+          {topo.length > 0 ? <div className="stack">{topo.map((t) => <Meter key={t.id} label={t.categoria} value={t.gasto} max={t.valor} fmt={formatBRLRound} />)}</div>
+            : <p className="muted small">{tetos === null ? "Carregando…" : <>Sem tetos. Diga “põe um teto de 800 para mercado” ou <button className="link-btn" onClick={onTetos}>defina aqui</button>.</>}</p>}
+        </div>
+      </div>
+    </section>
   );
 }

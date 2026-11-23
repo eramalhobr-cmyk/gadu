@@ -6,6 +6,9 @@ import { GoalChip, useGoalLinks } from "./links";
 import { BackButton, EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
 import { ConfirmCard } from "./ConfirmCard";
 import { TasksPanel } from "./TasksPanel";
+import { Bars, Kpi, KpiRow, Ring, Stack } from "./charts";
+import { pctDe, resumoTarefas } from "@/lib/painel";
+import { todayKey } from "./ui";
 import { COLORS, colorVar, Icon } from "./ui";
 
 type Project = { id: number; name: string; goal: string | null; next_steps: string | null; status: "active" | "paused" | "done"; color: string; tasks: { status: string }[] };
@@ -29,7 +32,7 @@ function TasksScreen() {
   return (
     <ModuleScreen title="Tarefas" text="Tudo o que você precisa fazer, das atrasadas às sem prazo."
       action={<PrimaryAction onClick={() => document.getElementById("task-all-0")?.focus()}>Nova tarefa</PrimaryAction>}
-      summary={<Summary items={[{ n: stats ? stats.open : "–", label: "para hoje ou sem prazo" }, { n: stats ? stats.done : "–", label: "concluídas hoje", tone: "ok" }]} />}>
+      summary={<TarefasPainel versao={stats} />}>
       <TasksPanel mode="all" title="Suas tarefas" onChange={(open, done) => setStats({ open, done })} />
     </ModuleScreen>
   );
@@ -212,5 +215,47 @@ function ProjectDetail({ project, onBack, onSaved, onTalk }: { project: Project;
         </div>
       </div>
     </main>
+  );
+}
+
+/** Painel de resumo das Tarefas (tema JARVIS): feitas × abertas, atrasadas e feitas por dia na semana. Só tarefas reais. */
+function TarefasPainel({ versao }: { versao: unknown }) {
+  const [r, setR] = useState<ReturnType<typeof resumoTarefas> | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    const db = supabaseBrowser();
+    const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
+    void Promise.all([
+      db.from("tasks").select("due_date").eq("status", "open").limit(1000),
+      db.from("tasks").select("done_at").eq("status", "done").gte("done_at", since).limit(1000),
+    ]).then(([o, d]) => {
+      if (!vivo || o.error || d.error) return;
+      setR(resumoTarefas((o.data ?? []) as { due_date: string | null }[], (d.data ?? []) as { done_at: string | null }[], todayKey()));
+    });
+    return () => { vivo = false; };
+  }, [versao]);
+  const hojePct = r ? pctDe(r.feitasHoje, r.feitasHoje + r.paraHoje) : null;
+  return (
+    <section className="pnl" id="painel" aria-labelledby="painel-tarefas">
+      <h2 className="pnl-h" id="painel-tarefas">Resumo das tarefas <small>Diga: “mostra o resumo das tarefas”</small></h2>
+      <div className="pnl-grid">
+        <div className="hud-frame pnl-box">
+          <KpiRow label="Tarefas em números">
+            <Kpi label="Abertas" value={r ? r.abertas : "–"} />
+            <Kpi label="Atrasadas" value={r ? r.atrasadas : "–"} tone={r && r.atrasadas > 0 ? "hot" : undefined} />
+            <Kpi label="Feitas em 7 dias" value={r ? r.feitas7 : "–"} tone="ok" />
+          </KpiRow>
+          {r && <Stack label="Situação das tarefas" parts={[{ n: r.feitasHoje, label: "feitas hoje", tone: "ok" }, { n: r.paraHoje, label: "para hoje", tone: "sig" }, { n: r.atrasadas, label: "atrasadas", tone: "bad" }, { n: Math.max(0, r.abertas - r.paraHoje - r.atrasadas), label: "outras abertas", tone: "mut" }]} />}
+        </div>
+        <div className="hud-frame pnl-box">
+          <div className="pnl-ring-row">
+            <Ring pct={hojePct} label="Hoje" sub={r ? (r.feitasHoje + r.paraHoje ? `${r.feitasHoje} de ${r.feitasHoje + r.paraHoje}` : "nada para hoje") : "…"} tone={hojePct === 100 ? "ok" : undefined} />
+            <h3 className="pnl-sub">Feitas por dia</h3>
+          </div>
+          {r && r.feitas7 > 0 ? <Bars data={r.serie} label="Tarefas feitas por dia nos últimos 7 dias" fmt={(n) => String(n)} />
+            : <p className="muted small">{r ? "Nenhuma tarefa concluída nos últimos 7 dias." : "Carregando…"}</p>}
+        </div>
+      </div>
+    </section>
   );
 }

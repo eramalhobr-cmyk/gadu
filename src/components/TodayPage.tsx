@@ -6,6 +6,7 @@ import { showNotice, showUndo, UNDO_TEXT } from "@/lib/undo";
 import { Avatar } from "./RobotFace";
 import { Icon, todayKey } from "./ui";
 import { EmptyState, Panel } from "./kit";
+import { Kpi, KpiRow } from "./charts";
 import { AttentionCard } from "./AttentionCard";
 import { PercepcoesCard } from "./PercepcoesCard";
 import type { Insight } from "@/lib/insights";
@@ -227,8 +228,15 @@ export function TodayPage(props: {
         </section>
 
         {/* Faixa 3 · Progresso: tarefas feitas hoje e metas que pedem atenção. */}
-        <section className="band band-prog" aria-labelledby="band-prog">
+        <section className="band band-prog" id="painel" aria-labelledby="band-prog">
           <h2 id="band-prog" className="band-t"><i aria-hidden="true" />Progresso</h2>
+          {/* Resumo do dia em números (tema JARVIS): só contagens reais; "–" enquanto carrega ou sem fonte. */}
+          <KpiRow label="Resumo do dia">
+            <Kpi label="Compromissos" value={today?.connected ? upcoming.length : "–"} sub={today?.connected ? "ainda hoje" : "agenda não conectada"} />
+            <Kpi label="Pedem atenção" value={attn ?? "–"} tone={attn ? "hot" : undefined} />
+            <Kpi label="Tarefas abertas" value={openTasks ?? "–"} />
+            <Kpi label="Feitas hoje" value={doneToday ?? "–"} tone="ok" />
+          </KpiRow>
           <div className="prog-day">
             <div className="prog-ring" role="img" aria-label={pct === null ? "Sem tarefas para hoje" : `${pct}% das tarefas de hoje feitas`} style={{ ["--p" as string]: `${pct ?? 0}` }}><b>{pct === null ? "–" : `${pct}%`}</b></div>
             <p>{doneToday === null || openTasks === null ? "Carregando…" : progressText(doneToday, openTasks)}</p>
