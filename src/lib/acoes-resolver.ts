@@ -325,6 +325,17 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           else misses.push(a.tipo === "memoria_recusar" ? `Não achei a memória pendente "${a.memoria}".` : `Não achei nada guardado sobre "${a.memoria}". Diga com outras palavras.`);
           break;
         }
+        case "meta_registro_apagar": {
+          if (!opts.goals) break;
+          const g = await findGoal(a.meta);
+          if (!g) break;
+          const r = await db.from("goal_progress").select("id, valor, data").eq("user_id", userId).eq("goal_id", g.id).order("data", { ascending: false }).order("created_at", { ascending: false }).limit(60);
+          const regs = (r.error || !Array.isArray(r.data) ? [] : r.data) as { id: string; valor: number; data: string }[];
+          const reg = regs.find((x) => (a.valor === null || Number(x.valor) === a.valor) && (a.data === null || x.data === a.data));
+          if (!reg) { misses.push(`Não achei esse registro na meta "${g.titulo}".`); break; }
+          actions.push({ kind: "registro_apagar", goalId: g.id, registroId: reg.id, meta: g.titulo, valor: Number(reg.valor), unidade: g.unidade ?? null, data: reg.data });
+          break;
+        }
         case "nova_conversa":
           actions.push({ kind: "nova_conversa" });
           break;

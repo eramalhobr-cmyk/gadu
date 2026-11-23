@@ -17,6 +17,7 @@ export type Ajuste = { opcao: "texto"; valor: "100" | "115" | "130" } | { opcao:
 export type AcaoProposta =
   | { tipo: "meta_criar"; titulo: string; medicao: Medicao; unidade: string | null; alvo: number | null; inicial: number; prazo: string | null; categoria: Categoria; marcos: string[] }
   | { tipo: "meta_registrar"; meta: string; valor: number; data: string | null }
+  | { tipo: "meta_registro_apagar"; meta: string; valor: number | null; data: string | null }
   | { tipo: "meta_concluir"; meta: string }
   | { tipo: "meta_pausar" | "meta_retomar" | "meta_arquivar"; meta: string }
   | { tipo: "meta_editar"; meta: string; titulo: string | null; alvo: number | null; prazo: string | null }
@@ -61,7 +62,7 @@ export function destinoDe(v: unknown): Destino | null {
   return (DESTINOS as readonly string[]).includes(k) ? (k as Destino) : DESTINO_APELIDO[k] ?? null;
 }
 
-export const TIPOS = ["meta_criar", "meta_registrar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "nova_conversa", "conversa_abrir", "guia", "navegar", "projeto_criar", "salario_simular", "ajuste"] as const;
+export const TIPOS = ["meta_criar", "meta_registrar", "meta_registro_apagar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "nova_conversa", "conversa_abrir", "guia", "navegar", "projeto_criar", "salario_simular", "ajuste"] as const;
 
 const txt = (v: unknown, max: number): string => (typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "");
 
@@ -151,6 +152,14 @@ export function validAcao(raw: unknown, now = Date.now()): AcaoProposta | null {
       const valor = parseNumero(o.valor);
       if (!meta || valor === null || valor <= 0) return null;
       return { tipo: "meta_registrar", meta, valor, data: dataPassada(o.data, now) };
+    }
+    case "meta_registro_apagar": {
+      // Corrigir um engano: sem valor nem data, apaga o registro mais recente da meta.
+      const meta = txt(o.meta, 120);
+      const temValor = !(o.valor === undefined || o.valor === null || o.valor === "");
+      const valor = temValor ? parseNumero(o.valor) : null;
+      if (!meta || (temValor && (valor === null || valor <= 0))) return null;
+      return { tipo: "meta_registro_apagar", meta, valor, data: dataPassada(o.data, now) };
     }
     case "meta_concluir": {
       const meta = txt(o.meta, 120);
@@ -344,7 +353,7 @@ export function matchByName<T>(items: T[], name: (t: T) => string, query: string
 export function acoesRules(): string {
   return `- "acoes": para fazer pela conversa tudo o que dá para fazer tocando no app. Você NÃO grava: o app mostra um cartão e a pessoa confirma com um toque ou dizendo "sim". Use os nomes como a pessoa disse ou como aparecem no contexto; o app acha o item. Tipos:
   {"tipo":"meta_criar","titulo":"Correr 50 km","medicao":"numerica","unidade":"km","alvo":50,"inicial":0,"prazo":"AAAA-MM-DD","categoria":"saude"} (medicao: numerica com alvo, percentual, marcos com "marcos":["..."], ou tarefas; categoria: financeira, familiar, profissional, saude, desenvolvimento ou educacao; sem alvo numa meta numérica, pergunte);
-  {"tipo":"meta_registrar","meta":"nome da meta","valor":5,"data":"AAAA-MM-DD"} (data só se não for hoje); {"tipo":"meta_concluir","meta":"..."};
+  {"tipo":"meta_registrar","meta":"nome da meta","valor":5,"data":"AAAA-MM-DD"} (data só se não for hoje); {"tipo":"meta_concluir","meta":"..."}; {"tipo":"meta_registro_apagar","meta":"...","valor":5,"data":"AAAA-MM-DD"} ("apaga o último registro da meta de corrida", "aquele registro de 5 km de ontem foi engano": valor e data são opcionais; sem eles, o mais recente);
   {"tipo":"meta_pausar","meta":"..."}; {"tipo":"meta_retomar","meta":"..."}; {"tipo":"meta_arquivar","meta":"..."} (some das listas, nada é apagado);
   {"tipo":"meta_editar","meta":"nome atual","titulo":"novo título","alvo":60,"prazo":"AAAA-MM-DD"} (só o que muda; alvo só em meta numérica);
   {"tipo":"projeto_editar","projeto":"nome atual","nome":"novo nome","objetivo":"..."} (só o que muda); {"tipo":"projeto_arquivar","projeto":"..."} (marca o projeto como concluído; some dos ativos);

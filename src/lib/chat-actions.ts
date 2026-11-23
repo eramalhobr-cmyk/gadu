@@ -16,6 +16,7 @@ export type EventDraft = { title: string; start: string; end: string; location: 
 export type ChatAction =
   | { kind: "gasto"; g: GastoDraft }
   | { kind: "meta"; d: MetaDraft }
+  | { kind: "registro_apagar"; goalId: string; registroId: string; meta: string; valor: number; unidade: string | null; data: string }
   | { kind: "evento"; ev: EventDraft }
   /** Já criado pelo servidor: o cartão oferece Desfazer (apaga). */
   | { kind: "lembrete"; id: number; text: string; dueAt: string }
@@ -216,6 +217,8 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
       return { icon: "book", proposed: "Descartar memória?", done: "Memória descartada", undone: "Descartado", title: a.texto, detail: "Não dá para desfazer", confirm: "Descartar memória", busy: "Apagando…", applied: false, open: { label: "Ver Memória", view: "memoria" } };
     case "memoria_esquecer":
       return { icon: "book", proposed: "Esquecer isto?", done: "Esquecido", undone: "Descartado", title: a.texto, detail: "O GaDu deixa de saber disso. Não dá para desfazer", confirm: "Esquecer", busy: "Apagando…", applied: false, open: { label: "Ver Memória", view: "memoria" } };
+    case "registro_apagar":
+      return { icon: "target", proposed: "Apagar registro?", done: "Registro apagado", undone: "Descartado", title: a.meta, detail: `${fmtNum(a.valor)}${a.unidade ? (a.unidade === "%" ? "%" : ` ${a.unidade}`) : ""} em ${a.data.slice(8, 10)}/${a.data.slice(5, 7)} · o progresso é recalculado · não dá para desfazer`, confirm: "Apagar registro", busy: "Apagando…", applied: false, open: { label: "Ver Metas", view: "metas" } };
     case "nova_conversa":
       return { icon: "plus", proposed: "Começar uma conversa nova?", done: "Conversa nova", undone: "Descartado", title: "Nova conversa", detail: "A conversa atual fica guardada no histórico", confirm: "Começar", busy: "Abrindo…", applied: false };
     case "conversa_abrir":
@@ -309,6 +312,7 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     case "memoria_recusar": return `Descarto a memória: ${a.texto}? Não dá para desfazer.`;
     case "memoria_esquecer": return `Esqueço isto: ${a.texto}? Não dá para desfazer.`;
     case "nova_conversa": return "Começo uma conversa nova?";
+    case "registro_apagar": return `Apago o registro de ${fmtNum(a.valor)}${a.unidade && a.unidade !== "%" ? ` ${a.unidade}` : a.unidade === "%" ? " por cento" : ""} de ${spokenDay(a.data, now)} na meta ${a.meta}?`;
     case "conversa_abrir": return `Abro a conversa ${a.titulo}, de ${a.quando}?`;
     case "guia": return "Abro o guia?";
     case "navegar": return `Abro ${DESTINO_NOME[a.view]}?`;

@@ -184,7 +184,7 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Metas | criar tarefa da meta | sim | `meta_tarefa` (cria e vincula) | — |
 | Metas | pausar, retomar, arquivar | sim | `meta_pausar`, `meta_retomar`, `meta_arquivar` (`PATCH /api/goals/:id` com `status`; arquivar não apaga nada e avisa que dá para restaurar em Metas) | — |
 | Metas | editar título, alvo (meta numérica) e prazo | sim | `meta_editar` | — |
-| Metas | apagar registro de progresso | **não** | — | lacuna |
+| Metas | apagar registro de progresso ("apaga o último registro da corrida") | sim | `meta_registro_apagar` (o mais recente, ou pelo valor e data; cartão com "sim"; não tem Desfazer), PR do Cursor de 23/11 | — |
 | Projetos | criar | sim | `projeto_criar` | — |
 | Projetos | editar nome e objetivo | sim | `projeto_editar` | — |
 | Projetos | arquivar | sim | `projeto_arquivar` (grava o status `done` = "Concluído"; o banco não tem status "arquivado" e criar um exigiria migração) | — |

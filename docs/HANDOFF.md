@@ -60,7 +60,7 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 ### 23/11/2026 · 09:31–10:00 · Cursor (Grok Bot), troca de IA por cota
 - **Troca:** a cota de 5 horas do Claude Code acabou às 09:31 (volta às 10:20). Segui como Cursor na revisão cruzada, que também precisa de outra IA para os PRs do Claude Code.
 - **Revisei** #22 e #26 (marcados acima). Achado real no #22: busca por significado sem limite de custo; corrigido com testes (`test/search-limit.integration.test.ts`).
-- **Também fiz (worktree `/workspace/gadu-cursor`, para não colidir com o Claude Code):** velocidade da fala e trocar a voz (PR #67, merge `e233bcf` às 09:50) e abrir conversa anterior pela conversa (`conversa_abrir`). O Claude Code não deve refazer esses dois itens da TAREFA 9.
+- **Também fiz (worktree `/workspace/gadu-cursor`, para não colidir com o Claude Code):** velocidade da fala e trocar a voz (PR #67, merge `e233bcf` às 09:50) abrir conversa anterior (PR #68, merge `e38a5c3` às 09:56) e apagar registro de progresso de meta (`meta_registro_apagar`). O Claude Code não deve refazer esses três itens da TAREFA 9.
 - **Próximo:** o Claude Code retoma às 10:20 com a revisão dos PRs do Cursor (#32, #34, #35, #36) e dos restantes (#24, #28/#29, #30), depois segurança S-05/S-08.
 
 ### 23/11/2026 · 08:52–09:10 · Claude Code, Financeiro: simulador de salário (branch `feat/financas-simulador`)
