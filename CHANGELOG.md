@@ -14,6 +14,10 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **Custo extra estimado:** ~350 tokens de entrada por imagem de 512 × 512 (regra w·h/750) → **≈ US$ 0,000035 por ajuste** no Haiku 5.5 (US$ 0,10 por milhão); a reserva conta 400 tokens (≈ US$ 0,00004). Mesmo com o modelo mais caro da tabela (Opus 5.5, US$ 4/M) seria ≈ US$ 0,0014.
 - **Evidências (máquina local):** `render-imagem.test.ts`, integração da rota (imagem e nota vão à IA, ordem de custo igual, reserva maior com imagem, imagem falsa/grande/fora do ajuste = 400 sem custo, cota esgotada libera a reserva), `test/studio3d-imagem.test.ts`. **Não testado:** IA real (as 10 peças de referência esperam o OK de gasto do Eduardo), aparelho.
 
+## 2026-11-23 · UX-7 · Motores de rosto antigos apagados · desenvolvido e testado
+- **Feito por:** Cursor (Grok Bot). Apagados `brain-engine.ts`, `head-engine.ts`, `bot-engine.ts`, o desenho de `robot-engine.ts` (fica só o tipo `FaceMode`), os componentes `RobotFace` e `Mind`, o ouvinte de ponteiro que só servia a eles e o CSS `.mind`: cerca de 550 linhas sem uso. O avatar oficial (ilustração + `avatar-engine.ts`) não muda. Sem voz nova (é limpeza).
+- **Evidências (máquina local):** typecheck; `test:unit`; build; avatar conferido na Conversa, no Hoje e na escuta.
+
 ## 2026-11-23 · UX-7 · Um microfone só no celular · desenvolvido e testado
 - **Feito por:** Cursor (Grok Bot). Abaixo de 1024 px (com a barra de baixo), o microfone central é o único em repouso: o do campo de mensagem some e volta quando a pessoa está escrevendo (ditado para revisar, que respeita "Enviar sozinho" desligado) e sempre que vira "Parar" (ouvindo ou respondendo). No computador nada muda. Texto da Conversa vazia: "Fale pelo microfone ou escreva abaixo." Só CSS e uma classe `idle` no botão; sem ação de voz nova (é o próprio gesto de falar).
 - **Evidências (máquina local):** typecheck; build; e2e com login: teste novo "um microfone só no celular" e os testes de voz do campo passam a focar o campo antes. Capturas: `/workspace/gadu-review/ux6/depois-um-mic/` (antes: `/workspace/gadu-review/tema/depois-claro/390-conversa.png`).

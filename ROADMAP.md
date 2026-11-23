@@ -462,7 +462,8 @@ Proposta completa (17 itens), com o levantamento das skills de design no GitHub,
 - [x] **M2 · Ligações visíveis**: selo da meta em cada tarefa e projeto ligado (toca e abre Metas) e o **Mapa do GaDu** no Guia (conversa e voz no centro, nós que abrem cada tela, cada ligação com uma frase para dizer). Agenda e Finanças ainda sem selo (a agenda vem do Google; finanças sem tabela de ligação)
 - [x] **M3 · Hoje em três faixas** (Agora, Depois, Progresso): linha do tempo do resto do dia, anel de progresso das tarefas de hoje, metas que pedem atenção e uma frase para dizer em cada faixa
 - [x] **R3** um microfone só no celular (o do campo aparece ao escrever)
-- [ ] **R6/M1** skills de design revisadas e DESIGN.md · **R7** apagar os motores de rosto sem uso · **M4** telas mais visuais (Finanças, Metas, Agentes) · **M5** "o que posso dizer aqui" · **M6** computador (menu compacto, Ctrl+K) · **G1** modo voz imersivo · **G2** navegação por voz · **G3** design system v2 com testes visuais · **G4** logo novo (espera o arquivo)
+- [x] **R7** motores de rosto antigos apagados (~550 linhas)
+- [ ] **R6/M1** skills de design revisadas e DESIGN.md · **M4** telas mais visuais (Finanças, Metas, Agentes) · **M5** "o que posso dizer aqui" · **M6** computador (menu compacto, Ctrl+K) · **G1** modo voz imersivo · **G2** navegação por voz · **G3** design system v2 com testes visuais · **G4** logo novo (espera o arquivo)
 
 ## Próximo ciclo (prioridades, em ordem; revisado em 22/11/2026)
 1. Validar com pessoa logada, em aparelho, o que foi publicado em 22/11 (Hoje e Fontes, Financeiro, Metas, voz, notificações) e fechar os passos manuais da segurança (senhas vazadas, S-09).
