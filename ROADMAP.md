@@ -184,7 +184,8 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [x] Revisão da noite (opcional): notificação e cartão para passar pendências para amanhã
 - [x] `projects` (projetos pessoais): objetivo, próximos passos, status, cor, tarefas e progresso; "Conversar sobre o projeto"
 - [x] `agents` (agentes): nome, área, instruções, ícone, cor, ativo; 5 sugestões pessoais; "Conversar com o agente"
-- [ ] Agentes com ferramentas permitidas, modelo e teto de gasto próprios
+- [x] Agentes com ferramentas permitidas e teto de gasto próprios (23/11, Cursor: PRs #91 e o do app; teto "mole", ver CHANGELOG)
+- [ ] Agentes com modelo próprio
 - [x] `insights`: percepções do dia (atrasos, conflitos de agenda, e-mails importantes parados, janela livre, dia cheio) com Aceitar/Ignorar e Desfazer, na tela Hoje e por voz (`percepcao`); resposta guardada por dia e tipo em `insight_respostas` e respeitada no briefing e no chat (Cursor, 23/11)
 - [ ] `metrics` pessoais (opcional): sono, treino, leitura, finanças da casa; só números que você decidir registrar
 - [x] Busca por significado (pgvector + embeddings pelo AI Gateway) unindo memórias, conversas, tarefas e projetos; indexação pelo agendador; usada na busca e no contexto da conversa

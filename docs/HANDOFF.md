@@ -66,6 +66,13 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 14:20 · Cursor (Grok Bot), agentes com ferramentas e teto (fila, item 2)
+- Migração `agentes_ferramentas_teto` (PR #91): merge às 14:15, **aplicada** via MCP às 14:16 (versão `20261123171612`) e conferida (RLS, só leitura da dona em `agent_uso`, função só do servidor). `agent_uso` não tem escrita pelo cliente, então não precisa das restritivas S-05.
+- App: teto do agente antes de `reserveBudget` (`limitesDoAgente` no `/api/chat`), gating de contexto e de ações por ferramenta, `server_add_agent_usage` depois da liquidação; tela Agentes e voz `agente_editar` (`liberar`, `bloquear`, `teto`).
+- **Decisão a registrar:** o teto do agente é mole (pode passar um pouco com mensagens simultâneas). "Atenção hoje" só entra para agente com agenda, e-mail, tarefas e lembretes.
+- **A revisar por outra IA:** `limitesDoAgente` e `somarUsoAgente` em `src/app/api/chat/route.ts`, `src/lib/agentes/ferramentas.ts`.
+- **Próximo:** item 3, dado sensível brasileiro (CPF, conta, Pix) no lugar de palavras-chave.
+
 ### 23/11/2026 14:30 · Cursor (Grok Bot), percepções com Aceitar/Ignorar (fila, item 1)
 - **Migração (PR #89):** `20261123180001_insight_respostas` (aditiva: uma tabela; guarda só dia, tipo e decisão, nenhum conteúdo; RLS, 4 políticas de dono, restritivas S-05). Testes `30_isolamento` e `85_s05` (24 tabelas, 48 políticas). **Aplicada** pelo Cursor via MCP às 14:00 (versão `20261123170034`; RLS, 4 + 2 políticas, `anon` sem acesso).
 - **Código (`feat/percepcoes-app`):** `src/lib/percepcoes.ts` (o que cada Aceitar faz, filtro do que já foi respondido); `POST /api/insights` (Aceitar: atrasadas → passam para hoje, até 20; e-mail importante parado → tarefa "Responder e-mail: assunto (remetente)"; janela livre → "Foco" de até 2 h no Google; conflito → anota e abre a Agenda; dia cheio → só ignora) e `POST /api/insights/desfazer` (volta só o que o Aceitar fez, só nas linhas da sessão, e apaga a resposta de hoje). Tela Hoje: painel "O GaDu percebeu" com Aceitar/Ignorar e Desfazer. `/api/today`, o chat e o briefing deixam de mostrar o que a pessoa já respondeu hoje.

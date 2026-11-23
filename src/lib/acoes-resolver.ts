@@ -7,7 +7,8 @@ import { spNow } from "./briefing.ts";
 import type { AcaoProposta } from "./acoes.ts";
 import { DESTINO_NOME, matchByName, norm } from "./acoes.ts";
 import { AREAS } from "./meta.ts";
-import type { ChatAction, GastoMudancas, TarefaMudancas } from "./chat-actions.ts";
+import type { AgenteMudancas, ChatAction, GastoMudancas, TarefaMudancas } from "./chat-actions.ts";
+import { FERRAMENTAS, ferramentasDe } from "./agentes/ferramentas.ts";
 import type { CalEvent } from "./google-format.ts";
 import type { SessionDb } from "./core/types.ts";
 import { hojeSP, isoDia } from "./finance/datas.ts";
@@ -69,7 +70,7 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
   };
   const agents = async () => {
     if (!cache.agents) {
-      const r = await db.from("agents").select("id, name, area, instructions, active").eq("user_id", userId).limit(100);
+      const r = await db.from("agents").select("id, name, area, instructions, active, ferramentas, teto_mensal_usd").eq("user_id", userId).limit(100);
       cache.agents = r.error ? [] : (r.data as { id: number; name: string; area: string; instructions: string; active: boolean }[]);
     }
     return cache.agents;
@@ -477,7 +478,7 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           if ((a.nome && blocked(a.nome)) || (a.instrucoes && blocked(a.instrucoes))) break;
           const ag = matchByName(await agents(), (x) => x.name, a.agente);
           if (!ag) { misses.push(`Não achei o agente "${a.agente}". Diga o nome como está em Agentes.`); break; }
-          const mudancas: { nome?: string; area?: string; instrucoes?: string; ativo?: boolean } = {};
+          const mudancas: AgenteMudancas = {};
           let avisou = false;
           if (a.nome && a.nome !== ag.name) mudancas.nome = a.nome;
           if (a.area) {
@@ -487,6 +488,17 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           }
           if (a.instrucoes !== null && a.instrucoes !== ag.instructions) mudancas.instrucoes = a.instrucoes;
           if (a.ativo !== null && a.ativo !== ag.active) mudancas.ativo = a.ativo;
+          if (a.liberar?.length || a.bloquear?.length) {
+            const atuais = ferramentasDe((ag as { ferramentas?: unknown }).ferramentas);
+            const novas = FERRAMENTAS.filter((f) => (atuais.includes(f) || a.liberar?.includes(f)) && !a.bloquear?.includes(f));
+            if (novas.join() !== atuais.join()) mudancas.ferramentas = novas;
+          }
+          if (a.teto !== undefined) {
+            const tetoAtual = (ag as { teto_mensal_usd?: number | string | null }).teto_mensal_usd;
+            const atual = tetoAtual === null || tetoAtual === undefined ? null : Number(tetoAtual);
+            const novo = a.teto === 0 ? null : a.teto;
+            if (novo !== atual) mudancas.teto = novo;
+          }
           if (!Object.keys(mudancas).length) { if (!avisou) misses.push(`O agente "${ag.name}" já está assim. Nada para mudar.`); break; }
           actions.push({ kind: "agente_editar", id: ag.id, nome: ag.name, mudancas });
           break;

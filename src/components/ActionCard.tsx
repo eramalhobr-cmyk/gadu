@@ -86,7 +86,7 @@ async function capture(a: ChatAction): Promise<Prep | null> {
       }
       case "agente_novo": return (r) => (r.id ? () => back(db.from("agents").delete().eq("id", Number(r.id))) : undefined);
       case "agente_editar": {
-        const { data } = await db.from("agents").select("name, area, instructions, active").eq("id", a.id).maybeSingle();
+        const { data } = await db.from("agents").select(`name, area, instructions, active${a.mudancas.ferramentas ? ", ferramentas" : ""}${a.mudancas.teto !== undefined ? ", teto_mensal_usd" : ""}`).eq("id", a.id).maybeSingle();
         if (!data) return null;
         return () => () => back(db.from("agents").update(data).eq("id", a.id));
       }
@@ -157,6 +157,8 @@ async function execute(a: ChatAction): Promise<Result> {
       if (m.area) patch.area = m.area;
       if (m.instrucoes !== undefined) patch.instructions = m.instrucoes;
       if (m.ativo !== undefined) patch.active = m.ativo;
+      if (m.ferramentas) patch.ferramentas = m.ferramentas;
+      if (m.teto !== undefined) patch.teto_mensal_usd = m.teto;
       return saved(await supabaseBrowser().from("agents").update(patch).eq("id", a.id).select("id"));
     }
     if (a.kind === "projeto_arquivar") return saved(await supabaseBrowser().from("projects").update({ status: "done" }).eq("id", a.id).in("status", ["active", "paused"]).select("id"));

@@ -240,6 +240,18 @@ test("agente_criar e agente_editar: validação", () => {
   assert.equal(validAcao({ tipo: "agente_editar", nome: "Novo" }, NOW), null, "sem dizer qual agente");
 });
 
+test("agente_editar: ferramentas (liberar/bloquear) e teto por mês", () => {
+  assert.deepEqual(validAcao({ tipo: "agente_editar", agente: "Mentor", bloquear: ["financas", "hack"], liberar: ["email"] }, NOW),
+    { tipo: "agente_editar", agente: "Mentor", nome: null, area: null, instrucoes: null, ativo: null, liberar: ["email"], bloquear: ["financas"] }, "só ferramentas conhecidas");
+  assert.deepEqual(validAcao({ tipo: "agente_editar", agente: "Mentor", liberar: ["email"], bloquear: ["email"] }, NOW),
+    { tipo: "agente_editar", agente: "Mentor", nome: null, area: null, instrucoes: null, ativo: null, liberar: ["email"] }, "liberar ganha de bloquear a mesma");
+  assert.equal((validAcao({ tipo: "agente_editar", agente: "Mentor", teto: "5,50" }, NOW) as { teto: number }).teto, 5.5);
+  assert.equal((validAcao({ tipo: "agente_editar", agente: "Mentor", teto: 0 }, NOW) as { teto: number }).teto, 0, "0 = sem teto próprio");
+  assert.equal(validAcao({ tipo: "agente_editar", agente: "Mentor", teto: 500 }, NOW), null, "acima do máximo não vale");
+  assert.equal(validAcao({ tipo: "agente_editar", agente: "Mentor", teto: -1 }, NOW), null);
+  assert.equal(validAcao({ tipo: "agente_editar", agente: "Mentor", bloquear: ["hack"] }, NOW), null, "nada válido para mudar");
+});
+
 test("percepcao: tipo e decisão conhecidos; sinônimos simples; o resto é recusado", () => {
   assert.deepEqual(validAcao({ tipo: "percepcao", percepcao: "atrasadas", decisao: "aceitar" }, NOW), { tipo: "percepcao", percepcao: "atrasadas", decisao: "aceitar" });
   assert.deepEqual(validAcao({ tipo: "percepcao", percepcao: "atrasos", decisao: "ignora" }, NOW), { tipo: "percepcao", percepcao: "atrasadas", decisao: "ignorar" });

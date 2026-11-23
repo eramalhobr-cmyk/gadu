@@ -12,7 +12,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "npm run test:unit && npm run test:integration",
-    "test:unit": "node --test --experimental-strip-types src/lib/*.test.ts src/lib/core/*.test.ts src/lib/finance/*.test.ts src/lib/goals/*.test.ts src/lib/3d/*.test.ts src/lib/telemetria/*.test.ts",
+    "test:unit": "node --test --experimental-strip-types src/lib/*.test.ts src/lib/core/*.test.ts src/lib/finance/*.test.ts src/lib/goals/*.test.ts src/lib/3d/*.test.ts src/lib/telemetria/*.test.ts src/lib/agentes/*.test.ts",
     "test:integration": "node --test --experimental-strip-types --experimental-test-module-mocks --import ./test/register-alias.mjs test/*.test.ts",
     "test:db": "bash scripts/test-db.sh",
     "test:e2e": "npm run test:e2e:public && npm run test:e2e:mobile && npm run test:e2e:auth",

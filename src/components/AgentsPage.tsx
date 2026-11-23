@@ -3,12 +3,14 @@ import { MSG, actionFailed, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { AGENT_PRESETS, AREAS } from "@/lib/presets";
+import { FERRAMENTAS, FERRAMENTA_NOME, TETO_MAX_USD, ferramentasDe, mesSP, type Ferramenta } from "@/lib/agentes/ferramentas";
 import { ConfirmCard } from "./ConfirmCard";
 import { EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
 import { COLORS, colorVar, Icon, ICONS } from "./ui";
 
-export type Agent = { id: number; name: string; area: string; instructions: string; color: string; icon: string; active: boolean };
+export type Agent = { id: number; name: string; area: string; instructions: string; color: string; icon: string; active: boolean; ferramentas?: Ferramenta[]; teto_mensal_usd?: number | string | null };
 type Draft = Omit<Agent, "id" | "active">;
+const usd = (n: number) => `US$ ${n.toFixed(2).replace(".", ",")}`;
 
 const PRESETS: Draft[] = AGENT_PRESETS;
 const COLOR_NAME: Record<string, string> = { sig: "ciano", hot: "laranja", violet: "violeta", blue: "azul", green: "verde", pink: "rosa" };
@@ -22,12 +24,17 @@ export function AgentsPage({ onTalk }: { onTalk: (a: { id: number; name: string 
   const [edit, setEdit] = useState<Agent | "new" | null>(null);
   const [err, setErr] = useState("");
   const [adding, setAdding] = useState(false);
+  const [uso, setUso] = useState<Record<number, number>>({});
   const db = supabaseBrowser();
 
   const load = useCallback(async () => {
-    const { data, error } = await db.from("agents").select("id, name, area, instructions, color, icon, active").order("active", { ascending: false }).order("name");
+    const [{ data, error }, u] = await Promise.all([
+      db.from("agents").select("id, name, area, instructions, color, icon, active, ferramentas, teto_mensal_usd").order("active", { ascending: false }).order("name"),
+      db.from("agent_uso").select("agent_id, custo_usd").eq("mes", mesSP()),
+    ]);
     if (error) setErr(loadFailed("os agentes"));
     setItems((data as Agent[]) ?? []);
+    setUso(Object.fromEntries(((u.data ?? []) as { agent_id: number; custo_usd: number | string }[]).map((x) => [x.agent_id, Number(x.custo_usd)])));
   }, [db]);
   useEffect(() => { void load(); }, [load]);
 
@@ -72,6 +79,7 @@ export function AgentsPage({ onTalk }: { onTalk: (a: { id: number; name: string 
                   <button className="icon-btn" onClick={() => setEdit(a)} aria-label={`Editar ${a.name}`}><Pencil /></button>
                 </div>
                 <p className="ag-inst">{a.instructions || "Sem instruções. Toque em editar para dizer como ele deve ajudar."}</p>
+                <AgentLimits a={a} gasto={uso[a.id] ?? 0} />
                 <button className="btn btn-sm ag-talk" disabled={!a.active} onClick={() => onTalk({ id: a.id, name: a.name })}><Icon name="chat" size={16} />{a.active ? "Conversar" : "Pausado"}</button>
               </article>
             ))}
@@ -89,8 +97,24 @@ export function AgentsPage({ onTalk }: { onTalk: (a: { id: number; name: string 
   );
 }
 
+function AgentLimits({ a, gasto }: { a: Agent; gasto: number }) {
+  const fs = ferramentasDe(a.ferramentas);
+  const teto = a.teto_mensal_usd === null || a.teto_mensal_usd === undefined ? null : Number(a.teto_mensal_usd);
+  const fora = FERRAMENTAS.length - fs.length;
+  if (!fora && teto === null) return null;
+  return (
+    <p className="muted small ag-lim">
+      {fora > 0 && <>Ferramentas: {fs.length ? fs.map((f) => FERRAMENTA_NOME[f]).join(", ") : "nenhuma"}</>}
+      {fora > 0 && teto !== null && " · "}
+      {teto !== null && <>Gasto este mês: {usd(gasto)} de {usd(teto)}{gasto >= teto ? " (teto atingido)" : ""}</>}
+    </p>
+  );
+}
+
 function AgentForm({ agent, onDone }: { agent: Agent | null; onDone: (saved: boolean) => void }) {
   const [d, setD] = useState<Draft & { active: boolean }>(agent ?? { name: "", area: "Pessoal", instructions: "", color: "sig", icon: "spark", active: true });
+  const [fs, setFs] = useState<Ferramenta[]>(ferramentasDe(agent?.ferramentas));
+  const [teto, setTeto] = useState(agent?.teto_mensal_usd === null || agent?.teto_mensal_usd === undefined ? "" : String(agent.teto_mensal_usd).replace(".", ","));
   const [err, setErr] = useState("");
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -100,7 +124,9 @@ function AgentForm({ agent, onDone }: { agent: Agent | null; onDone: (saved: boo
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!d.name.trim()) return setErr("Dê um nome ao agente.");
-    const row = { name: d.name.trim().slice(0, 60), area: d.area, instructions: d.instructions.trim().slice(0, 4000), color: d.color, icon: d.icon, active: d.active };
+    const t = teto.trim() ? Number(teto.trim().replace(/\s|US\$/g, "").replace(",", ".")) : null;
+    if (t !== null && !(Number.isFinite(t) && t > 0 && t <= TETO_MAX_USD)) return setErr(`O teto vai de US$ 0,01 a US$ ${TETO_MAX_USD} por mês. Deixe vazio para não ter teto próprio.`);
+    const row = { name: d.name.trim().slice(0, 60), area: d.area, instructions: d.instructions.trim().slice(0, 4000), color: d.color, icon: d.icon, active: d.active, ferramentas: fs, teto_mensal_usd: t === null ? null : Math.round(t * 100) / 100 };
     setBusy(true);
     const { error } = agent ? await db.from("agents").update(row).eq("id", agent.id) : await db.from("agents").insert(row);
     setBusy(false);
@@ -155,6 +181,19 @@ function AgentForm({ agent, onDone }: { agent: Agent | null; onDone: (saved: boo
               <p className="muted small">{d.instructions.length} de 4000 caracteres. Seja específico: tom, formato e o que evitar.</p>
             </Panel>
           </div>
+          <Panel title="Ferramentas e teto" icon="spark">
+            <div className="fld">
+              <span id="ag-tools-l">O que ele pode ver e propor</span>
+              <div className="chips" role="group" aria-labelledby="ag-tools-l">
+                {FERRAMENTAS.map((f) => <button type="button" key={f} className="chip" aria-pressed={fs.includes(f)} onClick={() => setFs(fs.includes(f) ? fs.filter((x) => x !== f) : FERRAMENTAS.filter((x) => x === f || fs.includes(x)))}>{FERRAMENTA_NOME[f]}</button>)}
+              </div>
+            </div>
+            <label className="fld">
+              <span>Teto de gasto por mês (US$, opcional)</span>
+              <input id="ag-teto" className="field" inputMode="decimal" placeholder="Sem teto próprio" value={teto} onChange={(e) => setTeto(e.target.value)} />
+            </label>
+            <p className="muted small">Chegou no teto, ele pausa até o mês que vem. O teto do mês da sua conta continua valendo para tudo.</p>
+          </Panel>
           {err && <p className="form-err" role="alert">{err}</p>}
           <div className="form-actions">
             <button className="btn btn-pri" type="submit" disabled={busy}>{busy ? "Salvando…" : agent ? "Salvar" : "Criar agente"}</button>
