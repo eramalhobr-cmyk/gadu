@@ -79,6 +79,7 @@ begin
     insert into public.fin_gastos (user_id, ano, mes, dia, valor) values (u, 2026, 11, 5, 1.00);
     insert into public.fin_config (user_id) values (u);
     insert into public.fin_tetos (user_id, categoria, valor) values (u, 'Mercado', 800);
+    insert into public.insight_respostas (user_id, dia, tipo, decisao) values (u, current_date, 'atrasadas', 'ignorada');
     -- Metas (sintético)
     insert into public.goals (user_id, titulo, medicao, valor_alvo) values (u, 'meta sintética', 'numerica', 10);
     insert into public.goal_progress (user_id, goal_id, valor, data) select u, id, 1, current_date from public.goals where user_id = u;
@@ -118,6 +119,7 @@ insert into iso_cases values
   ('fin_itens',          'user_id',    'nome = ''x''',        'insert into public.fin_itens (user_id, tipo, nome) values (%L, ''despesa'', ''x'')'),
   ('fin_item_meses',     'user_id',    'valor = 2',           'insert into public.fin_item_meses (user_id, item_id, ano, mes, valor) values (%1$L, (select id from public.fin_itens where user_id = %1$L limit 1), 2026, 12, 1)'),
   ('fin_gastos',         'user_id',    'valor = 2',           'insert into public.fin_gastos (user_id, ano, mes, dia, valor) values (%L, 2026, 11, 6, 1)'),
+  ('insight_respostas',  'user_id',    'decisao = ''aceita''', 'insert into public.insight_respostas (user_id, dia, tipo, decisao) values (%L, current_date, ''email'', ''ignorada'')'),
   ('fin_tetos',          'user_id',    'valor = 1',           'insert into public.fin_tetos (user_id, categoria, valor) values (%L, ''Lazer'', 1)'),
   ('fin_config',         'user_id',    'dia_restante = 5',    'insert into public.fin_config (user_id) values (%L)'),
   ('goals',              'user_id',    'titulo = ''x''',      'insert into public.goals (user_id, titulo, medicao, valor_alvo) values (%L, ''x'', ''numerica'', 5)'),
