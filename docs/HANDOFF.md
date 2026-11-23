@@ -67,15 +67,19 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
-### 23/11/2026 18:10 · Cursor (Grok Bot), G1 voz imersiva
+### 23/11/2026 17:45 · Cursor (Grok Bot), G3 design system v2
+- Publicados: #110 (17:34), #111 M4 (17:35), #112 G1 (17:39). G3: vitrine `/design` (404 em produção, `GADU_DESIGN_PAGE=1` no CI) e `e2e/visual.e2e.cjs` no job `e2e-public` com referências em `e2e/visual-baseline/` geradas nesta máquina; se o runner renderizar fonte diferente, trocar pelas capturas do artefato `gadu-visual`.
+- **Próximo:** G4 (logo) espera o arquivo.
+
+### 23/11/2026 17:38 · Cursor (Grok Bot), G1 voz imersiva
 - `VoiceCore.tsx` (anéis SVG + espectro; `useNivel` escreve `--lvl` por quadro a partir do `voiceLevel`), `nivel-visual.ts`, `voz-imersiva.css`; `ListenSheet` com `.listen-wrap.imersivo` (mantém `.listen-ava` para os e2e antigos). "Modo voz" em `send()` antes do "lê o resumo". Empilhado sobre o M4.
 - **Próximo:** G3 (design system v2 com testes visuais).
 
-### 23/11/2026 17:50 · Cursor (Grok Bot), M4 resumo falado
+### 23/11/2026 17:28 · Cursor (Grok Bot), M4 resumo falado
 - Botão "Ouvir" nos painéis (evento `gadu:falar`, o GaduApp fala com o `Speaker`), "lê o resumo" (`parseLerResumo`, antes da navegação em `send()`) e resumo por voz que espera `#painel[data-falar]` (até 3 s). Empilhado sobre o PR do gasto do mês.
 - **Próximos:** G1 (voz imersiva), G3.
 
-### 23/11/2026 17:30 · Cursor (Grok Bot), gasto do mês no Hoje
+### 23/11/2026 17:20 · Cursor (Grok Bot), gasto do mês no Hoje
 - PR #108 publicado às 17:14 (CHANGELOG corrigido). Hoje ganhou "Gasto no mês" (contas pagas + dia a dia, de quanto está previsto) no resumo do dia, só com o Financeiro ligado; sem resposta, o indicador some.
 - **Próximos:** M4, G1, G3.
 
