@@ -354,6 +354,26 @@ test("abrir peça do 3D: a mais recente ou pelo nome, só da própria pessoa; in
   assert.equal(off.calls.length, 0, "3D desligado: nenhuma leitura");
 });
 
+test("ajustar peça do 3D por voz: só peça da própria pessoa; termo bloqueado no pedido não vira cartão; 3D desligado não lê", async () => {
+  const pdb = fakeDb({ pecas_3d: [
+    { id: "p1", titulo: "Suporte de celular", updated_at: "2026-11-22T13:00:00.000Z", user_id: U },
+    { id: "pX", titulo: "Suporte SEGREDO", updated_at: "2026-11-23T14:00:00.000Z", user_id: "outra" },
+  ] });
+  const r = await resolveAcoes(pdb, U, [
+    { tipo: "peca3d_ajustar", busca: "suporte", pedido: "2 mm mais alto" },
+    { tipo: "peca3d_ajustar", busca: null, pedido: "bordas arredondadas" },
+    { tipo: "peca3d_ajustar", busca: null, pedido: "logo da Acme" },
+  ], { goals: true, finance: true, modeling3d: true, now: NOW, blocked: (t) => /acme/i.test(t) });
+  assert.deepEqual(r.actions, [
+    { kind: "peca3d_ajustar", id: "p1", titulo: "Suporte de celular", quando: "22/11", pedido: "2 mm mais alto" },
+    { kind: "peca3d_ajustar", id: "p1", titulo: "Suporte de celular", quando: "22/11", pedido: "bordas arredondadas" },
+  ]);
+  assert.ok(!JSON.stringify(r).includes("SEGREDO"));
+  const off = fakeDb({ pecas_3d: [{ id: "p1", titulo: "Gancho", updated_at: "2026-11-23T13:00:00.000Z", user_id: U }] });
+  assert.deepEqual((await resolveAcoes(off, U, [{ tipo: "peca3d_ajustar", busca: null, pedido: "mais alto" }], { goals: true, finance: true, now: NOW })).actions, []);
+  assert.equal(off.calls.length, 0);
+});
+
 test("teto por categoria: nome padrão, valor anterior só da própria pessoa; tirar sem teto vira aviso; Financeiro desligado não lê", async () => {
   const tdb = fakeDb({ fin_tetos: [{ categoria: "Restaurantes", valor: 600, user_id: U }, { categoria: "Lazer", valor: 99, user_id: "outra" }] });
   const r = await resolveAcoes(tdb, U, [

@@ -11,6 +11,7 @@ import { Icon } from "../ui";
 import { PageHeader, Panel } from "../kit";
 import { Viewer3D } from "./Viewer3D";
 import "./studio3d.css";
+import { AJUSTE_3D_KEY, lerAjuste } from "@/lib/3d/ajuste-voz";
 
 type Modo = "novo" | "refinar" | "corrigir";
 type RenderState = { state: "idle" | "busy" | "ok" | "erro"; error?: string; log?: string };
@@ -173,6 +174,16 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
     valoresSalvos.current = "{}";
   }
 
+  // Ajuste pedido pela conversa (cartão confirmado): roda uma vez, quando a peça certa terminou de abrir.
+  const ajusteVoz = useRef<string | null>(null);
+  useEffect(() => {
+    if (!abrir || abrir === "ultima") return;
+    try {
+      ajusteVoz.current = lerAjuste(sessionStorage.getItem(AJUSTE_3D_KEY), abrir);
+      sessionStorage.removeItem(AJUSTE_3D_KEY);
+    } catch { ajusteVoz.current = null; }
+  }, [abrir]);
+
   const pedirIA = useCallback(async (modo: Modo, texto: string) => {
     setGerando(true); setErroIA("");
     try {
@@ -198,6 +209,14 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
       setGerando(false);
     }
   }, [scad, render.error, render.log, salvar, pecaId]);
+
+  useEffect(() => {
+    const texto = ajusteVoz.current;
+    if (!texto || !scad || pecaId !== abrir || gerando) return;
+    ajusteVoz.current = null;
+    setAjuste(texto);
+    void pedirIA("refinar", texto);
+  }, [scad, pecaId, abrir, gerando, pedirIA]);
 
   const voltar = () => {
     const prev = anteriores[anteriores.length - 1];

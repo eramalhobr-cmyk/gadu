@@ -214,6 +214,10 @@ test("cartão e pergunta de abrir peça do 3D", async () => {
   const a: ChatAction = { kind: "peca3d_abrir", id: "p1", titulo: "Suporte de celular", quando: "22/11" };
   assert.equal(d(a).confirm, "Abrir peça");
   assert.equal(actionQuestion(a, NOW), "Abro a peça Suporte de celular no 3D?");
+  const aj: ChatAction = { kind: "peca3d_ajustar", id: "p1", titulo: "Suporte de celular", quando: "22/11", pedido: "2 mm mais alto" };
+  assert.equal(d(aj).confirm, "Ajustar peça");
+  assert.match(d(aj).detail, /Mudança: 2 mm mais alto · usa IA do 3D/);
+  assert.equal(actionQuestion(aj, NOW), "Ajusto a peça Suporte de celular no 3D: 2 mm mais alto?");
 });
 
 test("cartão e pergunta do teto por categoria", async () => {

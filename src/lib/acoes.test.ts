@@ -215,6 +215,13 @@ test("conta_criar e receita_principal: validação estrita", () => {
   assert.equal(validAcao({ tipo: "receita_principal" }, NOW), null);
 });
 
+test("peca3d_ajustar: precisa do pedido; 'última' = a mais recente; pedido limitado", () => {
+  assert.deepEqual(validAcao({ tipo: "peca3d_ajustar", busca: "a última peça", pedido: "2 mm mais alto" }, NOW), { tipo: "peca3d_ajustar", busca: null, pedido: "2 mm mais alto" });
+  assert.deepEqual(validAcao({ tipo: "peca3d_ajustar", busca: "suporte", pedido: "bordas arredondadas" }, NOW), { tipo: "peca3d_ajustar", busca: "suporte", pedido: "bordas arredondadas" });
+  assert.equal(validAcao({ tipo: "peca3d_ajustar", busca: "suporte" }, NOW), null, "sem pedido");
+  assert.ok((validAcao({ tipo: "peca3d_ajustar", pedido: "x".repeat(3000) }, NOW) as { pedido: string }).pedido.length <= 800);
+});
+
 test("peca3d_abrir: sem busca ou 'última' = a mais recente", () => {
   assert.deepEqual(validAcao({ tipo: "peca3d_abrir" }, NOW), { tipo: "peca3d_abrir", busca: null });
   assert.deepEqual(validAcao({ tipo: "peca3d_abrir", busca: "última peça" }, NOW), { tipo: "peca3d_abrir", busca: null });

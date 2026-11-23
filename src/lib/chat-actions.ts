@@ -60,6 +60,7 @@ export type ChatAction =
   | { kind: "conta_nova"; contaTipo: "despesa" | "receita"; nome: string; grupo: string; valor: number | null; dia: number | null; escopo: "mes" | "proximos"; ano: number; mes: number }
   | { kind: "receita_principal"; itemId: string; nome: string }
   | { kind: "peca3d_abrir"; id: string; titulo: string; quando: string }
+  | { kind: "peca3d_ajustar"; id: string; titulo: string; quando: string; pedido: string }
   | { kind: "teto"; categoria: string; valor: number | null; anterior: number | null }
   /** Resposta a uma percepção de hoje, achada no SERVIDOR (só as que ainda não foram respondidas). Aceitar faz a ação do tipo. */
   | { kind: "percepcao"; tipo: "conflito" | "livre" | "atrasadas" | "email" | "cheio"; decisao: "aceita" | "ignorada"; texto: string; rotulo: string | null; ref?: { inicio?: string; fim?: string; from?: string; subject?: string } }
@@ -289,6 +290,8 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
       return { icon: "coin", proposed: "Receita principal?", done: "Receita principal definida", undone: "Descartado", title: a.nome, detail: "O simulador de salário salva o líquido nela", confirm: "Definir", busy: "Salvando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } };
     case "peca3d_abrir":
       return { icon: "chevron", proposed: "Abrir esta peça no 3D?", done: "Abrindo a peça", undone: "Descartado", title: a.titulo, detail: `Salva em ${a.quando} · abre no 3D Studio`, confirm: "Abrir peça", busy: "Abrindo…", applied: false };
+    case "peca3d_ajustar":
+      return { icon: "chevron", proposed: "Ajustar esta peça no 3D?", done: "Ajustando no 3D", undone: "Descartado", title: a.titulo, detail: `Mudança: ${resumo(a.pedido)} · usa IA do 3D (cota do dia) · "Voltar uma versão" desfaz`, confirm: "Ajustar peça", busy: "Abrindo…", applied: false };
     case "teto":
       return a.valor === null
         ? { icon: "coin", proposed: "Tirar o teto?", done: "Teto removido", undone: "Descartado", title: a.categoria, detail: a.anterior !== null ? `Hoje o teto é ${formatBRL(a.anterior)} por mês` : "Sem teto definido", confirm: "Tirar teto", busy: "Salvando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } }
@@ -401,6 +404,7 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     case "percepcao": return a.decisao === "ignorada" ? `Ignoro hoje o aviso: ${a.texto}` : `${PERCEPCAO_PERGUNTA[a.tipo]}`;
     case "teto": return a.valor === null ? `Tiro o teto de ${a.categoria}?` : `Ponho um teto de ${spokenMoney(a.valor)} por mês para ${a.categoria}?`;
     case "peca3d_abrir": return `Abro a peça ${a.titulo} no 3D?`;
+    case "peca3d_ajustar": return `Ajusto a peça ${a.titulo} no 3D: ${resumo(a.pedido, 120)}?`;
     case "conta_nova": return `Crio a ${a.contaTipo === "receita" ? "receita" : "conta"} ${a.nome}${a.valor !== null ? `, de ${spokenMoney(a.valor)}${a.escopo === "proximos" ? " por mês" : ""}` : ""}${a.dia ? `, no dia ${a.dia}` : ""}?`;
     case "receita_principal": return `Defino ${a.nome} como sua receita principal?`;
     case "registro_apagar": return `Apago o registro de ${fmtNum(a.valor)}${a.unidade && a.unidade !== "%" ? ` ${a.unidade}` : a.unidade === "%" ? " por cento" : ""} de ${spokenDay(a.data, now)} na meta ${a.meta}?`;

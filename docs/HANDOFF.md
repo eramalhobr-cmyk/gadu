@@ -67,6 +67,12 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 14:50 · Cursor (Grok Bot), sobras do 3D: ajustar peça por voz
+- **Decisão do Eduardo (14:39):** não lançar mais o Claude Code no GaDu, nem depois de a cota renovar (ele precisa dele para outro trabalho). Todo o trabalho restante do GaDu fica com o Cursor.
+- `peca3d_ajustar` (acoes, resolvedor, cartão, pergunta falada) + `src/lib/3d/ajuste-voz.ts` + leitura única no `Studio3D.tsx`. Não mexe em `GaduApp.tsx` (frente de UX): a navegação sai do `ActionCard.tsx`.
+- **A revisar por outra IA:** o efeito do ajuste no `Studio3D.tsx` (roda uma vez, depois que a peça certa abriu).
+- **Próximo nas sobras do 3D:** imagem do render para o modelo (3D-1b) e as 10 peças de referência com IA real (precisa do Eduardo autorizar o gasto). 3MF "A1 PLA 0.4" espera o projeto do Eduardo.
+
 ### 23/11/2026 14:35 · Cursor (Grok Bot), dado sensível brasileiro (fila, item 3)
 - `privacy.ts` passa a detectar o dado (CPF/CNPJ com DV, Luhn, agência e conta, Pix, senha com valor, tokens) no lugar das palavras-chave. Saúde fica por palavra. Usado em todo lugar que já chamava `isSensitive` (chat, Core, memórias, lembretes, tarefas, eventos, gastos, Google).
 - **Decisão a registrar:** é uma regra menos restritiva para conversa comum ("como troco minha senha?" agora passa); o dado em si continua bloqueado. CPF formatado bloqueia mesmo com DV errado.
