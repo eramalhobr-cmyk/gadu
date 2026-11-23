@@ -41,7 +41,7 @@ function query(table: string) {
     get: (_t, key) => {
       if (key === "then") return (res: (v: unknown) => unknown, rej: (e: unknown) => unknown) => Promise.resolve(result()).then(res, rej);
       if (key === "eq") return (c: string, v: unknown) => { eqs.push([c, v]); return p; };
-      if (key === "insert" || key === "update" || key === "delete" || key === "upsert") return (...rows: unknown[]) => { if (["tasks", "reminders", "projects", "memories"].includes(table)) voiceWrites.push({ table, op: String(key), rows: rows as Row[] }); return p; };
+      if (key === "insert" || key === "update" || key === "delete" || key === "upsert") return (...rows: unknown[]) => { if (["tasks", "reminders", "projects", "memories", "agents"].includes(table)) voiceWrites.push({ table, op: String(key), rows: rows as Row[] }); return p; };
       if (key === "maybeSingle" || key === "single") return () => { mode = "one"; return Promise.resolve(result()); };
       return () => p;
     },
@@ -586,4 +586,52 @@ test("tudo por voz: apagar registro de progresso acha só o da pessoa, não apag
   modelText = META_TXT([{ tipo: "meta_registro_apagar", meta: "livros" }]);
   const off = await chat("apaga o último registro dos livros");
   assert.equal(off.find((e) => e.t === "acoes"), undefined);
+});
+
+// ---- "Tudo por voz": agentes (criar e editar) ----
+function seedAgentes() {
+  generic.agents = [
+    { id: 1, user_id: A, name: "Mentor de estudos", area: "Estudos", instructions: "Explique com exemplos.", active: true },
+    { id: 2, user_id: A, name: "Casa e contas", area: "Finanças", instructions: "", active: false },
+    { id: 90, user_id: B, name: "SEGREDO-B agente", area: "Pessoal", instructions: "SEGREDO-B instruções", active: true },
+  ];
+}
+
+test("tudo por voz: criar e editar agente viram cartões só com agentes de A; nada é gravado antes de confirmar", async () => {
+  seedTarefas(); seedAgentes();
+  modelText = META_TXT([
+    { tipo: "agente_criar", nome: "Treino", area: "saude", instrucoes: "Seja direto e motivador." },
+    { tipo: "agente_editar", agente: "mentor", instrucoes: "Explique passo a passo.", ativo: false },
+    { tipo: "agente_editar", agente: "casa e contas", ativo: true },
+  ]);
+  const events = await chat("cria um agente de treino, muda o mentor e reativa o de casa");
+  const items = events.find((e) => e.t === "acoes")?.items ?? [];
+  assert.deepEqual(items, [
+    { kind: "agente_novo", nome: "Treino", area: "Saúde", instrucoes: "Seja direto e motivador." },
+    { kind: "agente_editar", id: 1, nome: "Mentor de estudos", mudancas: { instrucoes: "Explique passo a passo.", ativo: false } },
+    { kind: "agente_editar", id: 2, nome: "Casa e contas", mudancas: { ativo: true } },
+  ]);
+  assert.equal(voiceWrites.length, 0, "nenhuma gravação em agents antes da confirmação");
+  assert.ok(!JSON.stringify(events).includes("SEGREDO-B"));
+});
+
+test("tudo por voz: agente de B nunca vira cartão (vira aviso); nome repetido e área inexistente avisam", async () => {
+  seedTarefas(); seedAgentes();
+  modelText = META_TXT([{ tipo: "agente_editar", agente: "SEGREDO-B agente", nome: "Meu agente" }, { tipo: "agente_criar", nome: "Mentor de estudos" }]);
+  const events = await chat("mexe no agente do outro e cria um repetido");
+  assert.equal(events.find((e) => e.t === "acoes"), undefined);
+  assert.ok(events.some((e) => e.t === "notice" && e.kind === "acao"));
+  modelText = META_TXT([{ tipo: "agente_criar", nome: "Hobbies", area: "Astronomia" }]);
+  const ev2 = await chat("cria um agente de hobbies");
+  const it = ev2.find((e) => e.t === "acoes")?.items ?? [];
+  assert.equal(it[0]?.area, "Pessoal", "área fora da lista cai em Pessoal");
+  assert.ok(ev2.some((e) => e.t === "notice" && e.kind === "acao"), "e avisa");
+  assert.equal(voiceWrites.length, 0);
+});
+
+test("tudo por voz: agente com termo bloqueado não vira cartão", async () => {
+  seedTarefas(); seedAgentes();
+  modelText = META_TXT([{ tipo: "agente_criar", nome: "Agente Acme" }, { tipo: "agente_editar", agente: "mentor", instrucoes: "Ajude no projeto Acme" }]);
+  const events = await chat("cria agente e muda instruções");
+  assert.equal(events.find((e) => e.t === "acoes"), undefined);
 });

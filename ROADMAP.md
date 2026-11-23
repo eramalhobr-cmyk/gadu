@@ -501,6 +501,7 @@ Estágio: **publicada** em 22/11/2026 às 18:33 (Brasília), PR #30, merge `901e
 - [ ] Caixa, Plano, Simulador e Ano
 
 ## Por último (combinado em 10/11)
+- [x] Tudo por voz: criar e editar agentes (`agente_criar`, `agente_editar`); falta apagar agente
 - [x] Telemetria de erros: rota, captura no servidor e no navegador, lista no Admin e alerta diário por issue do GitHub (docs/OBSERVABILIDADE.md); falta o Eduardo criar `TELEMETRIA_TOKEN`
 - [ ] (histórico) Testes automáticos de ponta a ponta antes de publicar (feito: `e2e-auth.yml`) e alerta de erro (tela de erro própria: feita no PR #9; migração da telemetria mergeada no PR #76, aplicada pelo Cursor; rota, Admin e alerta depois)
 - [ ] Ações com aprovação no Gmail (rascunhos) e foco na agenda

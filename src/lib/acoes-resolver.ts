@@ -3,6 +3,7 @@
 import { nomeCategoria } from "./finance/tetos.ts";
 import type { AcaoProposta } from "./acoes.ts";
 import { DESTINO_NOME, matchByName, norm } from "./acoes.ts";
+import { AREAS } from "./meta.ts";
 import type { ChatAction, GastoMudancas, TarefaMudancas } from "./chat-actions.ts";
 import type { CalEvent } from "./google-format.ts";
 import type { SessionDb } from "./core/types.ts";
@@ -17,13 +18,19 @@ type GoalRow = { id: string; titulo: string; medicao: Medicao; unidade: string |
 export type CalendarLookup = (from: Date, to: Date) => Promise<CalEvent[]>;
 type Opts = { goals: boolean; finance: boolean; modeling3d?: boolean; calendar?: CalendarLookup; now?: number; blocked?: (text: string) => boolean };
 
+/** Área do agente: só as da lista de Agentes (como na tela); outra coisa vira nulo. */
+function areaDe(v: string | null): string | null {
+  if (!v) return null;
+  return AREAS.find((x) => norm(x) === norm(v)) ?? null;
+}
+
 /** Ações resolvidas e avisos do que não deu para achar (o app mostra, sem inventar). */
 export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoProposta[], opts: Opts): Promise<{ actions: ChatAction[]; misses: string[] }> {
   const actions: ChatAction[] = [];
   const misses: string[] = [];
   const now = opts.now ?? Date.now();
   const blocked = opts.blocked ?? (() => false);
-  const cache: { goals?: GoalRow[]; tasks?: { id: number; title: string }[]; reminders?: { id: number; text: string; due_at: string }[]; closed?: { id: number; title: string }[]; projects?: { id: number; name: string; goal?: string | null }[]; snoozable?: { id: number; text: string; due_at: string }[]; memorias?: { id: number; content: string; status: string }[]; gastos?: Gasto[]; eventos?: CalEvent[] } = {};
+  const cache: { goals?: GoalRow[]; tasks?: { id: number; title: string }[]; reminders?: { id: number; text: string; due_at: string }[]; closed?: { id: number; title: string }[]; agents?: { id: number; name: string; area: string; instructions: string; active: boolean }[]; projects?: { id: number; name: string; goal?: string | null }[]; snoozable?: { id: number; text: string; due_at: string }[]; memorias?: { id: number; content: string; status: string }[]; gastos?: Gasto[]; eventos?: CalEvent[] } = {};
 
   const goals = async () => {
     if (!cache.goals) {
@@ -53,6 +60,13 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
       cache.closed = r.error ? [] : (r.data as { id: number; title: string }[]);
     }
     return cache.closed;
+  };
+  const agents = async () => {
+    if (!cache.agents) {
+      const r = await db.from("agents").select("id, name, area, instructions, active").eq("user_id", userId).limit(100);
+      cache.agents = r.error ? [] : (r.data as { id: number; name: string; area: string; instructions: string; active: boolean }[]);
+    }
+    return cache.agents;
   };
   const projects = async () => {
     if (!cache.projects) {
@@ -398,6 +412,32 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           if ((a.destino === "financeiro" && !opts.finance) || (a.destino === "metas" && !opts.goals)) { misses.push(`${DESTINO_NOME[a.destino]} está desligado no momento.`); break; }
           actions.push({ kind: "navegar", view: a.destino });
           break;
+        case "agente_criar": {
+          if (blocked(a.nome) || (a.instrucoes && blocked(a.instrucoes))) break;
+          const area = areaDe(a.area);
+          if (a.area && !area) misses.push(`A área "${a.area}" não existe; usei Pessoal.`);
+          if ((await agents()).some((x) => norm(x.name) === norm(a.nome))) { misses.push(`Você já tem um agente chamado "${a.nome}". Para mudar, peça para editar.`); break; }
+          actions.push({ kind: "agente_novo", nome: a.nome, area: area ?? "Pessoal", instrucoes: a.instrucoes ?? "" });
+          break;
+        }
+        case "agente_editar": {
+          if ((a.nome && blocked(a.nome)) || (a.instrucoes && blocked(a.instrucoes))) break;
+          const ag = matchByName(await agents(), (x) => x.name, a.agente);
+          if (!ag) { misses.push(`Não achei o agente "${a.agente}". Diga o nome como está em Agentes.`); break; }
+          const mudancas: { nome?: string; area?: string; instrucoes?: string; ativo?: boolean } = {};
+          let avisou = false;
+          if (a.nome && a.nome !== ag.name) mudancas.nome = a.nome;
+          if (a.area) {
+            const area = areaDe(a.area);
+            if (!area) { misses.push(`A área "${a.area}" não existe. As áreas são: ${AREAS.join(", ")}.`); avisou = true; }
+            else if (area !== ag.area) mudancas.area = area;
+          }
+          if (a.instrucoes !== null && a.instrucoes !== ag.instructions) mudancas.instrucoes = a.instrucoes;
+          if (a.ativo !== null && a.ativo !== ag.active) mudancas.ativo = a.ativo;
+          if (!Object.keys(mudancas).length) { if (!avisou) misses.push(`O agente "${ag.name}" já está assim. Nada para mudar.`); break; }
+          actions.push({ kind: "agente_editar", id: ag.id, nome: ag.name, mudancas });
+          break;
+        }
         case "projeto_criar":
           if (blocked(a.nome)) break;
           actions.push({ kind: "projeto", nome: a.nome, objetivo: a.objetivo });

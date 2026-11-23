@@ -56,7 +56,7 @@ export function AgentsPage({ onTalk }: { onTalk: (a: { id: number; name: string 
         ) : items.length === 0 ? (
           <Panel>
             <EmptyState icon="agents" title="Nenhum agente ainda" text="Comece pelos sugeridos ou crie um do zero. Você pode editar as instruções quando quiser."
-              phrase="Quais agentes você me sugere?"
+              phrase="Cria um agente para me ajudar com os estudos"
               action={missing.length > 0 ? <button className="btn btn-sm" onClick={addPresets} disabled={adding}>{adding ? "Adicionando…" : "Adicionar sugeridos"}</button> : undefined} />
           </Panel>
         ) : (

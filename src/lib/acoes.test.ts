@@ -207,3 +207,15 @@ test("teto_definir: valor em reais ou null para tirar", () => {
   assert.equal(validAcao({ tipo: "teto_definir", categoria: "Lazer", valor: -5 }, NOW), null);
   assert.equal(validAcao({ tipo: "teto_definir", valor: 100 }, NOW), null);
 });
+
+test("agente_criar e agente_editar: validação", () => {
+  assert.deepEqual(validAcao({ tipo: "agente_criar", nome: "  Mentor   de estudos ", area: "Estudos", instrucoes: "Seja claro.\n\n\n\nUse exemplos." }, NOW), { tipo: "agente_criar", nome: "Mentor de estudos", area: "Estudos", instrucoes: "Seja claro.\n\nUse exemplos." });
+  assert.deepEqual(validAcao({ tipo: "agente_criar", nome: "Só nome" }, NOW), { tipo: "agente_criar", nome: "Só nome", area: null, instrucoes: null });
+  assert.equal(validAcao({ tipo: "agente_criar", nome: "  " }, NOW), null);
+  assert.equal((validAcao({ tipo: "agente_criar", nome: "x".repeat(200) }, NOW) as { nome: string }).nome.length, 60);
+  assert.equal((validAcao({ tipo: "agente_criar", nome: "x", instrucoes: "y".repeat(9000) }, NOW) as { instrucoes: string }).instrucoes.length, 4000);
+  assert.deepEqual(validAcao({ tipo: "agente_editar", agente: "Mentor", instrucoes: "", ativo: "false" }, NOW), { tipo: "agente_editar", agente: "Mentor", nome: null, area: null, instrucoes: "", ativo: false }, "instruções vazias limpam; ativo aceita texto");
+  assert.deepEqual(validAcao({ tipo: "agente_editar", agente: "Mentor", nome: "Novo" }, NOW), { tipo: "agente_editar", agente: "Mentor", nome: "Novo", area: null, instrucoes: null, ativo: null });
+  assert.equal(validAcao({ tipo: "agente_editar", agente: "Mentor" }, NOW), null, "sem nada para mudar");
+  assert.equal(validAcao({ tipo: "agente_editar", nome: "Novo" }, NOW), null, "sem dizer qual agente");
+});

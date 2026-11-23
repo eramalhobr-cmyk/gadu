@@ -131,6 +131,16 @@ async function execute(a: ChatAction): Promise<Result> {
       if (m.objetivo !== undefined) patch.goal = m.objetivo || null;
       return saved(await supabaseBrowser().from("projects").update(patch).eq("id", a.id).select("id"));
     }
+    if (a.kind === "agente_novo") return saved(await supabaseBrowser().from("agents").insert({ name: a.nome, area: a.area, instructions: a.instrucoes, color: "sig", icon: "spark", active: true }).select("id"));
+    if (a.kind === "agente_editar") {
+      const m = a.mudancas;
+      const patch: Record<string, unknown> = {};
+      if (m.nome) patch.name = m.nome;
+      if (m.area) patch.area = m.area;
+      if (m.instrucoes !== undefined) patch.instructions = m.instrucoes;
+      if (m.ativo !== undefined) patch.active = m.ativo;
+      return saved(await supabaseBrowser().from("agents").update(patch).eq("id", a.id).select("id"));
+    }
     if (a.kind === "projeto_arquivar") return saved(await supabaseBrowser().from("projects").update({ status: "done" }).eq("id", a.id).in("status", ["active", "paused"]).select("id"));
     if (a.kind === "memoria_aprovar") return saved(await supabaseBrowser().from("memories").update({ status: "approved" }).in("id", a.ids).eq("status", "pending").select("id"));
     if (a.kind === "memoria_recusar") return saved(await supabaseBrowser().from("memories").delete().eq("id", a.id).eq("status", "pending").select("id"));
