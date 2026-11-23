@@ -132,3 +132,12 @@ Tarefas, Projetos, Metas, Financeiro, Memória e Agentes (e o painel Lembretes, 
 
 ## Tema JARVIS (23/11/2026, direção G2)
 Camada final em `src/app/jarvis.css` sobre os tokens de `v2.css`: HUD ciano/âmbar, claro padrão e escuro opção. Classes reutilizáveis: `.hud-frame` (painel com cantos em colchete), `.hud-core` (núcleo com anéis; usa `--lvl` de 0 a 1 para reagir à voz), `.num` (número em mono com algarismos de largura fixa). Microfone central sólido (`--mic-a` → `--mic-b`) com `z-index` acima da barra; conteúdo com folga embaixo. Ver `DESIGN.md`.
+
+## Design system v2 (23/11/2026, UX-7 G3)
+- **Vitrine:** `/design` (`src/app/design/page.tsx` + `src/components/DesignShowcase.tsx`, estilos em `src/app/design-v2.css`): cores, tipografia, ações, painel com KPI, anéis, barras, medidores, pilha, tendência e o núcleo de voz. Os números são **exemplos fixos marcados como tal**; a página não lê dados. **Desligada em produção** (404), só abre com `GADU_DESIGN_PAGE=1` (CI) ou em `next dev`.
+- **Componentes de gráfico** (`src/components/charts.tsx`): `Kpi`/`KpiRow` (`.gkpi*`), `Ring` (`.gring*`; `pct` null mostra "–"), `Bars` (tabela escondida para leitor de tela; mais de 7 barras esconde os valores), `Meter` (marca do teto), `Stack`, `Spark`, `PainelHead` (título, frase de voz e "Ouvir"). Painéis usam `.pnl`, `.pnl-grid`, `.pnl-box`. Prefixos próprios porque `.kpi`, `.ring` e `.dash` já existiam.
+- **Núcleo de voz** (`src/components/VoiceCore.tsx`): anéis SVG e espectro de 60 traços; `useNivel` escreve `--lvl` (0 a 1) a partir do `voiceLevel`.
+- **Testes visuais no CI** (`e2e/visual.e2e.cjs`, job `e2e-public`): para claro e escuro, a 390 e 1440 px: contraste WCAG dos tokens (texto 4,5:1, `--ink` 7:1, HUD/âmbar 3:1), sem rolagem lateral, alvos de 44 px e comparação com a referência em `e2e/visual-baseline/` (até 2% dos pixels, sem animação, "reduzir movimento"). As capturas da execução sobem como artefato `gadu-visual`, com a imagem de diferença quando falha.
+- **Mudou o visual de propósito?** Suba o app com `GADU_DESIGN_PAGE=1`, rode `VISUAL_UPDATE=1 E2E_BASE=… npm run test:e2e:visual`, **revise as imagens** e commite junto. Se o CI acusar só diferença de renderização de fonte, use as capturas do artefato `gadu-visual` como referência.
+- Ferramenta de desenvolvimento: não tem ação por voz (não é tela do usuário).
+

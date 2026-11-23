@@ -19,6 +19,7 @@
     "test:e2e:public": "node --test --test-concurrency=1 e2e/public.e2e.cjs",
     "test:e2e:mobile": "node --test --test-concurrency=1 e2e/mobile.e2e.cjs",
     "test:e2e:auth": "node --test --test-concurrency=1 e2e/auth.e2e.cjs",
+    "test:e2e:visual": "node --test --test-concurrency=1 e2e/visual.e2e.cjs",
     "e2e:browsers": "playwright install --with-deps chromium webkit",
     "audit:db": "GADU_AUDIT=1 bash scripts/test-db.sh"
   },

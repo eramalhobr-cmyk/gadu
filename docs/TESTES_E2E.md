@@ -25,6 +25,9 @@ Regras:
 - **Fixtures isoladas:** nos testes de Tarefas e Projetos, toda escrita no banco é bloqueada e as leituras vêm de dados de teste.
 - **Sem dados reais:** só o usuário de teste, sem conteúdo pessoal.
 
+## Testes visuais (design system v2)
+- `e2e/visual.e2e.cjs`: vitrine `/design` (só com `GADU_DESIGN_PAGE=1`), claro e escuro, 390 e 1440: contraste dos tokens, rolagem lateral, alvos de 44 px e comparação com `e2e/visual-baseline/` (até 2%). Roda no job `e2e-public`; capturas no artefato `gadu-visual`. Atualizar: `VISUAL_UPDATE=1`.
+
 ## Banco: isolamento e riscos conhecidos
 - `npm run test:db`: Postgres local descartável com **todas** as migrações (precisa do pgvector; sem ele, falha). Roda cota, orçamento, concorrência e o **isolamento entre pessoas em todas as tabelas do `public` (22, com as 4 de Finanças na branch `feat/financas-base`; o teste falha se uma tabela nova não estiver na suíte)**. Vai no CI (job `database`).
 - `npm run audit:db`: o mesmo, mais `supabase/tests/audit/riscos_conhecidos.sql`, que diz CONFIRMADO ou NÃO REPRODUZIDO para cada risco conhecido. É informativo e não roda no CI.
