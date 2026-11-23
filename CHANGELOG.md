@@ -9,6 +9,10 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · UX-7 · Ligações visíveis e Mapa do GaDu · desenvolvido e testado
+- **Feito por:** Cursor (Grok Bot). Tarefas e projetos ligados a uma meta ativa ou pausada mostram um selo com o nome da meta (`src/lib/ligacoes.ts` com testes; `src/components/links.tsx` lê `goal_tasks`/`goal_projects` com RLS; só com `GOALS_ENABLED`). No Guia, a seção **Mapa do GaDu** (`src/components/GaduMap.tsx`): conversa e voz no centro, nós que abrem cada tela e a lista das ligações, cada uma com o que dizer (frases das ações que já existem: `meta_projeto`, `meta_tarefa`, `meta_agenda`, `navegar`…). Sem ação de voz nova: as ligações já se fazem falando. Sem migração.
+- **Evidências (máquina local):** typecheck; `test:unit` (ligações); build; e2e com login novo (mapa no Guia, sem rolagem lateral). Capturas em `/workspace/gadu-review/ux6/depois-ligacoes/`.
+
 ## 2026-11-23 · UX-7 · Mais e menu agrupados por áreas · desenvolvido e testado
 - **Feito por:** Cursor (Grok Bot). Tela Mais (celular) e menu lateral (computador) com os mesmos grupos: Meu dia, Vida, Agentes e criação, Conta e ajuda (`NAV_GROUPS`/`navGroups` em `src/lib/modules.ts`, com teste). Cada grupo mostra um exemplo do que dizer ("Diga: “Quanto gastei este mês?”"); os blocos mostram números (metas ativas ou atrasadas, projetos ativos, memórias a revisar). O 3D (Beta) aparece no menu do computador quando `MODELING_3D_ENABLED=1`; o catálogo passa o 3D Studio de "planejado" para "parcial". Ir a qualquer tela por voz já existia (ação `navegar`).
 - **Evidências (máquina local):** typecheck; `test:unit`; build; e2e com login ampliado (grupos em Mais e no menu). Capturas em `/workspace/gadu-review/ux6/depois-mais/` (antes: `/workspace/gadu-review/ux6/antes/*-mais.png`).

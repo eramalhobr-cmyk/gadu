@@ -67,6 +67,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 14:30 · Cursor (Grok Bot), UX-7 PR 3: ligações visíveis e Mapa do GaDu
+- **Feito:** selo da meta em tarefas e projetos ligados (`src/lib/ligacoes.ts`, `src/components/links.tsx`, só leitura de `goal_tasks`/`goal_projects`/`goals` com RLS, só com `GOALS_ENABLED`); seção "Mapa do GaDu" no Guia (`src/components/GaduMap.tsx`), com nós que abrem as telas e frases das ações de voz que já existem. Sem migração, sem rota nova.
+- **A revisar por outra IA:** se a frente de Metas (Claude Code) mudar nomes de ação ou frases, atualizar `MAP_LINKS` em `src/lib/ligacoes.ts`.
+- **Próximo passo:** M3, Hoje em três faixas.
+
 ### 23/11/2026 14:28 · Cursor (Grok Bot), UX-7 PR 2: Mais e menu por áreas
 - **Feito:** `NAV_GROUPS` em `src/lib/modules.ts` (Meu dia, Vida, Agentes e criação), usado na tela Mais e no menu lateral; grupo "Conta e ajuda" em Mais; exemplo do que dizer por grupo; números (metas, projetos, memórias); 3D no menu do computador com o interruptor ligado; 3D Studio "parcial" no catálogo.
 - **A revisar por outra IA:** o catálogo do 3D em `modules.ts` (frente do Claude Code): status "parcial" e textos de disponível/planejado.
