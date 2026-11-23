@@ -14,7 +14,12 @@ before(async () => {
   await h.launch();
 });
 after(h.close);
-const page = (vp, opts = {}) => rawPage(vp, { ...opts, state: STATE });
+// O guia de primeiro uso (UX-4) abre sozinho para pessoa nova: os testes o pulam, menos o teste do próprio guia ({ guia: true }).
+const page = async (vp, { guia, ...opts } = {}) => {
+  const p = await rawPage(vp, { ...opts, state: STATE });
+  if (!guia && p.addLocatorHandler) await p.addLocatorHandler(p.getByRole("button", { name: "Pular o guia" }), (b) => b.click());
+  return p;
+};
 /** Tocar e segurar o microfone central abre o painel do assistente para escrever (um toque abre a tela de escuta). */
 async function holdMic(p) {
   const b = await p.locator(".dock-mic").boundingBox();
@@ -310,6 +315,28 @@ describe("app com login", () => {
     assert.ok(w2 > w1, `alargou (${w1} → ${w2})`);
     await p.keyboard.press("ArrowRight");
     await p.click(".assist-head [aria-label='Fechar o assistente']");
+    await p.context().close();
+  });
+
+  test("guia de primeiro uso: 3 passos, pular, Voltar do Android fecha e refazer em Configurações", async () => {
+    const p = await page(PHONE, { guia: true });
+    await p.goto(`${BASE}/app?tab=ajustes`);
+    await p.click("text=Ver o guia de primeiro uso");
+    const guia = p.getByRole("dialog");
+    await guia.waitFor();
+    assert.match(await guia.innerText(), /Passo 1 de 3/);
+    await guia.getByRole("button", { name: "Continuar" }).click();
+    assert.match(await guia.innerText(), /Passo 2 de 3/);
+    await guia.getByRole("button", { name: "Continuar" }).click();
+    assert.match(await guia.innerText(), /Passo 3 de 3/);
+    // Voltar do Android fecha o guia (uma entrada no histórico).
+    await p.goBack();
+    await guia.waitFor({ state: "detached" });
+    assert.match(p.url(), /\/app/);
+    // Pular fecha de novo.
+    await p.click("text=Ver o guia de primeiro uso");
+    await p.getByRole("button", { name: "Pular o guia" }).last().click();
+    await guia.waitFor({ state: "detached" });
     await p.context().close();
   });
 });

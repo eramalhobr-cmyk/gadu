@@ -544,3 +544,13 @@ test("tudo por voz: nova conversa e navegação saem como ações, sem ler nem g
   assert.deepEqual((off.find((e) => e.t === "acoes")?.items ?? []).map((i) => i.view), ["tarefas"]);
   assert.ok(off.some((e) => e.t === "notice" && e.kind === "acao"));
 });
+
+test("guia por voz: sai como ação instantânea, sem ler nem gravar nada e sem depender de interruptor", async () => {
+  process.env.GOALS_ENABLED = "0";
+  process.env.FINANCE_ENABLED = "0";
+  modelText = META_TXT([{ tipo: "guia" }]);
+  const events = await chat("me mostra o guia de novo");
+  assert.deepEqual((events.find((e) => e.t === "acoes")?.items ?? []).map((i) => i.kind), ["guia"]);
+  assert.equal(voiceWrites.length, 0);
+  assert.equal(log.writes.length, 0, "nada gravado: o guia só abre a tela");
+});

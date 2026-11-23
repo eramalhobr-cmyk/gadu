@@ -40,6 +40,7 @@ export type AcaoProposta =
   | { tipo: "memoria_recusar"; memoria: string }
   | { tipo: "memoria_esquecer"; memoria: string }
   | { tipo: "nova_conversa" }
+  | { tipo: "guia" }
   | { tipo: "navegar"; destino: Destino }
   | { tipo: "projeto_criar"; nome: string; objetivo: string | null }
   | { tipo: "ajuste"; ajuste: Ajuste };
@@ -55,7 +56,7 @@ export function destinoDe(v: unknown): Destino | null {
   return (DESTINOS as readonly string[]).includes(k) ? (k as Destino) : DESTINO_APELIDO[k] ?? null;
 }
 
-export const TIPOS = ["meta_criar", "meta_registrar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "nova_conversa", "navegar", "projeto_criar", "ajuste"] as const;
+export const TIPOS = ["meta_criar", "meta_registrar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "nova_conversa", "guia", "navegar", "projeto_criar", "ajuste"] as const;
 
 const txt = (v: unknown, max: number): string => (typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "");
 
@@ -243,6 +244,8 @@ export function validAcao(raw: unknown, now = Date.now()): AcaoProposta | null {
     }
     case "nova_conversa":
       return { tipo: "nova_conversa" };
+    case "guia":
+      return { tipo: "guia" };
     case "navegar": {
       const destino = destinoDe(o.destino);
       return destino ? { tipo: "navegar", destino } : null;
@@ -328,7 +331,7 @@ export function acoesRules(): string {
   {"tipo":"gasto_apagar","gasto":"mercado","valor":50,"data":"AAAA-MM-DD"} (apaga um gasto já lançado: nome ou categoria, e o valor ou a data se ajudarem a achar); {"tipo":"gasto_editar","gasto":"mercado","de_valor":50,"de_data":"AAAA-MM-DD","valor":55,"categoria":"Mercado","descricao":"...","meio":"pix","data":"AAAA-MM-DD"} (de_* só para achar o gasto; valor, categoria, descricao, meio e data são o que muda);
   {"tipo":"evento_editar","evento":"título atual","titulo":"novo título","inicio":"AAAA-MM-DDTHH:MM:00-03:00","fim":"AAAA-MM-DDTHH:MM:00-03:00","local":"..."} (só o que muda; sem "fim", a duração é mantida); {"tipo":"evento_apagar","evento":"título"} (eventos da agenda do Google);
   {"tipo":"memoria_aprovar","memoria":"palavras da memória pendente"} ou {"tipo":"memoria_aprovar","todas":true}; {"tipo":"memoria_recusar","memoria":"..."} (descarta uma memória pendente); {"tipo":"memoria_esquecer","memoria":"palavras do fato"} ("esquece que eu…": apaga uma memória aprovada; use as palavras da lista de memória);
-  {"tipo":"nova_conversa"} ("começa uma conversa nova"); {"tipo":"navegar","destino":"hoje|conversa|tarefas|agenda|financeiro|metas|projetos|memoria|agentes|ajustes|mais"} ("abre o Financeiro", "vai para Metas", "mostra minhas tarefas": abre a tela na hora, sem confirmação; use só quando a pessoa pedir para ir ou abrir uma tela);
+  {"tipo":"nova_conversa"} ("começa uma conversa nova"); {"tipo":"guia"} ("me mostra o guia de novo", "como o GaDu funciona?": abre o guia de primeiro uso na hora, sem confirmação; não grava nada); {"tipo":"navegar","destino":"hoje|conversa|tarefas|agenda|financeiro|metas|projetos|memoria|agentes|ajustes|mais"} ("abre o Financeiro", "vai para Metas", "mostra minhas tarefas": abre a tela na hora, sem confirmação; use só quando a pessoa pedir para ir ou abrir uma tela);
   {"tipo":"projeto_criar","nome":"...","objetivo":"..."};
   {"tipo":"ajuste","opcao":"texto","valor":"100|115|130"} (letra normal, grande, maior), {"tipo":"ajuste","opcao":"maos_livres|respostas_curtas|voz","valor":true|false}, {"tipo":"ajuste","opcao":"tema","valor":"dark|light"}.
   Diga em uma frase o que preparou ("Preparei, é só confirmar"). Não diga que não consegue fazer algo que está nesta lista. No máximo 5 itens; quase sempre a lista fica vazia.`;

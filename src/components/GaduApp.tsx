@@ -30,6 +30,8 @@ import { TIP_IDS, type TipId } from "@/lib/tips";
 import { Assistant } from "./Assistant";
 import { ListenSheet } from "./ListenSheet";
 import { UndoToast } from "./UndoToast";
+import { Onboarding } from "./Onboarding";
+import { withOnboarding, type OnboardingStatus } from "@/lib/onboarding";
 import { parseUndoCommand, showUndo, undoBus } from "@/lib/undo";
 import { ModulePage, ModulesHub, StatusPill } from "./ModulePage";
 import { contextOf } from "@/lib/assistant-context";
@@ -97,6 +99,8 @@ export function GaduApp(props: {
   /** MODELING_3D_ENABLED=1: mostra a entrada "3D" (Beta) em Mais. Desligado por padrão. */
   modeling3dEnabled?: boolean;
   seenTips: string[];
+  /** Pessoa nova: abre o guia de primeiro uso (3 passos) ao entrar. */
+  showOnboarding?: boolean;
   /** Página de conteúdo (guia, como funciona) dentro do mesmo cabeçalho e menu. */
   page?: React.ReactNode;
 }) {
@@ -126,6 +130,8 @@ export function GaduApp(props: {
     applyTheme(t);
   }
   const [seen, setSeen] = useState<Set<string>>(() => new Set(props.seenTips));
+  const [onboarding, setOnboarding] = useState(Boolean(props.showOnboarding));
+  const [name, setName] = useState(props.name);
   const [review, setReview] = useState(false);
   const [target, setTarget] = useState<Target>(null);
   const [messages, setMessages] = useState<Msg[]>(props.initialMessages);
@@ -363,9 +369,10 @@ export function GaduApp(props: {
           } else if (ev.t === "acoes") {
             // "Tudo por voz": ações de qualquer módulo, resolvidas no servidor; a pessoa confirma.
             // "Abre o Financeiro" não grava nada: abre a tela na hora, sem cartão. Gravações sempre viram cartão.
-            const { cards: rest, destino } = splitNavegacao(ev.items as ChatAction[]);
+            const { cards: rest, destino, guia } = splitNavegacao(ev.items as ChatAction[]);
             if (rest.length) addActions(rest, (a) => a.kind);
             if (destino) setTab(destino);
+            if (guia) openGuideRef.current();
           } else if (ev.t === "notice") {
             setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: ev.text }]);
           } else if (ev.t === "done" && ev.memories > 0) {
@@ -579,6 +586,33 @@ export function GaduApp(props: {
     setTimeout(() => void sendRef.current("Começar o dia"), 300);
   }, [props.autoStart]);
 
+  const closeGuideRef = useRef<(s: OnboardingStatus) => void>(() => {});
+  const openGuideRef = useRef<() => void>(() => {});
+  // Primeiro uso guiado (UX-4): a marca "feito" e o nome ficam no perfil (settings.onboarding e display_name), sem migração.
+  async function saveName(n: string): Promise<boolean> {
+    const db = supabaseBrowser();
+    const { data: auth } = await db.auth.getUser();
+    if (!auth.user) return false;
+    const { error } = await db.from("profiles").update({ display_name: n }).eq("id", auth.user.id);
+    if (error) return false;
+    setName(n.split(" ")[0]);
+    return true;
+  }
+  async function closeGuide(status: OnboardingStatus) {
+    setOnboarding(false);
+    speaker?.cancel();
+    const db = supabaseBrowser();
+    const { data: auth } = await db.auth.getUser();
+    if (!auth.user) return;
+    const { data } = await db.from("profiles").select("settings").eq("id", auth.user.id).maybeSingle();
+    // O guia toma o lugar das dicas soltas: quem passou por ele não vê os cartões de dica de cada tela.
+    await db.from("profiles").update({ settings: { ...withOnboarding(data?.settings, status), tips: TIP_IDS } }).eq("id", auth.user.id);
+    setSeen(new Set(TIP_IDS));
+  }
+  closeGuideRef.current = (s) => void closeGuide(s);
+  openGuideRef.current = openGuide;
+  function openGuide() { speaker?.unlock(); setOnboarding(true); }
+
   // Dicas da primeira visita: marcadas no perfil para não repetir em outro aparelho.
   async function saveTips(next: string[]) {
     const db = supabaseBrowser();
@@ -688,14 +722,14 @@ export function GaduApp(props: {
   const tip = view ? TIP_OF[view] : undefined;
   const showAssist = assist && view !== "conversa";
   const stop = () => { if (listening) recRef.current?.stop(); else { abortRef.current?.abort(); speaker?.cancel(); setMode("idle"); } };
-  const initial = (props.name || props.email || "G").trim().charAt(0).toUpperCase();
+  const initial = (name || props.email || "G").trim().charAt(0).toUpperCase();
 
   // Botão Voltar (Android e navegador): fecha primeiro o que estiver aberto por cima (conversas, assistente no celular);
   // sem nada aberto, volta para a tela anterior.
   const isPhone = () => typeof window !== "undefined" && window.innerWidth < 1024;
-  const layers = (confirm ? 1 : 0) + (voiceSheet ? 1 : 0) + (drawer ? 1 : 0) + (showAssist && isPhone() ? 1 : 0);
-  const overlayRef = useRef({ confirm: !!confirm, voice: voiceSheet, drawer, assist: showAssist });
-  overlayRef.current = { confirm: !!confirm, voice: voiceSheet, drawer, assist: showAssist && isPhone() };
+  const layers = (onboarding ? 1 : 0) + (confirm ? 1 : 0) + (voiceSheet ? 1 : 0) + (drawer ? 1 : 0) + (showAssist && isPhone() ? 1 : 0);
+  const overlayRef = useRef({ onboarding, confirm: !!confirm, voice: voiceSheet, drawer, assist: showAssist });
+  overlayRef.current = { onboarding, confirm: !!confirm, voice: voiceSheet, drawer, assist: showAssist && isPhone() };
   // Uma entrada de histórico por camada aberta (src/lib/overlay-history.ts).
   const ohRef = useRef<OverlayHistory | null>(null);
   const confirmCancelRef = useRef(cancelConfirm);
@@ -705,7 +739,9 @@ export function GaduApp(props: {
       history: window.history,
       onBack: () => {
         const o = overlayRef.current;
-        if (o.confirm) confirmCancelRef.current();
+        // Voltar do Android fecha o guia (conta como "pulou"); as outras camadas vêm antes dele na pilha.
+        if (o.onboarding && !o.confirm && !o.voice && !o.drawer) closeGuideRef.current("skipped");
+        else if (o.confirm) confirmCancelRef.current();
         else if (o.voice) { try { recRef.current?.stop(); } catch {} setVoiceSheet(false); setHeard(null); }
         else if (o.drawer) setDrawer(false);
         else if (o.assist) openAssist(false);
@@ -809,7 +845,7 @@ export function GaduApp(props: {
   const navUser = (
     <div className="nav-user">
       <span className="initial" aria-hidden="true">{initial}</span>
-      <button className="who" onClick={() => setTab("ajustes")}><b>{props.name || "Você"}</b><small>{props.email}</small></button>
+      <button className="who" onClick={() => setTab("ajustes")}><b>{name || "Você"}</b><small>{props.email}</small></button>
       <button className="icon-btn" onClick={() => toggleTheme()} aria-label={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"} title={theme === "dark" ? "Tema claro" : "Tema escuro"}><Icon name={theme === "dark" ? "sun" : "moon"} /></button>
     </div>
   );
@@ -891,7 +927,7 @@ export function GaduApp(props: {
               <div className="chat-log" ref={logRef} aria-live="polite">
                 {!messages.some((m) => m.role !== "notice") && (
                   <div className="chat-empty">
-                    <h2>Oi{props.name ? `, ${props.name}` : ""}. Como posso ajudar?</h2>
+                    <h2>Oi{name ? `, ${name}` : ""}. Como posso ajudar?</h2>
                     <p>Escreva ou toque no microfone do campo abaixo. Tudo o que eu aprender sobre você passa pela sua aprovação antes de virar memória.</p>
                     <div className="sug-grid" aria-label="Sugestões">
                       {[...QUICK, "Anota aí: "].map((q) => (
@@ -933,13 +969,13 @@ export function GaduApp(props: {
         )}
 
         {view === "hoje" && (
-          <TodayPage review={review} onReviewDone={() => setReview(false)} onDock={dockTalk} onWrite={() => openAssist(true)} name={props.name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk}
+          <TodayPage review={review} onReviewDone={() => setReview(false)} onDock={dockTalk} onWrite={() => openAssist(true)} name={name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk}
             onOpenMemory={() => setTab("memoria")} onOpenTasks={() => setTab("tarefas")} onOpen={setTab} goalsEnabled={props.goalsEnabled}
             onAsk={(q) => { speaker?.unlock(); openAssist(true); void send(q); }} />
         )}
         {(view === "tarefas" || view === "projetos") && <ProjectsPage key={`pp-${view}`} initialView={view} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
         {view === "agenda" && <AgendaView onBack={() => setTab("hoje")} />}
-        {view === "modulos" && <ModulesHub onOpen={setTab} onHistory={() => setDrawer(true)} pending={pending} admin={props.admin} name={props.name} email={props.email}
+        {view === "modulos" && <ModulesHub onOpen={setTab} onHistory={() => setDrawer(true)} pending={pending} admin={props.admin} name={name} email={props.email}
           hide={[...(props.financeEnabled ? [] : ["financeiro" as const]), ...(props.goalsEnabled ? [] : ["metas" as const])]} show3d={Boolean(props.modeling3dEnabled)} />}
         {view === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
         {view === "financeiro" && props.financeEnabled && <FinanceiroPage onAsk={(q) => { if (q.endsWith(" ")) { setDraft(q); openAssist(true); } else { speaker?.unlock(); openAssist(true); void send(q); } }} />}
@@ -948,9 +984,9 @@ export function GaduApp(props: {
         {view === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
         {view === "admin" && props.admin && <AdminPage />}
         {(view === "ajustes" || view === "perfil" || view === "integracoes") && (
-          <SettingsPage name={props.name} email={props.email} version={props.version} prefs={prefs} setPrefs={setPrefs} voiceOk={voiceOk} speaker={speaker}
+          <SettingsPage name={name} email={props.email} version={props.version} prefs={prefs} setPrefs={setPrefs} voiceOk={voiceOk} speaker={speaker}
             section={view} theme={theme} onTheme={toggleTheme} admin={props.admin} onOpen={setTab}
-            onNew={() => { newConversation(); setTab("conversa"); }} initialBlocked={props.initialBlocked} morningLink={props.morningLink} onResetTips={resetTips} />
+            onNew={() => { newConversation(); setTab("conversa"); }} initialBlocked={props.initialBlocked} morningLink={props.morningLink} onResetTips={resetTips} onGuide={openGuide} />
         )}
       </div>
 
@@ -985,6 +1021,7 @@ export function GaduApp(props: {
       </nav>
 
       <UndoToast />
+      {onboarding && <Onboarding name={name} speaker={speaker} voiceOn={prefs.voice} onSaveName={saveName} onClose={(st) => void closeGuide(st)} />}
       {voiceSheet && (
         <ListenSheet listening={listening} text={draft} pending={heard} handsFree={prefs.handsFree}
           onHandsFree={(on) => setPrefs({ ...prefs, handsFree: on })}
