@@ -3,9 +3,9 @@ export const dynamic = "force-dynamic";
 
 export default function Offline() {
   return (
-    <main className="shell dots" style={{ alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center", gap: 12 }}>
-      <h1 className="brand" style={{ margin: 0 }}>GaDu</h1>
-      <p className="muted" style={{ maxWidth: 320 }}>Você está sem internet. Assim que a conexão voltar, é só abrir de novo.</p>
+    <main className="shell dots page-center tight">
+      <h1 className="brand m0">GaDu</h1>
+      <p className="muted mw-320">Você está sem internet. Assim que a conexão voltar, é só abrir de novo.</p>
       <a className="btn" href="/app">Tentar de novo</a>
     </main>
   );

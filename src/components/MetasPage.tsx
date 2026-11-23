@@ -10,7 +10,7 @@ import {
   type Categoria, type Marco, type Medicao, type MetaView, type Registro, type Status, type TarefaVinculada,
 } from "@/lib/goals/types";
 import { ConfirmCard } from "./ConfirmCard";
-import { EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
+import { BackButton, EmptyState, Field, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
 import { showUndo } from "@/lib/undo";
 import { Icon, todayKey } from "./ui";
 
@@ -142,15 +142,15 @@ function MetaDetalhe(props: { id: string; onBack: () => void; onChanged: () => v
   const patchStatus = (s: Status) => api(`/api/goals/${id}`, { method: "PATCH", body: JSON.stringify({ status: s }) });
   const status = (s: Status, texto: string) => { const antes = d?.meta.goal.status; return run(patchStatus(s), texto, antes ? () => patchStatus(antes as Status) : undefined); };
 
-  if (erro) return <main className="page" id="conteudo"><div className="wrap stack"><button className="btn btn-sm mt-back" onClick={props.onBack}><Icon name="chevron" size={16} />Metas</button><Panel><p className="muted">{erro} <button className="link-btn" onClick={load}>Tentar de novo</button></p></Panel></div></main>;
-  if (!d) return <main className="page" id="conteudo"><div className="wrap stack"><button className="btn btn-sm mt-back" onClick={props.onBack}><Icon name="chevron" size={16} />Metas</button><Panel><p className="muted">Carregando…</p></Panel></div></main>;
+  if (erro) return <main className="page" id="conteudo"><div className="wrap stack"><BackButton onClick={props.onBack}>Metas</BackButton><Panel><p className="muted">{erro} <button className="link-btn" onClick={load}>Tentar de novo</button></p></Panel></div></main>;
+  if (!d) return <main className="page" id="conteudo"><div className="wrap stack"><BackButton onClick={props.onBack}>Metas</BackButton><Panel><p className="muted">Carregando…</p></Panel></div></main>;
 
   const { meta: m } = d, g = m.goal, numerica = g.medicao === "numerica" || g.medicao === "percentual";
   const podeRegistrar = numerica && (g.status === "ativa" || g.status === "pausada");
   return (
     <main className="page" id="conteudo">
       <div className="wrap stack">
-        <button className="btn btn-sm mt-back" onClick={props.onBack}><span aria-hidden="true" style={{ transform: "rotate(180deg)", display: "inline-flex" }}><Icon name="chevron" size={16} /></span>Metas</button>
+        <BackButton onClick={props.onBack}>Metas</BackButton>
         <PageHeader eyebrow={`${catLabel(g)} · ${MEDICAO_LABEL[g.medicao]}`} title={g.titulo} text={g.descricao ?? undefined}
           actions={<span className={`mt-sit ${m.ritmo.situacao}`}>{SITUACAO_LABEL[m.ritmo.situacao]}</span>} />
         {props.toast && <p className={`fin-toast ${props.toast.err ? "err" : ""}`} role="status">{props.toast.text}</p>}
@@ -158,14 +158,14 @@ function MetaDetalhe(props: { id: string; onBack: () => void; onChanged: () => v
         <Panel>
           <Barra m={m} />
           <p className="mt-big">{progressoTexto(m)}{!m.progresso.semDados && g.medicao !== "percentual" ? ` · ${m.progresso.pct}%` : ""}</p>
-          <p className="muted small" style={{ margin: 0 }}>{ritmoTexto(m)}</p>
-          {m.progresso.ultimoRegistro && <p className="muted small" style={{ margin: 0 }}>Último registro em {dataBR(m.progresso.ultimoRegistro)}.</p>}
+          <p className="muted small m0">{ritmoTexto(m)}</p>
+          {m.progresso.ultimoRegistro && <p className="muted small m0">Último registro em {dataBR(m.progresso.ultimoRegistro)}.</p>}
           {m.progresso.semDados && numerica && <p className="fin-warn"><Icon name="spark" size={16} />Sem registros ainda: o GaDu não estima progresso. Registre o que você fez.</p>}
           {m.ritmo.situacao === "batida" && g.status === "ativa" && (
             <div className="fin-warn mt-done"><Icon name="check" size={16} /><span>Você chegou ao alvo. Quer marcar a meta como concluída?</span><button className="btn btn-sm btn-pri" onClick={() => void status("concluida", "Meta concluída.")}>Concluir meta</button></div>
           )}
           {m.ritmo.porSemana !== null && m.ritmo.diasRestantes !== null && m.ritmo.diasRestantes >= 0 && ["no_ritmo", "atrasada", "sem_dados"].includes(m.ritmo.situacao) && !m.progresso.semDados && (
-            <p className="muted small" style={{ margin: 0 }}>Projeção, não medição: para chegar no prazo, precisa de cerca de {fmtNum(m.ritmo.porSemana)}{g.medicao === "numerica" && g.unidade ? ` ${g.unidade}` : g.medicao === "percentual" ? " pontos" : g.medicao === "marcos" ? " marco(s)" : " tarefa(s)"} por semana.</p>
+            <p className="muted small m0">Projeção, não medição: para chegar no prazo, precisa de cerca de {fmtNum(m.ritmo.porSemana)}{g.medicao === "numerica" && g.unidade ? ` ${g.unidade}` : g.medicao === "percentual" ? " pontos" : g.medicao === "marcos" ? " marco(s)" : " tarefa(s)"} por semana.</p>
           )}
         </Panel>
 
@@ -183,7 +183,7 @@ function MetaDetalhe(props: { id: string; onBack: () => void; onChanged: () => v
                       <button className="btn btn-sm btn-quiet" onClick={() => void run(api(`/api/goals/${id}/progresso/${r.id}`, { method: "DELETE" }), "Registro apagado.")} aria-label={`Apagar o registro de ${dataBR(r.data)}`}>Apagar</button>
                     </div>
                   ))}
-                  {d.registros.length > 50 && <p className="muted small" style={{ margin: 0 }}>Mostrando os 50 mais recentes.</p>}
+                  {d.registros.length > 50 && <p className="muted small m0">Mostrando os 50 mais recentes.</p>}
                 </div>
               )}
           </Panel>
@@ -229,11 +229,11 @@ function FormRegistro({ d, run, id }: { d: Detalhe; run: Run; id: string }) {
     <form className="fin-edit" onSubmit={salvar} aria-label="Registrar progresso">
       <div className="two">
         <label className="fld"><span>{rotulo}</span><input className="field" inputMode="decimal" autoComplete="off" value={valor} onChange={(e) => setValor(e.target.value)} required placeholder="0" /></label>
-        <label className="fld"><span>Data</span><input className="field" type="date" value={data} max={todayKey()} onChange={(e) => setData(e.target.value)} required /></label>
+        <Field label="Data"><input className="field" type="date" value={data} max={todayKey()} onChange={(e) => setData(e.target.value)} required /></Field>
       </div>
       <label className="fld"><span>Nota <em className="opt">(opcional)</em></span><input className="field" value={nota} maxLength={200} onChange={(e) => setNota(e.target.value)} /></label>
       <div className="form-actions"><button className="btn btn-pri" type="submit" disabled={busy}>{busy ? "Salvando…" : "Registrar"}</button></div>
-      <p className="muted small" style={{ margin: 0 }}>{g.agregacao === "soma" && g.medicao === "numerica" ? "O valor é somado aos registros anteriores." : "Vale a medida mais recente."} Também dá para falar: “registra 2 na meta de {g.titulo.slice(0, 30)}”.</p>
+      <p className="muted small m0">{g.agregacao === "soma" && g.medicao === "numerica" ? "O valor é somado aos registros anteriores." : "Vale a medida mais recente."} Também dá para falar: “registra 2 na meta de {g.titulo.slice(0, 30)}”.</p>
     </form>
   );
 }
@@ -265,7 +265,7 @@ function PanelTarefas({ d, run, id, onOpenTasks }: { d: Detalhe; run: Run; id: s
   const porTarefas = d.meta.goal.medicao === "tarefas";
   return (
     <Panel title="Tarefas vinculadas" icon="folder" action={<button className="btn btn-sm" onClick={onOpenTasks}>Abrir Tarefas</button>}>
-      {porTarefas && <p className="muted small" style={{ margin: 0 }}>O progresso desta meta é o total de tarefas concluídas entre as vinculadas.</p>}
+      {porTarefas && <p className="muted small m0">O progresso desta meta é o total de tarefas concluídas entre as vinculadas.</p>}
       {d.tarefas.length === 0 ? <EmptyState icon="check" title="Nenhuma tarefa vinculada" text={porTarefas ? "Vincule tarefas para que a meta tenha progresso." : "Vincule tarefas do dia a dia a esta meta."} />
         : (
           <div className="rows">
@@ -320,12 +320,12 @@ function MetaForm({ goal, onClose, onSaved, say }: { goal?: MetaView["goal"]; on
   }
   return (
     <form className="fin-edit" onSubmit={salvar} aria-label={edit ? "Editar meta" : "Nova meta"}>
-      <label className="fld"><span>Meta</span><input className="field" value={titulo} maxLength={120} onChange={(e) => setTitulo(e.target.value)} required placeholder="Ex.: Ler 12 livros" /></label>
+      <Field label="Meta"><input className="field" value={titulo} maxLength={120} onChange={(e) => setTitulo(e.target.value)} required placeholder="Ex.: Ler 12 livros" /></Field>
       <label className="fld"><span>Por que importa <em className="opt">(opcional)</em></span><textarea className="field" rows={2} value={descricao} maxLength={600} onChange={(e) => setDescricao(e.target.value)} /></label>
       <label className="fld"><span>Categoria</span>
         <select className="field" value={categoria} onChange={(e) => setCategoria(e.target.value as Categoria)}>{CATEGORIAS.map((c) => <option key={c} value={c}>{CATEGORIA_LABEL[c]}</option>)}</select>
       </label>
-      {categoria === "personalizada" && <label className="fld"><span>Nome da categoria</span><input className="field" value={catNome} maxLength={40} onChange={(e) => setCatNome(e.target.value)} required /></label>}
+      {categoria === "personalizada" && <Field label="Nome da categoria"><input className="field" value={catNome} maxLength={40} onChange={(e) => setCatNome(e.target.value)} required /></Field>}
       {!edit && (
         <label className="fld"><span>Como medir</span>
           <select className="field" value={medicao} onChange={(e) => setMedicao(e.target.value as Medicao)}>{MEDICOES.map((k) => <option key={k} value={k}>{MEDICAO_LABEL[k]}</option>)}</select>
@@ -334,17 +334,17 @@ function MetaForm({ goal, onClose, onSaved, say }: { goal?: MetaView["goal"]; on
       {medicao === "numerica" && (
         <>
           <div className="two">
-            <label className="fld"><span>Alvo</span><input className="field" inputMode="decimal" autoComplete="off" value={alvo} onChange={(e) => setAlvo(e.target.value)} required placeholder="12" /></label>
+            <Field label="Alvo"><input className="field" inputMode="decimal" autoComplete="off" value={alvo} onChange={(e) => setAlvo(e.target.value)} required placeholder="12" /></Field>
             <label className="fld"><span>Unidade <em className="opt">(opcional)</em></span><input className="field" value={unidade} maxLength={20} onChange={(e) => setUnidade(e.target.value)} placeholder="livros, km, R$" /></label>
           </div>
           {!edit && (
             <>
-              <label className="fld"><span>Valor de partida</span><input className="field" inputMode="decimal" autoComplete="off" value={inicial} onChange={(e) => setInicial(e.target.value)} placeholder="0" /></label>
+              <Field label="Valor de partida"><input className="field" inputMode="decimal" autoComplete="off" value={inicial} onChange={(e) => setInicial(e.target.value)} placeholder="0" /></Field>
               <div className="seg" role="group" aria-label="Como os registros contam">
                 <button type="button" aria-selected={agregacao === "soma"} onClick={() => setAgregacao("soma")}>Somar registros</button>
                 <button type="button" aria-selected={agregacao === "ultimo"} onClick={() => setAgregacao("ultimo")}>Última medida</button>
               </div>
-              <p className="muted small" style={{ margin: 0 }}>{agregacao === "soma" ? "Ex.: ler 12 livros, correr 100 km: cada registro é um pouco a mais." : "Ex.: chegar a 75 kg: vale sempre a medida mais recente."}</p>
+              <p className="muted small m0">{agregacao === "soma" ? "Ex.: ler 12 livros, correr 100 km: cada registro é um pouco a mais." : "Ex.: chegar a 75 kg: vale sempre a medida mais recente."}</p>
             </>
           )}
         </>

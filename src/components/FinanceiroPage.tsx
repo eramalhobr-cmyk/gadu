@@ -8,7 +8,7 @@ import type { PrevisaoRecebimento } from "@/lib/finance/previsao";
 import type { ResumoMensal } from "@/lib/finance/summary";
 import { CATEGORIAS, GRUPOS, MEIOS, MEIO_LABEL, MESES, type Config, type Gasto, type Meio } from "@/lib/finance/types";
 import { ConfirmCard } from "./ConfirmCard";
-import { EmptyState, ModuleScreen, Panel, PrimaryAction } from "./kit";
+import { EmptyState, Field, ModuleScreen, Panel, PrimaryAction } from "./kit";
 import { showUndo } from "@/lib/undo";
 import { Icon, todayKey } from "./ui";
 
@@ -64,7 +64,7 @@ export function FinanceiroPage() {
       action={<PrimaryAction onClick={lancarGasto}>Lançar gasto</PrimaryAction>}>
 
         <nav className="fin-month" aria-label="Mês">
-          <button className="icon-btn" onClick={() => go(-1)} aria-label="Mês anterior"><span aria-hidden="true" style={{ transform: "rotate(180deg)", display: "inline-flex" }}><Icon name="chevron" /></span></button>
+          <button className="icon-btn" onClick={() => go(-1)} aria-label="Mês anterior"><span aria-hidden="true" className="flip-x"><Icon name="chevron" /></span></button>
           <b aria-live="polite">{MESES[mes - 1]} de {ano}</b>
           <button className="icon-btn" onClick={() => go(1)} aria-label="Próximo mês"><Icon name="chevron" /></button>
         </nav>
@@ -238,9 +238,9 @@ function ItemForm({ itens, ano, mes, run, onClose }: { itens: ItemComMes[]; ano:
         <button type="button" aria-selected={tipo === "despesa"} onClick={() => setTipo("despesa")}>Conta (sai)</button>
         <button type="button" aria-selected={tipo === "receita"} onClick={() => setTipo("receita")}>Receita (entra)</button>
       </div>
-      <label className="fld"><span>Nome</span><input className="field" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} required placeholder={tipo === "receita" ? "Ex.: Salário" : "Ex.: Aluguel"} /></label>
+      <Field label="Nome"><input className="field" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} required placeholder={tipo === "receita" ? "Ex.: Salário" : "Ex.: Aluguel"} /></Field>
       <div className="two">
-        <label className="fld"><span>Valor do mês (R$)</span><input id="fin-valor" className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} required placeholder="0,00" /></label>
+        <Field label="Valor do mês (R$)"><input id="fin-valor" className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} required placeholder="0,00" /></Field>
         <label className="fld"><span>Dia <em className="opt">(opcional)</em></span><input className="field" inputMode="numeric" value={dia} onChange={(e) => setDia(e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="1 a 31" /></label>
       </div>
       <label className="fld"><span>Grupo <em className="opt">(opcional)</em></span><input className="field" list="fin-grupos" value={grupo} maxLength={40} onChange={(e) => setGrupo(e.target.value)} placeholder={tipo === "receita" ? "Receitas" : "Ex.: Moradia"} /></label>
@@ -281,13 +281,13 @@ function ItemEditor({ item, itens, ano, mes, run, onClose }: { item: ItemComMes;
     <form className="fin-edit" onSubmit={save} aria-label={`Editar ${item.nome}`}>
       <div className="two">
         <label className="fld"><span>Valor de {MESES[mes - 1]} (R$)</span><input id="fin-valor" className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" /></label>
-        <label className="fld"><span>Dia</span><input className="field" inputMode="numeric" value={dia} onChange={(e) => setDia(e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="1 a 31" /></label>
+        <Field label="Dia"><input className="field" inputMode="numeric" value={dia} onChange={(e) => setDia(e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="1 a 31" /></Field>
       </div>
       <label className="fin-chk"><input type="checkbox" checked={proximos} onChange={(e) => setProximos(e.target.checked)} />Valer também para os próximos meses (até dezembro)</label>
       <label className="fin-chk"><input type="checkbox" checked={estimado} onChange={(e) => setEstimado(e.target.checked)} />Dia estimado</label>
       {item.tipo === "despesa" && item.mes && <label className="fin-chk"><input type="checkbox" checked={reserva} onChange={(e) => setReserva(e.target.checked)} />Paga com a reserva neste mês</label>}
-      <label className="fld"><span>Nome</span><input className="field" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} required /></label>
-      <label className="fld"><span>Grupo</span><input className="field" list="fin-grupos" value={grupo} maxLength={40} onChange={(e) => setGrupo(e.target.value)} required /></label>
+      <Field label="Nome"><input className="field" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} required /></Field>
+      <Field label="Grupo"><input className="field" list="fin-grupos" value={grupo} maxLength={40} onChange={(e) => setGrupo(e.target.value)} required /></Field>
       {item.tipo === "despesa" && (
         <label className="fld"><span>Dentro da fatura de</span>
           <select className="field" value={cartao} onChange={(e) => setCartao(e.target.value)}><option value="">Nenhum</option>{cartoes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select>
@@ -320,10 +320,10 @@ function ConfigPanel({ data, run }: { data: Payload; run: Run }) {
         <label className="fld"><span>Receita principal (salário)</span>
           <select className="field" value={receita} onChange={(e) => setReceita(e.target.value)}><option value="">Nenhuma</option>{receitas.map((i) => <option key={i.id} value={i.id}>{i.nome}</option>)}</select>
         </label>
-        <div className="two" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--s-3)" }}>
-          <label className="fld"><span>% no adiantamento</span><input className="field" inputMode="decimal" value={adi} onChange={(e) => setAdi(e.target.value)} /></label>
-          <label className="fld"><span>Dia do adiantamento</span><input className="field" inputMode="numeric" value={diaAdi} onChange={(e) => setDiaAdi(e.target.value.replace(/\D/g, "").slice(0, 2))} /></label>
-          <label className="fld"><span>Dia do restante</span><input className="field" inputMode="numeric" value={diaRest} onChange={(e) => setDiaRest(e.target.value.replace(/\D/g, "").slice(0, 2))} /></label>
+        <div className="grid-3">
+          <Field label="% no adiantamento"><input className="field" inputMode="decimal" value={adi} onChange={(e) => setAdi(e.target.value)} /></Field>
+          <Field label="Dia do adiantamento"><input className="field" inputMode="numeric" value={diaAdi} onChange={(e) => setDiaAdi(e.target.value.replace(/\D/g, "").slice(0, 2))} /></Field>
+          <Field label="Dia do restante"><input className="field" inputMode="numeric" value={diaRest} onChange={(e) => setDiaRest(e.target.value.replace(/\D/g, "").slice(0, 2))} /></Field>
         </div>
         <label className="fld"><span>Cartão principal (fatura)</span>
           <select className="field" value={cartao} onChange={(e) => setCartao(e.target.value)}><option value="">Nenhum</option>{despesas.map((i) => <option key={i.id} value={i.id}>{i.nome}</option>)}</select>
@@ -365,8 +365,8 @@ function DiaADia({ data, ano, mes, isAtual, run }: { data: Payload; ano: number;
       <Panel title="Lançar gasto" icon="plus">
         <form className="fin-edit" onSubmit={lancar} aria-label="Lançar gasto">
           <div className="two">
-            <label className="fld"><span>Valor (R$)</span><input id="fin-valor" className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" required /></label>
-            <label className="fld"><span>Dia</span><input className="field" inputMode="numeric" value={dia} onChange={(e) => setDia(e.target.value.replace(/\D/g, "").slice(0, 2))} required /></label>
+            <Field label="Valor (R$)"><input id="fin-valor" className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" required /></Field>
+            <Field label="Dia"><input className="field" inputMode="numeric" value={dia} onChange={(e) => setDia(e.target.value.replace(/\D/g, "").slice(0, 2))} required /></Field>
           </div>
           <div className="chips" role="group" aria-label="Categoria">{CATEGORIAS.map((c) => <button type="button" key={c} className="chip" aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>)}</div>
           <div className="seg" role="group" aria-label="Meio de pagamento">{MEIOS.map((m) => <button type="button" key={m} aria-selected={meio === m} onClick={() => setMeio(m)}>{MEIO_LABEL[m]}</button>)}</div>
@@ -409,13 +409,13 @@ function GastoEditor({ g, run, onClose }: { g: Gasto; run: Run; onClose: () => v
   return (
     <form className="fin-edit" aria-label="Editar gasto" onSubmit={async (e) => { e.preventDefault(); if (await run(api(`/api/finance/gastos/${g.id}`, { method: "PATCH", body: JSON.stringify({ valor: valor.trim(), dia: Number(dia), categoria: cat, meio, descricao: desc }) }), "Gasto atualizado.")) onClose(); }}>
       <div className="two">
-        <label className="fld"><span>Valor (R$)</span><input id="fin-valor" className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} required /></label>
-        <label className="fld"><span>Dia</span><input className="field" inputMode="numeric" value={dia} onChange={(e) => setDia(e.target.value.replace(/\D/g, "").slice(0, 2))} required /></label>
+        <Field label="Valor (R$)"><input id="fin-valor" className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} required /></Field>
+        <Field label="Dia"><input className="field" inputMode="numeric" value={dia} onChange={(e) => setDia(e.target.value.replace(/\D/g, "").slice(0, 2))} required /></Field>
       </div>
-      <label className="fld"><span>Categoria</span><input className="field" list="fin-cats" value={cat} maxLength={40} onChange={(e) => setCat(e.target.value)} required /></label>
+      <Field label="Categoria"><input className="field" list="fin-cats" value={cat} maxLength={40} onChange={(e) => setCat(e.target.value)} required /></Field>
       <datalist id="fin-cats">{CATEGORIAS.map((c) => <option key={c} value={c} />)}</datalist>
       <div className="seg" role="group" aria-label="Meio de pagamento">{MEIOS.map((m) => <button type="button" key={m} aria-selected={meio === m} onClick={() => setMeio(m)}>{MEIO_LABEL[m]}</button>)}</div>
-      <label className="fld"><span>Descrição</span><input className="field" value={desc} maxLength={200} onChange={(e) => setDesc(e.target.value)} /></label>
+      <Field label="Descrição"><input className="field" value={desc} maxLength={200} onChange={(e) => setDesc(e.target.value)} /></Field>
       <div className="form-actions">
         <button className="btn btn-pri" type="submit">Salvar</button>
         <button className="btn" type="button" onClick={onClose}>Cancelar</button>

@@ -94,3 +94,18 @@ export function ModuleScreen(props: { title: string; text?: ReactNode; eyebrow?:
     </main>
   );
 }
+
+/** Botão Voltar de telas de detalhe (Projeto, Meta, Agenda): um desenho só. */
+export function BackButton(props: { onClick: () => void; children: ReactNode }) {
+  return <button type="button" className="back" onClick={props.onClick}><Icon name="chevron" size={16} />{props.children}</button>;
+}
+
+/** Campo de formulário: rótulo em cima, controle embaixo. `hint` vira "(opcional)" ao lado do rótulo. */
+export function Field(props: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <label className="fld">
+      <span>{props.label}{props.hint && <> <em className="opt">({props.hint})</em></>}</span>
+      {props.children}
+    </label>
+  );
+}

@@ -145,7 +145,7 @@ export function AttentionCard(props: {
                   <div className="attn-acts"><button className="btn btn-sm" onClick={() => props.onOpen("memoria")}>Revisar</button></div>
                 </div>
               )}
-              {(data.more ?? 0) > 0 && <p className="muted" style={{ margin: 0 }}>e mais {data.more} {data.more === 1 ? "item" : "itens"}. Pergunte ao GaDu para ver tudo.</p>}
+              {(data.more ?? 0) > 0 && <p className="muted m0">e mais {data.more} {data.more === 1 ? "item" : "itens"}. Pergunte ao GaDu para ver tudo.</p>}
             </div>
           )}
         {!failed && unavailable.length > 0 && (

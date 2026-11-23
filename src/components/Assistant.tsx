@@ -133,8 +133,8 @@ export function Assistant(props: {
           : m.role === "notice" ? (
             <div key={m.id} className="notice" role="status">
               {m.content}
-              {m.retry && shown[shown.length - 1]?.id === m.id && <div style={{ marginTop: 8 }}><button className="btn btn-sm btn-pri" disabled={props.busy} onClick={() => props.onSend(m.retry!)}>{RETRY_LABEL}</button></div>}
-              {m.link && <div style={{ marginTop: 8 }}><a className="btn btn-sm" href={m.link.href} target="_blank" rel="noopener noreferrer">{m.link.label}</a></div>}
+              {m.retry && shown[shown.length - 1]?.id === m.id && <div className="mt-2"><button className="btn btn-sm btn-pri" disabled={props.busy} onClick={() => props.onSend(m.retry!)}>{RETRY_LABEL}</button></div>}
+              {m.link && <div className="mt-2"><a className="btn btn-sm" href={m.link.href} target="_blank" rel="noopener noreferrer">{m.link.label}</a></div>}
             </div>
           ) : <div key={m.id} className="bub b"><span className="via" title={m.via ? `Modelo: ${m.via}` : undefined}>GaDu</span>{m.content ? stripSourceTags(m.content) : "…"}{m.sources && <SourcesDetail data={m.sources} onOpen={props.onOpenView} />}</div>,
         )}

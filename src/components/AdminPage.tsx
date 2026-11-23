@@ -152,7 +152,7 @@ function InviteForm({ onDone }: { onDone: () => void }) {
     return (
       <Panel title="Convite criado" icon="check" className="form-panel">
         <p>Envie para {name}. O link vale 7 dias e funciona uma vez.</p>
-        <div className="quote" style={{ wordBreak: "break-all" }}>{link}</div>
+        <div className="quote break-all">{link}</div>
         <div className="form-actions">
           <a className="btn btn-pri" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">Enviar pelo WhatsApp</a>
           <button className="btn" onClick={async () => { try { await navigator.clipboard.writeText(text); setCopied(true); } catch { setCopied(false); } }}>{copied ? "Copiado" : "Copiar mensagem"}</button>

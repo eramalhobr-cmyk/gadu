@@ -206,7 +206,7 @@ export function TodayPage(props: {
                     <div className="row-i" key={r.id}>
                       <div className="grow">
                         <span className="t">{r.text}</span>
-                        <span className="s" style={{ color: r.status === "sent" ? "var(--hot)" : undefined }}>{r.status === "sent" ? `avisado · ${dueLabel(r.due_at, now)}` : dueLabel(r.due_at, now)}</span>
+                        <span className={`s ${r.status === "sent" ? "c-hot" : ""}`}>{r.status === "sent" ? `avisado · ${dueLabel(r.due_at, now)}` : dueLabel(r.due_at, now)}</span>
                       </div>
                       <button className="btn btn-sm" onClick={() => setStatus(r.id, "done")} aria-label={`Concluir ${r.text}`}>Feito</button>
                       {r.status === "pending" && <button className="btn btn-sm btn-ghost" onClick={() => setStatus(r.id, "cancelled")} aria-label={`Cancelar ${r.text}`}>Cancelar</button>}
@@ -218,7 +218,7 @@ export function TodayPage(props: {
                 <form onSubmit={addReminder} className="rem-form">
                   <label className="sr" htmlFor="rem-text">Novo lembrete</label>
                   <input id="rem-text" className="field" placeholder="Lembrar de…" value={text} maxLength={300} onChange={(e) => setText(e.target.value)} autoFocus />
-                  <div className="row" style={{ flexWrap: "nowrap" }}>
+                  <div className="row nowrap">
                     <label className="sr" htmlFor="rem-when">Quando</label>
                     <input id="rem-when" className="field" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
                     <button className="btn" type="submit" disabled={!text.trim() || !when}>Criar</button>
@@ -279,7 +279,7 @@ function ReviewCard({ onDone }: { onDone: () => void }) {
     <section className="card review">
       <h2>Revisão do dia</h2>
       {items === null ? <p className="muted">Carregando…</p> : items.length === 0 ? (
-        <p style={{ margin: 0 }}>Tudo em dia. Bom descanso!</p>
+        <p className="m0">Tudo em dia. Bom descanso!</p>
       ) : (
         <>
           {items.map((t) => (

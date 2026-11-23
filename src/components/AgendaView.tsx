@@ -1,7 +1,7 @@
 "use client";
 import { MSG, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { EmptyState, PageHeader, Panel } from "./kit";
+import { BackButton, EmptyState, PageHeader, Panel } from "./kit";
 import { COLORS, colorVar, Icon } from "./ui";
 
 type Ev = { id?: string; title: string; start: string; end: string; allDay: boolean; where?: string; meet: boolean };
@@ -74,7 +74,7 @@ export function AgendaView({ onBack }: { onBack: () => void }) {
 
   return (
     <main className="page" id="conteudo"><div className="wrap agenda-v">
-      <button className="back" onClick={onBack}><Icon name="chevron" size={16} />Hoje</button>
+      <BackButton onClick={onBack}>Hoje</BackButton>
       <PageHeader title="Agenda" text={connected ? `${month} · sua semana no Google Agenda.` : "Sua semana do Google Agenda, dentro do GaDu."}
         actions={connected && <>
           {week !== monday(today) && <button className="btn" onClick={() => setSel(today)}>Esta semana</button>}
