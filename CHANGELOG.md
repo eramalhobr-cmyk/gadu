@@ -7,6 +7,11 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · Revisão cruzada: limite de custo na busca por significado (PR fix/revisao-antigos-busca) · desenvolvido e testado
+- **Feito por:** Cursor (Grok Bot), na revisão do PR #22 (Claude Code).
+- `/api/search` chamava os embeddings pagos do AI Gateway a cada busca, sem cota nem limite. Agora conta por pessoa (hash do id) na tabela de janelas do limite de tentativas: até 60 buscas por 10 minutos; acima disso, ou sem o contador, **não chama a IA** (fail closed) e a tela de Memória segue com a busca por texto. Sem migração.
+- **Testes:** `test/search-limit.integration.test.ts` (3 casos); typecheck; 294 unitários e 191 de integração, 0 falhas.
+
 ## 2026-11-23 · Financeiro: simulador de salário bruto → líquido · **publicado** (Claude Code) (PR #63, branch `feat/financas-simulador`)
 - **Novo:** `src/lib/finance/salario.ts`, cálculo puro em centavos (INSS progressivo faixa a faixa com teto de R$ 8.475,55; IRRF com dedução por dependente e desconto simplificado de R$ 607,20 quando mais vantajoso; redução da Lei 15.270/2025; imposto de até R$ 10 não retido). Tabelas de 2026 conferidas nas fontes oficiais (INSS: Portaria Interministerial MPS/MF nº 13, de 09/01/2026; Receita Federal: tabela mensal 2026; Planalto: Lei 15.270/2025), citadas no código e em `docs/FEATURE-FINANCAS.md`. Aba "Salário" no Financeiro (`SalarioSimulador.tsx`) com passo a passo, fontes e "Salvar como salário do mês" (com Desfazer).
 - **Por voz (regra 8.1):** ação `salario_simular` no bloco "acoes". "Quanto fica líquido um salário de 8 mil?": o servidor reconhece o pedido (`pedidoSalario`), calcula, põe o resultado no contexto do modelo ("use só estes números") e manda o cartão; o valor e os dependentes do cartão são os ditos pela pessoa, não os repetidos pelo modelo. Com `salvar`, o cartão pede confirmação e grava o líquido na receita principal do mês (sem receita principal, só mostra o cálculo e avisa). Sem migração.

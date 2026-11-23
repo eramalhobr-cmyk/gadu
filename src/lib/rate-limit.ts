@@ -55,3 +55,17 @@ export async function limitAttempts(request: Request, bucket: Bucket, key: strin
     return null;
   }
 }
+
+// Revisão de 23/11 (PR #22): a busca por significado chama embeddings pagos a cada pesquisa. Limite por pessoa
+// (hash do id) na mesma tabela de janelas. Aqui é FAIL CLOSED: sem contador ou acima do limite, a rota não chama a
+// IA e a tela segue só com a busca por texto (que não custa nada).
+export const SEARCH_LIMIT = 60;
+
+export async function allowPaidSearch(userId: string): Promise<boolean> {
+  try {
+    const r = await hit(supabaseAdmin(), "search_user", keyHash("user", userId), SEARCH_LIMIT);
+    return r?.allowed === true;
+  } catch {
+    return false;
+  }
+}
