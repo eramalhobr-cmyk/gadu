@@ -49,6 +49,7 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **Feito por:** Claude Code (migração e testes, PR #74) e Cursor (Grok Bot: mudança pedida pelo Eduardo, conferência e aplicação em produção).
 - Mudança do Eduardo: quem está bloqueado **pode apagar** os próprios dados; só insert e update exigem `public.can_write()`. 20 tabelas (inclui `pecas_3d` e `pecas_3d_versoes`), 40 políticas restritivas + 2 de `reminders` (conversa própria). Migração renomeada para `20261123150001` (depois de `pecas_3d`). Teste `supabase/tests/85_s05_escrita_por_acesso.test.sql`.
 - **Antes de aplicar:** produção sem políticas restritivas nem nomes em conflito; gatilhos só de `updated_at` e de vínculo; 0 lembretes com conversa de outra pessoa; ensaio numa transação desfeita (usuário de teste ativo grava, bloqueado recebe 42501; nada ficou).
+- **Aplicada em produção às 11:31 (Brasília)**; conferido depois: 42 políticas restritivas, nenhuma de delete, contas ativas gravam normalmente.
 
 ## 2026-11-23 · S-05 (resto): RLS de escrita por acesso (Claude Code) · rascunho (histórico)
 - Migração `20261123150001_s05_escrita_por_acesso.sql`: `public.can_write()` e políticas **restritivas** de insert, update e delete em 18 tabelas (pessoa bloqueada não grava e ainda lê), mais `reminders.conversation_id` só da própria pessoa. Rollback no cabeçalho, executado no teste.

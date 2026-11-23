@@ -66,6 +66,7 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - O Eduardo aprovou o PR #74 às 11:17 com uma mudança: bloqueado **pode apagar** os próprios dados. Removidas as políticas `*_ativo_delete`; teste `85_s05_escrita_por_acesso` (renomeado do 80, que já era da telemetria) ajustado: bloqueado não insere nem altera (0 de 40), apaga em 19 de 20 tabelas (profiles não tem delete por desenho), não apaga de outra pessoa.
 - Incluídas `pecas_3d` e `pecas_3d_versoes`. Migração renomeada para `20261123150001` (precisa vir depois de `pecas_3d`).
 - Conferência em produção antes de aplicar: 0 políticas restritivas, 0 nomes em conflito, `private.is_blocked` igual ao do teste, gatilhos só de `updated_at`/vínculo, 0 lembretes com conversa alheia, 2 pessoas ativas; ensaio em transação desfeita (ativa grava, bloqueada 42501, nada sobrou).
+- **Aplicada em produção às 11:31** (versão `20261123143149` no Supabase). Depois: 42 políticas restritivas, 0 de delete; as duas contas ativas (admin e membro) inserem, alteram e apagam normalmente (verificado numa transação desfeita, nada ficou).
 - **Rollback** no cabeçalho da migração (só derruba políticas e a função; nenhum dado muda).
 
 ### 23/11/2026 11:05 · Cursor (Grok Bot), 3D: salvar peças e versões (pedido do Eduardo às 10:54)
