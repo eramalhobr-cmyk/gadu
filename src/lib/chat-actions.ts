@@ -28,6 +28,8 @@ export type ChatAction =
   | { kind: "meta_editar"; goalId: string; titulo: string; unidade: string | null; mudancas: { titulo?: string; alvo?: number; prazo?: string } }
   | { kind: "projeto_editar"; id: number; nome: string; mudancas: { nome?: string; objetivo?: string } }
   | { kind: "projeto_arquivar"; id: number; nome: string }
+  | { kind: "agente_novo"; nome: string; area: string; instrucoes: string }
+  | { kind: "agente_editar"; id: number; nome: string; mudancas: AgenteMudancas }
   | { kind: "marco"; goalId: string; meta: string; titulo: string; data: string | null }
   | { kind: "marco_ok"; goalId: string; marcoId: string; meta: string; titulo: string }
   | { kind: "meta_tarefa"; goalId: string; meta: string; titulo: string; prazo: string | null }
@@ -62,7 +64,25 @@ export type ChatAction =
   | { kind: "projeto"; nome: string; objetivo: string | null }
   | { kind: "ajuste"; ajuste: Ajuste };
 
+/** Texto curto para o cartão e para a fala: uma linha, sem quebras. */
+function resumo(t: string, max = 140): string {
+  const s = t.replace(/\s+/g, " ").trim();
+  return s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s;
+}
+function agenteMudancasLista(m: AgenteMudancas, max: number): string[] {
+  const l: string[] = [];
+  if (m.nome) l.push(`o nome para ${m.nome}`);
+  if (m.area) l.push(`a área para ${m.area}`);
+  if (m.instrucoes !== undefined) l.push(m.instrucoes ? `as instruções para: ${resumo(m.instrucoes, max)}` : "as instruções para vazio");
+  if (m.ativo !== undefined) l.push(m.ativo ? "o agente para ativo" : "o agente para desativado");
+  return l;
+}
+export function agenteMudancasTexto(m: AgenteMudancas): string {
+  return agenteMudancasLista(m, 140).map((x) => x.replace(/^(o nome|a área|as instruções|o agente) para /, (s) => ({ "o nome para ": "novo nome: ", "a área para ": "área: ", "as instruções para ": "instruções: ", "o agente para ": "" } as Record<string, string>)[s] ?? s)).join(" · ");
+}
 /** Só os campos que mudam; `projetoId` vem do servidor (projeto da própria pessoa). */
+/** Só os campos que mudam. `instrucoes` substitui o texto anterior (vazio = sem instruções). */
+export type AgenteMudancas = { nome?: string; area?: string; instrucoes?: string; ativo?: boolean };
 export type TarefaMudancas = { titulo?: string; prioridade?: 1 | 2 | 3; prazo?: string; projetoId?: number; projeto?: string };
 const PRIO = { 1: "alta", 2: "normal", 3: "baixa" } as const;
 export function mudancasTexto(m: TarefaMudancas): string {
@@ -97,7 +117,7 @@ export type ActionView = {
   applied: boolean;
   /** Cartão só de informação (resultado de um cálculo): sem Confirmar, sem Descartar e sem Desfazer; não entra na confirmação falada. */
   info?: boolean;
-  open?: { label: string; view: "financeiro" | "metas" | "agenda" | "hoje" | "tarefas" | "projetos" | "ajustes" | "memoria" };
+  open?: { label: string; view: "financeiro" | "metas" | "agenda" | "hoje" | "tarefas" | "projetos" | "ajustes" | "memoria" | "agentes" };
 };
 
 const TZ = "America/Sao_Paulo";
@@ -176,6 +196,10 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
       return { icon: "folder", proposed: "Mudar projeto?", done: "Projeto mudado", undone: "Descartado", title: a.nome, detail: [a.mudancas.nome && `novo nome: ${a.mudancas.nome}`, a.mudancas.objetivo !== undefined && (a.mudancas.objetivo ? `objetivo: ${a.mudancas.objetivo}` : "sem objetivo")].filter(Boolean).join(" · "), confirm: "Mudar projeto", busy: "Salvando…", applied: false, open: { label: "Ver Projetos", view: "projetos" } };
     case "projeto_arquivar":
       return { icon: "folder", proposed: "Arquivar projeto?", done: "Projeto arquivado", undone: "Descartado", title: a.nome, detail: "Fica como concluído; some dos ativos (dá para reabrir em Projetos)", confirm: "Arquivar", busy: "Salvando…", applied: false, open: { label: "Ver Projetos", view: "projetos" } };
+    case "agente_novo":
+      return { icon: "agents", proposed: "Agente novo para confirmar", done: "Agente criado", undone: "Descartado", title: a.nome, detail: `Área: ${a.area} · ${a.instrucoes ? `instruções: ${resumo(a.instrucoes)}` : "sem instruções por enquanto"}`, confirm: "Criar agente", busy: "Criando…", applied: false, open: { label: "Ver Agentes", view: "agentes" } };
+    case "agente_editar":
+      return { icon: "agents", proposed: "Mudar agente?", done: "Agente mudado", undone: "Descartado", title: a.nome, detail: agenteMudancasTexto(a.mudancas), confirm: "Mudar agente", busy: "Salvando…", applied: false, open: { label: "Ver Agentes", view: "agentes" } };
     case "marco":
       return { icon: "target", proposed: "Marco para confirmar", done: "Marco adicionado", undone: "Descartado", title: a.titulo, detail: `Meta: ${a.meta}${a.data ? ` · até ${dm(a.data)}` : ""}`, confirm: "Adicionar", busy: "Salvando…", applied: false, open: { label: "Ver em Metas", view: "metas" } };
     case "marco_ok":
@@ -307,6 +331,8 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     }
     case "projeto_editar": return `No projeto ${a.nome}, mudo ${[a.mudancas.nome && `o nome para ${a.mudancas.nome}`, a.mudancas.objetivo !== undefined && (a.mudancas.objetivo ? `o objetivo para ${a.mudancas.objetivo}` : "o objetivo para vazio")].filter(Boolean).join(", ")}?`;
     case "projeto_arquivar": return `Arquivo o projeto ${a.nome}? Ele fica como concluído.`;
+    case "agente_novo": return `Crio o agente ${a.nome}, da área ${a.area}${a.instrucoes ? `, com estas instruções: ${resumo(a.instrucoes, 160)}` : ""}?`;
+    case "agente_editar": return `No agente ${a.nome}, mudo ${agenteMudancasLista(a.mudancas, 160).join(", ")}?`;
     case "marco": return `Adiciono o marco ${a.titulo} na meta ${a.meta}?`;
     case "marco_ok": return `Marco o marco ${a.titulo}, da meta ${a.meta}, como concluído?`;
     case "meta_tarefa": return `Crio a tarefa ${a.titulo} na meta ${a.meta}?`;

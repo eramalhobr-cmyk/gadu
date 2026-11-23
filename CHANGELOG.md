@@ -11,6 +11,11 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **Feito por:** Cursor (Grok Bot). Migração aditiva `20261123160001_fin_tetos` (PR #81) e código (`feat/fin-tetos-app`): aba "Tetos e ano" no Financeiro, aviso na tela Hoje a partir de 80%, `GET/PUT/DELETE /api/finance/tetos`, `GET /api/finance/ano`, voz `teto_definir` com confirmação e Desfazer, perguntas "quanto gastei … este ano" respondidas com fatos somados no servidor.
 - **Evidências (máquina local):** `npm run typecheck`; `test:unit` e `test:integration` verdes (inclui `test/finance-tetos.integration.test.ts`); `scripts/test-db.sh` ok. **Não testado:** no aparelho, com a IA real.
 
+## 2026-11-23 · Tudo por voz: criar e editar agentes · desenvolvido e testado
+- **Feito por:** Claude Code. "Cria um agente para as finanças da casa" e "muda as instruções do Mentor", "desativa o agente de estudos": ações `agente_criar` e `agente_editar` (cartão que mostra as instruções, "sim" falado, nome repetido e área fora da lista avisam). Só agentes da própria pessoa; termos bloqueados valem para nome e instruções. A frase de exemplo do estado vazio de Agentes agora usa a ação nova.
+- **Testes:** unit 334, integração 221 após o rebase (agentes de outra pessoa nunca viram cartão, nada gravado antes de confirmar, termo bloqueado), build, e2e.
+- **Sobrou:** apagar agente por voz (matriz, seção 11).
+
 ## 2026-11-23 · Telemetria de erros: rota, captura, Admin e alerta · desenvolvido e testado
 - **Feito por:** Claude Code. Registro gratuito dos erros do servidor e do navegador na tabela `error_events` (sem mensagem nem dado pessoal), lista no Admin e alerta diário por issue do GitHub. Interruptor `TELEMETRIA_ENABLED`. docs/OBSERVABILIDADE.md traz também o que a Vercel dá de graça (logs de 1 h no Hobby, 1 dia no Pro).
 - **Testes:** unit 322, integração 214 (401, user_id da sessão, campo extra recusado, limite 30/10 min, tabela ausente, interruptor, Admin só admin, token do resumo), build, e2e público 10/10 e mobile 44/44.

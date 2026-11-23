@@ -155,7 +155,7 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 ## 11. Tudo por voz (matriz; princípio do Eduardo de 22/11/2026)
 Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, falando ou escrevendo. A IA só propõe; a pessoa confirma com um toque ou dizendo "sim". Regra em [AGENTS.md](../AGENTS.md), seção 8.1. Código: `src/lib/acoes.ts` (bloco `"acoes"`), `src/lib/acoes-resolver.ts`, `src/lib/chat-actions.ts`, `src/components/ActionCard.tsx`.
 
-**UX-5 (23/11/2026):** toda tela de módulo vazia convida a falar: mostra uma frase de exemplo (só de ações que já existem nesta matriz) e o botão "Falar com o GaDu", que abre a tela de escuta num toque. Agentes: criar por voz continua lacuna, então o convite sugere "Quais agentes você me sugere?". A confirmação falada mostra o mesmo cartão da conversa.
+**UX-5 (23/11/2026):** toda tela de módulo vazia convida a falar: mostra uma frase de exemplo (só de ações que já existem nesta matriz) e o botão "Falar com o GaDu", que abre a tela de escuta num toque. Agentes: o convite sugere "Cria um agente para me ajudar com os estudos" (ação `agente_criar`). A confirmação falada mostra o mesmo cartão da conversa.
 
 | Módulo | Ação na tela | Pela conversa | Como | Lacuna / motivo |
 |---|---|---|---|---|
@@ -196,7 +196,9 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Memória | aprovar (uma ou todas as pendentes) | sim | `memoria_aprovar` | — |
 | Memória | recusar (descartar pendente) | sim | `memoria_recusar` (confirmação explícita; não dá para desfazer) | — |
 | Memória | esquecer ("esquece que eu…") | sim | `memoria_esquecer` (só memórias aprovadas; confirmação explícita; não dá para desfazer) | — |
-| Agentes | criar, editar | **não** | — | lacuna |
+| Agentes | criar | sim | `agente_criar` (nome até 60, área da lista de Agentes, instruções até 4000; cartão com as instruções e "sim" falado; nome repetido avisa; sem Desfazer, apagar fica em Agentes) | PR da branch `feat/voz-agentes`, Claude Code, 23/11 |
+| Agentes | editar nome, área, instruções e ativar/desativar | sim | `agente_editar` (só o que muda; instruções novas SUBSTITUEM as antigas e o cartão mostra o texto; a fala lê só um resumo) | idem |
+| Agentes | apagar | **não** | — | lacuna (a tela pede confirmação; falta a ação `agente_apagar`) |
 | Configurações | tamanho do texto, conversa contínua, respostas curtas, resposta falada, tema | sim | `ajuste` | — |
 | Configurações | velocidade da fala ("fala mais devagar", "volta ao normal") e trocar a voz ("usa outra voz") | sim | `ajuste` (`velocidade`, `voz_trocar`), PR do Cursor de 23/11 | — |
 | Configurações | termos bloqueados, limites de IA, notificações, conectar o Google | **não** | — | notificações e Google exigem um toque (regra do navegador e do OAuth); o resto é lacuna |

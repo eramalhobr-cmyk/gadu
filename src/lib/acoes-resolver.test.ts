@@ -371,3 +371,34 @@ test("teto por categoria: nome padrão, valor anterior só da própria pessoa; t
   assert.deepEqual((await resolveAcoes(off, U, [{ tipo: "teto_definir", categoria: "Lazer", valor: 1 }], { goals: true, finance: false, now: NOW })).actions, []);
   assert.equal(off.calls.length, 0);
 });
+
+const dbAg = fakeDb({
+  agents: [
+    { id: 1, name: "Mentor de estudos", area: "Estudos", instructions: "Explique com exemplos.", active: true, user_id: U },
+    { id: 2, name: "Casa e contas", area: "Finanças", instructions: "", active: false, user_id: U },
+    { id: 9, name: "Agente secreto", area: "Pessoal", instructions: "x", active: true, user_id: "outra" },
+  ],
+});
+test("agentes: criar e editar só entre os da própria pessoa; sem mudança, repetido e área inválida avisam", async () => {
+  const r = await resolveAcoes(dbAg, U, [
+    { tipo: "agente_criar", nome: "Treino", area: "saúde", instrucoes: "Seja direto." },
+    { tipo: "agente_editar", agente: "mentor", nome: null, area: "Trabalho", instrucoes: null, ativo: null },
+    { tipo: "agente_editar", agente: "casa e contas", nome: null, area: null, instrucoes: null, ativo: true },
+  ], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(r.actions, [
+    { kind: "agente_novo", nome: "Treino", area: "Saúde", instrucoes: "Seja direto." },
+    { kind: "agente_editar", id: 1, nome: "Mentor de estudos", mudancas: { area: "Trabalho" } },
+    { kind: "agente_editar", id: 2, nome: "Casa e contas", mudancas: { ativo: true } },
+  ]);
+  assert.ok(dbAg.calls.every((c) => c.filters.some(([k, v]) => k === "user_id" && v === U)), "toda leitura filtra por user_id");
+  const m = await resolveAcoes(dbAg, U, [
+    { tipo: "agente_editar", agente: "agente secreto", nome: "Meu", area: null, instrucoes: null, ativo: null },
+    { tipo: "agente_editar", agente: "mentor", nome: null, area: null, instrucoes: "Explique com exemplos.", ativo: true },
+    { tipo: "agente_criar", nome: "mentor DE estudos", area: null, instrucoes: null },
+    { tipo: "agente_editar", agente: "casa e contas", nome: null, area: "Astronomia", instrucoes: null, ativo: null },
+  ], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(m.actions, []);
+  assert.equal(m.misses.length, 3, "o resolvedor mostra no máximo 3 avisos");
+  const b = await resolveAcoes(dbAg, U, [{ tipo: "agente_criar", nome: "Acme", area: null, instrucoes: null }, { tipo: "agente_editar", agente: "mentor", nome: null, area: null, instrucoes: "para a Acme", ativo: null }], { goals: true, finance: true, now: NOW, blocked: (t) => /acme/i.test(t) });
+  assert.deepEqual(b.actions, []);
+});

@@ -192,3 +192,20 @@ test("cartão e pergunta do teto por categoria", async () => {
   assert.equal(actionQuestion(a, NOW), "Ponho um teto de 800 reais por mês para Restaurantes?");
   assert.equal(actionQuestion({ kind: "teto", categoria: "Lazer", valor: null, anterior: 200 }, NOW), "Tiro o teto de Lazer?");
 });
+
+test("agentes: cartão, confirmação e pergunta falada", async () => {
+  const { actionQuestion, describe: d } = await import("./chat-actions.ts");
+  const novo: ChatAction = { kind: "agente_novo", nome: "Treino", area: "Saúde", instrucoes: "Seja direto e motivador." };
+  assert.equal(d(novo).confirm, "Criar agente");
+  assert.equal(d(novo).applied, false);
+  assert.match(d(novo).detail, /Área: Saúde · instruções: Seja direto/);
+  assert.match(actionQuestion(novo, NOW), /^Crio o agente Treino, da área Saúde, com estas instruções: Seja direto e motivador\.\?$/);
+  const sem: ChatAction = { kind: "agente_novo", nome: "Treino", area: "Pessoal", instrucoes: "" };
+  assert.match(d(sem).detail, /sem instruções por enquanto/);
+  assert.equal(actionQuestion(sem, NOW), "Crio o agente Treino, da área Pessoal?");
+  const ed: ChatAction = { kind: "agente_editar", id: 1, nome: "Mentor", mudancas: { nome: "Mestre", instrucoes: "", ativo: false } };
+  assert.equal(d(ed).detail, "novo nome: Mestre · instruções: vazio · desativado");
+  assert.equal(actionQuestion(ed, NOW), "No agente Mentor, mudo o nome para Mestre, as instruções para vazio, o agente para desativado?");
+  const longo: ChatAction = { kind: "agente_editar", id: 1, nome: "Mentor", mudancas: { instrucoes: "a ".repeat(400) } };
+  assert.ok(actionQuestion(longo, NOW).length < 260, "a fala não lê as 4000 letras");
+});

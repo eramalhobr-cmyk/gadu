@@ -23,6 +23,8 @@ export type AcaoProposta =
   | { tipo: "meta_editar"; meta: string; titulo: string | null; alvo: number | null; prazo: string | null }
   | { tipo: "projeto_editar"; projeto: string; nome: string | null; objetivo: string | null }
   | { tipo: "projeto_arquivar"; projeto: string }
+  | { tipo: "agente_criar"; nome: string; area: string | null; instrucoes: string | null }
+  | { tipo: "agente_editar"; agente: string; nome: string | null; area: string | null; instrucoes: string | null; ativo: boolean | null }
   | { tipo: "meta_marco"; meta: string; titulo: string; data: string | null }
   | { tipo: "meta_marco_concluir"; meta: string; marco: string }
   | { tipo: "meta_tarefa"; meta: string; tarefa: string; prazo: string | null }
@@ -66,8 +68,10 @@ export function destinoDe(v: unknown): Destino | null {
   return (DESTINOS as readonly string[]).includes(k) ? (k as Destino) : DESTINO_APELIDO[k] ?? null;
 }
 
-export const TIPOS = ["meta_criar", "meta_registrar", "meta_registro_apagar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "conta_criar", "receita_principal", "teto_definir", "peca3d_abrir", "nova_conversa", "conversa_abrir", "guia", "navegar", "projeto_criar", "salario_simular", "ajuste"] as const;
+export const TIPOS = ["meta_criar", "meta_registrar", "meta_registro_apagar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "conta_criar", "receita_principal", "teto_definir", "peca3d_abrir", "nova_conversa", "conversa_abrir", "guia", "navegar", "projeto_criar", "agente_criar", "agente_editar", "salario_simular", "ajuste"] as const;
 
+/** Instruções de agente: mantém as quebras de linha (até 2 seguidas), tira espaços sobrando. */
+const instr = (v: unknown): string | null => (typeof v === "string" ? v.replace(/\r/g, "").replace(/[ \t]+/g, " ").replace(/ ?\n ?/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, 4000) : null);
 const txt = (v: unknown, max: number): string => (typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "");
 
 /** Data AAAA-MM-DD de hoje até `dias` à frente (ou para trás, se negativo). */
@@ -310,6 +314,15 @@ export function validAcao(raw: unknown, now = Date.now()): AcaoProposta | null {
       const destino = destinoDe(o.destino);
       return destino ? { tipo: "navegar", destino } : null;
     }
+    case "agente_criar": {
+      const nome = txt(o.nome, 60);
+      return nome ? { tipo: "agente_criar", nome, area: txt(o.area, 40) || null, instrucoes: instr(o.instrucoes) || null } : null;
+    }
+    case "agente_editar": {
+      const agente = txt(o.agente, 60), nome = txt(o.nome, 60) || null, area = txt(o.area, 40) || null, instrucoes = instr(o.instrucoes);
+      const ativo = o.ativo === true || o.ativo === "true" ? true : o.ativo === false || o.ativo === "false" ? false : null;
+      return agente && (nome || area || instrucoes !== null || ativo !== null) ? { tipo: "agente_editar", agente, nome, area, instrucoes, ativo } : null;
+    }
     case "projeto_criar": {
       const nome = txt(o.nome, 80);
       return nome ? { tipo: "projeto_criar", nome, objetivo: txt(o.objetivo, 400) || null } : null;
@@ -399,7 +412,7 @@ export function acoesRules(): string {
   {"tipo":"evento_editar","evento":"título atual","titulo":"novo título","inicio":"AAAA-MM-DDTHH:MM:00-03:00","fim":"AAAA-MM-DDTHH:MM:00-03:00","local":"..."} (só o que muda; sem "fim", a duração é mantida); {"tipo":"evento_apagar","evento":"título"} (eventos da agenda do Google);
   {"tipo":"memoria_aprovar","memoria":"palavras da memória pendente"} ou {"tipo":"memoria_aprovar","todas":true}; {"tipo":"memoria_recusar","memoria":"..."} (descarta uma memória pendente); {"tipo":"memoria_esquecer","memoria":"palavras do fato"} ("esquece que eu…": apaga uma memória aprovada; use as palavras da lista de memória);
   {"tipo":"conta_criar","contaTipo":"despesa|receita","nome":"Água","valor":90,"dia":10,"grupo":"Moradia","todoMes":true} ("cria uma conta de água de 90 reais todo dia 10", "adiciona minha receita de aluguel de 1500": valor, dia e grupo são opcionais; todoMes = o valor vale deste mês até dezembro); {"tipo":"receita_principal","receita":"nome da receita"} ("meu salário principal é o da empresa": define a receita principal do Financeiro, que o simulador de salário usa para salvar); {"tipo":"peca3d_abrir","busca":"nome da peça ou vazio"} ("abre a minha última peça", "abre o suporte de celular no 3D": abre uma peça salva do 3D Studio, com confirmação; sem busca = a mais recente); {"tipo":"teto_definir","categoria":"Restaurantes","valor":800} ("põe um teto de 800 para restaurante", "meu limite de mercado é 1500 por mês"; "tira o teto de lazer" = valor null): teto mensal de gasto por categoria do dia a dia, com aviso a 80% e 100%; {"tipo":"nova_conversa"} ("começa uma conversa nova"); {"tipo":"conversa_abrir","busca":"assunto ou título"} ("abre a conversa sobre o condomínio", "volta naquela conversa da viagem": abre uma conversa anterior da pessoa, com confirmação); {"tipo":"guia"} ("me mostra o guia de novo", "como o GaDu funciona?": abre o guia de primeiro uso na hora, sem confirmação; não grava nada); {"tipo":"navegar","destino":"hoje|conversa|tarefas|agenda|financeiro|metas|projetos|memoria|agentes|ajustes|mais"} ("abre o Financeiro", "vai para Metas", "mostra minhas tarefas": abre a tela na hora, sem confirmação; use só quando a pessoa pedir para ir ou abrir uma tela);
-  {"tipo":"projeto_criar","nome":"...","objetivo":"..."};
+  {"tipo":"projeto_criar","nome":"...","objetivo":"..."}; {"tipo":"agente_criar","nome":"Mentor de estudos","area":"Estudos","instrucoes":"como o agente deve pensar e falar"} ("cria um agente para me ajudar com as finanças da casa": nome até 60 letras; area opcional entre Pessoal, Preferências, Saúde, Finanças, Estudos, Família, Projetos, Trabalho; escreva instruções curtas e claras na voz da pessoa); {"tipo":"agente_editar","agente":"nome atual","nome":"novo nome","area":"...","instrucoes":"texto novo que SUBSTITUI o anterior","ativo":true|false} ("muda as instruções do agente Mentor para ser mais direto", "desativa o agente de estudos": só o que muda);
   {"tipo":"salario_simular","bruto":8000,"dependentes":0,"salvar":false} ("quanto fica líquido um salário de 8 mil?", "e com 2 dependentes?": o SERVIDOR calcula INSS e imposto de renda e mostra o cartão com o passo a passo; você NUNCA calcula nem escreve valores de INSS, imposto ou líquido: diga só que o cartão tem o cálculo, ou repita os números do bloco "Cálculo do salário" se ele estiver no contexto. "salvar":true só quando a pessoa pedir para guardar o líquido como o salário deste mês: vira um cartão de confirmação);
   {"tipo":"ajuste","opcao":"texto","valor":"100|115|130"} (letra normal, grande, maior), {"tipo":"ajuste","opcao":"maos_livres|respostas_curtas|voz","valor":true|false}, {"tipo":"ajuste","opcao":"tema","valor":"dark|light"}, {"tipo":"ajuste","opcao":"velocidade","valor":0.7 a 1.6|"normal"|"mais_devagar"|"mais_rapido"} ("fala mais devagar", "fala mais rápido", "volta a velocidade normal"), {"tipo":"ajuste","opcao":"voz_trocar","valor":"proxima"} ("troca a voz", "usa outra voz": passa para a próxima voz em português do aparelho).
   Diga em uma frase o que preparou ("Preparei, é só confirmar"). Não diga que não consegue fazer algo que está nesta lista. No máximo 5 itens; quase sempre a lista fica vazia.`;
