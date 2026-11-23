@@ -1,13 +1,13 @@
 # GaDu · Testes de interface (Playwright)
 
-Atualizado em 22/11/2026 (suíte de celular emulado). Playwright é dependência oficial (`playwright` 1.63.0, versão fixa em `package.json` e `package-lock.json`).
+Atualizado em 23/11/2026 (e2e com login no CI contra Supabase local). Playwright é dependência oficial (`playwright` 1.63.0, versão fixa em `package.json` e `package-lock.json`).
 
 ## Suítes
 | Suíte | Arquivo | Precisa de | Onde roda |
 |---|---|---|---|
 | Pública | `e2e/public.e2e.cjs` (9 testes) | `E2E_BASE` | **CI em todo PR** (job `e2e-public`) e local |
 | **Celular (emulado)** | `e2e/mobile.e2e.cjs` (44 testes: 5 perfis × 8 verificações + 4 de instalabilidade) | `E2E_BASE` (Chromium e WebKit do Playwright) | **CI em todo PR** (job `e2e-public`, depois da pública), local e contra a produção (só leitura) |
-| Com login | `e2e/auth.e2e.cjs` (14 testes) | `E2E_BASE` + `E2E_STATE` (arquivo de sessão) **ou** `E2E_EMAIL` + `E2E_PASSWORD` | local, contra servidor local ou produção, com o usuário de teste. Fora dos PRs (ver proposta abaixo) |
+| Com login | `e2e/auth.e2e.cjs` (17 testes) | `E2E_BASE` + `E2E_STATE` (arquivo de sessão) **ou** `E2E_EMAIL` + `E2E_PASSWORD` | **CI (workflow `e2e-auth.yml`)** contra um **Supabase local descartável**, em PR, todo dia e à mão; e local com `bash scripts/e2e-auth-local.sh` (precisa de Docker) |
 
 O que cobrem:
 - **Pública:** home e login em 7 larguras, sem rolagem lateral e com alvos de 44 px; `/app` sem login vai para o login; `/api/chat` e `/api/usage` recusam com 401 antes de qualquer custo; as 13 rotas `/api/goals/*` e as 12 rotas `/api/finance/*` recusam com 401 (branch de Finanças); CSP com nonce e `frame-ancestors 'none'`; tema claro sem erro de página.
@@ -40,7 +40,24 @@ E2E_BASE=http://127.0.0.1:3100 E2E_EMAIL=… E2E_PASSWORD=… npm run test:e2e:a
 ```
 O CI sobe o app com um endereço fictício do Supabase (`127.0.0.1:54321`) e uma chave pública fictícia: nenhum segredo, nenhum dado real.
 
-## Proposta: testes com login no CI, com segurança (precisa de aprovação)
+## e2e com login no CI, sem credencial de produção (feito em 23/11/2026)
+Workflow separado `.github/workflows/e2e-auth.yml` (não atrasa o `pr-checks.yml`): roda em PR que mexe em `src/`, `e2e/`, `supabase/` ou no próprio script, **todo dia às 06:00 de Brasília** e à mão (`gh workflow run e2e-auth.yml`). **Não usa nenhum segredo**: o `scripts/e2e-auth-local.sh`
+1. instala a CLI do Supabase e sobe um Supabase **local** no runner (`supabase start`, só banco, API e autenticação), que aplica **todas** as migrações de `supabase/migrations`;
+2. cria o usuário `e2e-ci@teste.local` pela API de admin do GoTrue local, com **senha aleatória** (mascarada no log) que só existe nesse banco descartável;
+3. faz o build do app apontando para esse Supabase (`NEXT_PUBLIC_SUPABASE_URL` local, chaves geradas pela CLI, `ALLOWED_EMAILS` só com o usuário de teste) e sobe com `next start`;
+4. roda `npm run test:e2e:auth` (login pelo `/api/auth/password` do próprio app, `E2E_DEBUG=1` mostra falhas de rede e erros do console sem corpo nem cabeçalhos);
+5. derruba tudo no fim (`supabase stop --no-backup`).
+Como não há segredo, pode rodar em `pull_request` com segurança (código de PR nunca enxerga credencial de produção). A IA paga continua simulada (`/api/chat` com `page.route`).
+
+**O que a primeira execução com banco de verdade achou (e foi corrigido):**
+- A CSP só liberava `https://` para o Supabase; o local é `http://127.0.0.1:54321`. `src/lib/csp-connect.ts` agora libera `http`/`ws` **só** para `localhost`, `127.0.0.1` e `[::1]` (teste unitário, inclusive `127.0.0.1.evil.test`). Produção (https) não muda.
+- Pessoa nova vê o guia de primeiro uso abrir sozinho: o handler do teste violava o modo estrito (dois botões "Pular o guia") e o teste do guia não previa a abertura automática. Corrigido (`dismissGuide`, abertura automática tratada e conferida).
+- Defeito real de interface: em telas de 1024 px ou mais o link "Pular o guia" tinha 40 px de altura. `.link-btn` agora tem 44 px.
+- O teste de Hoje procurava a lista de lembretes fora de "Mais opções" (mudou no PR #52).
+
+**Usuário de teste de produção (opcional):** a proposta antiga (Environment `e2e-prod` com revisor obrigatório, só `workflow_dispatch` e `push` na `main`) continua válida, mas **deixou de ser necessária** para a cobertura diária; só vale se o Eduardo quiser um teste contra a produção real.
+
+## Proposta (opcional): testes com login contra a produção
 1. **Usuário isolado e dedicado ao CI** (`ci-e2e@…`, domínio de teste), criado pelo fluxo de convite, papel `member`, sem Google, sem dados, com teto mensal de IA US$ 0 ou mínimo (os testes não chamam IA). Diferente do usuário das capturas.
 2. **Credenciais em um GitHub Environment** chamado `e2e-prod`, com `E2E_EMAIL` e `E2E_PASSWORD` como *environment secrets* e **revisor obrigatório** (o Eduardo aprova cada execução).
 3. **Gatilhos sem PR:** `workflow_dispatch` e `push` na `main` (depois do merge). **Nunca** em `pull_request`, para que nenhum código de PR rode com o segredo. Sem `pull_request_target`.

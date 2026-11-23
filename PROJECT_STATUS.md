@@ -98,7 +98,7 @@ Atualizado em 23/11/2026 às 11:05 (Brasília): **3D Studio ligado em produção
 - Passos manuais no painel: proteção contra senhas vazadas; S-09: o plano é Free, então decidir entre plano Pro ou dump lógico agendado; só depois decidir sobre os backups lógicos.
 - Decidir o destino do usuário de teste e da liberação do host do Supabase no ambiente "Gadu".
 - Auditoria completa de RLS e isolamento; administração de créditos por pessoa.
-- Monitoramento e alerta de erro; testes de ponta a ponta automatizados.
+- Monitoramento e alerta de erro (migração `error_events` mergeada no PR #76 e aplicada pelo Cursor; falta rota, Admin e alerta).
 - Módulos planejados, sem código: 3D Studio, Agent Office (além dos agentes), Agent Office Studio. Financeiro: base publicada (PR #26); o restante da especificação segue planejado.
 
 ## Segurança P1: publicação (22/11/2026)
@@ -111,6 +111,10 @@ Atualizado em 23/11/2026 às 11:05 (Brasília): **3D Studio ligado em produção
 - **e2e público** (6 testes) contra a produção: 6 passaram.
 - **Não verificado:** chat com uma pessoa logada em produção (o e2e com login precisa de credenciais); encerramento de sessões ao bloquear em produção.
 - **S-09:** plano Supabase da organização é Free (sem backups automáticos baixáveis nem PITR). Segue pendente; depende de decisão do Eduardo: plano Pro ou dump lógico agendado.
+
+## Observabilidade e e2e com login (23/11/2026)
+- **Migração `20261123110001_telemetria_erros.sql`** (PR #76, merge `a3b4a79`, 10:51): tabela `error_events` (só servidor escreve, só administrador lê, sem texto de mensagem). aplicada em produção pelo Cursor (~10:57, via MCP).
+- **e2e com login no CI** (workflow `e2e-auth.yml`, Supabase local, sem segredo): 17 de 17. Detalhe e achados em docs/TESTES_E2E.md. Corrigidos: CSP para Supabase local, link "Pular o guia" com 44 px, testes antigos.
 
 ## Problemas conhecidos e riscos
 Matriz completa, com evidências e o **status de cada S-xx**: [docs/SECURITY_AUDIT_2026-11-15.md](docs/SECURITY_AUDIT_2026-11-15.md).

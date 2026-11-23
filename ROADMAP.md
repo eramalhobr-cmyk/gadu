@@ -279,6 +279,7 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [x] Testes reproduzíveis depois de `npm ci` (clone limpo, sem `.env`)
 - [x] Testes públicos no CI (job `e2e-public`), sem segredos
 - [x] Testes com login: falham se faltar credencial (nada é pulado); proposta de execução segura no CI (docs/TESTES_E2E.md)
+- [x] e2e com login no CI contra Supabase local, sem credencial de produção (workflow `e2e-auth.yml`, 17 de 17 em 23/11/2026; docs/TESTES_E2E.md)
 - [x] Regressão de navegação, assistente, temas e voz simulada (6 + 14 testes)
 - [x] Validações de aparelho documentadas (docs/VALIDACAO_APARELHOS.md)
 - [x] Auditoria de segurança somente leitura e matriz de riscos (docs/SECURITY_AUDIT_2026-11-15.md)
@@ -499,7 +500,7 @@ Estágio: **publicada** em 22/11/2026 às 18:33 (Brasília), PR #30, merge `901e
 - [ ] Caixa, Plano, Simulador e Ano
 
 ## Por último (combinado em 10/11)
-- [ ] Testes automáticos de ponta a ponta antes de publicar e alerta de erro (tela de erro própria: feita no PR #9)
+- [ ] Testes automáticos de ponta a ponta antes de publicar (feito: `e2e-auth.yml`) e alerta de erro (tela de erro própria: feita no PR #9; migração da telemetria mergeada no PR #76, aplicada pelo Cursor; rota, Admin e alerta depois)
 - [ ] Ações com aprovação no Gmail (rascunhos) e foco na agenda
 - [ ] Voz natural paga (ElevenLabs/OpenAI) com teto próprio
 

@@ -26,7 +26,7 @@ npm run test:integration   # node --test (test/*.test.ts)
 npm run build              # next build
 bash scripts/test-db.sh    # Postgres local temporário + pgvector: todas as migrações, cota, orçamento, isolamento entre pessoas
 ```
-- Testes de interface: `npm run e2e:browsers` uma vez, depois suba o app (`npx next start -p 3100`) e rode `E2E_BASE=http://127.0.0.1:3100 npm run test:e2e:public` e `npm run test:e2e:mobile`. Os testes com login (`test:e2e:auth`) rodam fora dos PRs ([docs/TESTES_E2E.md](docs/TESTES_E2E.md)).
+- Testes de interface: `npm run e2e:browsers` uma vez, depois suba o app (`npx next start -p 3100`) e rode `E2E_BASE=http://127.0.0.1:3100 npm run test:e2e:public` e `npm run test:e2e:mobile`. Os testes com login (`test:e2e:auth`) rodam no workflow `e2e-auth.yml` contra um Supabase local do runner, sem credenciais de produção ([docs/TESTES_E2E.md](docs/TESTES_E2E.md)).
 - O CI (`.github/workflows/pr-checks.yml`) roda os jobs `verify`, `e2e-public` e `database`. Um PR **só de documentação** não dispara o CI sozinho: rode-o à mão com `gh workflow run pr-checks.yml --ref <branch>`.
 
 ## 4. Branch, PR e publicação

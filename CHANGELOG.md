@@ -7,8 +7,13 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · e2e com login no CI contra Supabase local · desenvolvido e testado
+- **Feito por:** Claude Code. Workflow `e2e-auth.yml` (PR, diário às 06:00 de Brasília e manual) + `scripts/e2e-auth-local.sh`: `supabase start` no runner, usuário de teste com senha aleatória, app apontando para o banco local, `npm run test:e2e:auth`. **Sem credenciais de produção.** 17 de 17 no CI.
+- **Correções que o teste com banco de verdade achou:** `connect-src` da CSP aceita `http`/`ws` só para Supabase em localhost (`src/lib/csp-connect.ts`); `.link-btn` com 44 px (o "Pular o guia" tinha 40 px no desktop); testes de guia e de Hoje atualizados (UX-4).
+- **Testes:** unit 307, integração 196, build, e2e público 10/10 e mobile 44/44 locais; `e2e-auth` 17/17 no CI.
+
 ## 2026-11-23 · Telemetria de erros: migração da tabela `error_events` · desenvolvido e testado (não aplicada)
-- **Feito por:** Claude Code. Migração aditiva `20261123110001_telemetria_erros.sql`: só o servidor escreve, só administrador lê, sem texto de mensagem nem dados pessoais. **MIGRAÇÃO PENDENTE** (o Cursor aplica pelo MCP).
+- **Feito por:** Claude Code. Migração aditiva `20261123110001_telemetria_erros.sql`: só o servidor escreve, só administrador lê, sem texto de mensagem nem dados pessoais. Aplicada depois pelo Cursor (MCP).
 - **Testes:** `bash scripts/test-db.sh` passou (novo `80_telemetria.test.sql` e a tabela em `30_isolamento`).
 
 ## 2026-11-23 · 3D: peças e versões salvas · publicado
