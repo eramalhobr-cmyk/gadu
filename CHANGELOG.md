@@ -30,6 +30,9 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - "Fala mais devagar", "fala mais rápido", "volta a velocidade normal" e "usa outra voz" viram o cartão de ajuste com "sim" falado (`ajuste` com `velocidade` de 0,7 a 1,6 ou relativo, de 0,15 em 0,15; `voz_trocar` passa para a próxima voz em português do aparelho). Vale neste aparelho, como em Configurações; nada é gravado no servidor.
 - **Testes:** casos novos em `acoes.test.ts`, `chat-actions.test.ts` e `test/goals-chat.integration.test.ts` (valor fora do intervalo é descartado, nada gravado); typecheck; integração 192/192.
 
+## 2026-11-23 · Auditoria de RLS e escrita por acesso (Claude Code) · publicado (só documentação)
+- `docs/SECURITY_AUDIT_2026-11-23.md`: inventário das 26 tabelas de `public` e das funções, matriz "pessoa bloqueada tenta gravar" (18 tabelas aceitam insert, update e delete), sondagem de chaves entre pessoas (achado: `reminders.conversation_id` aceita conversa de outra pessoa) e recomendações. Medido em Postgres local descartável; **nada foi aplicado no Supabase de produção**.
+
 ## 2026-11-23 · Revisão cruzada (Claude Code): busca por significado voltava sempre desligada (PR `fix/revisao-cursor-busca-balde`) · desenvolvido e testado
 - **Feito por:** Claude Code, revisando os PRs do Cursor (#32, #34 a #36, #65, #67 a #70).
 - **Achado real no #65:** o balde `search_user` não consta no `CHECK` de `private.rate_limits`; o banco recusava o insert e, como o limite é fail closed, `/api/search` nunca chamava os embeddings. Agora usa o balde permitido `verify_email` com chave própria (`search-user`). Sem migração.

@@ -59,6 +59,12 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 · 10:23– · Claude Code, revisão cruzada (tarefa 6) e segurança S-05/S-08 (tarefa 7)
+- **Revisão (tarefa 6) concluída:** revisei #32, #34, #35, #36, #65, #67, #68, #69 e #70 (resultado em cada item acima). **1 bug real:** o limite de custo da busca (#65) usava um balde fora do `CHECK` do banco, então a busca por significado ficava sempre desligada. **PR #72**, merge `0088ca1` às 10:32, CI verde (verify, e2e-public, database), status do commit `success`, `/login` 200. Unit 303, integração 196, build. Os testes do #65 mockavam o banco: por isso não pegaram.
+- **7a auditoria:** `docs/SECURITY_AUDIT_2026-11-23.md` (este PR de docs). Medido no banco local: pessoa bloqueada ainda grava em 18 tabelas; `reminders.conversation_id` aceita conversa de outra pessoa.
+- **Não verificado:** nada em produção (sem acesso ao Supabase); não conferi o banco de produção contra as migrações (precisa do MCP do Cursor); aparelho e IA real seguem pendentes.
+- **Próximo:** 7b (migração S-05 em rascunho, sem merge) e 7c (`docs/ORGANIZACOES.md`).
+
 ### 23/11/2026 10:20 · Cursor (Grok Bot), 3D ligado em produção
 - O Eduardo ligou `MODELING_3D_ENABLED=1` na Vercel (produção) por volta das 09:37 e fez o redeploy; o 3D Studio (Beta) está no ar e ele confirmou que funcionou. Nenhum código do 3D mudou. Novas fases do 3D (3D-1b/3D-2) ficam para depois das outras frentes do roadmap.
 - **Próximo:** Claude Code revisa os PRs do Cursor (#32, #34, #35, #36, #65, #67 a #70), depois segurança S-05/S-08, observabilidade e e2e com login no CI, voz para agentes, tetos e acumulado do ano em Finanças, Metas fase 2.

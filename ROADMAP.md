@@ -306,7 +306,7 @@ Estágio: **publicado em 22/11/2026** (merge `cc85040`, migrações aditiva `202
 - [ ] S-03 (painel): ligar a proteção contra senhas vazadas (manual, seção 2)
 - [x] S-04: agendador e `index_backlog` ignoram quem não está ativo
 - [x] S-05 (parcial): bloquear encerra sessões; custo e cota recusam quem não está ativo
-- [ ] S-05 (resto): RLS de escrita por acesso
+- [ ] S-05 (resto): RLS de escrita por acesso. Auditoria feita em 23/11/2026 ([docs/SECURITY_AUDIT_2026-11-23.md](docs/SECURITY_AUDIT_2026-11-23.md): 18 tabelas ainda aceitam escrita de pessoa bloqueada). Migração em rascunho, **aguardando o OK do Eduardo**
 - [x] S-06: admin não bloqueia admin, `ADMIN_EMAILS` nem a si mesmo
 - [x] S-11: proxy responde 503 nas rotas protegidas sem a configuração do Supabase
 - [x] Testes: SQL (`test:db`, com compatibilidade da migração aditiva e corrida de liquidação), integração (chat, limite de tentativas, bloqueio de admin, agendador, proxy) e unitários
@@ -315,7 +315,7 @@ Estágio: **publicado em 22/11/2026** (merge `cc85040`, migrações aditiva `202
 - [x] Plano Supabase conferido: Free (sem backups automáticos baixáveis nem PITR)
 - [ ] S-09: decisão do Eduardo (plano Pro ou dump lógico agendado); depois RPO, RTO e ensaio de restauração
 - [ ] Passos manuais: senhas vazadas, Vercel Firewall (opcional)
-- [ ] S-08 (organizações), S-13, S-14, S-15: fora desta entrega
+- [ ] S-08 (organizações): desenho em [docs/ORGANIZACOES.md](docs/ORGANIZACOES.md) (23/11/2026), sem código; S-13, S-14, S-15: fora desta entrega
 
 
 ## Core Contextual · fase 1: "O que merece minha atenção hoje?" (22/11, PR #24)
