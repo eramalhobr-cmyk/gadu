@@ -9,6 +9,17 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · Monitoramento e alerta de erro · desenvolvido e testado
+- **Feito por:** Claude Code (código) e Cursor (Grok Bot) (revisão, testes e publicação). O Claude Code começou a implementação e parou no limite de 5 h (18:47, Brasília); o Cursor concluiu a revisão e os testes.
+- Captura do servidor unificada em `capturarErroServidor` (rotas de API, IA, 3D e cron, inclusive erro tratado que responde 500/502/504; sem sessão, `user_id` nulo depois da migração). Continua a captura do navegador (error boundary, `onerror`, `unhandledrejection`, com limite de taxa).
+- Agrupamento pela impressão digital que já existia. Detector de privacidade (`isSensitive`, PR #94) + e-mail em tudo o que é gravado, enviado ou falado; nunca guarda mensagem, token, e-mail ou corpo.
+- Alerta ao administrador **pelo push que o app já tem**, sem `TELEMETRIA_TOKEN`: grupo novo (primeira vez ou depois de 7 dias) ou pico (5+ vezes em 15 min). Throttle: 1 aviso por grupo a cada 6 h e no máximo 4 por dia (Brasília). Rede de segurança e retenção de 30 dias no cron `tick`.
+- Painel **Saúde do sistema** na Administração (estilo JARVIS, só dados reais): totais de 24 h e 7 dias, servidor × cliente, erros por dia e grupos recentes.
+- Voz, sem modelo: “teve algum erro hoje?”, “o que quebrou?”, “abre a saúde do sistema”. Quem não é administrador ouve “Isso é só para administrador.”
+- **Migração aditiva** `20261123200001_alerta_erros.sql`: `error_events.user_id` deixa de ser obrigatório; tabelas `error_alert_state` e `error_alert_dia` (só o servidor escreve, RLS ligado, sem dado pessoal). Sem ela, o app segue: erro sem sessão não grava e o alerta se cala.
+- **Testes:** unitários (sanitização, agrupamento, decisão de alerta, throttle, voz, payload do push) e integração (captura, push só para admin ativo, 403 para não admin, falha do banco não derruba a rota); `scripts/test-db.sh` com `81_alerta_erros.test.sql`.
+- A issue diária com `TELEMETRIA_TOKEN` continua opcional, no fim do roadmap.
+
 ## 2026-11-23 · Simulador de salário: outras deduções, benefícios, 13º, férias e voz sem custo · **publicado**
 - **Publicado** em 23/11/2026 às 19:09 (Brasília), PR #116, merge `ed9a20f`; CI verde (verify, e2e-public, database, e2e com login). Deploy de produção da Vercel (`gadu-agent`) concluído; conferido: `/api/health` 200, `/api/finance/resumo` 401 sem sessão, e o CSS de produção com `.sal-diga` (a frase “Diga: quanto fica líquido um salário de 12 mil?”). Sem migração.
 - **Feito por:** Claude Code (código); Cursor / Grok Bot (revisão, testes de novo, merge). Entradas novas (outras deduções e benefícios), estimativas de 13º e férias + 1/3 (pagamentos separados, mesma função), testes com os exemplos 2 a 5 da Receita (INSS dado, via `calcularIrrf`) e o caso de R$ 12.000,00, tela com painel HUD, barra de composição e botão Ouvir, e o pedido "quanto fica líquido um salário de 12 mil?" respondido sem modelo no cliente (`GaduApp.send`) e no `/api/chat` (sem reserva e sem cota).

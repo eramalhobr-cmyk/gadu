@@ -6,6 +6,8 @@ import { pushConfigured, sendPush, type Sub } from "@/lib/push";
 import { embed, embeddingsAvailable, toVector } from "@/lib/embeddings";
 import { insights } from "@/lib/insights";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { redeDeSeguranca, retencaoDeErros } from "@/lib/telemetria/avisar";
+import { capturarErroServidor } from "@/lib/telemetria/capturar";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -159,11 +161,20 @@ async function expireReservations(db: Db) {
 
 export async function GET(request: Request) {
   if (!authorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!pushConfigured() || !process.env.SUPABASE_SECRET_KEY) return NextResponse.json({ ok: false, reason: "not_configured" });
+  if (!process.env.SUPABASE_SECRET_KEY) return NextResponse.json({ ok: false, reason: "not_configured" });
   const db = supabaseAdmin();
-  const [r, b, ev, ix, rs] = await Promise.allSettled([reminders(db), briefings(db), evenings(db), indexing(db), expireReservations(db)]);
+  if (!pushConfigured()) {
+    await retencaoDeErros(db); // a retenção de 30 dias não depende do push
+    return NextResponse.json({ ok: false, reason: "not_configured" });
+  }
+  // Monitoramento de erros: rede de segurança do alerta (avisa o que o aviso imediato perdeu) e retenção de 30 dias (1x por hora).
+  const [r, b, ev, ix, rs, al, rt] = await Promise.allSettled([reminders(db), briefings(db), evenings(db), indexing(db), expireReservations(db), redeDeSeguranca(db), retencaoDeErros(db)]);
   const val = (x: PromiseSettledResult<number>) => (x.status === "fulfilled" ? x.value : -1);
-  const out = { ok: true, reminders: val(r), briefings: val(b), evenings: val(ev), indexed: val(ix), expired: val(rs) };
-  for (const [k, x] of Object.entries({ r, b, ev, ix, rs })) if (x.status === "rejected") console.error("cron com falha", k, x.reason instanceof Error ? x.reason.message.slice(0, 160) : "erro");
+  const out = { ok: true, reminders: val(r), briefings: val(b), evenings: val(ev), indexed: val(ix), expired: val(rs), errorAlerts: val(al), errorsPruned: val(rt) };
+  for (const [k, x] of Object.entries({ r, b, ev, ix, rs })) {
+    if (x.status !== "rejected") continue;
+    console.error("cron com falha", k, x.reason instanceof Error ? x.reason.message.slice(0, 160) : "erro");
+    await capturarErroServidor(x.reason, { rota: "/api/cron/tick" });
+  }
   return NextResponse.json(out);
 }

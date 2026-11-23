@@ -161,9 +161,14 @@ begin
 end $$;
 
 -- A suíte cobre TODAS as tabelas do schema public: tabela nova sem caso aqui faz o teste falhar.
-select pg_temp.check(not exists (select 1 from pg_tables t where t.schemaname = 'public' and t.tablename not in (select c.t from iso_cases c)),
+-- Tabelas de SISTEMA (sem user_id e sem dado de pessoa; só service_role acessa) não entram no laço de dono: têm teste próprio
+-- em 81_alerta_erros.test.sql (authenticated e anon sem nenhum privilégio).
+create temp table iso_sistema (t text);
+insert into iso_sistema values ('error_alert_state'), ('error_alert_dia');
+select pg_temp.check(not exists (select 1 from pg_tables t where t.schemaname = 'public' and t.tablename not in (select c.t from iso_cases c union select s.t from iso_sistema s)),
   'toda tabela do schema public está na suíte de isolamento');
-select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public') = (select count(*) from iso_cases), 'a suíte não lista tabela que não existe');
+select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public') = (select count(*) from iso_cases) + (select count(*) from iso_sistema), 'a suíte não lista tabela que não existe');
+select pg_temp.check(not exists (select 1 from iso_sistema s, information_schema.role_table_grants g where g.table_schema = 'public' and g.table_name = s.t and g.grantee in ('anon', 'authenticated', 'PUBLIC')), 'tabelas de sistema não dão privilégio a anon nem a authenticated');
 select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public' and t.tablename like 'fin\_%' and t.rowsecurity) = 5, 'as 5 tabelas fin_* existem e têm RLS ligado');
 select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public' and t.tablename like 'goal%' and t.rowsecurity) = 6, 'as 6 tabelas de metas existem e têm RLS ligado');
 

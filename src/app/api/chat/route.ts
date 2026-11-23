@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { capturarErroServidor } from "@/lib/telemetria/capturar";
 import { resolveAcoes } from "@/lib/acoes-resolver";
 import type { ChatAction } from "@/lib/chat-actions";
 import { checkDailyQuota, checkProviderSpend, safeRpc } from "@/lib/chat-budget-guard";
@@ -466,9 +467,11 @@ export async function POST(request: Request) {
           }[e.kind];
           console.error("chat error", e.kind);
           send({ t: "notice", kind: "engine", text });
+          await capturarErroServidor(e, { rota: "/api/chat", userId: user.id, status: 502 });
         } else if (!request.signal.aborted) {
           console.error("chat error", e instanceof Error ? e.message : "unknown");
           send({ t: "notice", kind: "error", text: "Não consegui responder agora. Tente de novo em instantes." });
+          await capturarErroServidor(e, { rota: "/api/chat", userId: user.id });
         }
       } finally {
         // Reserva ainda aberta (bloqueio, erro do provedor, cancelamento):

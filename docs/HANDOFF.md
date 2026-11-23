@@ -25,6 +25,7 @@ Este é o caderno de passagem de bastão entre as IAs que programam o GaDu (Clau
 | Revisão cruzada (Cursor → Claude Code) e segurança S-05/S-08 | Claude Code e Cursor | `fix/s05-escrita-por-acesso` | revisão (#72), auditoria (#73) e S-08 desenho (#75) **publicados**; S-05 (#74) **aprovado pelo Eduardo às 11:17** (bloqueado pode apagar os próprios dados) e **aplicado em produção às 11:31** pelo Cursor |
 | Observabilidade (8a) e e2e com login no CI (8b) | Claude Code | `feat/telemetria-erros` | **Migração `20261123110001_telemetria_erros.sql` APLICADA** pelo Cursor via MCP em 23/11 ~10:57 (conferido: `error_events` com RLS e 1 política). O código (rota `/api/telemetria/erro`, página no Admin, alerta) pode seguir. **8b (e2e com login no CI): PR #77**, 17/17 |
 | UX-7 · visual, navegação e palco de voz (proposta aprovada 23/11 14:06) | Cursor (Grok Bot) | `feat/ux7-*` no worktree `/workspace/gadu-ux` | Em andamento: palco de voz (PR 1). Depois: Mais/menu por áreas, ligações e mapa, Hoje em três faixas, resto dos 17 itens. Arquivos: `ListenSheet`, `Assistant`, `GaduApp` (só o necessário), `ModulePage`, `TodayPage`, `src/app/ux7.css`. **Não mexe** em agentes (limites), privacidade (dado sensível) nem percepções |
+| Monitoramento e alerta de erro (P1) | Cursor (Grok Bot) e Claude Code | `feat/monitoramento-alerta-erro` no worktree `/workspace/gadu-erros` | Código pronto para revisão e PR: captura no servidor (API, IA, 3D, cron), alerta por push com throttle, painel Saúde do sistema, voz. Migração aditiva `20261123200001` **ainda não aplicada**. Sem `TELEMETRIA_TOKEN`. |
 | 3D-1 (conversa → OpenSCAD) | Claude Code | `feat/3d-1-openscad` (PR #40, integrado) | **publicado** em 22/11/2026 às 20:55 (Brasília), PR #40, merge `6d87a5f`, CI verde (verify, e2e-public, database), deploy de produção da Vercel concluído. No ar: `/api/3d/generate` sem sessão 401, `/vendor/openscad/render-worker.js` 200 com a CSP própria, e2e público contra a produção 10/10. **Ligado em produção:** o Eduardo definiu `MODELING_3D_ENABLED=1` na Vercel em 23/11/2026 por volta das 09:37 (Brasília) e fez o redeploy; ele confirmou que funcionou. Falta: testar com a IA real (custo por ajuste), e2e com login (`E2E_3D=1`), WebKit/iPhone. Próximas fases do 3D só depois das outras frentes |
 
 ## A revisar por outra IA
@@ -73,6 +74,19 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - **Publicado:** PR #116, merge `ed9a20f`, 23/11/2026 às 19:09 (Brasília). CI verde (verify, e2e-public, database, e2e com login). Deploy de produção da Vercel concluído. Conferido: `/api/health` 200, `/api/finance/resumo` 401 sem sessão, CSS de produção com `.sal-diga`.
 - **PRs:** #116.
 - **Falta:** conferir a tela no aparelho e dizer “quanto fica líquido um salário de 12 mil?” com pessoa logada.
+
+### 23/11/2026 · 18:52 · Cursor (Grok Bot) e Claude Code, monitoramento e alerta de erro
+- **Fez:** entrega P1 aprovada pelo Eduardo (~18:30). O Claude Code escreveu o grosso do código no worktree `/workspace/gadu-erros` (branch `feat/monitoramento-alerta-erro`) e parou às 18:47 no limite de 5 h da sessão; o Cursor revisou, apertou o parser de voz, completou a documentação e os testes.
+  - Helper `capturarErroServidor` ligado ao `onRequestError` e aos `catch` de `/api/chat`, `/api/3d/generate`, `/api/cron/tick` e `/api/cron/telemetria-resumo`.
+  - Alerta por push aos administradores ativos (grupo novo ou pico), com throttle persistido (1 por grupo / 6 h, 4 por dia em Brasília) e rede de segurança no `tick`. Não depende de `TELEMETRIA_TOKEN`.
+  - Painel **Saúde do sistema** na Administração (dados reais, estilo JARVIS) e voz (“teve algum erro hoje?”, “o que quebrou?”, “abre a saúde do sistema”).
+  - Privacidade: sanitização que já existia + detector `isSensitive` (PR #94). Nunca grava mensagem, e-mail, token ou corpo.
+  - Migração aditiva `20261123200001_alerta_erros.sql` (`user_id` opcional em `error_events`; `error_alert_state` e `error_alert_dia`, só `service_role`). **Ainda não aplicada em produção.**
+- **Testes (máquina local):** `typecheck`; `test:unit` 427/427; `test:integration` 274/274; `npm run build`; `bash scripts/test-db.sh` (inclui `81_alerta_erros.test.sql`).
+- **PRs:** #117.
+- **Ficou pela metade:** aplicar a migração pelo MCP; validar o push no aparelho; `TELEMETRIA_TOKEN` no fim do roadmap.
+- **A revisar por outra IA:** o throttle atômico (`error_alert_state` + `error_alert_dia`), o gancho mínimo no `GaduApp.tsx` e se o painel Saúde está claro a 390 px.
+- **Próximo passo:** testes, PR, CI verde, aplicar a migração e publicar.
 
 ### 23/11/2026 18:50 · Cursor (Grok Bot), revisão do simulador de salário ampliado
 - **Feito por (IA):** Claude Code (código, 5 commits locais); Cursor (Grok Bot) (revisão, testes de novo e PR).
