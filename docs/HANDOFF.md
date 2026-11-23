@@ -73,6 +73,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - **A revisar por outra IA:** os regex de agência/conta e de senha em `src/lib/privacy.ts`.
 - **Fila 1–3 concluída.** Depois: sobras do 3D e o token da telemetria (manual do Eduardo).
 
+### 23/11/2026 14:28 · Cursor (Grok Bot), UX-7 PR 2: Mais e menu por áreas
+- **Feito:** `NAV_GROUPS` em `src/lib/modules.ts` (Meu dia, Vida, Agentes e criação), usado na tela Mais e no menu lateral; grupo "Conta e ajuda" em Mais; exemplo do que dizer por grupo; números (metas, projetos, memórias); 3D no menu do computador com o interruptor ligado; 3D Studio "parcial" no catálogo.
+- **A revisar por outra IA:** o catálogo do 3D em `modules.ts` (frente do Claude Code): status "parcial" e textos de disponível/planejado.
+- **Próximo passo:** PR 3, ligações visíveis e mapa do GaDu no Guia.
+
 ### 23/11/2026 14:20 · Cursor (Grok Bot), UX-7 PR 1: palco de voz
 - **Pedido do Eduardo (14:06):** aplicar a proposta visual inteira (17 itens) em PRs pequenos. Ordem: palco de voz, Mais/menu por áreas, ligações e mapa, Hoje em três faixas, o resto.
 - **Feito:** avatar grande na tela de escuta (tela cheia no celular), na Conversa do celular (até 190 px vazia ou em voz, encolhe ao digitar), no computador (340/420 px) e no painel do assistente (136/168 px ao ouvir, pensar e falar). Nível real da voz: `src/lib/voice-level.ts` (testado), `src/lib/mic-meter.ts` (computador, só com permissão já dada, nada gravado), trechos reconhecidos e `onboundary` da fala. CSS do ciclo em `src/app/ux7.css`.
