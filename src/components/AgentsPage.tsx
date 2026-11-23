@@ -3,7 +3,7 @@ import { MSG, actionFailed, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { AGENT_PRESETS, AREAS } from "@/lib/presets";
-import { EmptyState, PageHeader, Panel } from "./kit";
+import { EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction, Summary } from "./kit";
 import { COLORS, colorVar, Icon, ICONS } from "./ui";
 
 export type Agent = { id: number; name: string; area: string; instructions: string; color: string; icon: string; active: boolean };
@@ -46,20 +46,17 @@ export function AgentsPage({ onTalk }: { onTalk: (a: { id: number; name: string 
   const missing = items ? PRESETS.filter((p) => !items.find((a) => a.name.toLowerCase() === p.name.toLowerCase())) : [];
 
   return (
-    <main className="page" id="conteudo">
-      <div className="wrap">
-        <PageHeader title="Agentes" text="Versões do GaDu com instruções próprias para cada área da sua vida. Todos usam a mesma memória, agenda e tarefas."
-          actions={<button className="btn btn-pri" onClick={() => setEdit("new")}><Icon name="plus" size={18} />Novo agente</button>} />
+    <ModuleScreen title="Agentes" text="Versões do GaDu com instruções próprias para cada área da sua vida. Todos usam a mesma memória, agenda e tarefas."
+      action={<PrimaryAction onClick={() => setEdit("new")}>Novo agente</PrimaryAction>}
+      summary={items && items.length > 0 ? <Summary items={[{ n: items.filter((a) => a.active).length, label: "ativos" }, { n: items.filter((a) => !a.active).length, label: "desligados" }]} /> : undefined}>
         {err && <div className="notice" role="alert">{err}</div>}
         {items === null ? (
           <div className="ag-grid" aria-busy="true"><p className="sr" role="status">Carregando agentes…</p>{[0, 1, 2].map((i) => <div key={i} className="ag-card skel" aria-hidden="true" />)}</div>
         ) : items.length === 0 ? (
           <Panel>
             <EmptyState icon="agents" title="Nenhum agente ainda" text="Comece pelos sugeridos ou crie um do zero. Você pode editar as instruções quando quiser."
-              action={<div className="form-actions">
-                {missing.length > 0 && <button className="btn btn-pri" onClick={addPresets} disabled={adding}>{adding ? "Adicionando…" : "Adicionar sugeridos"}</button>}
-                <button className="btn" onClick={() => setEdit("new")}>Criar do zero</button>
-              </div>} />
+              phrase="Quais agentes você me sugere?"
+              action={missing.length > 0 ? <button className="btn btn-sm" onClick={addPresets} disabled={adding}>{adding ? "Adicionando…" : "Adicionar sugeridos"}</button> : undefined} />
           </Panel>
         ) : (
           <div className="ag-grid">
@@ -87,8 +84,7 @@ export function AgentsPage({ onTalk }: { onTalk: (a: { id: number; name: string 
             </div>
           </Panel>
         )}
-      </div>
-    </main>
+    </ModuleScreen>
   );
 }
 

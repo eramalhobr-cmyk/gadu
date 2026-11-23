@@ -7,7 +7,7 @@ import type { ItemComMes } from "@/lib/finance/month";
 import type { PrevisaoRecebimento } from "@/lib/finance/previsao";
 import type { ResumoMensal } from "@/lib/finance/summary";
 import { CATEGORIAS, GRUPOS, MEIOS, MEIO_LABEL, MESES, type Config, type Gasto, type Meio } from "@/lib/finance/types";
-import { EmptyState, PageHeader, Panel } from "./kit";
+import { EmptyState, ModuleScreen, Panel, PrimaryAction } from "./kit";
 import { showUndo } from "@/lib/undo";
 import { Icon, todayKey } from "./ui";
 
@@ -22,7 +22,7 @@ async function api(path: string, init?: RequestInit): Promise<{ ok: boolean; sta
 }
 const br = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
-export function FinanceiroPage(props: { onAsk: (q: string) => void }) {
+export function FinanceiroPage() {
   const hoje = todayKey();
   const [ano, setAno] = useState(Number(hoje.slice(0, 4)));
   const [mes, setMes] = useState(Number(hoje.slice(5, 7)));
@@ -54,11 +54,13 @@ export function FinanceiroPage(props: { onAsk: (q: string) => void }) {
   const go = (d: number) => { const n = mes + d; if (n < 1) { setAno(ano - 1); setMes(12); } else if (n > 12) { setAno(ano + 1); setMes(1); } else setMes(n); };
   const isAtual = ano === Number(hoje.slice(0, 4)) && mes === Number(hoje.slice(5, 7));
 
+  function lancarGasto() {
+    setTab("dia");
+    window.setTimeout(() => { const el = document.getElementById("fin-valor"); el?.scrollIntoView({ block: "center" }); el?.focus(); }, 60);
+  }
   return (
-    <main className="page" id="conteudo">
-      <div className="wrap stack">
-        <PageHeader title="Financeiro" text="Contas do mês e gastos do dia a dia. Pergunte ao GaDu ou lance por aqui."
-          actions={<button className="btn btn-sm" onClick={() => props.onAsk("Quanto gastei este mês?")}><Icon name="spark" size={16} />Perguntar ao GaDu</button>} />
+    <ModuleScreen title="Financeiro" text="Contas do mês e gastos do dia a dia. Pergunte ao GaDu ou lance por aqui."
+      action={<PrimaryAction onClick={lancarGasto}>Lançar gasto</PrimaryAction>}>
 
         <nav className="fin-month" aria-label="Mês">
           <button className="icon-btn" onClick={() => go(-1)} aria-label="Mês anterior"><span aria-hidden="true" style={{ transform: "rotate(180deg)", display: "inline-flex" }}><Icon name="chevron" /></span></button>
@@ -80,11 +82,10 @@ export function FinanceiroPage(props: { onAsk: (q: string) => void }) {
             </div>
             {tab === "contas"
               ? <div role="tabpanel" id="pn-contas" aria-labelledby="tab-contas" className="stack"><Contas data={data} ano={ano} mes={mes} run={run} /><ConfigPanel data={data} run={run} /></div>
-              : <div role="tabpanel" id="pn-dia" aria-labelledby="tab-dia" className="stack"><DiaADia data={data} ano={ano} mes={mes} isAtual={isAtual} run={run} onAsk={props.onAsk} /></div>}
+              : <div role="tabpanel" id="pn-dia" aria-labelledby="tab-dia" className="stack"><DiaADia data={data} ano={ano} mes={mes} isAtual={isAtual} run={run} /></div>}
           </>
         )}
-      </div>
-    </main>
+    </ModuleScreen>
   );
 }
 
@@ -95,7 +96,7 @@ function Resumo({ r, previsao }: { r: ResumoMensal; previsao: PrevisaoRecebiment
   return (
     <>
       <Panel title="Saldo do mês" icon="coin">
-        {vazio ? <EmptyState icon="coin" title="Nada lançado neste mês" text="Cadastre suas contas e receitas na aba Contas e lance os gastos em Dia a dia. Os números aparecem aqui." /> : (
+        {vazio ? <EmptyState icon="coin" title="Nada lançado neste mês" text="Cadastre suas contas e receitas na aba Contas e lance os gastos em Dia a dia. Os números aparecem aqui." phrase="Gastei 45 no mercado no pix" /> : (
           <>
             <span className={`fin-big fin-num ${r.sobra < 0 ? "bad" : "ok"}`} aria-label={`Sobra do mês: ${formatBRL(r.sobra)}`}>{formatBRLRound(r.sobra)}</span>
             <span className="muted">Sobra prevista: receitas {formatBRL(r.receitas)} − despesas {formatBRL(r.despesas)}</span>
@@ -238,7 +239,7 @@ function ItemForm({ itens, ano, mes, run, onClose }: { itens: ItemComMes[]; ano:
       </div>
       <label className="fld"><span>Nome</span><input className="field" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} required placeholder={tipo === "receita" ? "Ex.: Salário" : "Ex.: Aluguel"} /></label>
       <div className="two">
-        <label className="fld"><span>Valor do mês (R$)</span><input className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} required placeholder="0,00" /></label>
+        <label className="fld"><span>Valor do mês (R$)</span><input id="fin-valor" className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} required placeholder="0,00" /></label>
         <label className="fld"><span>Dia <em className="opt">(opcional)</em></span><input className="field" inputMode="numeric" value={dia} onChange={(e) => setDia(e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="1 a 31" /></label>
       </div>
       <label className="fld"><span>Grupo <em className="opt">(opcional)</em></span><input className="field" list="fin-grupos" value={grupo} maxLength={40} onChange={(e) => setGrupo(e.target.value)} placeholder={tipo === "receita" ? "Receitas" : "Ex.: Moradia"} /></label>
@@ -278,7 +279,7 @@ function ItemEditor({ item, itens, ano, mes, run, onClose }: { item: ItemComMes;
   return (
     <form className="fin-edit" onSubmit={save} aria-label={`Editar ${item.nome}`}>
       <div className="two">
-        <label className="fld"><span>Valor de {MESES[mes - 1]} (R$)</span><input className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" /></label>
+        <label className="fld"><span>Valor de {MESES[mes - 1]} (R$)</span><input id="fin-valor" className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" /></label>
         <label className="fld"><span>Dia</span><input className="field" inputMode="numeric" value={dia} onChange={(e) => setDia(e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="1 a 31" /></label>
       </div>
       <label className="fin-chk"><input type="checkbox" checked={proximos} onChange={(e) => setProximos(e.target.checked)} />Valer também para os próximos meses (até dezembro)</label>
@@ -335,7 +336,7 @@ function ConfigPanel({ data, run }: { data: Payload; run: Run }) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-function DiaADia({ data, ano, mes, isAtual, run, onAsk }: { data: Payload; ano: number; mes: number; isAtual: boolean; run: Run; onAsk: (q: string) => void }) {
+function DiaADia({ data, ano, mes, isAtual, run }: { data: Payload; ano: number; mes: number; isAtual: boolean; run: Run }) {
   const [valor, setValor] = useState("");
   const [cat, setCat] = useState<string>("Mercado");
   const [meio, setMeio] = useState<Meio>("debito");
@@ -364,7 +365,7 @@ function DiaADia({ data, ano, mes, isAtual, run, onAsk }: { data: Payload; ano: 
       <Panel title="Lançar gasto" icon="plus">
         <form className="fin-edit" onSubmit={lancar} aria-label="Lançar gasto">
           <div className="two">
-            <label className="fld"><span>Valor (R$)</span><input className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" required /></label>
+            <label className="fld"><span>Valor (R$)</span><input id="fin-valor" className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" required /></label>
             <label className="fld"><span>Dia</span><input className="field" inputMode="numeric" value={dia} onChange={(e) => setDia(e.target.value.replace(/\D/g, "").slice(0, 2))} required /></label>
           </div>
           <div className="chips" role="group" aria-label="Categoria">{CATEGORIAS.map((c) => <button type="button" key={c} className="chip" aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>)}</div>
@@ -376,7 +377,7 @@ function DiaADia({ data, ano, mes, isAtual, run, onAsk }: { data: Payload; ano: 
       </Panel>
       <Panel title="Gastos do mês" icon="coin">
         {data.gastos.length === 0 ? (
-          <EmptyState icon="coin" title="Nenhum gasto neste mês" text="Lance acima ou diga ao GaDu o que gastou." action={<button className="btn btn-sm" onClick={() => onAsk("Gastei ")}>Dizer ao GaDu</button>} />
+          <EmptyState icon="coin" title="Nenhum gasto neste mês" text="Lance acima ou fale com o GaDu." phrase="Gastei 45 no mercado no pix" />
         ) : porDia.map(([d, lista]) => (
           <div key={d}>
             <h3 className="fin-grp">Dia {String(d).padStart(2, "0")}/{String(mes).padStart(2, "0")}</h3>
@@ -408,7 +409,7 @@ function GastoEditor({ g, run, onClose }: { g: Gasto; run: Run; onClose: () => v
   return (
     <form className="fin-edit" aria-label="Editar gasto" onSubmit={async (e) => { e.preventDefault(); if (await run(api(`/api/finance/gastos/${g.id}`, { method: "PATCH", body: JSON.stringify({ valor: valor.trim(), dia: Number(dia), categoria: cat, meio, descricao: desc }) }), "Gasto atualizado.")) onClose(); }}>
       <div className="two">
-        <label className="fld"><span>Valor (R$)</span><input className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} required /></label>
+        <label className="fld"><span>Valor (R$)</span><input id="fin-valor" className="field" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} required /></label>
         <label className="fld"><span>Dia</span><input className="field" inputMode="numeric" value={dia} onChange={(e) => setDia(e.target.value.replace(/\D/g, "").slice(0, 2))} required /></label>
       </div>
       <label className="fld"><span>Categoria</span><input className="field" list="fin-cats" value={cat} maxLength={40} onChange={(e) => setCat(e.target.value)} required /></label>

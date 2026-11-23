@@ -419,3 +419,15 @@ button.pj-card:hover { border-color: color-mix(in srgb, var(--c) 55%, transparen
 .mt-add .field { flex: 1; min-width: 0; }
 .mt-hoje-i { width: 100%; text-align: left; background: none; border: 0; color: inherit; cursor: pointer; }
 .evc.proposed .evc-ico, .evc.saving .evc-ico { color: var(--sig); }
+
+/* Padrão de tela de módulo (UX-5): resumo e convite para falar */
+.mod-sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--s-2); }
+.mod-sum-i { display: flex; flex-direction: column; gap: 2px; padding: var(--s-3); border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--line); min-width: 0; }
+.mod-sum-i b { font: 600 calc(24px * var(--ts, 1))/1.1 var(--body); font-variant-numeric: tabular-nums; color: var(--sig); }
+.mod-sum-i.ok b { color: var(--ok); }
+.mod-sum-i.hot b { color: var(--hot); }
+.mod-sum-i.bad b { color: var(--bad); }
+.mod-sum-i span { color: var(--ink-3); font-size: var(--fs-xs); line-height: 1.3; }
+.empty-say { color: var(--ink-2); }
+.empty-say q { color: var(--ink); font-style: italic; quotes: "“" "”"; }
+.empty-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-1); }

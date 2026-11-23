@@ -197,9 +197,9 @@ export function TodayPage(props: {
             <button className="see-i" onClick={() => props.onOpen("modulos")}><Icon name="grid" size={20} /><b aria-hidden="true">+</b><span>Mais</span></button>
           </div>
           {showRems && (
-            <Panel title="Lembretes" icon="bell" id="rem-list" action={!adding ? <button className="btn btn-sm" onClick={() => setAdding(true)}><Icon name="plus" size={16} />Novo</button> : undefined}>
+            <Panel title={`Lembretes${rems?.length ? ` · ${rems.length}` : ""}`} icon="bell" id="rem-list" action={!adding ? <button className="btn btn-sm btn-pri" onClick={() => setAdding(true)}><Icon name="plus" size={16} />Novo lembrete</button> : undefined}>
               {rems === null ? <p className="muted">Carregando…</p> : rems.length === 0 ? (
-                <EmptyState icon="bell" title="Nenhum lembrete" text="Toque no microfone e diga “me lembra amanhã às 9h de…”." />
+                <EmptyState icon="bell" title="Nenhum lembrete" text="Eu aviso na hora que você escolher." phrase="Me lembra amanhã às 9h de ligar para o dentista" />
               ) : (
                 <div className="rows">
                   {rems.map((r) => (

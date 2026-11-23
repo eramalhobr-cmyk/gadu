@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { EXPORT_PROMPT, IMPORT_MAX_CHARS } from "@/lib/importer";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { when } from "./ConversationsDrawer";
-import { EmptyState, PageHeader, Panel } from "./kit";
+import { EmptyState, ModuleScreen, Panel, PrimaryAction, Summary } from "./kit";
 import { showNotice, showUndo, UNDO_TEXT } from "@/lib/undo";
 import { Icon } from "./ui";
 
@@ -79,9 +79,9 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
   const byArea = approved.reduce<Record<string, Memory[]>>((acc, m) => { (acc[m.area] ??= []).push(m); return acc; }, {});
 
   return (
-    <main className="page" id="conteudo">
-      <div className="wrap">
-        <PageHeader title="Memórias" text="A memória é do GaDu, não das IAs. Tudo entra como pendente e só vale depois que você aprova." />
+    <ModuleScreen title="Memórias" text="A memória é do GaDu, não das IAs. Tudo entra como pendente e só vale depois que você aprova."
+      action={<PrimaryAction onClick={() => { const el = document.getElementById("mem-new"); el?.scrollIntoView({ block: "center" }); el?.focus(); }}>Lembre que…</PrimaryAction>}
+      summary={items ? <Summary items={[{ n: pending.length, label: "para revisar", tone: "hot" }, { n: approved.length, label: "que eu sei sobre você" }]} /> : undefined}>
         <div className="search">
           <Icon name="spark" size={18} />
           <label className="sr" htmlFor="mem-q">Buscar na memória</label>
@@ -116,7 +116,7 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
             <Panel className="mem-review o1" title={`Para revisar${pending.length ? ` · ${pending.length}` : ""}`} icon="bell"
               action={approvable.length > 1 && <button className="btn btn-sm" onClick={() => aprovar(approvable.map((m) => m.id))}>Aprovar todas ({approvable.length})</button>}>
               {items === null ? <p className="muted" role="status">Carregando…</p> : pending.length === 0 ? (
-                <EmptyState icon="check" title="Nada para revisar" text="Quando o GaDu aprender algo numa conversa, aparece aqui para o seu sim." />
+                <EmptyState icon="check" title="Nada para revisar" text="Quando o GaDu aprender algo numa conversa, aparece aqui para o seu sim." phrase="Lembra que eu prefiro reuniões depois das 10h" />
               ) : (
                 <div className="rows">
                   {pending.map((m) => (
@@ -136,7 +136,7 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
 
             <Panel className="o3" title={`O que eu sei sobre você${approved.length ? ` · ${approved.length}` : ""}`} icon="book">
               {items === null ? <p className="muted" role="status">Carregando…</p> : approved.length === 0 ? (
-                <EmptyState icon="book" title="Ainda não sei nada aprovado" text="Adicione algo em “Lembre que…” ou importe de outra IA." />
+                <EmptyState icon="book" title="Ainda não sei nada aprovado" text="Adicione algo em “Lembre que…” ou importe de outra IA." phrase="Lembra que eu prefiro reuniões depois das 10h" />
               ) : Object.entries(byArea).map(([a, list]) => (
                 <section key={a} className="mem-area" aria-label={a}>
                   <h3 className="tl-group-head"><span>{a}</span><span className="tl-count">{list.length}</span></h3>
@@ -170,8 +170,7 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
             <ImportCard onDone={load} />
           </div>
         </div>
-      </div>
-    </main>
+    </ModuleScreen>
   );
 }
 
