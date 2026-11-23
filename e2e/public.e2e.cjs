@@ -107,9 +107,11 @@ describe("telas públicas", () => {
         marcoApagar: await call(`/api/goals/${id}/marcos/${id}`, "DELETE"),
         tarefaVincular: await call(`/api/goals/${id}/tarefas`, "POST", { task_id: 1 }),
         tarefaDesvincular: await call(`/api/goals/${id}/tarefas/1`, "DELETE"),
+        projetoLigar: await call(`/api/goals/${id}/projetos`, "POST", { project_id: 1 }),
+        projetoDesligar: await call(`/api/goals/${id}/projetos/1`, "DELETE"),
       };
     }, id);
-    assert.deepEqual(Object.values(st), Array(13).fill(401), JSON.stringify(st));
+    assert.deepEqual(Object.values(st), Array(15).fill(401), JSON.stringify(st));
     await p.context().close();
   });
   test("3D Studio: rota da API e tela recusam sem login; o motor isolado tem CSP própria e sem rede", async () => {

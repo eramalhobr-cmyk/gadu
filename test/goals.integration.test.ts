@@ -35,6 +35,8 @@ const marcos = await import(src("app/api/goals/[id]/marcos/route.ts"));
 const marcoId = await import(src("app/api/goals/[id]/marcos/[mid]/route.ts"));
 const tarefas = await import(src("app/api/goals/[id]/tarefas/route.ts"));
 const tarefaId = await import(src("app/api/goals/[id]/tarefas/[taskId]/route.ts"));
+const projetosRota = await import(src("app/api/goals/[id]/projetos/route.ts"));
+const projetoId = await import(src("app/api/goals/[id]/projetos/[projectId]/route.ts"));
 const { hojeSP, isoDia } = await import(src("lib/finance/datas.ts"));
 
 const req = (path: string, method = "GET", body?: unknown) => new Request(`http://localhost${path}`, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -63,6 +65,8 @@ const todas = (): [string, () => Promise<Response>][] => [
   ["DELETE marcos", () => marcoId.DELETE(req(`/api/goals/${ID_X}/marcos/${ID_X}`, "DELETE"), ctx({ id: ID_X, mid: ID_X }))],
   ["POST tarefas", () => tarefas.POST(req(`/api/goals/${ID_X}/tarefas`, "POST", { task_id: 1 }), ctx({ id: ID_X }))],
   ["DELETE tarefas", () => tarefaId.DELETE(req(`/api/goals/${ID_X}/tarefas/1`, "DELETE"), ctx({ id: ID_X, taskId: "1" }))],
+  ["POST projetos", () => projetosRota.POST(req(`/api/goals/${ID_X}/projetos`, "POST", { project_id: 1 }), ctx({ id: ID_X }))],
+  ["DELETE projetos", () => projetoId.DELETE(req(`/api/goals/${ID_X}/projetos/1`, "DELETE"), ctx({ id: ID_X, projectId: "1" }))],
 ];
 
 test("sem sessão: TODAS as rotas respondem 401 e nada é consultado", async () => {
@@ -283,4 +287,47 @@ test("resumo: contagens e metas que pedem atenção; sem metas devolve zeros (es
   assert.deepEqual([r.json.total, r.json.ativas, r.json.concluidas, r.json.atrasadas], [3, 2, 1, 1]);
   assert.deepEqual(r.json.atencao.map((a: any) => a.titulo), ["Vencida"]);
   assert.ok(!JSON.stringify(r.json).includes("SEGREDO-B"));
+});
+
+test("projetos: liga só projeto da própria pessoa; B não liga o projeto de A nem mexe na meta de A; GET traz ligados e disponíveis", async () => {
+  store.projects = [
+    { id: 1, user_id: A, name: "Saúde", status: "active" },
+    { id: 2, user_id: A, name: "Casa", status: "paused" },
+    { id: 9, user_id: B, name: "SEGREDO-B projeto", status: "active" },
+  ];
+  const id = (await J(await lista.POST(req("/api/goals", "POST", { titulo: "Correr 50 km", valor_alvo: 50 })))).json.meta.goal.id as string;
+  const ok1 = await J(await projetosRota.POST(req("/x", "POST", { project_id: 1, user_id: B }), ctx({ id })));
+  assert.equal(ok1.status, 201);
+  assert.equal(store.goal_projects[0].user_id, A, "o user_id vem da sessão, nunca do corpo");
+  assert.deepEqual(ok1.json.projetos.map((p: any) => p.name), ["Saúde"]);
+  assert.equal((await projetosRota.POST(req("/x", "POST", { project_id: 1 }), ctx({ id }))).status, 409, "duplicado");
+  assert.equal((await projetosRota.POST(req("/x", "POST", { project_id: 9 }), ctx({ id }))).status, 404, "projeto de B não é visível para A");
+  assert.equal((await projetosRota.POST(req("/x", "POST", { project_id: 0 }), ctx({ id }))).status, 400);
+  assert.equal((await projetosRota.POST(req("/x", "POST", { project_id: "abc" }), ctx({ id }))).status, 400);
+  const det = await J(await meta.GET(req("/x"), ctx({ id })));
+  assert.deepEqual(det.json.projetos.map((p: any) => p.name), ["Saúde"]);
+  assert.deepEqual(det.json.projetosDisponiveis.map((p: any) => p.name), ["Casa"]);
+  assert.ok(!JSON.stringify(det.json).includes("SEGREDO-B"));
+  // B tenta ligar o projeto dele à meta de A, o projeto de A à meta dele e desligar o vínculo de A
+  sessionUser = B;
+  assert.equal((await projetosRota.POST(req("/x", "POST", { project_id: 9 }), ctx({ id }))).status, 404, "meta de A é invisível para B");
+  const idB = (await J(await lista.POST(req("/api/goals", "POST", { titulo: "Meta de B", valor_alvo: 5 })))).json.meta.goal.id as string;
+  assert.equal((await projetosRota.POST(req("/x", "POST", { project_id: 1 }), ctx({ id: idB }))).status, 404, "projeto de A não é visível para B");
+  assert.equal((await projetoId.DELETE(req("/x", "DELETE"), ctx({ id, projectId: "1" }))).status, 404);
+  assert.equal(store.goal_projects.length, 1);
+  // A desliga: o projeto e a meta continuam
+  sessionUser = A;
+  const off = await J(await projetoId.DELETE(req("/x", "DELETE"), ctx({ id, projectId: "1" })));
+  assert.equal(off.status, 200);
+  assert.deepEqual(off.json.projetos, []);
+  assert.equal(store.projects.length, 3);
+  assert.equal((await projetoId.DELETE(req("/x", "DELETE"), ctx({ id, projectId: "1" }))).status, 404, "já desligado");
+});
+
+test("projetos: GOALS_ENABLED=0 desliga as rotas (404)", async () => {
+  process.env.GOALS_ENABLED = "0";
+  try {
+    assert.equal((await projetosRota.POST(req("/x", "POST", { project_id: 1 }), ctx({ id: ID_X }))).status, 404);
+    assert.equal((await projetoId.DELETE(req("/x", "DELETE"), ctx({ id: ID_X, projectId: "1" }))).status, 404);
+  } finally { delete process.env.GOALS_ENABLED; }
 });

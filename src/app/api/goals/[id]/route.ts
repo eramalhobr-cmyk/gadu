@@ -1,4 +1,4 @@
-import { loadMeta, GOAL_COLS, toGoal } from "@/lib/goals/load";
+import { loadMeta, loadProjetos, GOAL_COLS, toGoal } from "@/lib/goals/load";
 import { GoalPatch, IdParam } from "@/lib/goals/schemas";
 import { dbFail, goalsGuard, hojeIso, invalid, notFound, ok, readJson, unavailable } from "../_guard";
 
@@ -19,7 +19,12 @@ export async function GET(_request: Request, ctx: Ctx) {
     if (abertas.error) return unavailable();
     const tarefasAbertas = ((abertas.data ?? []) as { id: number; title: string; due_date: string | null }[]).filter((t) => !vinculadas.has(Number(t.id))).slice(0, 30)
       .map((t) => ({ id: Number(t.id), title: t.title, due_date: t.due_date }));
-    return ok({ ...d, tarefasAbertas });
+    // Projetos ligados e projetos que ainda podem ser ligados. Se a leitura falhar, a tela segue sem essa parte.
+    const projetos = await loadProjetos(g.a.supabase, g.a.user.id, id.data).catch(() => []);
+    const ligados = new Set(projetos.map((p) => p.project_id));
+    const pr = await g.a.supabase.from("projects").select("id, name, status").eq("user_id", g.a.user.id).in("status", ["active", "paused"]).order("created_at", { ascending: false }).limit(60);
+    const projetosDisponiveis = pr.error ? [] : ((pr.data ?? []) as { id: number; name: string }[]).filter((p) => !ligados.has(Number(p.id))).slice(0, 30).map((p) => ({ id: Number(p.id), name: p.name }));
+    return ok({ ...d, tarefasAbertas, projetos, projetosDisponiveis });
   } catch {
     return unavailable();
   }

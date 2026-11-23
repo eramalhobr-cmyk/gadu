@@ -75,5 +75,6 @@ export const MarcoPatch = z.object({
 }).refine((p) => Object.keys(p).some((k) => (p as Record<string, unknown>)[k] !== undefined), { message: "nada para alterar" });
 
 export const TarefaLink = z.object({ task_id: TaskIdParam });
+export const ProjetoLink = z.object({ project_id: TaskIdParam });
 
 export const ListaQuery = z.object({ status: z.enum(STATUS).optional() });

@@ -54,6 +54,9 @@ async function capture(a: ChatAction): Promise<Prep | null> {
       case "conta_paga": return () => () => backApi(put(`/api/finance/itens/${a.itemId}/mes`, { ano: a.ano, mes: a.mes, pago: false }));
       case "conta_desmarcar": return () => () => backApi(put(`/api/finance/itens/${a.itemId}/mes`, { ano: a.ano, mes: a.mes, pago: true }));
       case "salario": return a.salvar ? (() => { const s = a.salvar; return () => () => backApi(put(`/api/finance/itens/${s.itemId}/mes`, { ano: s.ano, mes: s.mes, valor: s.antes ?? 0, escopo: "mes" })); })() : null;
+      case "meta_projeto": return () => () => backApi(a.desligar
+        ? fetch(`/api/goals/${a.goalId}/projetos`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ project_id: a.projectId }) })
+        : fetch(`/api/goals/${a.goalId}/projetos/${a.projectId}`, { method: "DELETE" }));
       case "marco_ok": return () => () => backApi(patch(`/api/goals/${a.goalId}/marcos/${a.marcoId}`, { concluido: false }));
       case "meta_status": {
         const r = await fetch(`/api/goals/${a.goalId}`, { cache: "no-store" });
@@ -169,6 +172,10 @@ async function execute(a: ChatAction): Promise<Result> {
       if (!r.ok) { await db.from("tasks").update({ status: "cancelled" }).eq("id", data.id); return api(r, "Não consegui ligar a tarefa à meta."); }
       return { ok: true };
     }
+    if (a.kind === "meta_projeto") return api(a.desligar
+      ? await fetch(`/api/goals/${a.goalId}/projetos/${a.projectId}`, { method: "DELETE" })
+      : await fetch(`/api/goals/${a.goalId}/projetos`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ project_id: a.projectId }) }),
+    a.desligar ? "Não consegui desligar a meta do projeto." : "Não consegui ligar a meta ao projeto.");
     if (a.kind === "tarefa_ok") return saved(await supabaseBrowser().from("tasks").update({ status: "done", done_at: new Date().toISOString() }).eq("id", a.id).eq("status", "open").select("id"));
     if (a.kind === "tarefa_adiar") return saved(await supabaseBrowser().from("tasks").update({ due_date: a.prazo }).eq("id", a.id).select("id"));
     if (a.kind === "tarefa_cancelar") return saved(await supabaseBrowser().from("tasks").update({ status: "cancelled" }).eq("id", a.id).eq("status", "open").select("id"));

@@ -33,6 +33,8 @@ export type ChatAction =
   | { kind: "marco"; goalId: string; meta: string; titulo: string; data: string | null }
   | { kind: "marco_ok"; goalId: string; marcoId: string; meta: string; titulo: string }
   | { kind: "meta_tarefa"; goalId: string; meta: string; titulo: string; prazo: string | null }
+  /** Liga (ou desliga) a meta a um projeto: ids resolvidos no servidor, só entre os itens da própria pessoa. */
+  | { kind: "meta_projeto"; goalId: string; projectId: number; meta: string; projeto: string; desligar: boolean }
   | { kind: "tarefa_ok"; id: number; titulo: string }
   /** Já criada pelo servidor ("anota aí"): o cartão oferece Desfazer (cancela a tarefa). */
   | { kind: "tarefa_criada"; id: number; titulo: string; prazo: string | null }
@@ -206,6 +208,10 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
       return { icon: "target", proposed: "Marco para concluir", done: "Marco concluído", undone: "Descartado", title: a.titulo, detail: `Meta: ${a.meta}`, confirm: "Concluir marco", busy: "Salvando…", applied: false, open: { label: "Ver em Metas", view: "metas" } };
     case "meta_tarefa":
       return { icon: "check", proposed: "Tarefa da meta para confirmar", done: "Tarefa criada na meta", undone: "Descartado", title: a.titulo, detail: `Meta: ${a.meta}${a.prazo ? ` · até ${dm(a.prazo)}` : ""}`, confirm: "Criar tarefa", busy: "Criando…", applied: false, open: { label: "Ver em Metas", view: "metas" } };
+    case "meta_projeto":
+      return a.desligar
+        ? { icon: "folder", proposed: "Desligar meta do projeto?", done: "Meta desligada do projeto", undone: "Descartado", title: a.meta, detail: `Projeto: ${a.projeto} (nada é apagado, só o vínculo)`, confirm: "Desligar", busy: "Salvando…", applied: false, open: { label: "Ver em Metas", view: "metas" } }
+        : { icon: "folder", proposed: "Ligar meta ao projeto?", done: "Meta ligada ao projeto", undone: "Descartado", title: a.meta, detail: `Projeto: ${a.projeto}`, confirm: "Ligar", busy: "Salvando…", applied: false, open: { label: "Ver em Metas", view: "metas" } };
     case "tarefa_ok":
       return { icon: "check", proposed: "Concluir tarefa?", done: "Tarefa concluída", undone: "Descartado", title: a.titulo, detail: "Marcar como feita", confirm: "Concluir", busy: "Salvando…", applied: false, open: { label: "Ver Tarefas", view: "tarefas" } };
     case "tarefa_criada":
@@ -336,6 +342,7 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     case "marco": return `Adiciono o marco ${a.titulo} na meta ${a.meta}?`;
     case "marco_ok": return `Marco o marco ${a.titulo}, da meta ${a.meta}, como concluído?`;
     case "meta_tarefa": return `Crio a tarefa ${a.titulo} na meta ${a.meta}?`;
+    case "meta_projeto": return a.desligar ? `Desligo a meta ${a.meta} do projeto ${a.projeto}?` : `Ligo a meta ${a.meta} ao projeto ${a.projeto}?`;
     case "tarefa_ok": return `Marco a tarefa ${a.titulo} como feita?`;
     case "tarefa_criada": return `Anotei a tarefa ${a.titulo}${a.prazo ? `, para ${spokenDay(a.prazo, now)}` : ""}. Está certo?`;
     case "tarefa_adiar": return `Adio a tarefa ${a.titulo} para ${spokenDay(a.prazo, now)}?`;

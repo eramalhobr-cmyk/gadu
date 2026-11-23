@@ -6,7 +6,7 @@
 //  - nada é inventado: sem registro, "sem registros".
 import { hojeSP, isoDia } from "../finance/datas.ts";
 import { dataBR, metasAtencao, progressoTexto, ritmoTexto } from "../goals/calc.ts";
-import { loadMetas } from "../goals/load.ts";
+import { loadMetas, loadProjetos } from "../goals/load.ts";
 import { CATEGORIA_LABEL, type MetaView } from "../goals/types.ts";
 import { personalUserId, resolveScopes } from "./scopes.ts";
 import { hidden } from "./privacy.ts";
@@ -27,6 +27,8 @@ export async function collectGoals(input: { userId: string; db: SessionDb; block
   const hojeIso = isoDia(hojeSP((input.now ?? new Date()).getTime()));
   const todas = await loadMetas(input.db, userId, hojeIso); // erro de leitura lança: o chamador trata como indisponível
   const { blocked, intent } = input;
+  // Projetos ligados às metas (só da pessoa). Se essa leitura falhar, as metas seguem sem a informação (nunca inventa vínculo).
+  const projetos = await loadProjetos(input.db, userId).catch(() => []);
 
   type F = Omit<AttentionFact, "tag"> & { ref?: Omit<GoalRef, "tag"> };
   const fact = (label: string, body: string, id: string, omitted = false, ref?: F["ref"]): F => ({
@@ -38,6 +40,10 @@ export async function collectGoals(input: { userId: string; db: SessionDb; block
   const resumo = fact("Resumo das metas", `${ativas.length} ativa${ativas.length === 1 ? "" : "s"} (${n("atrasada")} atrasada${n("atrasada") === 1 ? "" : "s"}, ${n("vencida")} com prazo vencido, ${n("batida")} atingida${n("batida") === 1 ? "" : "s"} e ainda não concluída${n("batida") === 1 ? "" : "s"}); `
     + `${todas.filter((m) => m.goal.status === "pausada").length} pausada(s); ${todas.filter((m) => m.goal.status === "concluida").length} concluída(s).`, "resumo");
 
+  const projetosTexto = (goalId: string) => {
+    const nomes = projetos.filter((p) => p.goal_id === goalId).slice(0, 5).map((p) => (hidden(p.name, blocked) ? OMITTED : p.name.slice(0, 80)));
+    return nomes.length ? `projetos ligados: ${nomes.join(", ")}` : "";
+  };
   const linha = (m: MetaView, completo: boolean): F => {
     const g = m.goal, p = m.progresso;
     const oculto = hidden(g.titulo, blocked);
@@ -47,6 +53,7 @@ export async function collectGoals(input: { userId: string; db: SessionDb; block
       `${progressoTexto(m)}${!p.semDados && g.medicao !== "percentual" ? ` (${p.pct}%)` : ""}`,
       ritmoTexto(m),
       g.prazo ? `prazo ${dataBR(g.prazo)}/${g.prazo.slice(0, 4)}` : "sem prazo",
+      projetosTexto(m.goal.id),
       p.ultimoRegistro ? `último registro em ${dataBR(p.ultimoRegistro)}` : g.medicao === "numerica" || g.medicao === "percentual" ? "nenhum registro ainda" : "",
     ];
     if (completo || intent.kind === "atualizar") {
