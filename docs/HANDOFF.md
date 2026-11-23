@@ -21,7 +21,7 @@ Este é o caderno de passagem de bastão entre as IAs que programam o GaDu (Clau
 |---|---|---|---|
 | Ciclo UX (UX-1 a UX-4) e Tudo por voz | Cursor (Grok Bot) e Claude Code | — | **UX-4 (PRs #52 a #55) e UX-5 (PRs #58 a #60) publicados em 23/11 pelo Claude Code**; UX-1 a UX-3 e Tudo por voz **publicados** (PRs #34, #35, #36, #38, #39, #42 em 22/11; lacunas da matriz fechadas em 23/11 pelos PRs #47 a #50). Próximo: validar com a IA real e no aparelho, lacunas que restam na seção 11 e UX-6 |
 | Financeiro: simulador de salário | Claude Code | — | **publicado** em 23/11 (PR #63). Falta validar com a IA real e com pessoa logada |
-| 3D-1 (conversa → OpenSCAD) | Claude Code | `feat/3d-1-openscad` (PR #40, integrado) | **publicado** em 22/11/2026 às 20:55 (Brasília), PR #40, merge `6d87a5f`, CI verde (verify, e2e-public, database), deploy de produção da Vercel concluído. No ar: `/api/3d/generate` sem sessão 401, `/vendor/openscad/render-worker.js` 200 com a CSP própria, e2e público contra a produção 10/10. `MODELING_3D_ENABLED` não definida na Vercel: o 3D está **desligado** em produção até o Eduardo ligar. Falta: revisão por outra IA, PR, ligar o interruptor e testar com a IA real |
+| 3D-1 (conversa → OpenSCAD) | Claude Code | `feat/3d-1-openscad` (PR #40, integrado) | **publicado** em 22/11/2026 às 20:55 (Brasília), PR #40, merge `6d87a5f`, CI verde (verify, e2e-public, database), deploy de produção da Vercel concluído. No ar: `/api/3d/generate` sem sessão 401, `/vendor/openscad/render-worker.js` 200 com a CSP própria, e2e público contra a produção 10/10. **Ligado em produção:** o Eduardo definiu `MODELING_3D_ENABLED=1` na Vercel em 23/11/2026 por volta das 09:37 (Brasília) e fez o redeploy; ele confirmou que funcionou. Falta: testar com a IA real (custo por ajuste), e2e com login (`E2E_3D=1`), WebKit/iPhone. Próximas fases do 3D só depois das outras frentes |
 
 ## A revisar por outra IA
 Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
@@ -56,6 +56,10 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - [ ] **Validação com login no aparelho** de tudo o que foi publicado em 22/11 (pendência humana, com o Eduardo).
 
 ## Diário (mais recente no topo)
+
+### 23/11/2026 10:20 · Cursor (Grok Bot), 3D ligado em produção
+- O Eduardo ligou `MODELING_3D_ENABLED=1` na Vercel (produção) por volta das 09:37 e fez o redeploy; o 3D Studio (Beta) está no ar e ele confirmou que funcionou. Nenhum código do 3D mudou. Novas fases do 3D (3D-1b/3D-2) ficam para depois das outras frentes do roadmap.
+- **Próximo:** Claude Code revisa os PRs do Cursor (#32, #34, #35, #36, #65, #67 a #70), depois segurança S-05/S-08, observabilidade e e2e com login no CI, voz para agentes, tetos e acumulado do ano em Finanças, Metas fase 2.
 
 ### 23/11/2026 10:15 · Cursor (Grok Bot), Tudo por voz: criar conta e receita principal
 - **Feito:** ações `conta_criar` (cartão `conta_nova`, `POST /api/finance/itens`, Desfazer apaga o item) e `receita_principal` (acha a receita da pessoa, `PUT /api/finance/config`, Desfazer volta a anterior). Branch `feat/voz-conta-criar`.
