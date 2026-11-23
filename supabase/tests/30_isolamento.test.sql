@@ -84,6 +84,8 @@ begin
     insert into public.goal_progress (user_id, goal_id, valor, data) select u, id, 1, current_date from public.goals where user_id = u;
     insert into public.goal_milestones (user_id, goal_id, titulo) select u, id, 'marco sintético' from public.goals where user_id = u;
     insert into public.goal_tasks (user_id, goal_id, task_id) select u, g.id, (select t.id from public.tasks t where t.user_id = u limit 1) from public.goals g where g.user_id = u;
+    insert into public.goal_projects (user_id, goal_id, project_id) select u, g.id, (select p.id from public.projects p where p.user_id = u limit 1) from public.goals g where g.user_id = u;
+    insert into public.goal_events (user_id, goal_id, event_id, titulo, inicio, fim) select u, g.id, 'evsintetico1', 'Bloco sintético', now() + interval '1 day', now() + interval '1 day 1 hour' from public.goals g where g.user_id = u;
     -- Telemetria de erros (sintético, sem texto de mensagem)
     insert into public.error_events (user_id, origem, rota, nome, impressao) values (u, 'cliente', '/app', 'Erro sintético', md5(u::text) || md5('x'));
     -- 3D Studio (sintético)
@@ -124,7 +126,9 @@ insert into iso_cases values
   ('error_events',       'user_id',    'status = 500',        'insert into public.error_events (user_id, origem, rota, nome, impressao) values (%L, ''cliente'', ''/app'', ''x'', repeat(''a'', 16))'),
   ('pecas_3d',           'user_id',    'titulo = ''x''',      'insert into public.pecas_3d (user_id, titulo, pedido) values (%L, ''x'', ''x'')'),
   ('pecas_3d_versoes',   'user_id',    'scad = ''cube(1);''', 'insert into public.pecas_3d_versoes (user_id, peca_id, modo, scad) values (%1$L, (select id from public.pecas_3d where user_id = %1$L limit 1), ''novo'', ''cube(1);'')'),
-  ('goal_tasks',         'user_id',    'created_at = now()',  'insert into public.goal_tasks (user_id, goal_id, task_id) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), (select id from public.tasks where user_id = %1$L limit 1))');
+  ('goal_tasks',         'user_id',    'created_at = now()',  'insert into public.goal_tasks (user_id, goal_id, task_id) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), (select id from public.tasks where user_id = %1$L limit 1))'),
+  ('goal_projects',      'user_id',    'created_at = now()',  'insert into public.goal_projects (user_id, goal_id, project_id) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), (select id from public.projects where user_id = %1$L limit 1))'),
+  ('goal_events',        'user_id',    'titulo = ''x''',      'insert into public.goal_events (user_id, goal_id, event_id, titulo, inicio, fim) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), ''evoutro01'', ''x'', now(), now() + interval ''1 hour'')');
 
 do $$
 declare c record; a text := '00000000-0000-0000-0000-00000000aaa1'; b text := '00000000-0000-0000-0000-00000000bbb1';
@@ -157,7 +161,7 @@ select pg_temp.check(not exists (select 1 from pg_tables t where t.schemaname = 
   'toda tabela do schema public está na suíte de isolamento');
 select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public') = (select count(*) from iso_cases), 'a suíte não lista tabela que não existe');
 select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public' and t.tablename like 'fin\_%' and t.rowsecurity) = 5, 'as 5 tabelas fin_* existem e têm RLS ligado');
-select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public' and t.tablename like 'goal%' and t.rowsecurity) = 4, 'as 4 tabelas de metas existem e têm RLS ligado');
+select pg_temp.check((select count(*) from pg_tables t where t.schemaname = 'public' and t.tablename like 'goal%' and t.rowsecurity) = 6, 'as 6 tabelas de metas existem e têm RLS ligado');
 
 -- Vínculos cruzados: B não usa um projeto, conversa ou agente de A nos próprios registros.
 select pg_temp.check(pg_temp.exec_as(:'B', format('insert into public.tasks (title, project_id) values (''x'', %s)', (select id from public.projects where user_id = :'A' limit 1))) = -1, 'tasks: B não cria tarefa dentro de projeto de A');

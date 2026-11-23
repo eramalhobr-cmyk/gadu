@@ -1,5 +1,5 @@
 -- S-05 (resto), migração 20261123150001: quem não está ativo não grava pelas tabelas do cliente.
--- Prova: ativa grava; bloqueada não insere nem altera (20 tabelas), mas ainda lê e APAGA o que é dela (decisão do Eduardo, 23/11); quem não
+-- Prova: ativa grava; bloqueada não insere nem altera (23 tabelas), mas ainda lê e APAGA o que é dela (decisão do Eduardo, 23/11); quem não
 -- tem linha em members grava; outra pessoa não lê nem grava; cascata e servidor seguem funcionando; reminders não aceita
 -- conversa de outra pessoa; o rollback documentado desfaz tudo. Dados sintéticos, Postgres local descartável.
 \set ON_ERROR_STOP on
@@ -53,6 +53,7 @@ declare conv bigint := 7000 + n; goal uuid := ('00000000-0000-0000-0000-00000000
 begin
   insert into public.conversations (id, user_id, title) overriding system value values (conv, uid, 'c');
   insert into public.projects (id, user_id, name) overriding system value values (conv, uid, 'p');
+  insert into public.projects (id, user_id, name) overriding system value values (conv + 100, uid, 'p2');  -- segundo projeto: alvo do insert de goal_projects
   insert into public.agents (id, user_id, name) overriding system value values (conv, uid, 'a');
   insert into public.tasks (id, user_id, title) overriding system value values (conv, uid, 't');
   insert into public.memories (id, user_id, content) overriding system value values (conv, uid, 'm');
@@ -63,6 +64,8 @@ begin
   insert into public.goal_progress (user_id, goal_id, valor, data) values (uid, goal, 1, current_date);
   insert into public.goal_milestones (user_id, goal_id, titulo) values (uid, goal, 'mm');
   insert into public.goal_tasks (user_id, goal_id, task_id) values (uid, goal, conv);
+  insert into public.goal_projects (user_id, goal_id, project_id) values (uid, goal, conv);
+  insert into public.goal_events (user_id, goal_id, event_id, titulo, inicio, fim) values (uid, goal, 'evseed' || n, 'e', now(), now() + interval '1 hour');
   insert into public.fin_itens (id, user_id, tipo, nome) values (item, uid, 'despesa', 'luz');
   insert into public.fin_item_meses (user_id, item_id, ano, mes, valor) values (uid, item, 2026, 11, 10);
   insert into public.fin_gastos (user_id, ano, mes, dia, valor) values (uid, 2026, 11, 1, 5);
@@ -93,6 +96,8 @@ create function pg_temp.cmds(n int) returns table (tab text, ins text, upd text,
    ('goal_milestones',   'insert into public.goal_milestones (goal_id,titulo) values (''00000000-0000-0000-0000-00000000990' || n || ''',''n'')', 'update public.goal_milestones set titulo=''z''', 'delete from public.goal_milestones where user_id = auth.uid()'),
    ('goal_progress',     'insert into public.goal_progress (goal_id,valor,data) values (''00000000-0000-0000-0000-00000000990' || n || ''',1,current_date)', 'update public.goal_progress set valor=2', 'delete from public.goal_progress where user_id = auth.uid()'),
    ('goal_tasks',        'insert into public.goal_tasks (goal_id, task_id) select ''00000000-0000-0000-0000-00000000990' || n || ''', id from public.tasks where user_id = auth.uid() and id <> ' || (7000 + n), 'update public.goal_tasks set created_at=now()', 'delete from public.goal_tasks where user_id = auth.uid()'),
+   ('goal_projects',    'insert into public.goal_projects (goal_id, project_id) select ''00000000-0000-0000-0000-00000000990' || n || ''', id from public.projects where user_id = auth.uid() and id <> ' || (7000 + n), 'update public.goal_projects set created_at=now()', 'delete from public.goal_projects where user_id = auth.uid()'),
+   ('goal_events',       'insert into public.goal_events (goal_id, event_id, titulo, inicio, fim) values (''00000000-0000-0000-0000-00000000990' || n || ''', ''evnovo01'', ''n'', now(), now() + interval ''1 hour'')', 'update public.goal_events set titulo=''z''', 'delete from public.goal_events where user_id = auth.uid()'),
    ('goals',             'insert into public.goals (titulo,medicao,valor_alvo) values (''n'',''numerica'',5)', 'update public.goals set titulo=''z''', 'delete from public.goals where user_id = auth.uid()'),
    ('google_connections','insert into public.google_connections (refresh_token_enc) values (''y'') on conflict (user_id) do update set google_email=''q@r.s''', 'update public.google_connections set google_email=''a@b.c''', 'delete from public.google_connections where user_id = auth.uid()'),
    ('memories',          'insert into public.memories (content) values (''n'')', 'update public.memories set content=''z''', 'delete from public.memories where user_id = auth.uid()'),
@@ -108,9 +113,9 @@ create function pg_temp.cmds(n int) returns table (tab text, ins text, upd text,
   ) as t(tab, ins, upd, del)
 $f$;
 
--- ===== Estrutura: 20 tabelas x 2 comandos (insert, update) + 2 de reminders; nenhuma de delete; função só para quem deve ===========================
-select pg_temp.check((select count(*) from pg_policies where schemaname = 'public' and permissive = 'RESTRICTIVE' and policyname like '%\_ativo\_%') = 42,
-  '42 políticas restritivas de acesso (21 tabelas x insert, update)');
+-- ===== Estrutura: 23 tabelas x 2 comandos (insert, update) + 2 de reminders; nenhuma de delete; função só para quem deve ===========================
+select pg_temp.check((select count(*) from pg_policies where schemaname = 'public' and permissive = 'RESTRICTIVE' and policyname like '%\_ativo\_%') = 46,
+  '46 políticas restritivas de acesso (23 tabelas x insert, update)');
 select pg_temp.check((select count(*) from pg_policies where schemaname = 'public' and permissive = 'RESTRICTIVE' and cmd = 'DELETE') = 0,
   'nenhuma política restritiva de delete (bloqueada pode apagar os próprios dados)');
 select pg_temp.check((select count(*) from pg_policies where schemaname = 'public' and tablename = 'reminders' and policyname like 'reminders\_conversa\_propria\_%') = 2,
@@ -127,8 +132,8 @@ select pg_temp.check(pg_temp.val_as('authenticated', '', 'select public.can_writ
 select pg_temp.check(pg_temp.val_as('anon', '', 'select public.can_write()') like 'ERRO:42501', 'anon recebe permissão negada em can_write');
 
 -- ===== Ativa e sem linha gravam em todas as tabelas =============================================================
--- 20 tabelas x 3 comandos = 60. Por desenho, 4 não gravam: profiles (sem política de insert nem de delete), messages
--- (sem política de update) e o insert de goal_tasks deste teste (só há uma tarefa por pessoa). Sobram 59 que gravam (21 tabelas x 3 = 63).
+-- 23 tabelas x 3 comandos = 69. Por desenho, 4 não gravam: profiles (sem política de insert nem de delete), messages
+-- (sem política de update) e o insert de goal_tasks deste teste (só há uma tarefa por pessoa). Sobram 65 que gravam (23 tabelas x 3 = 69).
 do $$
 declare r record; u text; n int; gravou int; recusados text;
 begin
@@ -140,8 +145,8 @@ begin
       if pg_temp.exec_as(u, r.upd) = 'GRAVOU' then gravou := gravou + 1; else recusados := recusados || r.tab || '.update '; end if;
       if pg_temp.exec_as(u, r.del) = 'GRAVOU' then gravou := gravou + 1; else recusados := recusados || r.tab || '.delete '; end if;
     end loop;
-    if gravou <> 59 then raise exception 'FALHOU: % gravou em % de 63 comandos (esperado 59); sem gravar: %', u, gravou, recusados; end if;
-    raise notice 'ok - % grava em 59 de 63 comandos (os 4 restantes não têm política por desenho: %)', case when n = 1 then 'ativa' else 'sem linha em members' end, trim(recusados);
+    if gravou <> 65 then raise exception 'FALHOU: % gravou em % de 69 comandos (esperado 65); sem gravar: %', u, gravou, recusados; end if;
+    raise notice 'ok - % grava em 65 de 69 comandos (os 4 restantes não têm política por desenho: %)', case when n = 1 then 'ativa' else 'sem linha em members' end, trim(recusados);
   end loop;
 end $$;
 
@@ -155,10 +160,10 @@ begin
     if pg_temp.exec_as(b, r.del) = 'GRAVOU' then apagou := apagou + 1; else nao_apagou := nao_apagou || r.tab || ' '; end if;
   end loop;
   if gravou <> 0 then raise exception 'FALHOU: bloqueada ainda insere/altera em % comandos: %', gravou, falhas; end if;
-  raise notice 'ok - bloqueada insere/altera em 0 dos 42 comandos';
-  -- 20 de 21: profiles não tem política de delete para ninguém (por desenho).
-  if apagou <> 20 or trim(nao_apagou) <> 'profiles' then raise exception 'FALHOU: bloqueada apagou % de 21 (esperado 20, só profiles sem delete); não apagou: %', apagou, nao_apagou; end if;
-  raise notice 'ok - bloqueada apaga os próprios dados em 20 de 21 tabelas (profiles não tem delete por desenho)';
+  raise notice 'ok - bloqueada insere/altera em 0 dos 46 comandos';
+  -- 22 de 23: profiles não tem política de delete para ninguém (por desenho).
+  if apagou <> 22 or trim(nao_apagou) <> 'profiles' then raise exception 'FALHOU: bloqueada apagou % de 23 (esperado 22, só profiles sem delete); não apagou: %', apagou, nao_apagou; end if;
+  raise notice 'ok - bloqueada apaga os próprios dados em 22 de 23 tabelas (profiles não tem delete por desenho)';
 end $$;
 select pg_temp.check(pg_temp.exec_as(:'B', $$delete from public.memories where user_id = auth.uid()$$) = 'GRAVOU', 'bloqueada apaga a própria memória (decisão do Eduardo)');
 select pg_temp.check(pg_temp.exec_as(:'B', $$delete from public.tasks where user_id = '00000000-0000-0000-0000-0000000f6001'$$) = '0 linhas', 'bloqueada não apaga dados de outra pessoa');
@@ -213,7 +218,7 @@ select pg_temp.check(pg_temp.exec_as('00000000-0000-0000-0000-0000000f6004', $$i
 -- ===== Rollback documentado: desfaz tudo e a pessoa bloqueada volta a gravar (dentro de uma transação desfeita) ===
 begin;
 do $$ declare t text; begin
-  foreach t in array array['agents','conversations','fin_config','fin_gastos','fin_item_meses','fin_itens','fin_tetos','goal_milestones','goal_progress','goal_tasks','goals','google_connections','memories','messages','pecas_3d','pecas_3d_versoes','profiles','projects','push_subscriptions','reminders','tasks'] loop
+  foreach t in array array['agents','conversations','fin_config','fin_gastos','fin_item_meses','fin_itens','fin_tetos','goal_events','goal_milestones','goal_progress','goal_projects','goal_tasks','goals','google_connections','memories','messages','pecas_3d','pecas_3d_versoes','profiles','projects','push_subscriptions','reminders','tasks'] loop
     execute format('drop policy if exists %I on public.%I', t || '_ativo_insert', t);
     execute format('drop policy if exists %I on public.%I', t || '_ativo_update', t);
   end loop;
@@ -226,6 +231,6 @@ select pg_temp.check((select count(*) from pg_proc where proname = 'can_write') 
 update public.members set access = 'blocked' where user_id = '00000000-0000-0000-0000-0000000f6004';
 select pg_temp.check(pg_temp.exec_as('00000000-0000-0000-0000-0000000f6004', $$insert into public.memories (content) values ('x')$$) = 'GRAVOU', 'rollback: o comportamento anterior volta (bloqueada grava de novo, S-05 aberto)');
 rollback;
-select pg_temp.check((select count(*) from pg_policies where permissive = 'RESTRICTIVE' and schemaname = 'public') = 44, 'depois do rollback de teste, as 44 políticas continuam (transação desfeita)');
+select pg_temp.check((select count(*) from pg_policies where permissive = 'RESTRICTIVE' and schemaname = 'public') = 48, 'depois do rollback de teste, as 48 políticas continuam (transação desfeita)');
 
 \echo 's05: todos os testes SQL passaram'

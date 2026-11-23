@@ -147,6 +147,40 @@ select pg_temp.check(pg_temp.bad($q$insert into public.goal_progress (user_id, g
 select pg_temp.check(not pg_temp.bad(format($q$insert into public.goal_progress (user_id, goal_id, valor, data, origem) values (%L, %L, 1, current_date, 'conversa'), (%L, %L, 1, current_date, 'tarefa')$q$, :'A', (select goal from ids where who = :'A'), :'A', (select goal from ids where who = :'A'))), 'origens válidas (conversa, tarefa) entram');
 select pg_temp.check(pg_temp.bad(format($q$insert into public.goal_milestones (user_id, goal_id, titulo) values (%L, %L, '  ')$q$, :'A', (select goal from ids where who = :'A'))), 'marco com título em branco recusado');
 
+-- ===== Fase 2: vínculo com projetos e blocos de agenda (migração 20261123170001) =============================
+create temp table ids2 (who text primary key, proj bigint);
+do $$
+declare a uuid := '00000000-0000-0000-0000-0000000e7a01'; b uuid := '00000000-0000-0000-0000-0000000e7b01'; u uuid; pr bigint;
+begin
+  foreach u in array array[a, b] loop
+    insert into public.projects (user_id, name) values (u, 'Projeto sintético') returning id into pr;
+    insert into public.goal_projects (user_id, goal_id, project_id) select u, goal, pr from ids where who = u::text;
+    insert into public.goal_events (user_id, goal_id, event_id, titulo, inicio, fim) select u, goal, 'evsintetico' || right(u::text, 2), 'Bloco sintético', now() + interval '1 day', now() + interval '1 day 1 hour' from ids where who = u::text;
+    insert into ids2 values (u::text, pr);
+  end loop;
+end $$;
+select pg_temp.check((select count(*) = 2 from pg_policies where schemaname = 'public' and permissive = 'RESTRICTIVE' and tablename = 'goal_projects')
+  and (select count(*) = 2 from pg_policies where schemaname = 'public' and permissive = 'RESTRICTIVE' and tablename = 'goal_events'), 'goal_projects e goal_events têm as políticas restritivas do S-05');
+select pg_temp.check(pg_temp.count_as('anon', null, 'select 1 from public.goal_projects') = 0 and pg_temp.count_as('anon', null, 'select 1 from public.goal_events') = 0, 'anon não lê vínculos de projeto nem de agenda');
+select pg_temp.check(pg_temp.exec_as('authenticated', :'B', format($q$insert into public.goal_projects (goal_id, project_id) values (%L, %L)$q$, (select goal from ids where who = :'B'), (select proj from ids2 where who = :'A'))) = 'ERRO:23503', 'B não liga a própria meta a projeto de A');
+select pg_temp.check(pg_temp.exec_as('authenticated', :'B', format($q$insert into public.goal_projects (goal_id, project_id) values (%L, %L)$q$, (select goal from ids where who = :'A'), (select proj from ids2 where who = :'B'))) = 'ERRO:23503', 'B não liga meta de A ao próprio projeto');
+select pg_temp.check(pg_temp.exec_as('authenticated', :'B', format($q$insert into public.goal_projects (user_id, goal_id, project_id) values (%L, %L, %L)$q$, :'A', (select goal from ids where who = :'A'), (select proj from ids2 where who = :'A'))) like 'ERRO:%', 'B não cria vínculo em nome de A');
+select pg_temp.check(pg_temp.exec_as('authenticated', :'B', format($q$delete from public.goal_projects where goal_id = %L$q$, (select goal from ids where who = :'A'))) = '0', 'B não desfaz vínculo de projeto de A');
+select pg_temp.check(pg_temp.exec_as('authenticated', :'B', format($q$insert into public.goal_events (goal_id, event_id, titulo, inicio, fim) values (%L, 'evinvasor1', 'x', now(), now() + interval '1 hour')$q$, (select goal from ids where who = :'A'))) = 'ERRO:23503', 'B não cria bloco de agenda na meta de A');
+select pg_temp.check(pg_temp.exec_as('authenticated', :'B', format($q$update public.goal_events set titulo = 'x' where goal_id = %L$q$, (select goal from ids where who = :'A'))) = '0', 'B não altera bloco de agenda de A');
+select pg_temp.check(pg_temp.exec_as('authenticated', :'B', format($q$delete from public.goal_events where goal_id = %L$q$, (select goal from ids where who = :'A'))) = '0', 'B não apaga bloco de agenda de A');
+select pg_temp.check(pg_temp.count_as('authenticated', :'B', format($q$select 1 from public.goal_events where goal_id = %L$q$, (select goal from ids where who = :'A'))) = 0, 'B não lê bloco de agenda de A');
+select pg_temp.check(pg_temp.exec_as('authenticated', :'A', format($q$insert into public.goal_projects (goal_id, project_id) values (%L, %L)$q$, (select goal from ids where who = :'A'), (select proj from ids2 where who = :'A'))) = 'ERRO:23505', 'A não liga a mesma meta ao mesmo projeto duas vezes');
+select pg_temp.check(pg_temp.exec_as('authenticated', :'A', format($q$insert into public.goal_events (goal_id, event_id, titulo, inicio, fim) values (%L, 'evdeA00001', 'Corrida', now() + interval '2 days', now() + interval '2 days 1 hour')$q$, (select goal from ids where who = :'A'))) = '1', 'A cria bloco de agenda na própria meta');
+select pg_temp.check(pg_temp.bad($q$insert into public.goal_events (user_id, goal_id, event_id, titulo, inicio, fim) select user_id, goal, 'evfimantes1', 'x', now(), now() - interval '1 hour' from (select '00000000-0000-0000-0000-0000000e7a01'::uuid as user_id) u, ids where who = '00000000-0000-0000-0000-0000000e7a01'$q$), 'bloco que termina antes de começar é recusado');
+select pg_temp.check(pg_temp.bad($q$insert into public.goal_events (user_id, goal_id, event_id, titulo, inicio, fim) select '00000000-0000-0000-0000-0000000e7a01', goal, 'evlongo0001', 'x', now(), now() + interval '25 hours' from ids where who = '00000000-0000-0000-0000-0000000e7a01'$q$), 'bloco com mais de 24 horas é recusado');
+select pg_temp.check(pg_temp.bad($q$insert into public.goal_events (user_id, goal_id, event_id, titulo, inicio, fim) select '00000000-0000-0000-0000-0000000e7a01', goal, 'a b/c?', 'x', now(), now() + interval '1 hour' from ids where who = '00000000-0000-0000-0000-0000000e7a01'$q$), 'id de evento com caractere inválido é recusado');
+select pg_temp.check(pg_temp.bad($q$insert into public.goal_events (user_id, goal_id, event_id, titulo, inicio, fim) select '00000000-0000-0000-0000-0000000e7a01', goal, 'evtitulo001', '  ', now(), now() + interval '1 hour' from ids where who = '00000000-0000-0000-0000-0000000e7a01'$q$), 'bloco com título em branco é recusado');
+-- Cascatas da fase 2: apagar o projeto desfaz o vínculo (a meta fica); apagar a meta apaga os blocos.
+delete from public.projects where id = (select proj from ids2 where who = :'A');
+select pg_temp.check((select count(*) = 0 from public.goal_projects where user_id = :'A') and (select count(*) = 1 from public.goals where id = (select goal from ids where who = :'A')), 'apagar o projeto desfaz o vínculo e não apaga a meta');
+select pg_temp.check((select count(*) = 2 from public.goal_events where user_id = :'A'), 'a meta de A tem 2 blocos de agenda antes da cascata');
+
 -- ===== Cascatas =============================================================================================
 select pg_temp.check((select count(*) from public.goal_progress where goal_id = (select goal from ids where who = :'A')) >= 1, 'A tem registros na meta');
 delete from public.tasks where id = (select task from ids where who = :'A');
@@ -154,9 +188,10 @@ select pg_temp.check((select count(*) = 0 from public.goal_tasks where user_id =
 select pg_temp.check((select count(*) = 1 from public.goals where id = (select goal from ids where who = :'A')), 'a meta continua depois de a tarefa ser apagada');
 delete from public.goals where id = (select goal from ids where who = :'A');
 select pg_temp.check((select count(*) = 0 from public.goal_progress where goal_id = (select goal from ids where who = :'A'))
-  and (select count(*) = 0 from public.goal_milestones where goal_id = (select goal from ids where who = :'A')), 'apagar a meta apaga registros e marcos dela (cascata)');
+  and (select count(*) = 0 from public.goal_milestones where goal_id = (select goal from ids where who = :'A'))
+  and (select count(*) = 0 from public.goal_events where user_id = :'A'), 'apagar a meta apaga registros, marcos e blocos de agenda dela (cascata)');
 delete from auth.users where id = :'B';
 select pg_temp.check((select count(*) = 0 from public.goals where user_id = :'B') and (select count(*) = 0 from public.goal_progress where user_id = :'B')
-  and (select count(*) = 0 from public.goal_milestones where user_id = :'B') and (select count(*) = 0 from public.goal_tasks where user_id = :'B'), 'apagar a pessoa apaga todos os dados de metas dela');
+  and (select count(*) = 0 from public.goal_milestones where user_id = :'B') and (select count(*) = 0 from public.goal_tasks where user_id = :'B') and (select count(*) = 0 from public.goal_projects where user_id = :'B') and (select count(*) = 0 from public.goal_events where user_id = :'B'), 'apagar a pessoa apaga todos os dados de metas dela');
 
 \echo 'metas: todos os testes SQL passaram'
