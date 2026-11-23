@@ -16,6 +16,7 @@ import { navSpoken, parseNavIntent, pushTab } from "@/lib/nav-intent";
 import { EVENTO_FALAR, parseLerResumo } from "@/lib/painel-fala";
 import { calcularPedido, pedeSalvarSalario, pedidoSalario, resumoSalario } from "@/lib/finance/salario-texto";
 import { parseModoVoz } from "@/lib/nivel-visual";
+import { ATENCAO_RECARREGAR_EVENT, EMAIL_NAO_IMPORTANTE_EVENT, parseNaoImportante } from "@/lib/email-regras";
 import { useNivel } from "./VoiceCore";
 import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
@@ -364,6 +365,30 @@ export function GaduApp(props: {
         { id: crypto.randomUUID(), role: "action", content: "salario", action: { kind: "salario", calc: salarioCalc, salvar: null } },
       ]);
       if (prefsRef.current.voice || opts.voice) { speaker?.cancel(); speaker?.announce(fala); }
+      return;
+    }
+    // "Isso não é importante" / "e-mails da Vercel não são importantes": ensina a triagem de e-mails, sem modelo e sem custo.
+    const naoImp = message ? parseNaoImportante(message) : null;
+    if (naoImp) {
+      setDraft("");
+      const dizer = (txt: string) => {
+        if (opts.voice && prefsRef.current.voice) speaker?.announce(txt);
+        else setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: txt }]);
+      };
+      if (naoImp.alvo === "isso") {
+        // O cartão "Merece sua atenção" (tela Hoje) aplica ao primeiro e-mail da lista; fora da Hoje, pede o remetente.
+        if (tabRef.current !== "hoje") dizer("Diga de quem é o e-mail, por exemplo: “e-mails da Vercel não são importantes”.");
+        else window.dispatchEvent(new CustomEvent(EMAIL_NAO_IMPORTANTE_EVENT, { detail: { voz: !!(opts.voice && prefsRef.current.voice) } }));
+        return;
+      }
+      void fetch("/api/email/nao-importante", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ termo: naoImp.termo }) })
+        .then(async (r) => {
+          const j = (await r.json().catch(() => ({}))) as { error?: string };
+          if (!r.ok) return dizer(j.error ?? "Não consegui salvar agora. Tente de novo.");
+          dizer(`Pronto: e-mails de ${naoImp.termo} não aparecem mais em Merece sua atenção.`);
+          window.dispatchEvent(new Event(ATENCAO_RECARREGAR_EVENT));
+        })
+        .catch(() => dizer("Não consegui salvar agora. Tente de novo."));
       return;
     }
     // "Abre finanças", "vai para as metas", "volta": navegação entendida aqui, sem modelo e sem custo (UX-7 G2).

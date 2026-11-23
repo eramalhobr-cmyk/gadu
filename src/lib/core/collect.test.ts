@@ -85,7 +85,7 @@ test("e-mail ausente: sem o escopo do Gmail, vai para unavailable e o Gmail NÃO
   assert.ok(r.facts.some((f) => f.tag === "A1"), "agenda segue");
   assert.ok(!r.facts.some((f) => f.tag.startsWith("E")));
   // Sem escopo de agenda, só o e-mail entra.
-  const g2 = fakeGoogle({ scopes: [SCOPE_MAIL], mails_: [mail("x1", "Alguém", "Assunto")] });
+  const g2 = fakeGoogle({ scopes: [SCOPE_MAIL], mails_: [mail("x1", "Alguém", "Assunto", true)] });
   const r2 = await collectAttention({ userId: A, db, google: g2.reader, blocked: [], now: NOW });
   assert.equal(r2.unavailable.find((x) => x.source === "agenda")?.reason, "scope");
   assert.ok(r2.facts.some((f) => f.tag === "E1"));
@@ -93,12 +93,14 @@ test("e-mail ausente: sem o escopo do Gmail, vai para unavailable e o Gmail NÃO
 
 test("e-mail enxuto: no máximo 5, importantes primeiro, só remetente e assunto (sem corpo)", async () => {
   const { db } = fakeDb(A, { tasks: [], reminders: [] });
-  const mails = Array.from({ length: 8 }, (_, i) => mail(`t${i}`, `Remetente ${i}`, `Assunto ${i}`, i === 6 || i === 7, `CORPO-SECRETO-${i}`));
+  const mails = Array.from({ length: 8 }, (_, i) => mail(`t${i}`, `Remetente ${i}`, `Assunto ${i}`, i >= 2, `CORPO-SECRETO-${i}`));
   const g = fakeGoogle({ mails_: mails });
   const r = await collectAttention({ userId: A, db, google: g.reader, blocked: [], now: NOW });
   const emails = r.facts.filter((f) => f.kind === "email");
   assert.equal(emails.length, 5);
-  assert.match(emails[0].text, /Remetente (6|7)/);
+  // E-mail comum (não importante) não entra mais na lista.
+  assert.ok(!emails.some((f) => /Remetente [01]\b/.test(f.text)));
+  assert.match(emails[0].text, /Remetente [2-7]/);
   assert.ok(emails[0].text.startsWith("E-mail importante"));
   assert.ok(!JSON.stringify(r).includes("CORPO-SECRETO"));
   assert.ok(g.spy.inboxMax <= 10);
@@ -147,7 +149,7 @@ test("privacidade: termo bloqueado e dado sensível aparecem só como omitidos, 
   const { db } = fakeDb(A, d);
   const g = fakeGoogle({
     events_: [ev("e1", "Almoço com Acme", "2026-11-22T17:00:00Z", "2026-11-22T18:00:00Z"), ev("e2", "Exame médico de rotina: laudo", "2026-11-22T19:00:00Z", "2026-11-22T20:00:00Z")],
-    mails_: [mail("m1", "Acme Financeiro", "Proposta"), mail("m2", "Amigo", "Oi", false, "minha senha é 1234")],
+    mails_: [mail("m1", "Acme Financeiro", "Proposta", true), mail("m2", "Amigo", "Oi", true, "minha senha é 1234")],
   });
   const r = await collectAttention({ userId: A, db, google: g.reader, blocked: ["acme"], now: NOW });
   const block = formatCoreBlock(r);
@@ -213,4 +215,25 @@ test("resumo de Fontes: contagem por tipo, em pt-BR", async () => {
   const { summarizeSources } = await import("./format.ts");
   assert.equal(summarizeSources([{ kind: "atrasada" }, { kind: "tarefa_hoje" }, { kind: "lembrete" }, { kind: "evento" }, { kind: "email" }]), "2 tarefas, 1 lembrete, 1 compromisso, 1 e-mail");
   assert.equal(summarizeSources([]), "");
+});
+
+test("e-mail: memória aprovada silencia Vercel, crítico sempre aparece e o remetente vai para a interface", async () => {
+  const M61 = "Não quer que e-mails de deploy da Vercel sejam tratados como importantes nos resumos; falhas de CI continuam relevantes.";
+  const { db } = fakeDb(A, { tasks: [], reminders: [], memories: [{ user_id: A, status: "approved", content: M61 }, { user_id: B, status: "approved", content: "Não quer e-mails de Maria." }] });
+  const g = fakeGoogle({
+    mails_: [
+      { ...mail("v1", "Vercel", "Failed production deployment", true), fromEmail: "notifications@vercel.com" },
+      { ...mail("c1", "Conta", "Alerta de segurança na sua conta", false), fromEmail: "noreply@conta.example.com" },
+      { ...mail("m1", "Maria", "Contrato", true), fromEmail: "maria@exemplo.com" },
+    ],
+  });
+  const r = await collectAttention({ userId: A, db, google: g.reader, blocked: [], now: NOW });
+  const emails = r.facts.filter((f) => f.kind === "email");
+  assert.deepEqual(emails.map((f) => f.label), ["E-mail crítico", "E-mail importante"]);
+  assert.ok(!JSON.stringify(r).includes("Vercel"));
+  assert.equal(toItem(emails[1]).de, "Maria <maria@exemplo.com>");
+  // Sem memória, a regra padrão já tira a notificação automática do Vercel.
+  const { db: db2 } = fakeDb(A, { tasks: [], reminders: [] });
+  const r2 = await collectAttention({ userId: A, db: db2, google: g.reader, blocked: [], now: NOW });
+  assert.ok(!JSON.stringify(r2).includes("Vercel"));
 });

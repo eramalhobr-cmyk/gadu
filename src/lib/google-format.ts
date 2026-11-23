@@ -1,6 +1,6 @@
 // Texto da agenda e dos e-mails para o modelo, e detecção de intenção. Sem dependências (testável).
 export type CalEvent = { id?: string; title: string; start: string; end: string; allDay: boolean; where?: string; meet: boolean; declined: boolean };
-export type Mail = { thread?: string; from: string; subject: string; snippet: string; date: string; important: boolean };
+export type Mail = { thread?: string; from: string; /** Endereço do remetente (só o e-mail), quando o Gmail informa. */ fromEmail?: string; subject: string; snippet: string; date: string; important: boolean };
 const TZ = "America/Sao_Paulo";
 
 
@@ -25,15 +25,16 @@ export function formatEvents(list: CalEvent[]): string {
 }
 
 /** E-mails que `hide` reprova (sensíveis ou com termo bloqueado) chegam ao modelo só como "omitido". */
-export function formatMails(list: Mail[], hide: (text: string) => boolean = () => false): string {
+export function formatMails(list: (Mail & { nivel?: string; motivo?: string })[], hide: (text: string) => boolean = () => false): string {
   if (!list.length) return "E-mails: nenhum e-mail não lido relevante nos últimos 2 dias.";
   return (
     `E-mails não lidos (últimos 2 dias, ${list.length}):\n` +
     list
       .map((m) => {
         const text = `${m.subject} ${m.snippet}`;
-        if (hide(`${m.from} ${text}`)) return `- ${m.important ? "[importante] " : ""}(e-mail omitido pela regra de privacidade)`;
-        return `- ${m.important ? "[importante] " : ""}De ${m.from}: "${m.subject}" — ${m.snippet}`;
+        const tag = m.nivel === "baixa" ? `[baixa prioridade: ${m.motivo ?? "regra"}] ` : m.nivel === "critico" ? "[crítico] " : m.important ? "[importante] " : "";
+        if (hide(`${m.from} ${text}`)) return `- ${tag}(e-mail omitido pela regra de privacidade)`;
+        return `- ${tag}De ${m.from}: "${m.subject}" — ${m.snippet}`;
       })
       .join("\n")
   );

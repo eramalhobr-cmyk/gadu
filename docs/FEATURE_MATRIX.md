@@ -170,6 +170,8 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 
 **UX-7 M5 (23/11/2026):** "o que posso dizer aqui". Toda tela tem o botão de balão no topo com 3 ou 4 frases de ações desta matriz; pela voz, "o que posso dizer aqui?" abre o mesmo cartão e lê exemplos (comando local, sem modelo). Tocar numa frase só leva o texto ao campo.
 
+**E-mails e memórias (23/11/2026):** a triagem de e-mails (Merece sua atenção, Hoje, briefing e chat) obedece às memórias aprovadas ("e-mails da Vercel não são importantes; falhas de CI continuam relevantes"). Avisos críticos (segurança, cobrança) sempre aparecem; notificações automáticas ficam em baixa prioridade. "Isso não é importante" e "e-mails da Vercel não são importantes" funcionam por voz e texto (comando local, sem modelo) e pelo botão "Não é importante" do e-mail; cada um grava uma memória já aprovada. Sem migração. Arquivos: `src/lib/email-regras.ts`, `src/lib/core/sources/email.ts`, `src/app/api/email/nao-importante/route.ts`, `src/components/AttentionCard.tsx`.
+
 **UX-7 G2 (23/11/2026):** navegação por intenção. "Abre finanças", "vai para as metas", "abre o 3D" e "volta" (tela anterior) funcionam por voz e por texto em qualquer tela, entendidos no aparelho (sem modelo). Frases que pedem conteúdo continuam com o GaDu.
 
 **UX-7 (23/11/2026):** palco de voz. O avatar do GaDu fica grande na tela de escuta, na Conversa e no painel do assistente enquanto ele ouve, pensa ou fala, e reage ao som real. É só apresentação: não há ação nova a cobrir nesta matriz.
