@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { matchByName, parseAcoes, validAcao } from "./acoes.ts";
+import { acoesRules, matchByName, parseAcoes, TIPOS, validAcao } from "./acoes.ts";
 
 const NOW = Date.parse("2026-11-22T15:00:00-03:00");
 
@@ -142,4 +142,11 @@ test("memória aprovar, recusar e esquecer; nova conversa; navegar", () => {
     assert.deepEqual(validAcao({ tipo: "navegar", destino: dito }, NOW), { tipo: "navegar", destino: view }, dito);
   }
   for (const ruim of ["admin", "3d", "studio", "casa", "../etc", "", 5, null]) assert.equal(validAcao({ tipo: "navegar", destino: ruim }, NOW), null, String(ruim));
+});
+
+test("guia: abrir o guia de primeiro uso por voz (sem dados, sem gravar)", () => {
+  assert.deepEqual(validAcao({ tipo: "guia" }, NOW), { tipo: "guia" });
+  assert.deepEqual(validAcao({ tipo: "guia", lixo: "x" }, NOW), { tipo: "guia" }, "campo extra é ignorado");
+  assert.ok((TIPOS as readonly string[]).includes("guia"));
+  assert.match(acoesRules(), /"tipo":"guia"/);
 });

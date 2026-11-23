@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { needsOnboarding } from "@/lib/onboarding";
 import type { Msg } from "@/components/GaduApp";
 import { cookies } from "next/headers";
 import { parseView } from "@/lib/modules";
@@ -57,6 +58,8 @@ export async function loadApp({ google, tab, start }: AppParams = {}) {
       initialTheme: parseTheme((await cookies()).get(THEME_COOKIE)?.value),
       admin: access.admin,
       seenTips: Array.isArray(settings.tips) ? settings.tips.map(String).slice(0, 20) : [],
+      // Pessoa nova (sem o guia feito e sem dicas vistas) abre o guia de primeiro uso. Preferência em profiles.settings.onboarding, sem migração.
+      showOnboarding: needsOnboarding(settings),
       autoStart: (start === "briefing" || start === "review" ? start : null) as "briefing" | "review" | null,
       flash: typeof google === "string" ? google.slice(0, 20) : null,
     },

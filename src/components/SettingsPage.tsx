@@ -47,6 +47,8 @@ export function SettingsPage(props: {
   initialBlocked: string[];
   morningLink: string;
   onResetTips: () => void;
+  /** Abre de novo o guia de primeiro uso (3 passos, falado). */
+  onGuide: () => void;
 }) {
   const [blocked, setBlocked] = useState<string[]>(props.initialBlocked);
   const [term, setTerm] = useState("");
@@ -170,7 +172,8 @@ export function SettingsPage(props: {
           <div className="set-cards">
       <section className="card">
         <h2>Aprender a usar</h2>
-        <a className="help-item primary" href="/app/guia" style={{ textDecoration: "none" }}><span style={{ flex: 1 }}>Guia passo a passo</span><span aria-hidden="true">›</span></a>
+        <button className="help-item primary" onClick={props.onGuide}><span style={{ flex: 1 }}>Ver o guia de primeiro uso (3 passos, falado)</span><span aria-hidden="true">›</span></button>
+        <a className="help-item" href="/app/guia" style={{ textDecoration: "none" }}><span style={{ flex: 1 }}>Guia passo a passo</span><span aria-hidden="true">›</span></a>
         <a className="help-item" href="/app/sobre" style={{ textDecoration: "none" }}><span style={{ flex: 1 }}>Como o GaDu funciona (arquitetura)</span><span aria-hidden="true">›</span></a>
         <button className="help-item" onClick={props.onResetTips}><span style={{ flex: 1 }}>Rever as dicas de cada tela</span><span aria-hidden="true">›</span></button>
       </section>

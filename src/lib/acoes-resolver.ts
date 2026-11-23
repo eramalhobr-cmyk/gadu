@@ -327,6 +327,9 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
         case "nova_conversa":
           actions.push({ kind: "nova_conversa" });
           break;
+        case "guia":
+          actions.push({ kind: "guia" });
+          break;
         case "navegar":
           // Telas desligadas pelo interruptor não abrem (o menu também esconde).
           if ((a.destino === "financeiro" && !opts.finance) || (a.destino === "metas" && !opts.goals)) { misses.push(`${DESTINO_NOME[a.destino]} está desligado no momento.`); break; }

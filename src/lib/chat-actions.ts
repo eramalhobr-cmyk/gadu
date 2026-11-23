@@ -46,6 +46,7 @@ export type ChatAction =
   | { kind: "memoria_recusar"; id: number; texto: string }
   | { kind: "memoria_esquecer"; id: number; texto: string }
   | { kind: "nova_conversa" }
+  | { kind: "guia" }
   /** Abre uma tela na hora (o app trata, sem cartão nem confirmação): não grava nada. */
   | { kind: "navegar"; view: Destino }
   | { kind: "projeto"; nome: string; objetivo: string | null }
@@ -203,6 +204,8 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
       return { icon: "book", proposed: "Esquecer isto?", done: "Esquecido", undone: "Descartado", title: a.texto, detail: "O GaDu deixa de saber disso. Não dá para desfazer", confirm: "Esquecer", busy: "Apagando…", applied: false, open: { label: "Ver Memória", view: "memoria" } };
     case "nova_conversa":
       return { icon: "plus", proposed: "Começar uma conversa nova?", done: "Conversa nova", undone: "Descartado", title: "Nova conversa", detail: "A conversa atual fica guardada no histórico", confirm: "Começar", busy: "Abrindo…", applied: false };
+    case "guia":
+      return { icon: "spark", proposed: "Abrir o guia?", done: "Abrindo o guia", undone: "Descartado", title: "Guia de primeiro uso", detail: "Três passos: nome, microfone e voz, Google", confirm: "Abrir", busy: "Abrindo…", applied: false };
     case "navegar":
       return { icon: "chevron", proposed: `Abrir ${DESTINO_NOME[a.view]}`, done: `Abrindo ${DESTINO_NOME[a.view]}`, undone: "Descartado", title: DESTINO_NOME[a.view], detail: "Abre a tela", confirm: "Abrir", busy: "Abrindo…", applied: false };
     case "projeto":
@@ -232,11 +235,12 @@ export function ajusteLabel(j: Ajuste): string {
 }
 
 /** Navegação por voz é instantânea (não grava nada): separa o pedido de abrir tela dos cartões. Vale o último pedido. */
-export function splitNavegacao(items: ChatAction[]): { cards: ChatAction[]; destino: Destino | null } {
+export function splitNavegacao(items: ChatAction[]): { cards: ChatAction[]; destino: Destino | null; /** "me mostra o guia": abre o guia de primeiro uso na hora (não grava nada). */ guia: boolean } {
   let destino: Destino | null = null;
+  let guia = false;
   const cards: ChatAction[] = [];
-  for (const a of items) { if (a.kind === "navegar") destino = a.view; else cards.push(a); }
-  return { cards, destino };
+  for (const a of items) { if (a.kind === "navegar") destino = a.view; else if (a.kind === "guia") guia = true; else cards.push(a); }
+  return { cards, destino, guia };
 }
 
 /** Pergunta falada da confirmação (sem o "Diga sim ou não"). */
@@ -279,6 +283,7 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     case "memoria_recusar": return `Descarto a memória: ${a.texto}? Não dá para desfazer.`;
     case "memoria_esquecer": return `Esqueço isto: ${a.texto}? Não dá para desfazer.`;
     case "nova_conversa": return "Começo uma conversa nova?";
+    case "guia": return "Abro o guia?";
     case "navegar": return `Abro ${DESTINO_NOME[a.view]}?`;
     case "projeto": return `Crio o projeto ${a.nome}?`;
     case "ajuste": return `${ajusteLabel(a.ajuste)}?`;

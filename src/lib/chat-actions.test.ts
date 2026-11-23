@@ -113,3 +113,13 @@ test("tudo por voz: cartões e perguntas de memória, nova conversa e navegaçã
   assert.deepEqual(r.cards, [{ kind: "nova_conversa" }], "gravações e conversa nova continuam como cartão");
   assert.equal(splitNavegacao([{ kind: "nova_conversa" }]).destino, null);
 });
+
+test("guia: pergunta falada, cartão e abertura instantânea (não vira cartão)", async () => {
+  const { actionQuestion, describe: d, splitNavegacao } = await import("./chat-actions.ts");
+  assert.equal(actionQuestion({ kind: "guia" }, NOW), "Abro o guia?");
+  assert.equal(d({ kind: "guia" }).confirm, "Abrir");
+  const r = splitNavegacao([{ kind: "guia" }, { kind: "nova_conversa" }]);
+  assert.equal(r.guia, true);
+  assert.deepEqual(r.cards, [{ kind: "nova_conversa" }]);
+  assert.equal(splitNavegacao([{ kind: "navegar", view: "metas" }]).guia, false);
+});

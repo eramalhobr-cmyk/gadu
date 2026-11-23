@@ -284,3 +284,10 @@ test("nova conversa e navegação não leem nada; telas desligadas não abrem", 
   assert.deepEqual(off.actions, [{ kind: "navegar", view: "agenda" }]);
   assert.equal(off.misses.length, 2);
 });
+
+test("guia não lê nada do banco", async () => {
+  const sem = fakeDb({});
+  const r = await resolveAcoes(sem, U, [{ tipo: "guia" }], { goals: false, finance: false, now: NOW });
+  assert.deepEqual(r.actions, [{ kind: "guia" }]);
+  assert.equal(sem.calls.length, 0);
+});
