@@ -1,4 +1,5 @@
 "use client";
+import { MSG, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { EmptyState, PageHeader, Panel } from "./kit";
 import { COLORS, colorVar, Icon } from "./ui";
@@ -45,13 +46,13 @@ export function AgendaView({ onBack }: { onBack: () => void }) {
       if (!r.ok) {
         if (j.error === "not_connected") { setConn("none"); setErr(""); }
         else if (j.error === "revoked") { setConn("revoked"); setErr(""); }
-        else setErr(j.message || "Não consegui ler a agenda.");
+        else setErr(j.message || loadFailed("a agenda"));
         setEvents([]);
         return;
       }
       setConn("ok"); setErr(""); setEvents(j.events);
     } catch {
-      setErr("Sem conexão. Tente de novo."); setEvents([]);
+      setErr(MSG.offlineDo); setEvents([]);
     }
   }, [week]);
   useEffect(() => { void load(); }, [load]);

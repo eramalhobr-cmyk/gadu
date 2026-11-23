@@ -1,4 +1,5 @@
 "use client";
+import { actionFailed, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { EmptyState } from "./kit";
@@ -37,7 +38,7 @@ export function ConversationsDrawer(props: {
     const words = query.trim().split(/\s+/).filter((w) => w.length >= 2).join(" ");
     if (words) req = req.textSearch("search", words, { type: "websearch", config: "portuguese" });
     const { data, error } = await req.order("updated_at", { ascending: false }).limit(60);
-    setError(error ? "Não consegui carregar as conversas." : "");
+    setError(error ? loadFailed("as conversas") : "");
     setItems((data as Conv[]) ?? []);
   }, [db]);
 
@@ -57,7 +58,7 @@ export function ConversationsDrawer(props: {
 
   async function remove(id: number) {
     const { error } = await db.from("conversations").delete().eq("id", id);
-    if (error) return setError("Não consegui apagar. Tente de novo.");
+    if (error) return setError(actionFailed("apagar"));
     setConfirm(null);
     props.onDeleted(id);
     void load(q);

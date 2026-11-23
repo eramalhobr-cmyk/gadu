@@ -1,4 +1,5 @@
 "use client";
+import { MSG, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { EmptyState, PageHeader, Panel } from "./kit";
@@ -60,7 +61,7 @@ function ProjectsScreen({ onTalk }: { onTalk: (project: { id: number; name: stri
 
   const load = useCallback(async () => {
     const { data, error } = await db.from("projects").select("id, name, goal, next_steps, status, color, tasks(status)").order("status").order("updated_at", { ascending: false }).limit(100);
-    if (error) setErr("Não consegui carregar os projetos.");
+    if (error) setErr(loadFailed("os projetos"));
     const list = (data ?? []) as unknown as Project[];
     setItems(list);
     setOpen((o) => (o ? list.find((p) => p.id === o.id) ?? null : null));
@@ -135,7 +136,7 @@ function ProjectForm({ project, onDone }: { project?: Project; onDone: (saved: b
     setBusy(true);
     const { error } = project ? await db.from("projects").update(row).eq("id", project.id) : await db.from("projects").insert(row);
     setBusy(false);
-    if (error) return setErr("Não salvou. Tente de novo.");
+    if (error) return setErr(MSG.save);
     onDone(true);
   }
 

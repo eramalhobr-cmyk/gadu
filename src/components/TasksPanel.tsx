@@ -1,4 +1,5 @@
 "use client";
+import { MSG, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { showNotice, showUndo, UNDO_TEXT } from "@/lib/undo";
@@ -51,7 +52,7 @@ export function TasksPanel(props: { mode: Mode; projectId?: number; title?: stri
     let d = db.from("tasks").select("id, title, status, priority, due_date, project_id, done_at").eq("status", "done").gte("done_at", since);
     if (props.mode === "project" && props.projectId) d = d.eq("project_id", props.projectId);
     const [o, dn] = await Promise.all([q.limit(200), d.order("done_at", { ascending: false }).limit(20)]);
-    if (o.error) setErr("Não consegui carregar as tarefas.");
+    if (o.error) setErr(loadFailed("as tarefas"));
     const open = sortTasks((o.data ?? []) as unknown as Task[]);
     setItems(open);
     setDone((dn.data ?? []) as Task[]);
@@ -66,7 +67,7 @@ export function TasksPanel(props: { mode: Mode; projectId?: number; title?: stri
     const back = reopen ? { status: "done", done_at: t.done_at ?? new Date().toISOString() } : { status: "open", done_at: null };
     setItems((xs) => xs?.filter((x) => x.id !== t.id) ?? null);
     const { error } = await db.from("tasks").update(next).eq("id", t.id);
-    if (error) { setErr("Não salvou. Tente de novo."); showNotice(UNDO_TEXT.failSave); }
+    if (error) { setErr(MSG.save); showNotice(UNDO_TEXT.failSave); }
     else showUndo(reopen ? "Tarefa reaberta." : UNDO_TEXT.done, async () => { const r = await db.from("tasks").update(back).eq("id", t.id); void load(); return r; });
     void load();
   }
@@ -80,7 +81,7 @@ export function TasksPanel(props: { mode: Mode; projectId?: number; title?: stri
     e.preventDefault();
     if (!title.trim()) return;
     const { error } = await db.from("tasks").insert({ title: title.trim().slice(0, 200), due_date: due || null, priority: prio, project_id: props.projectId ?? null });
-    if (error) return setErr("Não salvou. Tente de novo.");
+    if (error) return setErr(MSG.save);
     setTitle(""); setDue(""); setPrio(2); setErr("");
     void load();
   }

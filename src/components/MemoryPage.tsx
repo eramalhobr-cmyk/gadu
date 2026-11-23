@@ -1,4 +1,5 @@
 "use client";
+import { MSG, actionFailed, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { EXPORT_PROMPT, IMPORT_MAX_CHARS } from "@/lib/importer";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -24,7 +25,7 @@ export function MemoryPage({ blocked, onChange, onOpenConversation }: { blocked:
 
   const load = useCallback(async () => {
     const { data, error } = await db.from("memories").select("id, content, area, origin, status").order("created_at", { ascending: false }).limit(400);
-    if (error) setError("Não consegui carregar a memória. Tente de novo.");
+    if (error) setError(loadFailed("a memória"));
     setItems((data as Memory[]) ?? []);
     onChange();
   }, [db, onChange]);
@@ -202,14 +203,14 @@ function ImportCard({ onDone }: { onDone: () => void }) {
     try {
       const r = await fetch("/api/memories/import", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, origin }) });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) { setMsg(j.message || "Não consegui importar. Tente de novo."); return; }
+      if (!r.ok) { setMsg(j.message || actionFailed("importar")); return; }
       setText("");
       setMsg(j.added
         ? `${j.added} ${j.added === 1 ? "memória entrou" : "memórias entraram"} para revisão${j.skipped ? ` (${j.skipped} ignoradas: repetidas, sensíveis ou bloqueadas)` : ""}.`
         : "Nada novo para importar.");
       onDone();
     } catch {
-      setMsg("Sem conexão. Tente de novo.");
+      setMsg(MSG.offlineDo);
     } finally {
       setBusy(false);
     }

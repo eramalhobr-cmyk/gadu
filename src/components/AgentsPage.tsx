@@ -1,4 +1,5 @@
 "use client";
+import { MSG, actionFailed, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { AGENT_PRESETS, AREAS } from "@/lib/presets";
@@ -24,7 +25,7 @@ export function AgentsPage({ onTalk }: { onTalk: (a: { id: number; name: string 
 
   const load = useCallback(async () => {
     const { data, error } = await db.from("agents").select("id, name, area, instructions, color, icon, active").order("active", { ascending: false }).order("name");
-    if (error) setErr("Não consegui carregar os agentes.");
+    if (error) setErr(loadFailed("os agentes"));
     setItems((data as Agent[]) ?? []);
   }, [db]);
   useEffect(() => { void load(); }, [load]);
@@ -36,7 +37,7 @@ export function AgentsPage({ onTalk }: { onTalk: (a: { id: number; name: string 
     setAdding(true);
     const { error } = await db.from("agents").insert(rows);
     setAdding(false);
-    if (error) setErr("Não consegui criar os agentes sugeridos.");
+    if (error) setErr(actionFailed("criar os agentes sugeridos"));
     void load();
   }
 
@@ -106,7 +107,7 @@ function AgentForm({ agent, onDone }: { agent: Agent | null; onDone: (saved: boo
     setBusy(true);
     const { error } = agent ? await db.from("agents").update(row).eq("id", agent.id) : await db.from("agents").insert(row);
     setBusy(false);
-    if (error) return setErr("Não salvou. Tente de novo.");
+    if (error) return setErr(MSG.save);
     onDone(true);
   }
   async function remove() {

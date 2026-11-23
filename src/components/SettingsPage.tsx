@@ -1,4 +1,5 @@
 "use client";
+import { MSG, actionFailed } from "@/lib/errors";
 import type { ViewId } from "@/lib/modules";
 import type { Theme } from "@/lib/theme";
 import { applyTextSize, readTextSize, TEXT_SIZES, type TextSize } from "@/lib/text-size";
@@ -69,7 +70,7 @@ export function SettingsPage(props: {
     if (pw.length < 10) return setPwMsg("Use pelo menos 10 caracteres.");
     if (pw !== pw2) return setPwMsg("As duas senhas não são iguais.");
     const { error } = await db.auth.updateUser({ password: pw });
-    if (error) return setPwMsg(/weak|pwned|leaked/i.test(error.message) ? "Senha fraca ou já vazada na internet. Escolha outra." : "Não consegui salvar a senha. Tente de novo.");
+    if (error) return setPwMsg(/weak|pwned|leaked/i.test(error.message) ? "Senha fraca ou já vazada na internet. Escolha outra." : actionFailed("salvar a senha"));
     setPw(""); setPw2("");
     setPwMsg("Senha salva. Da próxima vez, entre com e-mail e senha.");
   }
@@ -81,7 +82,7 @@ export function SettingsPage(props: {
     const { data } = await db.from("profiles").select("settings").eq("id", auth.user.id).maybeSingle();
     const settings = { ...((data?.settings as object) ?? {}), blocked: next };
     const { error } = await db.from("profiles").update({ settings }).eq("id", auth.user.id);
-    setSaved(error ? "Não salvou. Tente de novo." : "Salvo.");
+    setSaved(error ? MSG.save : "Salvo.");
   }
 
   return (
@@ -218,7 +219,7 @@ function SpendCard() {
     const budgets = { anthropic: parse(edit.anthropic), gateway: parse(edit.gateway) };
     if (![budgets.anthropic, budgets.gateway].every((n) => Number.isFinite(n) && n >= 0 && n <= 1000)) return setMsg("Use valores entre 0 e 1000.");
     const r = await fetch("/api/usage", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ budgets }) });
-    if (!r.ok) return setMsg("Não salvou. Tente de novo.");
+    if (!r.ok) return setMsg(MSG.save);
     setEdit(null);
     setMsg("Limites salvos.");
     void load();
@@ -360,7 +361,7 @@ function ConnectionsCard({ morningLink }: { morningLink: string }) {
   async function disconnect() {
     const r = await fetch("/api/google/disconnect", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ confirm: true }) });
     setConfirm(false);
-    if (!r.ok) return setErr("Não consegui desconectar. Tente de novo.");
+    if (!r.ok) return setErr(actionFailed("desconectar"));
     void load();
   }
 
@@ -372,7 +373,7 @@ function ConnectionsCard({ morningLink }: { morningLink: string }) {
     const { data } = await db.from("profiles").select("settings").eq("id", auth.user.id).maybeSingle();
     const settings = { ...((data?.settings as object) ?? {}), morningLink: v };
     const { error } = await db.from("profiles").update({ settings }).eq("id", auth.user.id);
-    setMsg(error ? "Não salvou. Tente de novo." : "Salvo. Vale a partir do próximo Começar o dia.");
+    setMsg(error ? MSG.save : "Salvo. Vale a partir do próximo Começar o dia.");
   }
 
   return (
@@ -467,7 +468,7 @@ function NotificationsCard() {
     const { data } = await db.from("profiles").select("settings").eq("id", auth.user.id).maybeSingle();
     const settings = { ...((data?.settings as object) ?? {}), briefing: next };
     const { error } = await db.from("profiles").update({ settings }).eq("id", auth.user.id);
-    setMsg(error ? "Não salvou. Tente de novo." : next.enabled ? `Briefing todo dia às ${next.time}.` : "Briefing desligado.");
+    setMsg(error ? MSG.save : next.enabled ? `Briefing todo dia às ${next.time}.` : "Briefing desligado.");
   }
 
   async function saveEvening(next: { enabled: boolean; time: string }) {
@@ -477,7 +478,7 @@ function NotificationsCard() {
     const { data } = await db.from("profiles").select("settings").eq("id", auth.user.id).maybeSingle();
     const settings = { ...((data?.settings as object) ?? {}), evening: next };
     const { error } = await db.from("profiles").update({ settings }).eq("id", auth.user.id);
-    setMsg(error ? "Não salvou. Tente de novo." : next.enabled ? `Revisão todo dia às ${next.time}.` : "Revisão da noite desligada.");
+    setMsg(error ? MSG.save : next.enabled ? `Revisão todo dia às ${next.time}.` : "Revisão da noite desligada.");
   }
 
   async function enable() {
@@ -494,7 +495,7 @@ function NotificationsCard() {
       const j = s.toJSON();
       const device = deviceLabel(navigator.userAgent);
       const r = await fetch("/api/push", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ endpoint: j.endpoint, keys: j.keys, device }) });
-      if (!r.ok) return setMsg("Não consegui salvar a inscrição. Tente de novo.");
+      if (!r.ok) return setMsg(actionFailed("salvar a inscrição"));
       setSub(s);
       if (!briefing.enabled) await saveBriefing({ ...briefing, enabled: true });
       else await saveBriefing(briefing);

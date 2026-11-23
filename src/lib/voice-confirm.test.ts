@@ -55,3 +55,8 @@ test("parseAnswer: sim com negação ou pausa não confirma (pergunta de novo)",
   assert.deepEqual(parseAnswer("sim"), { kind: "yes" });
   assert.deepEqual(parseAnswer("pode lançar"), { kind: "yes" });
 });
+
+test("resultLine: falha fala o motivo e manda tocar em tentar de novo", () => {
+  assert.match(resultLine("gasto", "yes", false, "Sem internet. Confira a conexão e tente de novo."), /^Sem internet\..*O cartão ficou na tela\. Toque em tentar de novo\.$/);
+  assert.match(resultLine("gasto", "yes", false), /^Não consegui gravar\. O cartão ficou na tela/);
+});

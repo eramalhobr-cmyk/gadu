@@ -1,4 +1,5 @@
 "use client";
+import { MSG, RETRY_LABEL } from "@/lib/errors";
 import { describe, type ChatAction } from "@/lib/chat-actions";
 import type { ViewId } from "@/lib/modules";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -22,8 +23,8 @@ export async function runAction(a: ChatAction): Promise<Result> {
 }
 
 type Prep = (r: Result) => (() => Promise<Result>) | undefined;
-const back = async (p: PromiseLike<{ error: unknown }>, fail = "Não consegui desfazer. Tente de novo."): Promise<Result> => { const { error } = await p; return error ? { ok: false, msg: fail } : { ok: true }; };
-const backApi = async (p: Promise<Response>): Promise<Result> => { try { const r = await p; return r.ok ? { ok: true } : { ok: false, msg: "Não consegui desfazer. Tente de novo." }; } catch { return { ok: false, msg: "Sem conexão. Tente de novo." }; } };
+const back = async (p: PromiseLike<{ error: unknown }>, fail = MSG.undo): Promise<Result> => { const { error } = await p; return error ? { ok: false, msg: fail } : { ok: true }; };
+const backApi = async (p: Promise<Response>): Promise<Result> => { try { const r = await p; return r.ok ? { ok: true } : { ok: false, msg: MSG.undo }; } catch { return { ok: false, msg: MSG.offlineDo }; } };
 const put = (path: string, body: unknown) => fetch(path, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 const patch = (path: string, body: unknown) => fetch(path, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
@@ -168,7 +169,7 @@ async function execute(a: ChatAction): Promise<Result> {
     }
     return { ok: true };
   } catch {
-    return { ok: false, msg: "Sem conexão. Tente de novo." };
+    return { ok: false, msg: MSG.offlineDo };
   }
 }
 
@@ -181,7 +182,7 @@ async function api(r: Response, fail: string): Promise<Result> {
 }
 /** Resultado de uma gravação direta pela sessão (RLS): erro ou nenhuma linha alterada = falhou. */
 function saved(r: { error: unknown; data: unknown[] | null }): Result {
-  return !r.error && (r.data?.length ?? 0) > 0 ? { ok: true } : { ok: false, msg: "Não consegui salvar. Tente de novo." };
+  return !r.error && (r.data?.length ?? 0) > 0 ? { ok: true } : { ok: false, msg: MSG.save };
 }
 
 /** Desfaz o que o servidor já criou (lembrete e tarefa anotada). */
@@ -192,7 +193,7 @@ export async function undoAction(a: ChatAction): Promise<Result> {
   }
   if (a.kind === "tarefa_criada") {
     const { error } = await supabaseBrowser().from("tasks").update({ status: "cancelled" }).eq("id", a.id);
-    return error ? { ok: false, msg: "Não consegui desfazer. Tente de novo." } : { ok: true };
+    return error ? { ok: false, msg: MSG.undo } : { ok: true };
   }
   return { ok: true };
 }
@@ -226,7 +227,7 @@ export function ActionCard({ a, st, onConfirm, onDiscard, onUndo, onOpen }: { a:
         )
       ) : pending && (
         <div className="evc-actions">
-          <button className="btn btn-sm btn-pri" disabled={state === "saving"} onClick={onConfirm}>{state === "saving" ? v.busy : v.confirm}</button>
+          <button className="btn btn-sm btn-pri" disabled={state === "saving"} onClick={onConfirm}>{state === "saving" ? v.busy : state === "error" ? RETRY_LABEL : v.confirm}</button>
           <button className="btn btn-sm" disabled={state === "saving"} onClick={onDiscard}>Descartar</button>
         </div>
       )}

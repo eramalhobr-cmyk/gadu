@@ -1,6 +1,7 @@
 "use client";
 // Metas (base): lista por situação e categoria, detalhe com histórico e tarefas, criar/editar e registrar progresso.
 // Tudo passa pelas rotas /api/goals/* (sessão obrigatória, RLS); nada de chave no navegador. Progresso só com registro (data e origem).
+import { MSG, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { dataBR, progressoTexto, ritmoTexto } from "@/lib/goals/calc";
 import { fmtNum } from "@/lib/goals/numero";
@@ -35,7 +36,7 @@ export function MetasPage(props: { onAsk: (q: string) => void; onOpenTasks: () =
   const load = useCallback(async () => {
     const r = await api(aba === "arquivada" ? "/api/goals?status=arquivada" : "/api/goals");
     if (r.status === 404) return setErro("Metas está desligado no momento.");
-    if (!r.ok) return setErro("Não consegui carregar as metas. Tente de novo.");
+    if (!r.ok) return setErro(loadFailed("as metas"));
     setErro(null);
     setMetas((r.json.metas as MetaView[]) ?? []);
   }, [aba]);
@@ -119,7 +120,7 @@ function MetaDetalhe(props: { id: string; onBack: () => void; onChanged: () => v
   const load = useCallback(async () => {
     const r = await api(`/api/goals/${id}`);
     if (r.status === 404) return setErro("Não encontrei esta meta.");
-    if (!r.ok) return setErro("Não consegui carregar a meta. Tente de novo.");
+    if (!r.ok) return setErro(loadFailed("a meta"));
     setErro(null);
     setD(r.json as unknown as Detalhe);
   }, [id]);
@@ -128,7 +129,7 @@ function MetaDetalhe(props: { id: string; onBack: () => void; onChanged: () => v
   /** Executa uma gravação, avisa o resultado e recarrega. */
   async function run(p: Promise<{ ok: boolean; json: Record<string, unknown> }>, okText: string, undo?: () => Promise<{ ok: boolean; json: Record<string, unknown> }>): Promise<boolean> {
     const r = await p;
-    if (!r.ok) { say(typeof r.json.message === "string" ? r.json.message : "Não consegui salvar. Tente de novo.", true); return false; }
+    if (!r.ok) { say(typeof r.json.message === "string" ? r.json.message : MSG.save, true); return false; }
     // Com como desfazer: o aviso único "Feito · Desfazer". Sem: o aviso simples desta tela.
     if (undo) showUndo(okText, async () => { const u = await undo(); await load(); props.onChanged(); return u; });
     else say(okText);
