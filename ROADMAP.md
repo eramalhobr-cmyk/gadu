@@ -427,7 +427,8 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa. A
 - [x] Projetos: criar (PR #42)
 - [x] Configurações: tamanho do texto, conversa contínua, respostas curtas, resposta falada e tema (PR #42)
 - [x] Finanças e Agenda: desmarcar conta, mudar o valor do mês, editar e apagar gasto, editar e apagar evento (PR B `feat/voz-financas-agenda`, testado em 23/11/2026; escopo OAuth do Google não mudou)
-- [ ] Lacunas: pausar, arquivar e editar meta; editar e arquivar projeto; aprovar e esquecer memória; criar agente; nova conversa e navegação por voz ("abre o Financeiro")
+- [x] Metas e Projetos: pausar, retomar, arquivar e editar meta; editar e arquivar projeto (PR C `feat/voz-metas-projetos`, testado em 23/11/2026)
+- [ ] Lacunas: aprovar e esquecer memória; criar agente; nova conversa e navegação por voz ("abre o Financeiro")
 
 ### UX-4 · Acessibilidade para quem não é digital (P1) · começado em 22/11/2026 pelo Cursor (Grok Bot)
 - [ ] Linguagem simples: sem "Beta", "Planejado", "Plataforma", "Core", "via modelo" e etiquetas [T1] na tela principal (ficam em "Detalhes")

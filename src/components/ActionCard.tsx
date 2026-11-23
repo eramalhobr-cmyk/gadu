@@ -40,6 +40,23 @@ export async function runAction(a: ChatAction): Promise<Result> {
       }) });
       return api(r, "Não consegui criar a meta.");
     }
+    if (a.kind === "meta_status") return api(await fetch(`/api/goals/${a.goalId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: a.para }) }), "Não consegui mudar a meta.");
+    if (a.kind === "meta_editar") {
+      const m = a.mudancas;
+      const body: Record<string, unknown> = {};
+      if (m.titulo) body.titulo = m.titulo;
+      if (m.alvo !== undefined) body.valor_alvo = m.alvo;
+      if (m.prazo) body.prazo = m.prazo;
+      return api(await fetch(`/api/goals/${a.goalId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }), "Não consegui mudar a meta.");
+    }
+    if (a.kind === "projeto_editar") {
+      const m = a.mudancas;
+      const patch: Record<string, unknown> = {};
+      if (m.nome) patch.name = m.nome;
+      if (m.objetivo !== undefined) patch.goal = m.objetivo || null;
+      return saved(await supabaseBrowser().from("projects").update(patch).eq("id", a.id).select("id"));
+    }
+    if (a.kind === "projeto_arquivar") return saved(await supabaseBrowser().from("projects").update({ status: "done" }).eq("id", a.id).in("status", ["active", "paused"]).select("id"));
     if (a.kind === "marco") return api(await fetch(`/api/goals/${a.goalId}/marcos`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ titulo: a.titulo, data_alvo: a.data }) }), "Não consegui adicionar o marco.");
     if (a.kind === "marco_ok") return api(await fetch(`/api/goals/${a.goalId}/marcos/${a.marcoId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ concluido: true }) }), "Não consegui concluir o marco.");
     if (a.kind === "meta_tarefa") {

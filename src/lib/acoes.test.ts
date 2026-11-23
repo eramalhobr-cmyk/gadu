@@ -113,3 +113,19 @@ test("evento_editar e evento_apagar", () => {
   assert.deepEqual(validAcao({ tipo: "evento_apagar", evento: "Dentista" }, NOW), { tipo: "evento_apagar", evento: "Dentista" });
   assert.equal(validAcao({ tipo: "evento_apagar", evento: " " }, NOW), null);
 });
+
+test("meta pausar, retomar, arquivar e editar; projeto editar e arquivar", () => {
+  for (const t of ["meta_pausar", "meta_retomar", "meta_arquivar"] as const) {
+    assert.deepEqual(validAcao({ tipo: t, meta: " Correr  50 km " }, NOW), { tipo: t, meta: "Correr 50 km" });
+    assert.equal(validAcao({ tipo: t }, NOW), null);
+  }
+  assert.deepEqual(validAcao({ tipo: "meta_editar", meta: "Correr", titulo: "Correr 60 km", alvo: "60", prazo: "2027-03-01" }, NOW), { tipo: "meta_editar", meta: "Correr", titulo: "Correr 60 km", alvo: 60, prazo: "2027-03-01" });
+  assert.deepEqual(validAcao({ tipo: "meta_editar", meta: "Correr", alvo: 0 }, NOW), { tipo: "meta_editar", meta: "Correr", titulo: null, alvo: 0, prazo: null }, "alvo 0 é número válido");
+  assert.equal(validAcao({ tipo: "meta_editar", meta: "Correr" }, NOW), null, "sem mudança");
+  assert.equal(validAcao({ tipo: "meta_editar", meta: "Correr", prazo: "2026-01-01" }, NOW), null, "prazo no passado");
+  assert.deepEqual(validAcao({ tipo: "projeto_editar", projeto: "Casa", nome: "Casa nova", objetivo: "Mudar até junho" }, NOW), { tipo: "projeto_editar", projeto: "Casa", nome: "Casa nova", objetivo: "Mudar até junho" });
+  assert.deepEqual(validAcao({ tipo: "projeto_editar", projeto: "Casa", objetivo: "" }, NOW), { tipo: "projeto_editar", projeto: "Casa", nome: null, objetivo: "" }, "limpar o objetivo vale");
+  assert.equal(validAcao({ tipo: "projeto_editar", projeto: "Casa" }, NOW), null);
+  assert.deepEqual(validAcao({ tipo: "projeto_arquivar", projeto: "Casa" }, NOW), { tipo: "projeto_arquivar", projeto: "Casa" });
+  assert.equal(validAcao({ tipo: "projeto_arquivar" }, NOW), null);
+});

@@ -171,9 +171,12 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Metas | registrar progresso, concluir | sim | `meta_registrar`, `meta_concluir` (pelo nome) e `"metas"` (pela etiqueta [M1]) | — |
 | Metas | adicionar marco, concluir marco | sim | `meta_marco`, `meta_marco_concluir` | — |
 | Metas | criar tarefa da meta | sim | `meta_tarefa` (cria e vincula) | — |
-| Metas | pausar, arquivar, editar alvo ou prazo, apagar registro | **não** | — | lacuna |
+| Metas | pausar, retomar, arquivar | sim | `meta_pausar`, `meta_retomar`, `meta_arquivar` (`PATCH /api/goals/:id` com `status`; arquivar não apaga nada e avisa que dá para restaurar em Metas) | — |
+| Metas | editar título, alvo (meta numérica) e prazo | sim | `meta_editar` | — |
+| Metas | apagar registro de progresso | **não** | — | lacuna |
 | Projetos | criar | sim | `projeto_criar` | — |
-| Projetos | editar, arquivar | **não** | — | lacuna |
+| Projetos | editar nome e objetivo | sim | `projeto_editar` | — |
+| Projetos | arquivar | sim | `projeto_arquivar` (grava o status `done` = "Concluído"; o banco não tem status "arquivado" e criar um exigiria migração) | — |
 | Memória | guardar um fato ("lembre que…") | sim | `"memorias"` (fica pendente para revisão) | — |
 | Memória | aprovar, recusar, esquecer | **não** | — | lacuna |
 | Agentes | criar, editar | **não** | — | lacuna |

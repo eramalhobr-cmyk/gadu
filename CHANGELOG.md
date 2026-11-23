@@ -7,7 +7,14 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
-## 2026-11-23 · Tudo por voz, PR B: finanças (conta e gasto) e agenda (editar e apagar evento) · **testado** (branch `feat/voz-financas-agenda`)
+## 2026-11-23 · Tudo por voz, PR C: metas (pausar, retomar, arquivar, editar) e projetos (editar, arquivar) · **testado** (branch `feat/voz-metas-projetos`)
+- **Feito por:** Claude Code.
+- **Novo pela conversa (cartão + "sim" falado; nada é gravado antes):** `meta_pausar`, `meta_retomar`, `meta_arquivar` (nada é apagado), `meta_editar` (título, alvo só em meta numérica, prazo), `projeto_editar` (nome, objetivo) e `projeto_arquivar`. As metas respeitam `GOALS_ENABLED`; o projeto não depende dele. Gravações pelas mesmas rotas e consultas das telas (`PATCH /api/goals/:id`; `projects` pela sessão, com RLS).
+- **Decisão:** "arquivar projeto" grava o status `done` ("Concluído"), porque a tabela só tem `active`, `paused` e `done`; um status "arquivado" exigiria migração e não foi feito.
+- **Evidência:** typecheck; unit 246/246; integração 163/163 (3 testes novos em `goals-chat`: cartões sem gravar, isolamento entre pessoas, interruptor e termo bloqueado); build; e2e público 10/10 e mobile 44/44. Sem migração. **Não testado:** IA real.
+- **Publicação do PR B (registrada aqui):** PR #48, merge `7db56d4` em 23/11/2026 às 06:02 (Brasília), CI verde (verify, e2e-public, database), deploy da Vercel `success`, `/login` 200 e `DELETE /api/calendar/:id` sem sessão = 401 no ar.
+
+## 2026-11-23 · Tudo por voz, PR B: finanças (conta e gasto) e agenda (editar e apagar evento) · **publicado** (PR #48, merge `7db56d4`, 06:02)
 - **Feito por:** Claude Code.
 - **Novo pela conversa (cartão + "sim" falado; nada é gravado antes):** `conta_desmarcar`, `conta_valor` (este mês ou até dezembro), `gasto_editar`, `gasto_apagar`, `evento_editar`, `evento_apagar`. Apagar tem confirmação explícita ("não dá para desfazer" no cartão e na pergunta falada). Gasto: valor, nome e dia ajudam a achar; se couber em mais de um, o GaDu pede mais detalhe em vez de escolher. Finanças desligado (`FINANCE_ENABLED=0`) não gera cartão de conta nem de gasto.
 - **Agenda:** o escopo OAuth atual (`calendar.events`, já pedido para criar evento) permite editar e apagar, então **o OAuth não mudou**. Rotas novas `PATCH` e `DELETE /api/calendar/:id` (sessão, zod estrito, token da própria pessoa) e `updateEvent`/`deleteEvent` em `src/lib/google.ts`. O servidor lê a agenda (ontem a 45 dias) só para achar o evento pelo nome.
