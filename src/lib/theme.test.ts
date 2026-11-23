@@ -16,7 +16,7 @@ test("cor da barra do sistema acompanha o fundo de cada tema", () => {
 });
 
 test("voz: 'muda para o tema escuro' vira o ajuste de tema", () => {
-  const now = new Date("2026-11-23T15:00:00-03:00");
+  const now = new Date("2026-11-23T15:00:00-03:00").getTime();
   assert.deepEqual(validAcao({ tipo: "ajuste", opcao: "tema", valor: "escuro" }, now), { tipo: "ajuste", ajuste: { opcao: "tema", valor: "dark" } });
   assert.deepEqual(validAcao({ tipo: "ajuste", opcao: "tema", valor: "light" }, now), { tipo: "ajuste", ajuste: { opcao: "tema", valor: "light" } });
 });
