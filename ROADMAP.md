@@ -307,7 +307,7 @@ Estágio: **publicado em 22/11/2026** (merge `cc85040`, migrações aditiva `202
 - [ ] S-03 (painel): ligar a proteção contra senhas vazadas (manual, seção 2)
 - [x] S-04: agendador e `index_backlog` ignoram quem não está ativo
 - [x] S-05 (parcial): bloquear encerra sessões; custo e cota recusam quem não está ativo
-- [ ] S-05 (resto): RLS de escrita por acesso. Auditoria feita em 23/11/2026 ([docs/SECURITY_AUDIT_2026-11-23.md](docs/SECURITY_AUDIT_2026-11-23.md): 18 tabelas ainda aceitam escrita de pessoa bloqueada). Migração em rascunho, **aguardando o OK do Eduardo**
+- [ ] S-05 (resto): RLS de escrita por acesso. Auditoria feita em 23/11/2026 ([docs/SECURITY_AUDIT_2026-11-23.md](docs/SECURITY_AUDIT_2026-11-23.md): 18 tabelas ainda aceitam escrita de pessoa bloqueada). Migração `20261123120001` em **rascunho** (PR aberto, sem merge), **aguardando o OK do Eduardo**
 - [x] S-06: admin não bloqueia admin, `ADMIN_EMAILS` nem a si mesmo
 - [x] S-11: proxy responde 503 nas rotas protegidas sem a configuração do Supabase
 - [x] Testes: SQL (`test:db`, com compatibilidade da migração aditiva e corrida de liquidação), integração (chat, limite de tentativas, bloqueio de admin, agendador, proxy) e unitários

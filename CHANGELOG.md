@@ -45,6 +45,10 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - "Fala mais devagar", "fala mais rápido", "volta a velocidade normal" e "usa outra voz" viram o cartão de ajuste com "sim" falado (`ajuste` com `velocidade` de 0,7 a 1,6 ou relativo, de 0,15 em 0,15; `voz_trocar` passa para a próxima voz em português do aparelho). Vale neste aparelho, como em Configurações; nada é gravado no servidor.
 - **Testes:** casos novos em `acoes.test.ts`, `chat-actions.test.ts` e `test/goals-chat.integration.test.ts` (valor fora do intervalo é descartado, nada gravado); typecheck; integração 192/192.
 
+## 2026-11-23 · S-05 (resto): RLS de escrita por acesso (Claude Code) · **rascunho, não aplicado, aguarda o OK do Eduardo**
+- Migração `20261123120001_s05_escrita_por_acesso.sql`: `public.can_write()` e políticas **restritivas** de insert, update e delete em 18 tabelas (pessoa bloqueada não grava e ainda lê), mais `reminders.conversation_id` só da própria pessoa. Rollback no cabeçalho, executado no teste.
+- **Testes (Postgres local):** `scripts/test-db.sh` inteiro verde, com `supabase/tests/80_s05_escrita_por_acesso.test.sql`. **Não aplicado no Supabase de produção.**
+
 ## 2026-11-23 · Auditoria de RLS e escrita por acesso (Claude Code) · publicado (só documentação)
 - `docs/SECURITY_AUDIT_2026-11-23.md`: inventário das 26 tabelas de `public` e das funções, matriz "pessoa bloqueada tenta gravar" (18 tabelas aceitam insert, update e delete), sondagem de chaves entre pessoas (achado: `reminders.conversation_id` aceita conversa de outra pessoa) e recomendações. Medido em Postgres local descartável; **nada foi aplicado no Supabase de produção**.
 
