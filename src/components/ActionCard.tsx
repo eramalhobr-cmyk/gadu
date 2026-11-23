@@ -57,6 +57,8 @@ async function capture(a: ChatAction): Promise<Prep | null> {
       case "meta_projeto": return () => () => backApi(a.desligar
         ? fetch(`/api/goals/${a.goalId}/projetos`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ project_id: a.projectId }) })
         : fetch(`/api/goals/${a.goalId}/projetos/${a.projectId}`, { method: "DELETE" }));
+      // Os ids dos eventos criados voltam em r.id (separados por vírgula): Desfazer libera cada bloco (Google e vínculo).
+      case "meta_agenda": return (r) => (r.id ? () => backApi(Promise.all(r.id!.split(",").map((eid) => fetch(`/api/goals/${a.goalId}/agenda/${encodeURIComponent(eid)}`, { method: "DELETE" }))).then((rs) => (rs.every((x) => x.ok) ? rs[0] : new Response(null, { status: 502 })))) : undefined);
       case "marco_ok": return () => () => backApi(patch(`/api/goals/${a.goalId}/marcos/${a.marcoId}`, { concluido: false }));
       case "meta_status": {
         const r = await fetch(`/api/goals/${a.goalId}`, { cache: "no-store" });
@@ -171,6 +173,14 @@ async function execute(a: ChatAction): Promise<Result> {
       const r = await fetch(`/api/goals/${a.goalId}/tarefas`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ task_id: data.id }) });
       if (!r.ok) { await db.from("tasks").update({ status: "cancelled" }).eq("id", data.id); return api(r, "Não consegui ligar a tarefa à meta."); }
       return { ok: true };
+    }
+    if (a.kind === "meta_agenda") {
+      const r = await fetch(`/api/goals/${a.goalId}/agenda`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ blocos: a.blocos }) });
+      if (r.status === 401) { window.location.href = "/login"; return { ok: false }; }
+      const j = await json(r) as { ids?: unknown; message?: string };
+      if (!r.ok) return { ok: false, msg: (typeof j.message === "string" && j.message) || "Não consegui reservar na agenda. Tente de novo." };
+      const ids = Array.isArray(j.ids) ? j.ids.filter((x): x is string => typeof x === "string") : [];
+      return { ok: true, ...(ids.length ? { id: ids.join(",") } : {}) };
     }
     if (a.kind === "meta_projeto") return api(a.desligar
       ? await fetch(`/api/goals/${a.goalId}/projetos/${a.projectId}`, { method: "DELETE" })

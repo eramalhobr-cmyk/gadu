@@ -75,6 +75,11 @@ export const MarcoPatch = z.object({
 }).refine((p) => Object.keys(p).some((k) => (p as Record<string, unknown>)[k] !== undefined), { message: "nada para alterar" });
 
 export const TarefaLink = z.object({ task_id: TaskIdParam });
+export const EventIdParam = z.string().regex(/^[A-Za-z0-9_-]{5,1024}$/);
+/** Blocos de agenda já escolhidos pelo servidor (cartão); o título do evento vem da meta, nunca do cliente. */
+export const AgendaCreate = z.object({
+  blocos: z.array(z.object({ inicio: z.string().datetime({ offset: true }), fim: z.string().datetime({ offset: true }) }).strict()).min(1).max(20),
+}).strict();
 export const ProjetoLink = z.object({ project_id: TaskIdParam });
 
 export const ListaQuery = z.object({ status: z.enum(STATUS).optional() });

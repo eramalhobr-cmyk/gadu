@@ -9,6 +9,9 @@ import { parseValor } from "./finance/money.ts";
 import { MAX_DEPENDENTES } from "./finance/salario.ts";
 import type { Meio } from "./finance/types.ts";
 import { CATEGORIAS, MEDICOES, type Categoria, type Medicao } from "./goals/types.ts";
+import { MAX_BLOCOS, MAX_SEMANAS, type Periodo } from "./goals/agenda.ts";
+
+const periodoDe = (v: unknown): Periodo | null => { const k = norm(String(v ?? "")); return k === "manha" || k === "manhas" ? "manha" : k === "tarde" || k === "tardes" ? "tarde" : k === "noite" || k === "noites" ? "noite" : null; };
 
 export type Ajuste = { opcao: "texto"; valor: "100" | "115" | "130" } | { opcao: "maos_livres" | "respostas_curtas" | "voz"; valor: boolean } | { opcao: "tema"; valor: "dark" | "light" }
   | { opcao: "velocidade"; valor: number | "mais_devagar" | "mais_rapido" }
@@ -30,6 +33,8 @@ export type AcaoProposta =
   | { tipo: "meta_tarefa"; meta: string; tarefa: string; prazo: string | null }
   /** Liga (ou desliga) uma meta a um projeto da própria pessoa. */
   | { tipo: "meta_projeto"; meta: string; projeto: string; desligar: boolean }
+  /** Reserva blocos de tempo na agenda para a meta. O SERVIDOR escolhe dias e horários (o modelo só diz quantas vezes, em que período e por quanto tempo). */
+  | { tipo: "meta_agenda"; meta: string; vezes: number; periodo: Periodo; duracaoMin: number; semanas: number }
   | { tipo: "tarefa_concluir"; tarefa: string }
   | { tipo: "tarefa_adiar"; tarefa: string; prazo: string }
   | { tipo: "tarefa_cancelar"; tarefa: string }
@@ -70,7 +75,7 @@ export function destinoDe(v: unknown): Destino | null {
   return (DESTINOS as readonly string[]).includes(k) ? (k as Destino) : DESTINO_APELIDO[k] ?? null;
 }
 
-export const TIPOS = ["meta_criar", "meta_registrar", "meta_registro_apagar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "meta_projeto", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "conta_criar", "receita_principal", "teto_definir", "peca3d_abrir", "nova_conversa", "conversa_abrir", "guia", "navegar", "projeto_criar", "agente_criar", "agente_editar", "salario_simular", "ajuste"] as const;
+export const TIPOS = ["meta_criar", "meta_registrar", "meta_registro_apagar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "meta_projeto", "meta_agenda", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "conta_criar", "receita_principal", "teto_definir", "peca3d_abrir", "nova_conversa", "conversa_abrir", "guia", "navegar", "projeto_criar", "agente_criar", "agente_editar", "salario_simular", "ajuste"] as const;
 
 /** Instruções de agente: mantém as quebras de linha (até 2 seguidas), tira espaços sobrando. */
 const instr = (v: unknown): string | null => (typeof v === "string" ? v.replace(/\r/g, "").replace(/[ \t]+/g, " ").replace(/ ?\n ?/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, 4000) : null);
@@ -207,6 +212,14 @@ export function validAcao(raw: unknown, now = Date.now()): AcaoProposta | null {
     case "meta_projeto": {
       const meta = txt(o.meta, 120), projeto = txt(o.projeto, 120);
       return meta && projeto ? { tipo: "meta_projeto", meta, projeto, desligar: o.desligar === true || o.desligar === "true" } : null;
+    }
+    case "meta_agenda": {
+      const meta = txt(o.meta, 120), vezes = Number(o.vezes), periodo = periodoDe(o.periodo);
+      if (!meta || !Number.isInteger(vezes) || vezes < 1 || vezes > 7 || !periodo) return null;
+      const dur = o.duracao === undefined || o.duracao === null ? 60 : Number(o.duracao);
+      const sem = o.semanas === undefined || o.semanas === null ? 4 : Number(o.semanas);
+      if (!Number.isInteger(dur) || dur < 15 || dur > 240 || !Number.isInteger(sem) || sem < 1 || sem > MAX_SEMANAS) return null;
+      return { tipo: "meta_agenda", meta, vezes, periodo, duracaoMin: dur, semanas: Math.min(sem, Math.floor(MAX_BLOCOS / vezes)) };
     }
     case "tarefa_concluir": {
       const tarefa = txt(o.tarefa, 200);
@@ -409,6 +422,7 @@ export function acoesRules(): string {
   {"tipo":"projeto_editar","projeto":"nome atual","nome":"novo nome","objetivo":"..."} (só o que muda); {"tipo":"projeto_arquivar","projeto":"..."} (marca o projeto como concluído; some dos ativos);
   {"tipo":"meta_marco","meta":"...","titulo":"...","data":"AAAA-MM-DD"}; {"tipo":"meta_marco_concluir","meta":"...","marco":"..."}; {"tipo":"meta_tarefa","meta":"...","tarefa":"...","prazo":"AAAA-MM-DD"};
   {"tipo":"meta_projeto","meta":"...","projeto":"...","desligar":false} ("liga a meta de corrida ao projeto Saúde"; "desligar":true para tirar o vínculo; a meta e o projeto precisam existir);
+  {"tipo":"meta_agenda","meta":"...","vezes":3,"periodo":"manha|tarde|noite","duracao":60,"semanas":4} ("reserva 3 manhãs por semana para a meta de corrida": vezes por semana de 1 a 7, periodo obrigatório, duracao em minutos (15 a 240, padrão 60) e semanas (1 a 6, padrão 4) são opcionais; você NÃO escolhe dias nem horários: o SERVIDOR escolhe, pula o que já está ocupado na agenda do Google e mostra no cartão; sem vezes ou sem período, pergunte);
   {"tipo":"tarefa_concluir","tarefa":"..."}; {"tipo":"tarefa_adiar","tarefa":"...","prazo":"AAAA-MM-DD"}; {"tipo":"lembrete_cancelar","lembrete":"..."};
   {"tipo":"tarefa_cancelar","tarefa":"..."} ("cancela/apaga a tarefa…"); {"tipo":"tarefa_reabrir","tarefa":"..."} (tarefa já feita ou cancelada que volta a ficar aberta);
   {"tipo":"tarefa_editar","tarefa":"nome atual","titulo":"novo título","prioridade":1,"prazo":"AAAA-MM-DD","projeto":"nome do projeto"} (só os campos que mudam; prioridade 1 alta, 2 normal, 3 baixa);

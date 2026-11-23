@@ -14,7 +14,7 @@ import { BackButton, EmptyState, Field, ModuleScreen, PageHeader, Panel, Primary
 import { showUndo } from "@/lib/undo";
 import { Icon, todayKey } from "./ui";
 
-type Detalhe = { meta: MetaView; registros: Registro[]; marcos: Marco[]; tarefas: TarefaVinculada[]; tarefasAbertas: { id: number; title: string; due_date: string | null }[]; projetos?: { project_id: number; name: string; status: string }[]; projetosDisponiveis?: { id: number; name: string }[] };
+type Detalhe = { meta: MetaView; registros: Registro[]; marcos: Marco[]; tarefas: TarefaVinculada[]; tarefasAbertas: { id: number; title: string; due_date: string | null }[]; projetos?: { project_id: number; name: string; status: string }[]; projetosDisponiveis?: { id: number; name: string }[]; agenda?: { event_id: string; titulo: string; inicio: string; fim: string }[] };
 type Aba = Exclude<Status, "arquivada"> | "arquivada";
 const ABAS: [Aba, string][] = [["ativa", "Ativas"], ["pausada", "Pausadas"], ["concluida", "Concluídas"], ["arquivada", "Arquivadas"]];
 
@@ -173,6 +173,7 @@ function MetaDetalhe(props: { id: string; onBack: () => void; onChanged: () => v
         {g.medicao === "marcos" && <PanelMarcos d={d} run={run} id={id} />}
         <PanelTarefas d={d} run={run} id={id} onOpenTasks={props.onOpenTasks} />
         <PanelProjetos d={d} run={run} id={id} />
+        <PanelAgenda d={d} run={run} id={id} />
         {numerica && (
           <Panel title="Histórico" icon="history">
             {d.registros.length === 0 ? <EmptyState icon="history" title="Nenhum registro" text="Cada registro guarda a data e de onde veio (você ou a conversa)." />
@@ -310,6 +311,29 @@ function PanelProjetos({ d, run, id }: { d: Detalhe; run: Run; id: string }) {
           <button className="btn btn-sm" type="submit" disabled={!sel}>Ligar</button>
         </form>
       )}
+    </Panel>
+  );
+}
+
+function PanelAgenda({ d, run, id }: { d: Detalhe; run: Run; id: string }) {
+  const agora = Date.now();
+  const blocos = (d.agenda ?? []).filter((b) => Date.parse(b.fim) >= agora);
+  const dia = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "short", day: "2-digit", month: "2-digit" }).replace(".", "");
+  const hm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+  return (
+    <Panel title="Agenda da meta" icon="calendar">
+      {blocos.length === 0 ? <EmptyState icon="calendar" title="Nenhum horário reservado" text="Peça pela conversa: “reserva 3 manhãs por semana para esta meta”. O GaDu escolhe os dias livres e mostra antes de reservar." />
+        : (
+          <div className="rows">
+            {blocos.map((b) => (
+              <div className="fin-row" key={b.event_id}>
+                <span className="grow"><span className="t">{dia(b.inicio)} · {hm(b.inicio)}–{hm(b.fim)}</span><span className="s">Reservado na sua agenda do Google</span></span>
+                <button className="btn btn-sm btn-quiet" onClick={() => void run(api(`/api/goals/${id}/agenda/${encodeURIComponent(b.event_id)}`, { method: "DELETE" }), "Horário liberado.")} aria-label={`Liberar ${dia(b.inicio)} às ${hm(b.inicio)}`}>Liberar</button>
+              </div>
+            ))}
+          </div>
+        )}
+      <p className="muted small m0">Um horário reservado não conta como progresso: só o que você registra conta.</p>
     </Panel>
   );
 }

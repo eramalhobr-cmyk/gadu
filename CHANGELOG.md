@@ -9,6 +9,10 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · Metas fase 2: agenda da meta · desenvolvido e testado
+- **Feito por:** Claude Code (rascunho) e Cursor (Grok Bot) (revisão, testes, docs, PR), depois que o Claude Code atingiu o limite de uso. Ação por voz `meta_agenda` com horários escolhidos pelo servidor, pulando compromissos; cartão com os horários; eventos criados no Google só depois do "sim" (escopo `calendar.events`, já existente); Desfazer libera os blocos; painel "Agenda da meta" com Liberar. Reservar não conta como progresso. Migração `metas_fase2` aplicada às 13:11.
+- **Evidências (máquina local):** `npm run typecheck`, `test:unit`, `test:integration` (inclui `test/goals-agenda.integration.test.ts`: 401, `GOALS_ENABLED=0`, B não reserva nem libera em meta de A, desfazer parcial). **Não testado:** Google real, aparelho.
+
 ## 2026-11-23 · Agentes por voz com Desfazer · desenvolvido e testado
 - **Feito por:** Cursor (Grok Bot). Regra UX-4 ("Feito · Desfazer" em toda ação que grava): criar agente pela conversa agora pode ser desfeito (apaga o agente recém-criado; conversas ligadas ficam sem agente) e editar volta nome, área, instruções e ativo de antes. Sem migração. Teste `test/desfazer.test.ts` cobre as duas ações.
 

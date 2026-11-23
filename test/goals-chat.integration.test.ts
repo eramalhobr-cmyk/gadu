@@ -25,6 +25,8 @@ let reserveAllowed = true;
 let modelText = "Resposta [M1].";
 let goalsFail = false;
 let voiceWrites: { table: string; op: string; rows: Row[] }[] = [];
+let calEvents: { id?: string; title: string; start: string; end: string; allDay: boolean; meet: boolean; declined: boolean }[] = [];
+let calendarFail = false;
 
 const goalDb = () => makeFinDb(store, () => sessionUser, log);
 
@@ -94,7 +96,7 @@ const fmt = await import(src("lib/google-format.ts"));
 mock.module(src("lib/google.ts"), {
   namedExports: {
     googleIntent: fmt.googleIntent, formatEvents: fmt.formatEvents, formatMails: fmt.formatMails, GoogleError: class extends Error {},
-    accessToken: async () => "tok", events: async () => [], inbox: async () => [],
+    accessToken: async () => "tok", events: async () => { if (calendarFail) throw new Error("google fora"); return calEvents; }, inbox: async () => [],
   },
 });
 class BudgetReached extends Error {}
@@ -152,7 +154,7 @@ function seed() {
 }
 const tagOf = (titulo: string) => /\[(M\d+)\] [^\n]*?/.exec(ctxOf().split("\n").find((l) => l.includes(titulo)) ?? "")?.[1] ?? "";
 function resetAll() {
-  sessionUser = A; tablesRead = []; providerCalls = []; completeCalls = 0; rpcNames = []; rpcFail = null; reserveAllowed = true; modelText = "Resposta [M1]."; goalsFail = false; voiceWrites = [];
+  sessionUser = A; tablesRead = []; providerCalls = []; completeCalls = 0; rpcNames = []; rpcFail = null; reserveAllowed = true; modelText = "Resposta [M1]."; goalsFail = false; voiceWrites = []; calEvents = []; calendarFail = false;
   log = { tables: [], writes: [] };
   delete process.env.GOALS_ENABLED; delete process.env.CORE_MVP; delete process.env.FINANCE_ENABLED;
   seed();
@@ -555,6 +557,63 @@ test("Core: a meta cita os projetos ligados só da pessoa (nome bloqueado fica o
   await chat("como estão minhas metas");
   const ctx = providerCalls.map((c) => c.context ?? "").join("\n");
   assert.match(ctx, /projetos ligados: Casa nova/);
+  assert.ok(!ctx.includes("SEGREDO-B"));
+});
+
+// ---- "Tudo por voz": reservar horários na agenda da meta ----
+test("tudo por voz: meta_agenda vira UM cartão com blocos escolhidos pelo servidor, pulando conflitos; nada é gravado nem criado", async () => {
+  // Um compromisso em cada um dos próximos dias, das 07:00 às 12:00 (de Brasília): os blocos têm de cair no dia livre mais perto.
+  calEvents = [1, 2, 3].map((d) => {
+    const dia = new Date(Date.now() - 3 * 3_600_000 + d * 86_400_000).toISOString().slice(0, 10);
+    return { id: `ev${d}`, title: "Reunião", start: `${dia}T07:00:00-03:00`, end: `${dia}T12:00:00-03:00`, allDay: false, meet: false, declined: false };
+  });
+  modelText = META_TXT([{ tipo: "meta_agenda", meta: "livros", vezes: 3, periodo: "manhã", duracao: 45, semanas: 2 }]);
+  const events = await chat("reserva 3 manhãs por semana para a meta dos livros");
+  const items = events.find((e) => e.t === "acoes")?.items ?? [];
+  assert.deepEqual(items.map((i) => i.kind), ["meta_agenda"]);
+  assert.equal(items[0].goalId, "10000000-0000-4000-8000-000000000001");
+  assert.equal(items[0].meta, "Ler 12 livros");
+  assert.equal(items[0].blocos.length, 6);
+  for (const b of items[0].blocos) {
+    assert.equal(Date.parse(b.fim) - Date.parse(b.inicio), 45 * 60_000);
+    for (const e of calEvents) assert.ok(!(Date.parse(b.inicio) < Date.parse(e.end) && Date.parse(b.fim) > Date.parse(e.start)), "nenhum bloco em cima de compromisso");
+  }
+  assert.ok(items[0].pulados >= 1, "o servidor trocou dias ocupados");
+  assert.equal(log.writes.length, 0, "nenhum vínculo gravado antes da confirmação");
+  assert.equal(voiceWrites.length, 0);
+});
+
+test("tudo por voz: meta_agenda só acha meta de A; sem agenda do Google, com Metas desligado, com termo bloqueado ou argumento inválido não vira cartão", async () => {
+  modelText = META_TXT([{ tipo: "meta_agenda", meta: "SEGREDO-B meta", vezes: 2, periodo: "tarde" }]);
+  const b = await chat("reserva horários na meta do outro");
+  assert.equal(b.find((e) => e.t === "acoes"), undefined);
+  assert.ok(b.some((e) => e.t === "notice" && e.kind === "acao"));
+  modelText = META_TXT([{ tipo: "meta_agenda", meta: "livros", vezes: 2, periodo: "tarde" }]);
+  calendarFail = true;
+  const sem = await chat("reserva duas tardes para os livros");
+  assert.equal(sem.find((e) => e.t === "acoes"), undefined, "sem agenda não inventa horário");
+  assert.ok(sem.some((e) => e.t === "notice" && e.kind === "acao"));
+  calendarFail = false;
+  process.env.GOALS_ENABLED = "0";
+  assert.equal((await chat("reserva duas tardes para os livros")).find((e) => e.t === "acoes"), undefined);
+  delete process.env.GOALS_ENABLED;
+  modelText = META_TXT([{ tipo: "meta_agenda", meta: "acme", vezes: 2, periodo: "tarde" }]);
+  assert.equal((await chat("reserva duas tardes para a meta da Acme")).find((e) => e.t === "acoes"), undefined, "meta com termo bloqueado");
+  modelText = META_TXT([{ tipo: "meta_agenda", meta: "livros", vezes: 9, periodo: "tarde" }, { tipo: "meta_agenda", meta: "livros", vezes: 2 }]);
+  assert.equal((await chat("reserva muitas")).find((e) => e.t === "acoes"), undefined, "vezes e período inválidos");
+  assert.equal(log.writes.length, 0);
+});
+
+test("Core: a meta cita os blocos de agenda reservados só da pessoa e diz que reservar não é progresso", async () => {
+  const g1 = "10000000-0000-4000-8000-000000000001";
+  const prox = new Date(Date.now() + 2 * 86_400_000);
+  store.goal_events = [
+    { user_id: A, goal_id: g1, event_id: "evaaa11111", titulo: "Meta: Ler 12 livros", inicio: prox.toISOString(), fim: new Date(prox.getTime() + 3_600_000).toISOString() },
+    { user_id: B, goal_id: g1, event_id: "evbbb22222", titulo: "SEGREDO-B bloco", inicio: prox.toISOString(), fim: new Date(prox.getTime() + 3_600_000).toISOString() },
+  ];
+  await chat("como estão minhas metas");
+  const ctx = ctxOf();
+  assert.match(ctx, /agenda reservada \(reservar não é progresso\): 1 bloco/);
   assert.ok(!ctx.includes("SEGREDO-B"));
 });
 

@@ -8,7 +8,7 @@ import { DESTINO_NOME, type Ajuste, type Destino } from "./acoes.ts";
 import type { Categoria, Medicao } from "./goals/types.ts";
 import { SALARIO_ANO, type Salario } from "./finance/salario.ts";
 import { resumoSalario } from "./finance/salario-texto.ts";
-import { confirmQuestion, spokenDay, spokenMoney, type ConfirmItem } from "./voice-confirm.ts";
+import { confirmQuestion, spokenDay, spokenMoney, spokenTime, type ConfirmItem } from "./voice-confirm.ts";
 
 export type GastoDraft = { valor: number; categoria: string; descricao: string; meio: Meio; data: string };
 export type EventDraft = { title: string; start: string; end: string; location: string | null };
@@ -35,6 +35,8 @@ export type ChatAction =
   | { kind: "meta_tarefa"; goalId: string; meta: string; titulo: string; prazo: string | null }
   /** Liga (ou desliga) a meta a um projeto: ids resolvidos no servidor, só entre os itens da própria pessoa. */
   | { kind: "meta_projeto"; goalId: string; projectId: number; meta: string; projeto: string; desligar: boolean }
+  /** Blocos de agenda escolhidos pelo SERVIDOR (pulando conflitos): o cartão mostra os dias e horários; só depois do "sim" cria os eventos no Google. */
+  | { kind: "meta_agenda"; goalId: string; meta: string; blocos: { inicio: string; fim: string }[]; pulados: number; faltaram: number }
   | { kind: "tarefa_ok"; id: number; titulo: string }
   /** Já criada pelo servidor ("anota aí"): o cartão oferece Desfazer (cancela a tarefa). */
   | { kind: "tarefa_criada"; id: number; titulo: string; prazo: string | null }
@@ -212,6 +214,11 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
       return a.desligar
         ? { icon: "folder", proposed: "Desligar meta do projeto?", done: "Meta desligada do projeto", undone: "Descartado", title: a.meta, detail: `Projeto: ${a.projeto} (nada é apagado, só o vínculo)`, confirm: "Desligar", busy: "Salvando…", applied: false, open: { label: "Ver em Metas", view: "metas" } }
         : { icon: "folder", proposed: "Ligar meta ao projeto?", done: "Meta ligada ao projeto", undone: "Descartado", title: a.meta, detail: `Projeto: ${a.projeto}`, confirm: "Ligar", busy: "Salvando…", applied: false, open: { label: "Ver em Metas", view: "metas" } };
+    case "meta_agenda": {
+      const n = a.blocos.length;
+      const extra = [a.pulados ? `${a.pulados} ${a.pulados === 1 ? "dia ocupado foi trocado" : "dias ocupados foram trocados"}` : "", a.faltaram ? `${a.faltaram} ${a.faltaram === 1 ? "bloco não coube" : "blocos não couberam"}` : ""].filter(Boolean).join(" · ");
+      return { icon: "calendar", proposed: "Reservar horários na agenda?", done: `${n} ${n === 1 ? "bloco reservado" : "blocos reservados"} na agenda`, undone: "Descartado", title: `${a.meta} · ${n} ${n === 1 ? "bloco" : "blocos"}`, detail: `${a.blocos.map((b) => eventWhen(b.inicio, b.fim)).join("; ")}${extra ? ` — ${extra}` : ""}`, confirm: "Reservar", busy: "Reservando…", applied: false, open: { label: "Ver em Metas", view: "metas" } };
+    }
     case "tarefa_ok":
       return { icon: "check", proposed: "Concluir tarefa?", done: "Tarefa concluída", undone: "Descartado", title: a.titulo, detail: "Marcar como feita", confirm: "Concluir", busy: "Salvando…", applied: false, open: { label: "Ver Tarefas", view: "tarefas" } };
     case "tarefa_criada":
@@ -343,6 +350,11 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     case "marco_ok": return `Marco o marco ${a.titulo}, da meta ${a.meta}, como concluído?`;
     case "meta_tarefa": return `Crio a tarefa ${a.titulo} na meta ${a.meta}?`;
     case "meta_projeto": return a.desligar ? `Desligo a meta ${a.meta} do projeto ${a.projeto}?` : `Ligo a meta ${a.meta} ao projeto ${a.projeto}?`;
+    case "meta_agenda": {
+      const n = a.blocos.length;
+      const dias = a.blocos.slice(0, 4).map((b) => `${spokenDay(new Date(Date.parse(b.inicio) - 3 * 3_600_000).toISOString().slice(0, 10), now)} ${spokenTime(b.inicio)}`).join("; ");
+      return `Reservo ${n} ${n === 1 ? "bloco" : "blocos"} na agenda para a meta ${a.meta}: ${dias}${n > 4 ? ` e mais ${n - 4}` : ""}${a.faltaram ? `. ${a.faltaram} não ${a.faltaram === 1 ? "coube" : "couberam"}` : ""}. Posso reservar?`;
+    }
     case "tarefa_ok": return `Marco a tarefa ${a.titulo} como feita?`;
     case "tarefa_criada": return `Anotei a tarefa ${a.titulo}${a.prazo ? `, para ${spokenDay(a.prazo, now)}` : ""}. Está certo?`;
     case "tarefa_adiar": return `Adio a tarefa ${a.titulo} para ${spokenDay(a.prazo, now)}?`;

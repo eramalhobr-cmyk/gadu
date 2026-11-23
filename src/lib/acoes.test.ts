@@ -138,6 +138,18 @@ test("meta_projeto: liga e desliga a meta de um projeto; sem meta ou projeto nã
   assert.ok(acoesRules().includes("meta_projeto"), "o prompt ensina a ação");
 });
 
+test("meta_agenda: vezes e período obrigatórios, duração e semanas com padrão e limites; o modelo nunca informa dia nem horário", () => {
+  assert.deepEqual(validAcao({ tipo: "meta_agenda", meta: "corrida", vezes: 3, periodo: "manhã" }, NOW), { tipo: "meta_agenda", meta: "corrida", vezes: 3, periodo: "manha", duracaoMin: 60, semanas: 4 });
+  assert.deepEqual(validAcao({ tipo: "meta_agenda", meta: "corrida", vezes: "2", periodo: "tardes", duracao: 30, semanas: 3 }, NOW), { tipo: "meta_agenda", meta: "corrida", vezes: 2, periodo: "tarde", duracaoMin: 30, semanas: 3 });
+  assert.equal((validAcao({ tipo: "meta_agenda", meta: "corrida", vezes: 7, periodo: "noite", semanas: 6 }, NOW) as { semanas: number }).semanas, 2, "teto de 20 blocos");
+  const extra = validAcao({ tipo: "meta_agenda", meta: "corrida", vezes: 1, periodo: "manha", dia: "2026-12-01", inicio: "2026-12-01T07:00:00-03:00" }, NOW);
+  assert.ok(extra && !("dia" in extra) && !("inicio" in extra), "dia e horário do modelo são ignorados");
+  for (const ruim of [{ vezes: 3, periodo: "manha" }, { meta: "c", periodo: "manha" }, { meta: "c", vezes: 3 }, { meta: "c", vezes: 0, periodo: "manha" }, { meta: "c", vezes: 8, periodo: "manha" }, { meta: "c", vezes: 1.5, periodo: "manha" }, { meta: "c", vezes: 2, periodo: "madrugada" }, { meta: "c", vezes: 2, periodo: "manha", duracao: 5 }, { meta: "c", vezes: 2, periodo: "manha", duracao: 500 }, { meta: "c", vezes: 2, periodo: "manha", semanas: 7 }]) {
+    assert.equal(validAcao({ tipo: "meta_agenda", ...ruim }, NOW), null, JSON.stringify(ruim));
+  }
+  assert.ok(acoesRules().includes("meta_agenda"), "o prompt ensina a ação e diz que o servidor escolhe");
+});
+
 test("memória aprovar, recusar e esquecer; nova conversa; navegar", () => {
   assert.deepEqual(validAcao({ tipo: "memoria_aprovar", memoria: "mora em Curitiba" }, NOW), { tipo: "memoria_aprovar", memoria: "mora em Curitiba", todas: false });
   assert.deepEqual(validAcao({ tipo: "memoria_aprovar", todas: true }, NOW), { tipo: "memoria_aprovar", memoria: null, todas: true });

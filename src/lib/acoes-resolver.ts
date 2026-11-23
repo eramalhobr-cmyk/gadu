@@ -12,6 +12,7 @@ import { calcularSalario } from "./finance/salario.ts";
 import { GASTO_COLS, loadMes, toGasto } from "./finance/load.ts";
 import type { Gasto } from "./finance/types.ts";
 import type { Agregacao, Medicao } from "./goals/types.ts";
+import { planejarAgenda } from "./goals/agenda.ts";
 
 type GoalRow = { id: string; titulo: string; medicao: Medicao; unidade: string | null; agregacao: Agregacao; status: string; valor_alvo?: number | string | null; prazo?: string | null };
 /** Agenda do Google (só no servidor, com o token da própria pessoa); ausente nos testes que não usam agenda. */
@@ -224,6 +225,19 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           if (a.desligar && !ligado) { misses.push(`A meta "${g.titulo}" não está ligada ao projeto "${p.name}".`); break; }
           if (!a.desligar && ligado) { misses.push(`A meta "${g.titulo}" já está ligada ao projeto "${p.name}".`); break; }
           actions.push({ kind: "meta_projeto", goalId: g.id, projectId: p.id, meta: g.titulo, projeto: p.name, desligar: a.desligar });
+          break;
+        }
+        case "meta_agenda": {
+          if (!opts.goals) break;
+          const g = await findGoal(a.meta);
+          if (!g) break;
+          // O título da meta vai para o evento no Google: termo bloqueado não sai do app.
+          if (blocked(g.titulo)) break;
+          let lista: CalEvent[];
+          try { lista = await eventos(); } catch { noEventos(); break; }
+          const plano = planejarAgenda({ now, vezes: a.vezes, semanas: a.semanas, periodo: a.periodo, duracaoMin: a.duracaoMin, ocupados: lista });
+          if (!plano.blocos.length) { misses.push(`Não achei horário livre para a meta "${g.titulo}" nesse período nas próximas semanas.`); break; }
+          actions.push({ kind: "meta_agenda", goalId: g.id, meta: g.titulo, blocos: plano.blocos, pulados: plano.pulados, faltaram: plano.faltaram });
           break;
         }
         case "tarefa_concluir": case "tarefa_adiar": {
