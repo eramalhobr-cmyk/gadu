@@ -5,7 +5,8 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { AGENT_PRESETS, AREAS } from "@/lib/presets";
 import { FERRAMENTAS, FERRAMENTA_NOME, TETO_MAX_USD, ferramentasDe, mesSP, type Ferramenta } from "@/lib/agentes/ferramentas";
 import { ConfirmCard } from "./ConfirmCard";
-import { Bars, Kpi, KpiRow, Meter } from "./charts";
+import { Bars, Kpi, KpiRow, Meter, PainelHead } from "./charts";
+import { falaAgentes } from "@/lib/painel-fala";
 import { EmptyState, ModuleScreen, PageHeader, Panel, PrimaryAction } from "./kit";
 import { COLORS, colorVar, Icon, ICONS } from "./ui";
 
@@ -216,9 +217,10 @@ function AgentesPainel({ items, uso }: { items: Agent[]; uso: Record<number, num
   const total = Object.values(uso).reduce((a, b) => a + b, 0);
   const comGasto = items.filter((a) => (uso[a.id] ?? 0) > 0).sort((a, b) => (uso[b.id] ?? 0) - (uso[a.id] ?? 0));
   const comTeto = items.filter((a) => Number(a.teto_mensal_usd ?? 0) > 0);
+  const fala = falaAgentes({ ativos: items.filter((a) => a.active).length, total: usd(total), top: comGasto.map((a) => ({ nome: a.name, valor: usd(uso[a.id] ?? 0) })) });
   return (
-    <section className="pnl" id="painel" aria-labelledby="painel-agentes">
-      <h2 className="pnl-h" id="painel-agentes">Resumo dos agentes <small>Diga: “mostra o resumo dos agentes”</small></h2>
+    <section className="pnl" id="painel" aria-labelledby="painel-agentes" data-falar={fala}>
+      <PainelHead id="painel-agentes" title="Resumo dos agentes" dica="Diga: “mostra o resumo dos agentes”" fala={fala} />
       <div className="pnl-grid">
         <div className="hud-frame pnl-box">
           <KpiRow label="Agentes em números">

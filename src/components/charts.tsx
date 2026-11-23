@@ -3,6 +3,8 @@
 // Cada gráfico tem nome acessível com os números e, quando há série, uma tabela escondida para leitores de tela.
 import type { ReactNode } from "react";
 import { descreve, escala, linha, type Ponto } from "@/lib/painel";
+import { EVENTO_FALAR } from "@/lib/painel-fala";
+import { Icon } from "./ui";
 
 /** Cartão de indicador: rótulo em mono, número grande e uma linha de apoio. */
 export function Kpi(props: { label: string; value: ReactNode; sub?: ReactNode; tone?: "ok" | "hot" | "bad"; children?: ReactNode }) {
@@ -86,6 +88,21 @@ export function Stack(props: { parts: { n: number; label: string; tone: "ok" | "
         {props.parts.filter((p) => p.n > 0).map((p) => <i key={p.label} className={p.tone} style={{ ["--g" as string]: p.n }} />)}
       </div>
       <ul className="stack-l" aria-hidden="true">{props.parts.map((p) => <li key={p.label}><i className={p.tone} />{p.label} <b className="num">{p.n}</b></li>)}</ul>
+    </div>
+  );
+}
+
+/** Cabeçalho do painel: título, frase de voz e o botão "Ouvir" (lê o resumo com a voz escolhida, sem modelo). */
+export function PainelHead(props: { id: string; title: string; dica: string; fala: string }) {
+  return (
+    <div className="pnl-hd">
+      <h2 className="pnl-h" id={props.id}>{props.title} <small>{props.dica}</small></h2>
+      {props.fala && (
+        <button type="button" className="pnl-ouvir" aria-label={`Ouvir: ${props.title}`}
+          onClick={() => window.dispatchEvent(new CustomEvent(EVENTO_FALAR, { detail: props.fala }))}>
+          <Icon name="som" size={16} />Ouvir
+        </button>
+      )}
     </div>
   );
 }

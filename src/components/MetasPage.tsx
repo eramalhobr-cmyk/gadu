@@ -10,7 +10,8 @@ import {
   type Categoria, type Marco, type Medicao, type MetaView, type Registro, type Status, type TarefaVinculada,
 } from "@/lib/goals/types";
 import { ConfirmCard } from "./ConfirmCard";
-import { Kpi, KpiRow, Ring } from "./charts";
+import { Kpi, KpiRow, PainelHead, Ring } from "./charts";
+import { falaMetas } from "@/lib/painel-fala";
 import { BackButton, EmptyState, Field, ModuleScreen, PageHeader, Panel, PrimaryAction } from "./kit";
 import { showUndo } from "@/lib/undo";
 import { Icon, todayKey } from "./ui";
@@ -412,9 +413,10 @@ function MetaForm({ goal, onClose, onSaved, say }: { goal?: MetaView["goal"]; on
 function MetasPainel({ metas, resumo, onOpen }: { metas: MetaView[]; resumo: { n: number; label: string; tone?: "ok" | "hot" }[]; onOpen: (id: string) => void }) {
   const ordem: Record<string, number> = { vencida: 0, atrasada: 1, no_ritmo: 2, sem_prazo: 3, sem_dados: 4, batida: 5 };
   const ativas = metas.filter((m) => m.goal.status === "ativa").sort((a, b) => (ordem[a.ritmo.situacao] ?? 9) - (ordem[b.ritmo.situacao] ?? 9)).slice(0, 6);
+  const fala = falaMetas(ativas.map((m) => ({ titulo: m.goal.titulo, pct: m.progresso.semDados ? null : m.progresso.pct, situacao: SITUACAO_LABEL[m.ritmo.situacao] ?? "" })));
   return (
-    <section className="pnl" id="painel" aria-labelledby="painel-metas">
-      <h2 className="pnl-h" id="painel-metas">Resumo das metas <small>Diga: “como estou nas minhas metas?”</small></h2>
+    <section className="pnl" id="painel" aria-labelledby="painel-metas" data-falar={fala}>
+      <PainelHead id="painel-metas" title="Resumo das metas" dica="Diga: “mostra o resumo das metas”" fala={fala} />
       <KpiRow label="Metas em números">
         {resumo.map((r) => <Kpi key={r.label} label={r.label} value={r.n} tone={r.tone} />)}
       </KpiRow>

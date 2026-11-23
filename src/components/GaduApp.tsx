@@ -13,6 +13,7 @@ import { parseSayHelp, sayHere, sayHereSpoken } from "@/lib/o-que-dizer";
 import { CommandPalette } from "./CommandPalette";
 import { isPaletaKey, parseMenuCommand, type PaletaItem } from "@/lib/paleta";
 import { navSpoken, parseNavIntent, pushTab } from "@/lib/nav-intent";
+import { EVENTO_FALAR, parseLerResumo } from "@/lib/painel-fala";
 import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
 import { canListen, canSpeak, createRecognizer, SHORT_REPLY, Speaker, stripSourceTags } from "@/lib/speech";
@@ -179,6 +180,12 @@ export function GaduApp(props: {
   const logRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const speaker = useMemo(() => (typeof window === "undefined" ? null : new Speaker()), []);
+  // Botão "Ouvir" dos painéis (M4): fala o resumo com a voz escolhida, mesmo com a voz das respostas desligada (foi pedido).
+  useEffect(() => {
+    const on = (e: Event) => { const t = String((e as CustomEvent).detail ?? ""); if (t) { speaker?.cancel(); speaker?.announce(t); } };
+    window.addEventListener(EVENTO_FALAR, on);
+    return () => window.removeEventListener(EVENTO_FALAR, on);
+  }, [speaker]);
   const recRef = useRef<ReturnType<typeof createRecognizer>>(null);
   const handsFreeRef = useRef(false);
   // Detectado só no aparelho (no servidor não existe reconhecimento de voz).
@@ -327,6 +334,15 @@ export function GaduApp(props: {
       if (opts.voice && prefsRef.current.voice) speaker?.announce(menu === "mini" ? "Menu recolhido." : "Menu expandido.");
       return;
     }
+    // "Lê o resumo": lê o painel da tela atual (M4), sem modelo. Sem painel nesta tela, avisa.
+    if (message && parseLerResumo(message)) {
+      setDraft("");
+      const t = (document.getElementById("painel")?.dataset.falar ?? "").trim();
+      const txt = t || "Esta tela não tem painel de resumo. Diga, por exemplo: “mostra meu resumo de finanças”.";
+      if (prefsRef.current.voice || opts.voice) { speaker?.cancel(); speaker?.announce(txt); }
+      else setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: txt }]);
+      return;
+    }
     // "Abre finanças", "vai para as metas", "volta": navegação entendida aqui, sem modelo e sem custo (UX-7 G2).
     const nav = message ? parseNavIntent(message) : null;
     if (nav && (nav.tipo === "voltar" || !navHiddenRef.current(nav.view))) {
@@ -345,7 +361,11 @@ export function GaduApp(props: {
         const h = el?.querySelector<HTMLElement>("h2");
         if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
       }, 350);
-      if (opts.voice && prefsRef.current.voice) speaker?.announce(navSpoken(nav, alvo));
+      if (opts.voice && prefsRef.current.voice) {
+        // Resumo pedido por voz (M4): fala o que o painel mostra assim que os números chegam (até ~3 s); senão, só confirma.
+        if (alvo && nav.tipo === "abrir" && nav.painel) void lerPainel(3000).then((t) => speaker?.announce(t ? `${navSpoken(nav, alvo)} ${t}` : navSpoken(nav, alvo)));
+        else speaker?.announce(navSpoken(nav, alvo));
+      }
       else if (!alvo) setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: navSpoken(nav, null) }]);
       return;
     }
@@ -1173,4 +1193,17 @@ export function GaduApp(props: {
       )}
     </div>
   );
+}
+
+/** Espera o painel da tela ter o resumo falado (os números chegam depois da tela), por até `ms`. */
+function lerPainel(ms: number): Promise<string> {
+  return new Promise((res) => {
+    const t0 = Date.now();
+    const tick = () => {
+      const t = (document.getElementById("painel")?.dataset.falar ?? "").trim();
+      if (t || Date.now() - t0 > ms) return res(t);
+      window.setTimeout(tick, 200);
+    };
+    window.setTimeout(tick, 400);
+  });
 }

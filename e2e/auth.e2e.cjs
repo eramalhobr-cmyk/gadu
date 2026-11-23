@@ -323,6 +323,22 @@ describe("app com login", () => {
     await d.context().close();
   });
 
+  test("resumo falado dos painéis (M4): botão Ouvir e “lê o resumo”", async () => {
+    const d = await page(DESK);
+    let chats = 0;
+    d.on("request", (r) => { if (r.url().includes("/api/chat")) chats++; });
+    await d.goto(`${BASE}/app?tab=tarefas`);
+    await d.waitForSelector("#painel[data-falar]:not([data-falar=''])", { timeout: 15000 });
+    await d.evaluate(() => { window.__falas = []; window.speechSynthesis.speak = (u) => { window.__falas.push(u.text); }; });
+    await d.click("#painel .pnl-ouvir");
+    await d.waitForFunction(() => window.__falas.join(" ").length > 0);
+    assert.match(await d.evaluate(() => window.__falas.join(" ")), /tarefa/i, "fala o resumo das tarefas");
+    const box = await d.$eval("#painel .pnl-ouvir", (b) => { const r = b.getBoundingClientRect(); return { w: r.width, h: r.height }; });
+    assert.ok(box.w >= 44 && box.h >= 44, "botão Ouvir com 44 px");
+    assert.equal(chats, 0, "sem chamar o modelo");
+    await d.context().close();
+  });
+
   test("paleta Ctrl+K e menu compacto (UX-7 M6), sem chamar o modelo", async () => {
     const d = await page(DESK);
     let chats = 0;
