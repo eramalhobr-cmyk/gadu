@@ -9,6 +9,10 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · UX-7 · Motores de rosto antigos apagados · desenvolvido e testado
+- **Feito por:** Cursor (Grok Bot). Apagados `brain-engine.ts`, `head-engine.ts`, `bot-engine.ts`, o desenho de `robot-engine.ts` (fica só o tipo `FaceMode`), os componentes `RobotFace` e `Mind`, o ouvinte de ponteiro que só servia a eles e o CSS `.mind`: cerca de 550 linhas sem uso. O avatar oficial (ilustração + `avatar-engine.ts`) não muda. Sem voz nova (é limpeza).
+- **Evidências (máquina local):** typecheck; `test:unit`; build; avatar conferido na Conversa, no Hoje e na escuta.
+
 ## 2026-11-23 · UX-7 · Um microfone só no celular · desenvolvido e testado
 - **Feito por:** Cursor (Grok Bot). Abaixo de 1024 px (com a barra de baixo), o microfone central é o único em repouso: o do campo de mensagem some e volta quando a pessoa está escrevendo (ditado para revisar, que respeita "Enviar sozinho" desligado) e sempre que vira "Parar" (ouvindo ou respondendo). No computador nada muda. Texto da Conversa vazia: "Fale pelo microfone ou escreva abaixo." Só CSS e uma classe `idle` no botão; sem ação de voz nova (é o próprio gesto de falar).
 - **Evidências (máquina local):** typecheck; build; e2e com login: teste novo "um microfone só no celular" e os testes de voz do campo passam a focar o campo antes. Capturas: `/workspace/gadu-review/ux6/depois-um-mic/` (antes: `/workspace/gadu-review/tema/depois-claro/390-conversa.png`).

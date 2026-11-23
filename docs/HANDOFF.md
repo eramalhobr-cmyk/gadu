@@ -67,6 +67,10 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 15:12 · Cursor (Grok Bot), UX-7 R7: motores de rosto antigos apagados
+- **Feito:** só o avatar oficial fica (`Avatar` em `RobotFace.tsx` + `avatar-engine.ts`); `robot-engine.ts` guarda só o tipo `FaceMode` (o nome do arquivo ficou para não mexer nos imports de quem usa o tipo).
+- **Próximo passo:** R6/M1 (skills de design pela regra de segurança).
+
 ### 23/11/2026 15:08 · Cursor (Grok Bot), UX-7 R3: um microfone só no celular
 - **Feito:** classe `idle` no botão do campo e regra em `ux7.css` (abaixo de 1024 px some em repouso, volta ao focar o campo ou como "Parar"). e2e de voz do campo focam o campo antes; teste novo do R3.
 - **Proposta visual (B):** 3 direções simuladas em `/workspace/gadu-review/visual-direcoes/` (A Aurora de vidro, B Neon orbital, C Calma clara), **esperando a escolha do Eduardo**; nada implementado.
