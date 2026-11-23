@@ -20,7 +20,7 @@ Este é o caderno de passagem de bastão entre as IAs que programam o GaDu (Clau
 | Frente | IA | Branch | Situação |
 |---|---|---|---|
 | Ciclo UX (UX-1, UX-2, UX-3 parte 1) | Cursor (Grok Bot) | — | **concluído e publicado** em 22/11 às 19:54 (PRs #34, #35, #36). Próximo de UX: resto do UX-3 e UX-4 |
-| 3D-1 (conversa → OpenSCAD) | Claude Code | `feat/3d-1-openscad` (worktree `/workspace/gadu-3d`) | **desenvolvido e testado localmente**, sem push nem PR (22/11, noite). Falta: revisão por outra IA, PR, ligar o interruptor e testar com a IA real |
+| 3D-1 (conversa → OpenSCAD) | Claude Code | `feat/3d-1-openscad` (PR #40, integrado) | **publicado** em 22/11/2026 às 20:55 (Brasília), PR #40, merge `6d87a5f`, CI verde (verify, e2e-public, database), deploy de produção da Vercel concluído. No ar: `/api/3d/generate` sem sessão 401, `/vendor/openscad/render-worker.js` 200 com a CSP própria, e2e público contra a produção 10/10. `MODELING_3D_ENABLED` não definida na Vercel: o 3D está **desligado** em produção até o Eduardo ligar. Falta: revisão por outra IA, PR, ligar o interruptor e testar com a IA real |
 
 ## A revisar por outra IA
 Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
