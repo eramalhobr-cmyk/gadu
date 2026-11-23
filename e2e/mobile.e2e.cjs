@@ -135,11 +135,11 @@ for (const prof of PROFILES) {
       await p.goto(`${BASE}/login`);
       assert.equal(await p.getAttribute("html", "data-theme"), "light", "claro é o padrão");
       const metas = await p.$$eval('meta[name="theme-color"]', (els) => els.map((e) => e.content));
-      assert.deepEqual(metas, ["#f1f5fa"]);
+      assert.deepEqual(metas, ["#eef4f9"]);
       await p.context().addCookies([{ name: "gadu_theme", value: "dark", url: BASE }]);
       await p.goto(`${BASE}/login`);
       assert.equal(await p.getAttribute("html", "data-theme"), "dark", "a escolha salva vale");
-      assert.deepEqual(await p.$$eval('meta[name="theme-color"]', (els) => els.map((e) => e.content)), ["#0a111e"]);
+      assert.deepEqual(await p.$$eval('meta[name="theme-color"]', (els) => els.map((e) => e.content)), ["#050f1a"]);
       const tap = await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("-webkit-tap-highlight-color"));
       if (prof.engine === "chromium") assert.match(tap, /transparent|rgba\(0, 0, 0, 0\)/);
       const ob = await p.evaluate(() => getComputedStyle(document.body).overscrollBehaviorY);
@@ -163,7 +163,7 @@ for (const prof of PROFILES) {
       assert.equal(m.scope, "/");
       assert.ok(m.start_url.startsWith(m.scope), "start_url dentro do escopo");
       assert.match(m.theme_color, /^#[0-9a-f]{6}$/i);
-      assert.equal(m.background_color, "#f1f5fa", "ícone e abertura do app com fundo claro");
+      assert.equal(m.background_color, "#eef4f9", "ícone e abertura do app com fundo claro");
       const sizes = new Set(m.icons.filter((i) => !i.purpose || i.purpose === "any").map((i) => i.sizes));
       assert.ok(sizes.has("192x192") && sizes.has("512x512"), "ícones 192 e 512");
       const mask = m.icons.find((i) => i.purpose === "maskable");

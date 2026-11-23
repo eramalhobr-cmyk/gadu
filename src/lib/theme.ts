@@ -8,7 +8,7 @@ export function parseTheme(v: unknown): Theme {
 }
 
 /** Cor da barra do sistema (meta theme-color) de cada tema: o fundo da página. */
-export const THEME_COLOR: Record<Theme, string> = { light: "#f1f5fa", dark: "#0a111e" };
+export const THEME_COLOR: Record<Theme, string> = { light: "#eef4f9", dark: "#050f1a" };
 
 /** Tema em uso no navegador (o que o servidor aplicou no <html>). */
 export function readTheme(fallback: Theme = "light"): Theme {

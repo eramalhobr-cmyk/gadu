@@ -467,7 +467,9 @@ Proposta completa (17 itens), com o levantamento das skills de design no GitHub,
 - [x] **G2 · Navegação por intenção**: "abre finanças", "vai para as metas", "volta" entendidos no aparelho, sem modelo; por voz o GaDu confirma falando
 - [x] **R6/M1** guias de design revisados só em texto (`docs/design/`), `DESIGN.md` e a primeira crítica com a rubrica
 - [x] **M6 · Computador**: paleta Ctrl+K (telas, comandos, frases da tela e "perguntar ao GaDu", com microfone) e menu compacto também pela paleta e pela voz ("recolhe o menu")
-- [ ] **M4** telas mais visuais (Finanças, Metas, Agentes) · **G1** modo voz imersivo · **G3** design system v2 com testes visuais · **G4** logo novo (espera o arquivo) · M4, G1 e G3 esperam a escolha da direção visual (23/11, 16:13)
+- [x] **Tema JARVIS (G2)** escolhido pelo Eduardo às 16:33: claro padrão e escuro, barra flutuante com microfone sólido por cima
+- [ ] **Painéis de resumo e gráficos** (Hoje, Finanças, Metas, Tarefas, Agentes; só dados reais)
+- [ ] **M4** telas mais visuais (Finanças, Metas, Agentes) · **G1** modo voz imersivo · **G3** design system v2 com testes visuais · **G4** logo novo (espera o arquivo) · direção escolhida: G2 JARVIS (23/11, 16:33)
 
 ## Próximo ciclo (prioridades, em ordem; revisado em 22/11/2026)
 1. Validar com pessoa logada, em aparelho, o que foi publicado em 22/11 (Hoje e Fontes, Financeiro, Metas, voz, notificações) e fechar os passos manuais da segurança (senhas vazadas, S-09).

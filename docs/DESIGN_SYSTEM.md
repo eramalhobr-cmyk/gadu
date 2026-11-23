@@ -128,3 +128,7 @@ Tarefas, Projetos, Metas, Financeiro, Memória e Agentes (e o painel Lembretes, 
 - Juntar as regras de `globals.css` e `v2.css` que se repetem entre os dois arquivos (`.btn`, `.card`, `.notice`, `.chip`…): a ordem entre arquivos pede conferência tela a tela.
 - Um componente `Button` só se aparecer variação que as classes não resolvam.
 - Aplicar o sistema aos módulos novos quando forem construídos (o 3D tem estilo próprio em `studio3d.css`, outra frente).
+
+
+## Tema JARVIS (23/11/2026, direção G2)
+Camada final em `src/app/jarvis.css` sobre os tokens de `v2.css`: HUD ciano/âmbar, claro padrão e escuro opção. Classes reutilizáveis: `.hud-frame` (painel com cantos em colchete), `.hud-core` (núcleo com anéis; usa `--lvl` de 0 a 1 para reagir à voz), `.num` (número em mono com algarismos de largura fixa). Microfone central sólido (`--mic-a` → `--mic-b`) com `z-index` acima da barra; conteúdo com folga embaixo. Ver `DESIGN.md`.

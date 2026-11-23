@@ -16,17 +16,18 @@ Guia curto para quem (pessoa ou IA) desenha ou muda uma tela do GaDu. O detalhe 
 6. **Nada escondido atrás de cor.** Estado sempre com texto ou ícone também.
 
 ## Temas e tokens
-- **Claro é o padrão** (desde 23/11/2026); escuro é opção salva no cookie `gadu_theme`. Os dois usam os mesmos nomes de token em `src/app/v2.css`.
-- Nenhuma cor fixa em componente; transparência pelos trios `--*-rgb`. Superfícies grandes nunca forçam o escuro (`.on-dark` só no disco do avatar).
+- **Tema JARVIS** (direção G2, escolhida pelo Eduardo em 23/11/2026, 16:33): HUD holográfico ciano/âmbar, avatar como núcleo com anéis, painéis com cantos em colchete, números em mono, grade e linhas de varredura fracas, barra de baixo flutuante de vidro com microfone sólido. Tokens e regras em `src/app/jarvis.css` (carregado por último; os nomes de token são os mesmos de `src/app/v2.css`).
+- **Claro é o padrão**; escuro é opção salva no cookie `gadu_theme`.
+- Nenhuma cor fixa em componente; transparência pelos trios `--*-rgb`. Classes do HUD para telas novas: `.hud-frame` (painel com colchetes), `.hud-core` (núcleo com anéis), `.num` (número em mono).
 
 | Token | Claro | Escuro | Uso |
 |---|---|---|---|
-| `--bg` | `#f1f5fa` | `#0a111e` | fundo e `theme-color` |
-| `--panel` | `#ffffff` | `#101a2a` | cartões e painéis |
-| `--ink` / `--ink-2` / `--ink-3` | `#0f1c2e` / `#2c3d55` / `#56677e` | `#e9eff7` / `#c4d0de` / `#8d9db3` | texto |
-| `--sig` | `#00788c` | `#3ed6e8` | ação principal, foco |
-| `--hot` | `#a65000` | `#ff9a48` | atenção, atraso |
-| `--c-blue` / `--c-green` / `--c-violet` | `#1f63c8` / `#1b7a44` / `#6048c4` | `#5b9dff` / `#5fdc9a` / `#a08cfa` | cor por área |
+| `--bg` | `#eef4f9` | `#050f1a` | fundo e `theme-color` |
+| `--panel` / `--hud-panel` | `#ffffff` / branco 82 % | `#091b29` / 78 % | cartões e painéis |
+| `--ink` / `--ink-2` / `--ink-3` | `#06202b` / `#1f4150` / `#46636f` | `#e2f8ff` / `#b2d9e6` / `#82aebd` | texto |
+| `--hud` = `--sig` | `#007f99` | `#3fe6ff` | linhas do HUD, ação principal, foco |
+| `--amb` = `--hot` | `#b45f00` | `#ffb347` | detalhe âmbar, atenção, horários |
+| `--mic-a` → `--mic-b` | `#14b8d6` → `#007f99` | `#6ff0ff` → `#12b5d6` | microfone central (sólido) |
 
 Tipografia: Instrument Sans para texto e títulos; Michroma só na marca; IBM Plex Mono só em números. Espaço em múltiplos de 4 (`--s-*`), raios `--r-*`, alvos de toque ≥ 44 px.
 

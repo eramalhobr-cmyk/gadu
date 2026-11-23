@@ -11,8 +11,8 @@ test("tema claro é o padrão; a escolha salva (escuro) vale", () => {
 });
 
 test("cor da barra do sistema acompanha o fundo de cada tema", () => {
-  assert.equal(THEME_COLOR.light, "#f1f5fa");
-  assert.equal(THEME_COLOR.dark, "#0a111e");
+  assert.equal(THEME_COLOR.light, "#eef4f9");
+  assert.equal(THEME_COLOR.dark, "#050f1a");
 });
 
 test("voz: 'muda para o tema escuro' vira o ajuste de tema", () => {
