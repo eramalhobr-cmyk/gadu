@@ -403,6 +403,25 @@ test("agentes: criar e editar só entre os da própria pessoa; sem mudança, rep
   assert.deepEqual(b.actions, []);
 });
 
+test("agentes: ferramentas e teto viram só a mudança real; agente de outra pessoa não", async () => {
+  const db = fakeDb({ agents: [
+    { id: 1, name: "Mentor", area: "Estudos", instructions: "", active: true, user_id: U, ferramentas: ["agenda", "email", "tarefas", "acoes"], teto_mensal_usd: "5.00" },
+    { id: 9, name: "Secreto", area: "Pessoal", instructions: "", active: true, user_id: "outra", ferramentas: [], teto_mensal_usd: null },
+  ] });
+  const base = { nome: null, area: null, instrucoes: null, ativo: null } as const;
+  const r = await resolveAcoes(db, U, [
+    { tipo: "agente_editar", agente: "mentor", ...base, bloquear: ["email"], liberar: ["financas"], teto: 10 },
+  ], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(r.actions, [{ kind: "agente_editar", id: 1, nome: "Mentor", mudancas: { ferramentas: ["agenda", "tarefas", "financas", "acoes"], teto: 10 } }]);
+  const s = await resolveAcoes(db, U, [{ tipo: "agente_editar", agente: "mentor", ...base, teto: 0 }], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(s.actions[0], { kind: "agente_editar", id: 1, nome: "Mentor", mudancas: { teto: null } }, "0 tira o teto próprio");
+  const igual = await resolveAcoes(db, U, [{ tipo: "agente_editar", agente: "mentor", ...base, liberar: ["agenda"], teto: 5 }], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(igual.actions, []);
+  assert.match(igual.misses[0], /já está assim/);
+  const outro = await resolveAcoes(db, U, [{ tipo: "agente_editar", agente: "secreto", ...base, liberar: ["financas"] }], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(outro.actions, []);
+});
+
 test("percepções: recalculadas no servidor só com dados da própria pessoa; já respondida ou ausente vira aviso; dia cheio só ignora", async () => {
   const pdb = fakeDb({
     tasks: [

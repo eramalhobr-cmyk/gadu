@@ -2,6 +2,7 @@
 // O modelo nunca grava: o servidor valida aqui, resolve os nomes para ids SÓ entre os itens da própria pessoa
 // e manda cartões; quem grava é a pessoa, com um toque ou dizendo "sim". Puro: sem banco nem rede.
 import type { ViewId } from "./modules.ts";
+import { FERRAMENTAS, TETO_MAX_USD, type Ferramenta } from "./agentes/ferramentas.ts";
 import { lerData, hojeSP, isoDia, ordinal } from "./finance/datas.ts";
 import { parseNumero } from "./goals/numero.ts";
 import { normalizarCategoria, normalizarMeio } from "./finance/lancamento.ts";
@@ -27,7 +28,8 @@ export type AcaoProposta =
   | { tipo: "projeto_editar"; projeto: string; nome: string | null; objetivo: string | null }
   | { tipo: "projeto_arquivar"; projeto: string }
   | { tipo: "agente_criar"; nome: string; area: string | null; instrucoes: string | null }
-  | { tipo: "agente_editar"; agente: string; nome: string | null; area: string | null; instrucoes: string | null; ativo: boolean | null }
+  // liberar/bloquear = ferramentas que entram/saem; teto em US$ por mês (0 = sem teto próprio). Só aparecem quando a pessoa pediu.
+  | { tipo: "agente_editar"; agente: string; nome: string | null; area: string | null; instrucoes: string | null; ativo: boolean | null; liberar?: Ferramenta[]; bloquear?: Ferramenta[]; teto?: number }
   | { tipo: "meta_marco"; meta: string; titulo: string; data: string | null }
   | { tipo: "meta_marco_concluir"; meta: string; marco: string }
   | { tipo: "meta_tarefa"; meta: string; tarefa: string; prazo: string | null }
@@ -349,7 +351,12 @@ export function validAcao(raw: unknown, now = Date.now()): AcaoProposta | null {
     case "agente_editar": {
       const agente = txt(o.agente, 60), nome = txt(o.nome, 60) || null, area = txt(o.area, 40) || null, instrucoes = instr(o.instrucoes);
       const ativo = o.ativo === true || o.ativo === "true" ? true : o.ativo === false || o.ativo === "false" ? false : null;
-      return agente && (nome || area || instrucoes !== null || ativo !== null) ? { tipo: "agente_editar", agente, nome, area, instrucoes, ativo } : null;
+      const lista = (v: unknown) => (Array.isArray(v) ? FERRAMENTAS.filter((f) => v.includes(f)) : []);
+      const liberar = lista(o.liberar), bloquear = lista(o.bloquear).filter((f) => !liberar.includes(f));
+      const t = o.teto === null || o.teto === undefined || o.teto === "" ? null : typeof o.teto === "number" ? o.teto : parseValor(String(o.teto));
+      const teto = t !== null && Number.isFinite(t) && t >= 0 && t <= TETO_MAX_USD ? Math.round(t * 100) / 100 : null;
+      const extra = { ...(liberar.length ? { liberar } : {}), ...(bloquear.length ? { bloquear } : {}), ...(teto !== null ? { teto } : {}) };
+      return agente && (nome || area || instrucoes !== null || ativo !== null || Object.keys(extra).length) ? { tipo: "agente_editar", agente, nome, area, instrucoes, ativo, ...extra } : null;
     }
     case "projeto_criar": {
       const nome = txt(o.nome, 80);
@@ -443,7 +450,7 @@ export function acoesRules(): string {
   {"tipo":"memoria_aprovar","memoria":"palavras da memória pendente"} ou {"tipo":"memoria_aprovar","todas":true}; {"tipo":"memoria_recusar","memoria":"..."} (descarta uma memória pendente); {"tipo":"memoria_esquecer","memoria":"palavras do fato"} ("esquece que eu…": apaga uma memória aprovada; use as palavras da lista de memória);
   {"tipo":"percepcao","percepcao":"conflito|livre|atrasadas|email|cheio","decisao":"aceitar|ignorar"} ("pode passar as atrasadas para hoje", "ignora o aviso do e-mail", "reserva o foco na janela livre": só as percepções listadas em "Percepções de hoje"; "cheio" só dá para ignorar);
   {"tipo":"conta_criar","contaTipo":"despesa|receita","nome":"Água","valor":90,"dia":10,"grupo":"Moradia","todoMes":true} ("cria uma conta de água de 90 reais todo dia 10", "adiciona minha receita de aluguel de 1500": valor, dia e grupo são opcionais; todoMes = o valor vale deste mês até dezembro); {"tipo":"receita_principal","receita":"nome da receita"} ("meu salário principal é o da empresa": define a receita principal do Financeiro, que o simulador de salário usa para salvar); {"tipo":"peca3d_abrir","busca":"nome da peça ou vazio"} ("abre a minha última peça", "abre o suporte de celular no 3D": abre uma peça salva do 3D Studio, com confirmação; sem busca = a mais recente); {"tipo":"teto_definir","categoria":"Restaurantes","valor":800} ("põe um teto de 800 para restaurante", "meu limite de mercado é 1500 por mês"; "tira o teto de lazer" = valor null): teto mensal de gasto por categoria do dia a dia, com aviso a 80% e 100%; {"tipo":"nova_conversa"} ("começa uma conversa nova"); {"tipo":"conversa_abrir","busca":"assunto ou título"} ("abre a conversa sobre o condomínio", "volta naquela conversa da viagem": abre uma conversa anterior da pessoa, com confirmação); {"tipo":"guia"} ("me mostra o guia de novo", "como o GaDu funciona?": abre o guia de primeiro uso na hora, sem confirmação; não grava nada); {"tipo":"navegar","destino":"hoje|conversa|tarefas|agenda|financeiro|metas|projetos|memoria|agentes|ajustes|mais"} ("abre o Financeiro", "vai para Metas", "mostra minhas tarefas": abre a tela na hora, sem confirmação; use só quando a pessoa pedir para ir ou abrir uma tela);
-  {"tipo":"projeto_criar","nome":"...","objetivo":"..."}; {"tipo":"agente_criar","nome":"Mentor de estudos","area":"Estudos","instrucoes":"como o agente deve pensar e falar"} ("cria um agente para me ajudar com as finanças da casa": nome até 60 letras; area opcional entre Pessoal, Preferências, Saúde, Finanças, Estudos, Família, Projetos, Trabalho; escreva instruções curtas e claras na voz da pessoa); {"tipo":"agente_editar","agente":"nome atual","nome":"novo nome","area":"...","instrucoes":"texto novo que SUBSTITUI o anterior","ativo":true|false} ("muda as instruções do agente Mentor para ser mais direto", "desativa o agente de estudos": só o que muda);
+  {"tipo":"projeto_criar","nome":"...","objetivo":"..."}; {"tipo":"agente_criar","nome":"Mentor de estudos","area":"Estudos","instrucoes":"como o agente deve pensar e falar"} ("cria um agente para me ajudar com as finanças da casa": nome até 60 letras; area opcional entre Pessoal, Preferências, Saúde, Finanças, Estudos, Família, Projetos, Trabalho; escreva instruções curtas e claras na voz da pessoa); {"tipo":"agente_editar","agente":"nome atual","nome":"novo nome","area":"...","instrucoes":"texto novo que SUBSTITUI o anterior","ativo":true|false,"liberar":["email"],"bloquear":["financas"],"teto":5} ("muda as instruções do agente Mentor para ser mais direto", "desativa o agente de estudos", "tira o acesso do Mentor às finanças", "limita o agente de estudos a 5 dólares por mês": só o que muda; ferramentas entre ${FERRAMENTAS.join(", ")} — "acoes" = propor ações; teto em US$ por mês até ${TETO_MAX_USD}, 0 = sem teto próprio);
   {"tipo":"salario_simular","bruto":8000,"dependentes":0,"salvar":false} ("quanto fica líquido um salário de 8 mil?", "e com 2 dependentes?": o SERVIDOR calcula INSS e imposto de renda e mostra o cartão com o passo a passo; você NUNCA calcula nem escreve valores de INSS, imposto ou líquido: diga só que o cartão tem o cálculo, ou repita os números do bloco "Cálculo do salário" se ele estiver no contexto. "salvar":true só quando a pessoa pedir para guardar o líquido como o salário deste mês: vira um cartão de confirmação);
   {"tipo":"ajuste","opcao":"texto","valor":"100|115|130"} (letra normal, grande, maior), {"tipo":"ajuste","opcao":"maos_livres|respostas_curtas|voz","valor":true|false}, {"tipo":"ajuste","opcao":"tema","valor":"dark|light"}, {"tipo":"ajuste","opcao":"velocidade","valor":0.7 a 1.6|"normal"|"mais_devagar"|"mais_rapido"} ("fala mais devagar", "fala mais rápido", "volta a velocidade normal"), {"tipo":"ajuste","opcao":"voz_trocar","valor":"proxima"} ("troca a voz", "usa outra voz": passa para a próxima voz em português do aparelho).
   Diga em uma frase o que preparou ("Preparei, é só confirmar"). Não diga que não consegue fazer algo que está nesta lista. No máximo 5 itens; quase sempre a lista fica vazia.`;

@@ -83,7 +83,8 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 |---|---|---|---|---|
 | Agentes simples (nome, área, instruções, memória própria, "conversar com o agente") | implementado | — | `src/components/AgentsPage.tsx`, tabela `agents` | — |
 | Espaços Pessoal e Trabalho, hierarquia, CRM leve, orquestração, aprovações | planejado | P2 | `docs/PLANO-AGENTES.md` | isolamento multiusuário, organização e cliente (decisão oficial) |
-| Ferramentas permitidas, modelo e teto por agente | planejado | P2 | — | orçamento com reserva (PR #6) |
+| Ferramentas permitidas e teto por agente | implementado (23/11, Cursor) | — | `src/lib/agentes/ferramentas.ts`, `src/app/api/chat/route.ts`, `AgentsPage.tsx`, tabela `agent_uso` | orçamento com reserva (PR #6); teto do agente checado antes da reserva (mole sob concorrência) |
+| Modelo próprio por agente | planejado | P2 | — | — |
 
 ## 7. Agent Office Studio (sites, aplicações web e PWAs)
 | Funcionalidade | Status | Prioridade | Código | Dependências / próximos passos |
@@ -201,7 +202,7 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Memória | recusar (descartar pendente) | sim | `memoria_recusar` (confirmação explícita; não dá para desfazer) | — |
 | Memória | esquecer ("esquece que eu…") | sim | `memoria_esquecer` (só memórias aprovadas; confirmação explícita; não dá para desfazer) | — |
 | Agentes | criar | sim | `agente_criar` (nome até 60, área da lista de Agentes, instruções até 4000; cartão com as instruções e "sim" falado; nome repetido avisa; "Feito · Desfazer" apaga o agente recém-criado (Cursor, 23/11)) | PR da branch `feat/voz-agentes`, Claude Code, 23/11 |
-| Agentes | editar nome, área, instruções e ativar/desativar | sim | `agente_editar` (só o que muda; instruções novas SUBSTITUEM as antigas e o cartão mostra o texto; a fala lê só um resumo; "Feito · Desfazer" volta nome, área, instruções e ativo de antes) | idem |
+| Agentes | editar nome, área, instruções, ativar/desativar, ferramentas e teto | sim | `agente_editar` (só o que muda; ferramentas com `liberar`/`bloquear` e `teto` em US$ por mês, 0 tira o teto (Cursor, 23/11); instruções novas SUBSTITUEM as antigas e o cartão mostra o texto; a fala lê só um resumo; "Feito · Desfazer" volta nome, área, instruções e ativo de antes) | idem |
 | Agentes | apagar | **não** | — | lacuna (a tela pede confirmação; falta a ação `agente_apagar`) |
 | Configurações | tamanho do texto, conversa contínua, respostas curtas, resposta falada, tema | sim | `ajuste` | — |
 | Configurações | velocidade da fala ("fala mais devagar", "volta ao normal") e trocar a voz ("usa outra voz") | sim | `ajuste` (`velocidade`, `voz_trocar`), PR do Cursor de 23/11 | — |

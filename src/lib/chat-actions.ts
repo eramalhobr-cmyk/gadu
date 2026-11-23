@@ -5,6 +5,7 @@ import { MEIO_LABEL, MESES, type Meio } from "./finance/types.ts";
 import { fmtNum } from "./goals/numero.ts";
 import type { MetaDraft } from "./goals/types.ts";
 import { DESTINO_NOME, type Ajuste, type Destino } from "./acoes.ts";
+import { FERRAMENTA_NOME, type Ferramenta } from "./agentes/ferramentas.ts";
 import type { Categoria, Medicao } from "./goals/types.ts";
 import { SALARIO_ANO, type Salario } from "./finance/salario.ts";
 import { resumoSalario } from "./finance/salario-texto.ts";
@@ -81,14 +82,16 @@ function agenteMudancasLista(m: AgenteMudancas, max: number): string[] {
   if (m.area) l.push(`a área para ${m.area}`);
   if (m.instrucoes !== undefined) l.push(m.instrucoes ? `as instruções para: ${resumo(m.instrucoes, max)}` : "as instruções para vazio");
   if (m.ativo !== undefined) l.push(m.ativo ? "o agente para ativo" : "o agente para desativado");
+  if (m.ferramentas) l.push(`as ferramentas para ${m.ferramentas.length ? m.ferramentas.map((f) => FERRAMENTA_NOME[f]).join(", ") : "nenhuma"}`);
+  if (m.teto !== undefined) l.push(m.teto === null ? "o teto para sem teto próprio" : `o teto para US$ ${m.teto.toFixed(2).replace(".", ",")} por mês`);
   return l;
 }
 export function agenteMudancasTexto(m: AgenteMudancas): string {
-  return agenteMudancasLista(m, 140).map((x) => x.replace(/^(o nome|a área|as instruções|o agente) para /, (s) => ({ "o nome para ": "novo nome: ", "a área para ": "área: ", "as instruções para ": "instruções: ", "o agente para ": "" } as Record<string, string>)[s] ?? s)).join(" · ");
+  return agenteMudancasLista(m, 140).map((x) => x.replace(/^(o nome|a área|as instruções|o agente|as ferramentas|o teto) para /, (s) => ({ "o nome para ": "novo nome: ", "a área para ": "área: ", "as instruções para ": "instruções: ", "o agente para ": "", "as ferramentas para ": "ferramentas: ", "o teto para ": "teto: " } as Record<string, string>)[s] ?? s)).join(" · ");
 }
 /** Só os campos que mudam; `projetoId` vem do servidor (projeto da própria pessoa). */
 /** Só os campos que mudam. `instrucoes` substitui o texto anterior (vazio = sem instruções). */
-export type AgenteMudancas = { nome?: string; area?: string; instrucoes?: string; ativo?: boolean };
+export type AgenteMudancas = { nome?: string; area?: string; instrucoes?: string; ativo?: boolean; ferramentas?: Ferramenta[]; teto?: number | null };
 export type TarefaMudancas = { titulo?: string; prioridade?: 1 | 2 | 3; prazo?: string; projetoId?: number; projeto?: string };
 const PRIO = { 1: "alta", 2: "normal", 3: "baixa" } as const;
 export function mudancasTexto(m: TarefaMudancas): string {

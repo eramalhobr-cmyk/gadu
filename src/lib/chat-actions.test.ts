@@ -239,6 +239,11 @@ test("agentes: cartão, confirmação e pergunta falada", async () => {
   assert.equal(actionQuestion(ed, NOW), "No agente Mentor, mudo o nome para Mestre, as instruções para vazio, o agente para desativado?");
   const longo: ChatAction = { kind: "agente_editar", id: 1, nome: "Mentor", mudancas: { instrucoes: "a ".repeat(400) } };
   assert.ok(actionQuestion(longo, NOW).length < 260, "a fala não lê as 4000 letras");
+  const fer: ChatAction = { kind: "agente_editar", id: 1, nome: "Mentor", mudancas: { ferramentas: ["agenda", "financas"], teto: 5 } };
+  assert.equal(d(fer).detail, "ferramentas: Agenda, Finanças · teto: US$ 5,00 por mês");
+  assert.equal(actionQuestion(fer, NOW), "No agente Mentor, mudo as ferramentas para Agenda, Finanças, o teto para US$ 5,00 por mês?");
+  const semTeto: ChatAction = { kind: "agente_editar", id: 1, nome: "Mentor", mudancas: { teto: null, ferramentas: [] } };
+  assert.equal(d(semTeto).detail, "ferramentas: nenhuma · teto: sem teto próprio");
 });
 
 test("percepção: cartão e pergunta falada de aceitar e ignorar; conflito abre a Agenda", async () => {

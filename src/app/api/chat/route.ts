@@ -13,6 +13,8 @@ import { splitMeta, visiblePart } from "@/lib/meta";
 import { costUsd, estimateMaxCost } from "@/lib/pricing";
 import { estimatePartialUsage } from "@/lib/partial-cost";
 import { releaseBudget, reserveBudget, settleBudget } from "@/lib/ai-budget";
+import { acoesPermitidas, avisoFerramentas, ferramentasDe, mesSP, pode, tetoAtingido, type AgenteLimites } from "@/lib/agentes/ferramentas";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
 import { accessToken, events, formatEvents, formatMails, GoogleError, googleIntent, inbox } from "@/lib/google";
 import { insights, type InTask } from "@/lib/insights";
@@ -93,6 +95,9 @@ export async function POST(request: Request) {
       let inputChars = 0;
       let streamProvider: ProviderId | null = null;
       let usage: { input: number; output: number; cost: number; provider: ProviderId; model: string } | null = null;
+      // Agente desta resposta e quanto ela custou (soma no mês do agente, para o teto próprio dele).
+      let agenteUso: number | null = null;
+      let custoResp = 0;
       try {
         // 1. Privacidade: dado sensível não sai daqui e nem é gravado.
         if (isSensitive(message)) {
@@ -105,6 +110,19 @@ export async function POST(request: Request) {
         if (!providerSpend.ok) {
           console.error("chat provider budget validation unavailable");
           send({ t: "notice", kind: "error", text: "Não consegui verificar os limites dos motores de IA agora. Tente novamente em instantes." });
+          return;
+        }
+        // 2a. Agente com teto próprio: se o gasto do mês do agente chegou ao teto, para aqui (antes da reserva e da cota).
+        //     Sem teto próprio, nada muda. Com teto e sem conseguir ler o gasto, bloqueia (fail closed).
+        const limAg = await limitesDoAgente(supabase, parsed.data.conversationId ?? null, parsed.data.agentId ?? null);
+        if (!limAg.ok) {
+          send({ t: "notice", kind: "error", text: "Não consegui verificar o teto de gasto deste agente agora. Tente novamente em instantes." });
+          return;
+        }
+        const agente = limAg.agente;
+        agenteUso = agente?.id ?? null;
+        if (tetoAtingido(agente, limAg.gasto)) {
+          send({ t: "notice", kind: "quota", text: `O agente ${agente!.nome} chegou ao teto de gasto dele neste mês (US$ ${agente!.teto!.toFixed(2)}). Dá para aumentar o teto em Agentes, ou conversar com o GaDu sem o agente.` });
           return;
         }
         // 2b. Teto mensal com RESERVA atômica: o banco soma gasto + reservas abertas + estimativa desta resposta.
@@ -170,7 +188,7 @@ export async function POST(request: Request) {
         send({ t: "start", conversationId });
 
         // Busca por significado em paralelo (memórias, conversas, tarefas, projetos). Falha não atrapalha a conversa.
-        const semantic = semanticContext(supabase, message);
+        const semantic = pode(agente, "memoria") ? semanticContext(supabase, message) : Promise.resolve("");
         // 4. Contexto: perfil, memória aprovada, histórico recente, conversas antigas relacionadas e gasto por provedor.
         const [profile, memories, history, related, openTasks, activeProjects, agentRow, projectRow] = await Promise.all([
           supabase.from("profiles").select("display_name, settings").eq("id", user.id).maybeSingle(),
@@ -186,11 +204,11 @@ export async function POST(request: Request) {
         ]);
         // Agente: só as memórias da área dele e as preferências gerais.
         const agentArea = (agentRow.data as { area?: string } | null)?.area;
-        const memFor = ((memories.data ?? []) as { content: string; area: string }[]).filter((m) => !agentArea || agentAreas(agentArea).includes(m.area));
+        const memFor = pode(agente, "memoria") ? ((memories.data ?? []) as { content: string; area: string }[]).filter((m) => !agentArea || agentAreas(agentArea).includes(m.area)) : [];
         const extras = extrasBlock({
-          tasks: ((openTasks.data ?? []) as unknown as { title: string; priority: number; due_date: string | null; projects: { name: string } | null }[])
+          tasks: ((pode(agente, "tarefas") ? (openTasks.data ?? []) : []) as unknown as { title: string; priority: number; due_date: string | null; projects: { name: string } | null }[])
             .map((t) => ({ title: t.title, priority: t.priority, due_date: t.due_date, project: t.projects?.name ?? null })),
-          projects: (activeProjects.data ?? []) as { name: string; goal: string | null }[],
+          projects: (pode(agente, "tarefas") ? (activeProjects.data ?? []) : []) as { name: string; goal: string | null }[],
           agent: (agentRow.data as { name: string; area: string; instructions: string } | null) ?? null,
           project: (projectRow.data as { name: string; goal: string | null; next_steps: string | null } | null) ?? null,
         });
@@ -211,12 +229,14 @@ export async function POST(request: Request) {
           else turns.push({ role, content: m.content });
         }
         // Fase 2: agenda e e-mails do Google entram no contexto só quando o assunto pede.
-        const taskList = ((openTasks.data ?? []) as unknown as { title: string; priority: number; due_date: string | null }[]);
+        const taskList = ((pode(agente, "tarefas") ? (openTasks.data ?? []) : []) as unknown as { title: string; priority: number; due_date: string | null }[]);
         // Core "O que merece minha atenção hoje?": regra simples (sem IA), só com CORE_MVP ligado. Escopo = a sessão.
         // Falha do Core nunca derruba o chat: volta ao caminho anterior.
         let coreBlock = "";
         let coreSources: { items: SourceItem[]; unavailable: string[] } | null = null;
-        if (coreEnabled() && detectIntent(message) === "atencao_hoje" && !profile.error) {
+        // "Atenção hoje" junta agenda, e-mails, tarefas e lembretes: só para agente com as quatro ferramentas.
+        const coreTodo = (["agenda", "email", "tarefas", "lembretes"] as const).every((f) => pode(agente, f));
+        if (coreEnabled() && coreTodo && detectIntent(message) === "atencao_hoje" && !profile.error) {
           try {
             const core = await collectAttention({ userId: user.id, db: supabase, google: googleReader(supabase, user.id), blocked });
             coreBlock = formatCoreBlock(core);
@@ -229,7 +249,7 @@ export async function POST(request: Request) {
         //  - perguntar ("quanto gastei", "como estão minhas contas"): a fonte `finance` do Core (precisa do CORE_MVP ligado) injeta o bloco [F1]…;
         //  - lançar ("gastei 45 no mercado no pix"): só ensina o modelo a PROPOR; a pessoa confirma e quem grava é /api/finance/gastos, com a sessão dela.
         // A pergunta de atenção do dia tem prioridade. Falha na leitura vira aviso ao modelo (nunca inventar valores).
-        const finIntent = !coreBlock && financeEnabled() ? detectFinanceIntent(message) : null;
+        const finIntent = !coreBlock && financeEnabled() && pode(agente, "financas") ? detectFinanceIntent(message) : null;
         let financeBlock = "";
         if (finIntent?.kind === "gasto") {
           financeBlock = financeProposalRules(isoDia(hojeSP()));
@@ -254,7 +274,7 @@ export async function POST(request: Request) {
         //  - perguntar ("como estão minhas metas", "minha meta de leitura"): injeta o bloco [M1]…;
         //  - atualizar ("corri 5 km hoje", "conclui a meta X"): o modelo só PROPÕE; a pessoa confirma e quem grava é /api/goals/*, com a sessão dela.
         // Prioridade: atenção do dia > finanças > metas. Falha na leitura vira aviso ao modelo (nunca inventar progresso).
-        const goalsIntent = !coreBlock && !finIntent && goalsEnabled() ? detectGoalsIntent(message) : null;
+        const goalsIntent = !coreBlock && !finIntent && goalsEnabled() && pode(agente, "metas") ? detectGoalsIntent(message) : null;
         let goalsBlock = "";
         let goalRefs: GoalRef[] = [];
         if (goalsIntent && coreEnabled()) {
@@ -276,7 +296,7 @@ export async function POST(request: Request) {
           }
         }
         // O Core já traz agenda e e-mails de hoje: não lê o Google duas vezes (exceto se pediu a semana).
-        const google = coreBlock && !googleIntent(message).week ? "" : await googleContext(supabase, user.id, message, blocked, taskList);
+        const google = coreBlock && !googleIntent(message).week ? "" : await googleContext(supabase, user.id, message, blocked, taskList, { agenda: pode(agente, "agenda"), email: pode(agente, "email") });
         const lastTurn = turns[turns.length - 1];
         if (lastTurn && lastTurn.role === "user") lastTurn.content += "\n\n" + message;
         else turns.push({ role: "user", content: message });
@@ -286,9 +306,9 @@ export async function POST(request: Request) {
         let sent = 0;
         const system = systemPrompt();
         // Simulador de salário: o servidor calcula (salario.ts) e o resultado entra no contexto; o modelo só repete os números.
-        const salarioPedido = financeEnabled() ? pedidoSalario(message) : null;
+        const salarioPedido = financeEnabled() && pode(agente, "financas") ? pedidoSalario(message) : null;
         const salarioBlock = salarioPedido ? blocoSalario(salarioPedido) ?? "" : "";
-        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + financeBlock + goalsBlock + salarioBlock + (parsed.data.context ? contextLine(parsed.data.context) : "");
+        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + financeBlock + goalsBlock + salarioBlock + avisoFerramentas(agente) + (parsed.data.context ? contextLine(parsed.data.context) : "");
         inputChars = system.length + context.length + turns.reduce((n, t) => n + t.content.length, 0);
         for await (const ev of routeChat({
           system,
@@ -335,6 +355,7 @@ export async function POST(request: Request) {
         if (u) {
           recorded = true;
           settled = await settleBudget(user.id, reservationId, "chat", u);
+          custoResp = u.cost;
         }
         const newCount = msgCount + 2;
         await supabase.from("conversations").update({ updated_at: new Date().toISOString(), message_count: newCount }).eq("id", conversationId);
@@ -399,7 +420,7 @@ export async function POST(request: Request) {
         }
         // "Tudo por voz": ações de qualquer módulo (criar meta, marco, concluir tarefa, conta paga, ajustes…). Só propostas:
         // os nomes viram ids SÓ entre os itens da pessoa (sessão + user_id) e ela confirma no cartão ou dizendo "sim".
-        let acoesOk = metaSent ? acaoProposals.filter((a) => a.tipo !== "meta_registrar" && a.tipo !== "meta_concluir") : acaoProposals;
+        let acoesOk = acoesPermitidas(agente, metaSent ? acaoProposals.filter((a) => a.tipo !== "meta_registrar" && a.tipo !== "meta_concluir") : acaoProposals);
         if (salarioPedido) {
           // O valor e os dependentes do cartão são os que a pessoa disse, não os que o modelo repetiu; sem ação do modelo, o servidor propõe o cartão.
           const dele = acoesOk.find((a) => a.tipo === "salario_simular");
@@ -448,16 +469,19 @@ export async function POST(request: Request) {
             if (real) {
               recorded = true;
               settled = await settleBudget(user.id, reservationId, "chat", real);
+              custoResp = real.cost;
             } else if (streamProvider) {
               const model = streamProvider === "anthropic" ? cfg.model : streamProvider === "gateway" ? cfg.gatewayModel : cfg.geminiModel;
               const est = estimatePartialUsage(model, inputChars, full.length, reservedUsd);
               if (est) {
                 recorded = true;
                 settled = await settleBudget(user.id, reservationId, "chat", { provider: streamProvider, model: est.model, input: est.input, output: est.output, cost: est.cost });
+                custoResp = est.cost;
               }
             }
           }
           if (reservationId && !settled) await releaseBudget(user.id, reservationId);
+          if (agenteUso && settled && custoResp > 0) await somarUsoAgente(user.id, agenteUso, custoResp);
         } catch (e) {
           console.error("encerramento do orçamento falhou", e instanceof Error ? e.message.slice(0, 120) : "erro");
         } finally {
@@ -516,9 +540,43 @@ async function summarize(supabase: Db, userId: string, conversationId: number, s
   }
 }
 
+/** Ferramentas e teto do agente desta mensagem (conversa existente ou nova), lidos pela sessão (RLS: só agentes da pessoa).
+ * Sem agente: sem restrição. Se as colunas novas não puderem ser lidas, segue sem restrição (o agente funciona como antes).
+ * Com teto próprio e sem conseguir ler o gasto do mês: ok = false (o chat bloqueia). */
+async function limitesDoAgente(supabase: Db, conversationId: number | null, agentIdNovo: number | null): Promise<{ ok: boolean; agente: AgenteLimites | null; gasto: number }> {
+  let agentId = agentIdNovo;
+  if (conversationId) {
+    const c = await supabase.from("conversations").select("agent_id").eq("id", conversationId).maybeSingle();
+    agentId = c.data ? ((c.data.agent_id as number | null) ?? null) : agentIdNovo;
+  }
+  if (!agentId) return { ok: true, agente: null, gasto: 0 };
+  const a = await supabase.from("agents").select("id, name, ferramentas, teto_mensal_usd").eq("id", agentId).maybeSingle();
+  if (a.error || !a.data || !Number.isFinite(Number((a.data as { id?: unknown }).id))) return { ok: true, agente: null, gasto: 0 };
+  const row = a.data as { id: number; name: string; ferramentas: unknown; teto_mensal_usd: number | string | null };
+  const agente: AgenteLimites = { id: Number(row.id), nome: row.name, ferramentas: ferramentasDe(row.ferramentas), teto: row.teto_mensal_usd === null ? null : Number(row.teto_mensal_usd) };
+  if (agente.teto === null) return { ok: true, agente, gasto: 0 };
+  const u = await supabase.from("agent_uso").select("custo_usd").eq("agent_id", agente.id).eq("mes", mesSP()).maybeSingle();
+  if (u.error) return { ok: false, agente, gasto: 0 };
+  return { ok: true, agente, gasto: Number((u.data as { custo_usd?: number | string } | null)?.custo_usd ?? 0) };
+}
+
+/** Soma o custo desta resposta ao mês do agente (só o servidor grava; falha só vai para o log). */
+async function somarUsoAgente(userId: string, agentId: number, custo: number) {
+  if (!(custo > 0)) return;
+  try {
+    const db = supabaseAdmin();
+    const { error } = await db.rpc("server_add_agent_usage", { p_user: userId, p_agent: agentId, p_cost_usd: Math.round(custo * 1e6) / 1e6 });
+    if (error) console.error("uso do agente não gravado");
+  } catch {
+    console.error("uso do agente não gravado");
+  }
+}
+
 /** Lê agenda e/ou e-mails quando a mensagem pede. Falhas viram um aviso no contexto, nunca derrubam a conversa. */
-async function googleContext(supabase: Db, userId: string, message: string, blocked: string[], tasks: InTask[]): Promise<string> {
-  const want = googleIntent(message);
+async function googleContext(supabase: Db, userId: string, message: string, blocked: string[], tasks: InTask[], perm = { agenda: true, email: true }): Promise<string> {
+  const pedido = googleIntent(message);
+  // Ferramentas do agente: o que ele não pode usar não é lido.
+  const want = { ...pedido, agenda: pedido.agenda && perm.agenda, email: pedido.email && perm.email };
   if (!want.agenda && !want.email) return "";
   try {
     const token = await accessToken(supabase, userId);
