@@ -190,8 +190,6 @@ details summary { cursor: pointer; min-height: 32px; display: flex; align-items:
 }
 
 /* Humanoide com cérebro (duas camadas). S = tamanho do busto, igual ao do desenho. */
-.mind { position: absolute; inset: 0; container-type: size; --S: min(95cqw, 105cqh); }
-.mind-brain { position: absolute; left: 50%; width: calc(var(--S) * 0.58); height: calc(var(--S) * 0.42); top: calc(47cqh - var(--S) * 0.45); transform: translateX(-50%); mix-blend-mode: screen; opacity: 0.85; -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 55%, #000 62%, transparent 100%); mask-image: radial-gradient(ellipse 50% 50% at 50% 55%, #000 62%, transparent 100%); pointer-events: none; }
 
 /* Menu de baixo sempre fixo; o conteúdo rola por trás dele. */
 .shell { height: 100dvh; display: flex; flex-direction: column; padding-top: var(--safe-t); padding-bottom: calc(62px + var(--safe-b)); }
