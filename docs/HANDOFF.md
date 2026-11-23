@@ -20,7 +20,7 @@ Este é o caderno de passagem de bastão entre as IAs que programam o GaDu (Clau
 | Frente | IA | Branch | Situação |
 |---|---|---|---|
 | Ciclo UX (UX-1 a UX-4) e Tudo por voz | Cursor (Grok Bot) e Claude Code | — | **UX-4 (PRs #52 a #55) e UX-5 (PRs #58 a #60) publicados em 23/11 pelo Claude Code**; UX-1 a UX-3 e Tudo por voz **publicados** (PRs #34, #35, #36, #38, #39, #42 em 22/11; lacunas da matriz fechadas em 23/11 pelos PRs #47 a #50). Próximo: validar com a IA real e no aparelho, lacunas que restam na seção 11 e UX-6 |
-| Financeiro: simulador de salário | Claude Code | `feat/financas-simulador-bruto-liquido` (worktree `/workspace/gadu-simulador`) | básico **publicado** em 23/11 (PR #63). Ampliação (outras deduções, benefícios, 13º, férias, voz sem modelo) **revisada pelo Cursor às 18:50**, PR a abrir; falta CI, tela em aparelho e validação com pessoa logada |
+| Financeiro: simulador de salário | Claude Code | `feat/financas-simulador-bruto-liquido` (worktree `/workspace/gadu-simulador`) | básico **publicado** em 23/11 (PR #63). Ampliação (outras deduções, benefícios, 13º, férias, voz sem modelo) **publicada** em 23/11 às 19:09 (PR #116, merge `ed9a20f`, CI verde, deploy conferido). Falta tela em aparelho e a frase por voz com pessoa logada |
 | Metas fase 2 (projetos e agenda) | Claude Code e Cursor | — | **publicada** em 23/11: #85 migração (aplicada 13:11), #86 projetos (13:29), #87 agenda (13:43). Falta validar com Google real e no aparelho. Antes: migração `20261123170001` **aplicada** (Cursor, 23/11). Etapa 2a (projetos: tela, rotas, `meta_projeto`, Core) em PR; etapa 2b (agenda: `meta_agenda`) em seguida |
 | Revisão cruzada (Cursor → Claude Code) e segurança S-05/S-08 | Claude Code e Cursor | `fix/s05-escrita-por-acesso` | revisão (#72), auditoria (#73) e S-08 desenho (#75) **publicados**; S-05 (#74) **aprovado pelo Eduardo às 11:17** (bloqueado pode apagar os próprios dados) e **aplicado em produção às 11:31** pelo Cursor |
 | Observabilidade (8a) e e2e com login no CI (8b) | Claude Code | `feat/telemetria-erros` | **Migração `20261123110001_telemetria_erros.sql` APLICADA** pelo Cursor via MCP em 23/11 ~10:57 (conferido: `error_events` com RLS e 1 política). O código (rota `/api/telemetria/erro`, página no Admin, alerta) pode seguir. **8b (e2e com login no CI): PR #77**, 17/17 |
@@ -67,6 +67,12 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - [ ] **Validação com login no aparelho** de tudo o que foi publicado em 22/11 (pendência humana, com o Eduardo).
 
 ## Diário (mais recente no topo)
+
+### 23/11/2026 19:10 · Cursor (Grok Bot), publicação do simulador de salário ampliado
+- **Feito por (IA):** Claude Code (código); Cursor (Grok Bot) (revisão, merge e conferência no ar).
+- **Publicado:** PR #116, merge `ed9a20f`, 23/11/2026 às 19:09 (Brasília). CI verde (verify, e2e-public, database, e2e com login). Deploy de produção da Vercel concluído. Conferido: `/api/health` 200, `/api/finance/resumo` 401 sem sessão, CSS de produção com `.sal-diga`.
+- **PRs:** #116.
+- **Falta:** conferir a tela no aparelho e dizer “quanto fica líquido um salário de 12 mil?” com pessoa logada.
 
 ### 23/11/2026 18:50 · Cursor (Grok Bot), revisão do simulador de salário ampliado
 - **Feito por (IA):** Claude Code (código, 5 commits locais); Cursor (Grok Bot) (revisão, testes de novo e PR).
