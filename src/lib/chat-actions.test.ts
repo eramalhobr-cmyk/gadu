@@ -98,6 +98,19 @@ test("tudo por voz: cartões e perguntas de meta (pausar, retomar, arquivar, edi
   for (const a of [ms("pausada"), me, pe, pa]) assert.equal(d(a).applied, false);
 });
 
+test("tudo por voz: cartão e pergunta de ligar e desligar meta de projeto", async () => {
+  const { actionQuestion, describe: d } = await import("./chat-actions.ts");
+  const liga: ChatAction = { kind: "meta_projeto", goalId: "g", projectId: 3, meta: "Correr 50 km", projeto: "Saúde", desligar: false };
+  const desliga: ChatAction = { ...liga, desligar: true } as ChatAction;
+  assert.equal(actionQuestion(liga, NOW), "Ligo a meta Correr 50 km ao projeto Saúde?");
+  assert.equal(actionQuestion(desliga, NOW), "Desligo a meta Correr 50 km do projeto Saúde?");
+  assert.equal(d(liga).detail, "Projeto: Saúde");
+  assert.equal(d(liga).confirm, "Ligar");
+  assert.match(d(desliga).detail, /nada é apagado/i);
+  assert.equal(d(liga).applied, false);
+  assert.equal(d(desliga).applied, false);
+});
+
 test("tudo por voz: cartões e perguntas de memória, nova conversa e navegação; splitNavegacao separa o que abre na hora", async () => {
   const { actionQuestion, describe: d, splitNavegacao } = await import("./chat-actions.ts");
   assert.equal(actionQuestion({ kind: "memoria_aprovar", ids: [1], texto: "Mora em Curitiba" }, NOW), "Aprovo a memória: Mora em Curitiba?");

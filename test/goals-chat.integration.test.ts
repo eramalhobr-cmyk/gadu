@@ -503,6 +503,61 @@ test("tudo por voz: GOALS_ENABLED=0 não gera cartão de meta (projeto continua)
   assert.equal(bl.find((e) => e.t === "acoes"), undefined);
 });
 
+// ---- "Tudo por voz": ligar meta a projeto ----
+test("tudo por voz: ligar e desligar meta de projeto viram cartão; só itens de A; vínculo repetido vira aviso; nada é gravado", async () => {
+  seedTarefas();
+  store.goal_projects = [{ user_id: A, goal_id: "10000000-0000-4000-8000-000000000002", project_id: 3 }];
+  modelText = META_TXT([
+    { tipo: "meta_projeto", meta: "livros", projeto: "casa nova" },
+    { tipo: "meta_projeto", meta: "certificação", projeto: "casa nova", desligar: true },
+    { tipo: "meta_projeto", meta: "livros", projeto: "SEGREDO-B projeto" },
+    { tipo: "meta_projeto", meta: "SEGREDO-B meta", projeto: "casa nova" },
+  ]);
+  const events = await chat("liga livros ao projeto da casa, desliga a certificação da casa e mexe nas coisas do outro");
+  const items = events.find((e) => e.t === "acoes")?.items ?? [];
+  assert.deepEqual(items.map((i) => [i.kind, i.projectId, i.desligar]), [["meta_projeto", 3, false]]);
+  assert.equal(items[0].goalId, "10000000-0000-4000-8000-000000000001");
+  assert.ok(events.some((e) => e.t === "notice" && e.kind === "acao"), "o que não achou vira aviso");
+  assert.ok(!JSON.stringify(events.filter((e) => e.t === "acoes")).includes("SEGREDO-B"), "nenhum cartão com item de B");
+  assert.equal(log.writes.length, 0, "nada gravado em metas ou vínculos antes da confirmação");
+  assert.equal(voiceWrites.length, 0);
+});
+
+test("tudo por voz: meta_projeto de vínculo existente desliga; já ligada vira aviso; GOALS_ENABLED=0 e termo bloqueado não geram cartão", async () => {
+  seedTarefas();
+  const g1 = "10000000-0000-4000-8000-000000000001";
+  store.goal_projects = [{ user_id: A, goal_id: g1, project_id: 3 }];
+  modelText = META_TXT([{ tipo: "meta_projeto", meta: "livros", projeto: "casa nova", desligar: true }]);
+  const des = await chat("desliga livros da casa");
+  assert.deepEqual((des.find((e) => e.t === "acoes")?.items ?? []).map((i) => [i.kind, i.desligar]), [["meta_projeto", true]]);
+  modelText = META_TXT([{ tipo: "meta_projeto", meta: "livros", projeto: "casa nova" }]);
+  const dup = await chat("liga livros à casa");
+  assert.equal(dup.find((e) => e.t === "acoes"), undefined, "já ligada");
+  assert.ok(dup.some((e) => e.t === "notice" && e.kind === "acao"));
+  process.env.GOALS_ENABLED = "0";
+  const off = await chat("liga livros à casa");
+  assert.equal(off.find((e) => e.t === "acoes"), undefined);
+  delete process.env.GOALS_ENABLED;
+  store.goal_projects = [];
+  store.goals[0].titulo = "Livros";
+  generic.projects = [{ id: 3, user_id: A, name: "Projeto Acme", status: "active" }];
+  modelText = META_TXT([{ tipo: "meta_projeto", meta: "livros", projeto: "Acme" }]);
+  const bl = await chat("liga livros ao projeto da Acme");
+  assert.equal(bl.find((e) => e.t === "acoes"), undefined, "termo bloqueado");
+  assert.equal(log.writes.length, 0);
+});
+
+test("Core: a meta cita os projetos ligados só da pessoa (nome bloqueado fica omitido)", async () => {
+  seedTarefas();
+  const g1 = "10000000-0000-4000-8000-000000000001";
+  store.goal_projects = [{ user_id: A, goal_id: g1, project_id: 3 }, { user_id: B, goal_id: g1, project_id: 30 }];
+  providerCalls = [];
+  await chat("como estão minhas metas");
+  const ctx = providerCalls.map((c) => c.context ?? "").join("\n");
+  assert.match(ctx, /projetos ligados: Casa nova/);
+  assert.ok(!ctx.includes("SEGREDO-B"));
+});
+
 // ---- "Tudo por voz": memória (aprovar, recusar, esquecer), nova conversa e navegação ----
 function seedMemorias() {
   generic.memories = [

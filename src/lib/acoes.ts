@@ -28,6 +28,8 @@ export type AcaoProposta =
   | { tipo: "meta_marco"; meta: string; titulo: string; data: string | null }
   | { tipo: "meta_marco_concluir"; meta: string; marco: string }
   | { tipo: "meta_tarefa"; meta: string; tarefa: string; prazo: string | null }
+  /** Liga (ou desliga) uma meta a um projeto da própria pessoa. */
+  | { tipo: "meta_projeto"; meta: string; projeto: string; desligar: boolean }
   | { tipo: "tarefa_concluir"; tarefa: string }
   | { tipo: "tarefa_adiar"; tarefa: string; prazo: string }
   | { tipo: "tarefa_cancelar"; tarefa: string }
@@ -68,7 +70,7 @@ export function destinoDe(v: unknown): Destino | null {
   return (DESTINOS as readonly string[]).includes(k) ? (k as Destino) : DESTINO_APELIDO[k] ?? null;
 }
 
-export const TIPOS = ["meta_criar", "meta_registrar", "meta_registro_apagar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "conta_criar", "receita_principal", "teto_definir", "peca3d_abrir", "nova_conversa", "conversa_abrir", "guia", "navegar", "projeto_criar", "agente_criar", "agente_editar", "salario_simular", "ajuste"] as const;
+export const TIPOS = ["meta_criar", "meta_registrar", "meta_registro_apagar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "meta_projeto", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "conta_criar", "receita_principal", "teto_definir", "peca3d_abrir", "nova_conversa", "conversa_abrir", "guia", "navegar", "projeto_criar", "agente_criar", "agente_editar", "salario_simular", "ajuste"] as const;
 
 /** Instruções de agente: mantém as quebras de linha (até 2 seguidas), tira espaços sobrando. */
 const instr = (v: unknown): string | null => (typeof v === "string" ? v.replace(/\r/g, "").replace(/[ \t]+/g, " ").replace(/ ?\n ?/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, 4000) : null);
@@ -201,6 +203,10 @@ export function validAcao(raw: unknown, now = Date.now()): AcaoProposta | null {
     case "meta_tarefa": {
       const meta = txt(o.meta, 120), tarefa = txt(o.tarefa, 200);
       return meta && tarefa ? { tipo: "meta_tarefa", meta, tarefa, prazo: dataFutura(o.prazo, now) } : null;
+    }
+    case "meta_projeto": {
+      const meta = txt(o.meta, 120), projeto = txt(o.projeto, 120);
+      return meta && projeto ? { tipo: "meta_projeto", meta, projeto, desligar: o.desligar === true || o.desligar === "true" } : null;
     }
     case "tarefa_concluir": {
       const tarefa = txt(o.tarefa, 200);
@@ -402,6 +408,7 @@ export function acoesRules(): string {
   {"tipo":"meta_editar","meta":"nome atual","titulo":"novo título","alvo":60,"prazo":"AAAA-MM-DD"} (só o que muda; alvo só em meta numérica);
   {"tipo":"projeto_editar","projeto":"nome atual","nome":"novo nome","objetivo":"..."} (só o que muda); {"tipo":"projeto_arquivar","projeto":"..."} (marca o projeto como concluído; some dos ativos);
   {"tipo":"meta_marco","meta":"...","titulo":"...","data":"AAAA-MM-DD"}; {"tipo":"meta_marco_concluir","meta":"...","marco":"..."}; {"tipo":"meta_tarefa","meta":"...","tarefa":"...","prazo":"AAAA-MM-DD"};
+  {"tipo":"meta_projeto","meta":"...","projeto":"...","desligar":false} ("liga a meta de corrida ao projeto Saúde"; "desligar":true para tirar o vínculo; a meta e o projeto precisam existir);
   {"tipo":"tarefa_concluir","tarefa":"..."}; {"tipo":"tarefa_adiar","tarefa":"...","prazo":"AAAA-MM-DD"}; {"tipo":"lembrete_cancelar","lembrete":"..."};
   {"tipo":"tarefa_cancelar","tarefa":"..."} ("cancela/apaga a tarefa…"); {"tipo":"tarefa_reabrir","tarefa":"..."} (tarefa já feita ou cancelada que volta a ficar aberta);
   {"tipo":"tarefa_editar","tarefa":"nome atual","titulo":"novo título","prioridade":1,"prazo":"AAAA-MM-DD","projeto":"nome do projeto"} (só os campos que mudam; prioridade 1 alta, 2 normal, 3 baixa);

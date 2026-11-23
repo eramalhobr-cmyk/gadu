@@ -13,7 +13,7 @@ const DEFAULTS: Record<string, () => Row> = {
   pecas_3d: () => ({ valores: {}, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }),
   pecas_3d_versoes: () => ({ created_at: new Date(Date.now() + seq++).toISOString() }),
 };
-const UNIQUE: Record<string, string[]> = { goal_tasks: ["goal_id", "task_id"], fin_tetos: ["user_id", "categoria"] };
+const UNIQUE: Record<string, string[]> = { goal_tasks: ["goal_id", "task_id"], goal_projects: ["goal_id", "project_id"], fin_tetos: ["user_id", "categoria"] };
 const KEYS: Record<string, string[]> = { fin_item_meses: ["item_id", "ano", "mes"], fin_config: ["user_id"] };
 
 export function makeFinDb(store: FinStore, user: () => string | null, log: { tables: string[]; writes: { table: string; op: string; rows: Row[] }[] }) {

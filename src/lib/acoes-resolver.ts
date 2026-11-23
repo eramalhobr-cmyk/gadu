@@ -211,6 +211,21 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           if (g) actions.push({ kind: "meta_tarefa", goalId: g.id, meta: g.titulo, titulo: a.tarefa, prazo: a.prazo });
           break;
         }
+        case "meta_projeto": {
+          if (!opts.goals || blocked(a.projeto)) break;
+          const g = await findGoal(a.meta);
+          if (!g) break;
+          const p = matchByName(await projects(), (x) => x.name, a.projeto);
+          if (!p) { misses.push(`Não achei o projeto "${a.projeto}". Diga o nome como está em Projetos.`); break; }
+          // Vínculos da própria pessoa (leitura da sessão). Se a tabela não responder, não escolhe por ela: avisa.
+          const r = await db.from("goal_projects").select("goal_id, project_id").eq("user_id", userId).eq("goal_id", g.id).eq("project_id", p.id).limit(1);
+          if (r.error) { misses.push("Não consegui conferir os projetos da meta agora. Tente de novo."); break; }
+          const ligado = (r.data ?? []).length > 0;
+          if (a.desligar && !ligado) { misses.push(`A meta "${g.titulo}" não está ligada ao projeto "${p.name}".`); break; }
+          if (!a.desligar && ligado) { misses.push(`A meta "${g.titulo}" já está ligada ao projeto "${p.name}".`); break; }
+          actions.push({ kind: "meta_projeto", goalId: g.id, projectId: p.id, meta: g.titulo, projeto: p.name, desligar: a.desligar });
+          break;
+        }
         case "tarefa_concluir": case "tarefa_adiar": {
           const t = matchByName(await tasks(), (x) => x.title, a.tarefa);
           if (!t) { misses.push(`Não achei a tarefa "${a.tarefa}" entre as abertas.`); break; }

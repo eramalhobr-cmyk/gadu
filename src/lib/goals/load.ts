@@ -41,6 +41,26 @@ export async function loadTarefas(db: SessionDb, userId: string, goalIds?: strin
   });
 }
 
+/** Projeto ligado a uma meta, com o nome e a situação atuais. */
+export type ProjetoVinculado = { goal_id: string; project_id: number; name: string; status: string };
+/** Projetos ligados às metas (só da pessoa). Sem `goalIds`, de todas as metas. Erro de leitura lança. */
+export async function loadProjetos(db: SessionDb, userId: string, goalId?: string | string[]): Promise<ProjetoVinculado[]> {
+  const ids = goalId === undefined ? null : [goalId].flat();
+  let q = db.from("goal_projects").select("goal_id, project_id").eq("user_id", userId);
+  if (ids && ids.length === 1) q = q.eq("goal_id", ids[0]);
+  const links = await q.limit(5000);
+  if (links.error) throw new Error("goals_leitura");
+  const rows = ((links.data ?? []) as Rows).filter((l) => !ids || ids.includes(String(l.goal_id)));
+  if (!rows.length) return [];
+  const projs = await db.from("projects").select("id, name, status").eq("user_id", userId).in("id", [...new Set(rows.map((l) => num(l.project_id)))]).limit(5000);
+  if (projs.error) throw new Error("goals_leitura");
+  const byId = new Map(((projs.data ?? []) as Rows).map((p) => [num(p.id), p]));
+  return rows.flatMap((l) => {
+    const p = byId.get(num(l.project_id));
+    return p ? [{ goal_id: String(l.goal_id), project_id: num(p.id), name: String(p.name), status: String(p.status) }] : [];
+  });
+}
+
 /** Todas as metas da pessoa (menos arquivadas, a não ser que `incluirArquivadas`) já com progresso e ritmo. Filtra também por user_id (a SESSÃO), como defesa em profundidade além da RLS. */
 export async function loadMetas(db: SessionDb, userId: string, hoje: string, opts: { incluirArquivadas?: boolean } = {}): Promise<MetaView[]> {
   const [goals, prog, marcos] = await Promise.all([

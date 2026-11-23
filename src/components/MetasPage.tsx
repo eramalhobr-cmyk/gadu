@@ -14,7 +14,7 @@ import { BackButton, EmptyState, Field, ModuleScreen, PageHeader, Panel, Primary
 import { showUndo } from "@/lib/undo";
 import { Icon, todayKey } from "./ui";
 
-type Detalhe = { meta: MetaView; registros: Registro[]; marcos: Marco[]; tarefas: TarefaVinculada[]; tarefasAbertas: { id: number; title: string; due_date: string | null }[] };
+type Detalhe = { meta: MetaView; registros: Registro[]; marcos: Marco[]; tarefas: TarefaVinculada[]; tarefasAbertas: { id: number; title: string; due_date: string | null }[]; projetos?: { project_id: number; name: string; status: string }[]; projetosDisponiveis?: { id: number; name: string }[] };
 type Aba = Exclude<Status, "arquivada"> | "arquivada";
 const ABAS: [Aba, string][] = [["ativa", "Ativas"], ["pausada", "Pausadas"], ["concluida", "Concluídas"], ["arquivada", "Arquivadas"]];
 
@@ -172,6 +172,7 @@ function MetaDetalhe(props: { id: string; onBack: () => void; onChanged: () => v
         {podeRegistrar && <Panel title="Registrar progresso" icon="plus"><FormRegistro d={d} run={run} id={id} /></Panel>}
         {g.medicao === "marcos" && <PanelMarcos d={d} run={run} id={id} />}
         <PanelTarefas d={d} run={run} id={id} onOpenTasks={props.onOpenTasks} />
+        <PanelProjetos d={d} run={run} id={id} />
         {numerica && (
           <Panel title="Histórico" icon="history">
             {d.registros.length === 0 ? <EmptyState icon="history" title="Nenhum registro" text="Cada registro guarda a data e de onde veio (você ou a conversa)." />
@@ -281,6 +282,32 @@ function PanelTarefas({ d, run, id, onOpenTasks }: { d: Detalhe; run: Run; id: s
         <form className="mt-add" onSubmit={async (e) => { e.preventDefault(); if (sel && await run(api(`/api/goals/${id}/tarefas`, { method: "POST", body: JSON.stringify({ task_id: Number(sel) }) }), "Tarefa vinculada.")) setSel(""); }}>
           <select className="field" value={sel} onChange={(e) => setSel(e.target.value)} aria-label="Tarefa para vincular"><option value="">Vincular uma tarefa aberta…</option>{d.tarefasAbertas.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}</select>
           <button className="btn btn-sm" type="submit" disabled={!sel}>Vincular</button>
+        </form>
+      )}
+    </Panel>
+  );
+}
+
+function PanelProjetos({ d, run, id }: { d: Detalhe; run: Run; id: string }) {
+  const [sel, setSel] = useState("");
+  const ligados = d.projetos ?? [], livres = d.projetosDisponiveis ?? [];
+  return (
+    <Panel title="Projetos ligados" icon="folder">
+      {ligados.length === 0 ? <EmptyState icon="folder" title="Nenhum projeto ligado" text="Ligue esta meta a um projeto. Dá para pedir pela conversa: “liga a meta ao projeto Saúde”." />
+        : (
+          <div className="rows">
+            {ligados.map((p) => (
+              <div className="fin-row" key={p.project_id}>
+                <span className="grow"><span className="t">{p.name}</span><span className="s">{p.status === "done" ? "Concluído" : p.status === "paused" ? "Pausado" : "Ativo"}</span></span>
+                <button className="btn btn-sm btn-quiet" onClick={() => void run(api(`/api/goals/${id}/projetos/${p.project_id}`, { method: "DELETE" }), "Projeto desligado.")} aria-label={`Desligar ${p.name}`}>Desligar</button>
+              </div>
+            ))}
+          </div>
+        )}
+      {livres.length > 0 && (
+        <form className="mt-add" onSubmit={async (e) => { e.preventDefault(); if (sel && await run(api(`/api/goals/${id}/projetos`, { method: "POST", body: JSON.stringify({ project_id: Number(sel) }) }), "Projeto ligado.")) setSel(""); }}>
+          <select className="field" value={sel} onChange={(e) => setSel(e.target.value)} aria-label="Projeto para ligar"><option value="">Ligar um projeto…</option>{livres.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+          <button className="btn btn-sm" type="submit" disabled={!sel}>Ligar</button>
         </form>
       )}
     </Panel>
