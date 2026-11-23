@@ -208,6 +208,32 @@ describe("app com login", () => {
     await p.context().close();
   });
 
+  test("palco de voz (UX-7): avatar grande na escuta e na Conversa, pequeno ao digitar", async () => {
+    let p = await page(PHONE, { voice: "hang" });
+    await p.goto(`${BASE}/app?tab=hoje`);
+    await p.click(".dock-mic");
+    await p.waitForSelector(".listen-ava.on canvas");
+    const ava = await p.$eval(".listen-ava", (e) => e.getBoundingClientRect().width);
+    assert.ok(ava >= 150, `avatar da escuta com ${ava}px`);
+    await p.keyboard.press("Escape");
+    await p.click(".dock-item >> text=Conversa");
+    await p.waitForSelector(".chat2.stage-big");
+    const big = await p.$eval(".chat-ava", (e) => e.getBoundingClientRect().width);
+    assert.ok(big >= 110, `avatar da Conversa vazia com ${big}px`);
+    await p.focus("#msg");
+    await p.waitForTimeout(400);
+    const small = await p.$eval(".chat-ava", (e) => e.getBoundingClientRect().width);
+    assert.ok(small <= 50, `avatar encolhe ao digitar (${small}px)`);
+    await p.context().close();
+
+    p = await page(DESK, { voice: "hang" });
+    await p.goto(`${BASE}/app?tab=conversa`);
+    await p.waitForSelector(".chat-ava canvas");
+    const desk = await p.$eval(".chat-ava", (e) => e.getBoundingClientRect().width);
+    assert.ok(desk >= 240, `palco do computador com ${desk}px`);
+    await p.context().close();
+  });
+
   test("voz: microfone negado mostra aviso claro", async () => {
     const p = await page(PHONE, { voice: "deny" });
     await p.goto(`${BASE}/app?tab=conversa`);

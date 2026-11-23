@@ -159,6 +159,8 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 
 **UX-5 (23/11/2026):** toda tela de módulo vazia convida a falar: mostra uma frase de exemplo (só de ações que já existem nesta matriz) e o botão "Falar com o GaDu", que abre a tela de escuta num toque. Agentes: o convite sugere "Cria um agente para me ajudar com os estudos" (ação `agente_criar`). A confirmação falada mostra o mesmo cartão da conversa.
 
+**UX-7 (23/11/2026):** palco de voz. O avatar do GaDu fica grande na tela de escuta, na Conversa e no painel do assistente enquanto ele ouve, pensa ou fala, e reage ao som real. É só apresentação: não há ação nova a cobrir nesta matriz.
+
 | Módulo | Ação na tela | Pela conversa | Como | Lacuna / motivo |
 |---|---|---|---|---|
 | Tarefas | criar | sim | `"tarefas"` (cria na hora; cartão com Desfazer desde o PR #42) | — |

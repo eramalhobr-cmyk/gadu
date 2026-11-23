@@ -2,6 +2,7 @@
 // Camada animada por cima do avatar do GaDu (imagem). Coordenadas relativas ao quadrado da imagem (0..1).
 // Reage aos modos: repouso, escutando (fones), pensando (cérebro âmbar), falando (ondas da boca e olhos).
 import type { FaceMode } from "./robot-engine";
+import { voiceLevel } from "@/lib/voice-level";
 
 const CY = [95, 240, 220], OR = [255, 170, 60], WH = [235, 255, 252];
 const col = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${Math.max(0, Math.min(1, a)).toFixed(3)})`;
@@ -17,7 +18,7 @@ const P = {
 export class AvatarFx {
   mode: FaceMode = "idle";
   constructor(canvas, o) {
-    this.c = canvas; this.o = o || {}; this.t = 0; this.level = 0.3; this.heat = 0; this.talk = 0;
+    this.c = canvas; this.o = o || {}; this.t = 0; this.level = 0.3; this.heat = 0; this.talk = 0; this.real = -1;
     let seed = 11; const R = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
     this.nodes = [];
     while (this.nodes.length < 34) {
@@ -34,7 +35,12 @@ export class AvatarFx {
     const lt = m === "speaking" ? 0.9 : m === "listening" ? 0.75 : m === "thinking" ? 0.85 : 0.3;
     this.level += (lt - this.level) * Math.min(1, dt * 3);
     this.heat += ((m === "thinking" ? 1 : 0) - this.heat) * Math.min(1, dt * 3);
-    const syl = m === "speaking" ? Math.max(0, 0.5 + 0.3 * Math.sin(t * 12.4) + 0.22 * Math.sin(t * 7.1 + 1)) * (Math.sin(t * 1.6) > -0.7 ? 1 : 0.1) : 0;
+    let syl = m === "speaking" ? Math.max(0, 0.5 + 0.3 * Math.sin(t * 12.4) + 0.22 * Math.sin(t * 7.1 + 1)) * (Math.sin(t * 1.6) > -0.7 ? 1 : 0.1) : 0;
+    // Palco de voz (UX-7): som real (microfone, trechos reconhecidos, palavras faladas). Sem sinal recente: animação própria.
+    const real = m === "listening" || m === "speaking" ? voiceLevel.read(performance.now()) : -1;
+    this.real = real;
+    if (real >= 0 && m === "speaking") syl = 0.25 + real * 0.75;
+    if (real >= 0 && m === "listening") this.level += (0.55 + real * 0.45 - this.level) * Math.min(1, dt * 10);
     this.talk += (syl - this.talk) * Math.min(1, dt * 14);
     const want = m === "thinking" ? 10 : m === "idle" ? 2 : 5;
     if (this.pulses.length < want && Math.random() < dt * (m === "thinking" ? 14 : 4)) {
@@ -106,7 +112,8 @@ export class AvatarFx {
         for (let k = 0; k < 3; k++) {
           const p = ((t * 0.9) + k / 3) % 1, dir = i ? 1 : -1;
           ctx.beginPath(); ctx.arc(X(e.x), Y(e.y), S * (0.055 + p * 0.09), dir > 0 ? -1.1 : Math.PI - 1.1 + 0.0, dir > 0 ? 1.1 : Math.PI + 1.1);
-          ctx.strokeStyle = col(cc, (1 - p) * 0.6); ctx.lineWidth = Math.max(1, S * 0.004); ctx.stroke();
+          const amp = this.real >= 0 ? 0.35 + this.real * 0.65 : 0.6;
+          ctx.strokeStyle = col(cc, (1 - p) * amp); ctx.lineWidth = Math.max(1, S * (0.003 + amp * 0.003)); ctx.stroke();
         }
       }
     });
