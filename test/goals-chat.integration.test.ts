@@ -364,3 +364,41 @@ test("metas nunca usa a chave secreta para tabelas (só orçamento, por rpc)", a
   await chat("Como estão minhas metas?");
   assert.ok(goalTablesRead().length >= 3);
 });
+
+// ---- "Tudo por voz": bloco "acoes" (criar meta, registrar pelo nome, marco, tarefa) ----
+const META_TXT = (acoes: unknown[]) => `Preparei, é só confirmar.\n<<<META>>>\n${JSON.stringify({ memorias: [], acoes })}`;
+
+test("tudo por voz: criar meta vira cartão para confirmar; nada é gravado", async () => {
+  modelText = META_TXT([{ tipo: "meta_criar", titulo: "Correr 50 km", medicao: "numerica", unidade: "km", alvo: 50, prazo: "2027-06-30", categoria: "saude" }]);
+  const events = await chat("cria uma meta de correr 50 km até o fim do ano");
+  const acoes = events.find((e) => e.t === "acoes");
+  assert.deepEqual(acoes?.items?.[0], { kind: "meta_nova", titulo: "Correr 50 km", medicao: "numerica", unidade: "km", alvo: 50, inicial: 0, prazo: "2027-06-30", categoria: "saude", marcos: [] });
+  assert.equal(log.writes.length, 0, "só proposta");
+  assert.ok(!events.some((e) => e.t === "delta" && /<<<META/.test(e.text ?? "")), "bloco de controle não vaza");
+});
+
+test("tudo por voz: registrar e concluir pelo nome só acham metas de A; meta de B vira aviso", async () => {
+  modelText = META_TXT([{ tipo: "meta_registrar", meta: "livros", valor: 2 }, { tipo: "meta_concluir", meta: "SEGREDO-B meta" }, { tipo: "meta_marco", meta: "certificação", titulo: "Prova final" }]);
+  const events = await chat("li 2 livros, e adiciona um marco");
+  const items = events.find((e) => e.t === "acoes")?.items ?? [];
+  assert.deepEqual(items.map((i) => i.kind), ["meta", "marco"]);
+  assert.equal(items[0].d.goalId, "10000000-0000-4000-8000-000000000001");
+  assert.equal(items[0].d.valor, 2);
+  assert.equal(items[1].goalId, "10000000-0000-4000-8000-000000000004");
+  assert.ok(events.some((e) => e.t === "notice" && /Não achei a meta/.test(e.text ?? "")), "avisa o que não achou");
+  assert.ok(!JSON.stringify(events).includes("10000000-0000-4000-8000-0000000000b1"), "nunca o id de B");
+  assert.equal(log.writes.length, 0);
+});
+
+test("tudo por voz: GOALS_ENABLED=0 não gera cartão de meta", async () => {
+  process.env.GOALS_ENABLED = "0";
+  modelText = META_TXT([{ tipo: "meta_criar", titulo: "Ler", medicao: "tarefas" }, { tipo: "projeto_criar", nome: "Reforma" }]);
+  const events = await chat("cria uma meta de ler e um projeto reforma");
+  assert.deepEqual((events.find((e) => e.t === "acoes")?.items ?? []).map((i) => i.kind), ["projeto"]);
+});
+
+test("tudo por voz: termo bloqueado não vira cartão", async () => {
+  modelText = META_TXT([{ tipo: "meta_criar", titulo: "Projeto ACME grande", medicao: "tarefas" }]);
+  const events = await chat("cria uma meta do projeto");
+  assert.equal(events.find((e) => e.t === "acoes"), undefined);
+});

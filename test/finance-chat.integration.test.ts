@@ -311,3 +311,21 @@ test("finanças nunca usa a chave secreta para tabelas (só orçamento, por rpc)
   assert.ok(finTablesRead().length >= 4);
   // supabaseAdmin().from lança se alguém tentar; chegar aqui sem erro prova que não tentou.
 });
+
+// ---- "Tudo por voz": "paguei o aluguel" marca a conta do mês como paga (só com confirmação) ----
+test("tudo por voz: conta_paga acha a conta de A no mês e só propõe; conta de B nunca", async () => {
+  modelText = `Preparei, é só confirmar.\n<<<META>>>\n${JSON.stringify({ acoes: [{ tipo: "conta_paga", conta: "aluguel" }, { tipo: "conta_paga", conta: "SEGREDO-B conta" }] })}`;
+  const events = await chat("paguei o aluguel");
+  const items = events.find((e) => e.t === "acoes")?.items ?? [];
+  assert.deepEqual(items, [{ kind: "conta_paga", itemId: "i2", nome: "Aluguel", valor: 1500, ano: hojeSP().ano, mes: hojeSP().mes }]);
+  assert.ok(events.some((e) => e.t === "notice" && /Não achei a conta/.test(e.text ?? "")));
+  assert.ok(!JSON.stringify(events).includes("7777") && !JSON.stringify(events).includes("\"ib\""), "nada de B");
+  assert.equal(log.writes.length, 0, "nada gravado antes de confirmar");
+});
+
+test("tudo por voz: FINANCE_ENABLED=0 não gera cartão de conta", async () => {
+  process.env.FINANCE_ENABLED = "0";
+  modelText = `Ok.\n<<<META>>>\n${JSON.stringify({ acoes: [{ tipo: "conta_paga", conta: "aluguel" }] })}`;
+  const events = await chat("paguei o aluguel");
+  assert.equal(events.find((e) => e.t === "acoes"), undefined);
+});

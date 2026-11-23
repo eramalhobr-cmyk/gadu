@@ -54,7 +54,7 @@ export function spokenTime(iso: string): string {
   const [h, m] = new Date(iso).toLocaleTimeString("pt-BR", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false }).split(":").map(Number);
   return `às ${h}h${m ? String(m).padStart(2, "0") : ""}`;
 }
-function spokenMoney(n: number): string {
+export function spokenMoney(n: number): string {
   const reais = Math.floor(n);
   const cent = Math.round((n - reais) * 100);
   const r = `${reais.toLocaleString("pt-BR")} ${reais === 1 ? "real" : "reais"}`;
@@ -94,10 +94,11 @@ export function confirmPrompt(item: ConfirmItem, now = new Date()): string {
 }
 
 /** O que o GaDu fala depois da resposta. */
-export function resultLine(kind: ConfirmKind, answer: "yes" | "no", ok = true): string {
+export function resultLine(kind: string, answer: "yes" | "no", ok = true): string {
   if (!ok) return "Não consegui gravar. O cartão ficou na tela para você tentar de novo.";
-  if (answer === "no") return kind === "lembrete" ? "Tudo bem, apaguei o lembrete." : "Tudo bem, descartei.";
-  return { gasto: "Pronto, gasto lançado.", meta: "Pronto, meta atualizada.", evento: "Pronto, está na agenda.", lembrete: "Combinado." }[kind];
+  if (answer === "no") return kind === "lembrete" ? "Tudo bem, apaguei o lembrete." : kind === "tarefa_criada" ? "Tudo bem, desfiz a tarefa." : "Tudo bem, descartei.";
+  const lines: Record<string, string> = { gasto: "Pronto, gasto lançado.", meta: "Pronto, meta atualizada.", evento: "Pronto, está na agenda.", lembrete: "Combinado.", tarefa_criada: "Combinado.", meta_nova: "Pronto, meta criada.", conta_paga: "Pronto, conta marcada como paga.", tarefa_ok: "Pronto, tarefa feita.", projeto: "Pronto, projeto criado." };
+  return lines[kind] ?? "Pronto.";
 }
 export const RETRY_LINE = "Não entendi. Diga sim ou não.";
 export const GIVE_UP_LINE = "Tudo bem. O cartão ficou na tela para você decidir depois.";

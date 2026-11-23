@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { FaceMode } from "./robot-engine";
-import { ActionCard, type VoiceCmd } from "./ActionCard";
+import { ActionCard, type CardState } from "./ActionCard";
+import type { ChatAction } from "@/lib/chat-actions";
 import { SourcesDetail } from "./SourcesDetail";
 import type { ViewId } from "@/lib/modules";
 import { Icon } from "./ui";
@@ -45,8 +46,8 @@ export function Assistant(props: {
   onOpenView: (view: ViewId) => void;
   onNew: () => void;
   /** Confirmação falada: comandos para os cartões e o aviso de volta. */
-  cmds: Record<string, VoiceCmd>;
-  onCardResult: (id: string, action: "yes" | "no", ok: boolean) => void;
+  cards: Record<string, CardState>;
+  onCard: (id: string, a: ChatAction, op: "confirm" | "discard" | "undo") => void;
 }) {
   const log = useRef<HTMLDivElement>(null);
   // Celular: modo rápido mostra só as últimas trocas; o histórico inteiro fica na tela Conversa.
@@ -126,7 +127,7 @@ export function Assistant(props: {
           </div>
         ) : shown.map((m) =>
           m.role === "user" ? <div key={m.id} className="bub u">{m.content}</div>
-          : m.role === "action" && m.action ? <ActionCard key={m.id} a={m.action} cmd={props.cmds[m.id]} onResult={(act, ok) => props.onCardResult(m.id, act, ok)} onOpen={props.onOpenView} />
+          : m.role === "action" && m.action ? <ActionCard key={m.id} a={m.action} st={props.cards[m.id]} onConfirm={() => props.onCard(m.id, m.action!, "confirm")} onDiscard={() => props.onCard(m.id, m.action!, "discard")} onUndo={() => props.onCard(m.id, m.action!, "undo")} onOpen={props.onOpenView} />
           : m.role === "notice" ? (
             <div key={m.id} className="notice" role="status">
               {m.content}

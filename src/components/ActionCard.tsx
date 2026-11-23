@@ -1,24 +1,19 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
 import { describe, type ChatAction } from "@/lib/chat-actions";
 import type { ViewId } from "@/lib/modules";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { applyTextSize } from "@/lib/text-size";
 import { Icon } from "./ui";
 
-/** Comando da confirmação falada: "sim" grava, "não" descarta (ou desfaz o que já foi criado). `n` muda a cada comando. */
-export type VoiceCmd = { n: number; action: "yes" | "no" };
-type Result = { ok: boolean; msg?: string; link?: string };
-type State = "proposed" | "saving" | "created" | "discarded" | "error";
-
-/** Comandos já executados: o mesmo cartão pode estar montado no painel e na Conversa; grava uma vez só. */
-const handled = new Set<number>();
+export type Result = { ok: boolean; msg?: string; link?: string };
+export type State = "proposed" | "saving" | "created" | "discarded" | "error";
 
 async function json(r: Response): Promise<Record<string, unknown>> {
   return r.json().catch(() => ({}));
 }
 
 /** Executa a ação, com a sessão da pessoa. Nada é gravado antes desta chamada (exceto o lembrete, que já existe). */
-async function run(a: ChatAction): Promise<Result> {
+export async function runAction(a: ChatAction): Promise<Result> {
   try {
     if (a.kind === "gasto") {
       const [ano, mes, dia] = a.g.data.split("-").map(Number);
@@ -39,69 +34,74 @@ async function run(a: ChatAction): Promise<Result> {
       const j = await json(r);
       return r.ok ? { ok: true, link: typeof j.link === "string" ? j.link : "" } : { ok: false, msg: (typeof j.message === "string" && j.message) || "Não consegui criar. Tente de novo." };
     }
+    if (a.kind === "meta_nova") {
+      const r = await fetch("/api/goals", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+        titulo: a.titulo, medicao: a.medicao, categoria: a.categoria, unidade: a.unidade, valor_inicial: a.inicial, valor_alvo: a.alvo, prazo: a.prazo, ...(a.medicao === "marcos" ? { marcos: a.marcos } : {}),
+      }) });
+      return api(r, "Não consegui criar a meta.");
+    }
+    if (a.kind === "marco") return api(await fetch(`/api/goals/${a.goalId}/marcos`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ titulo: a.titulo, data_alvo: a.data }) }), "Não consegui adicionar o marco.");
+    if (a.kind === "marco_ok") return api(await fetch(`/api/goals/${a.goalId}/marcos/${a.marcoId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ concluido: true }) }), "Não consegui concluir o marco.");
+    if (a.kind === "meta_tarefa") {
+      // Cria a tarefa (como na tela de Tarefas) e vincula à meta; se o vínculo falhar, a tarefa é cancelada.
+      const db = supabaseBrowser();
+      const { data, error } = await db.from("tasks").insert({ title: a.titulo, due_date: a.prazo, priority: 2, origin: "Conversa" }).select("id").single();
+      if (error || !data) return { ok: false, msg: "Não consegui criar a tarefa. Tente de novo." };
+      const r = await fetch(`/api/goals/${a.goalId}/tarefas`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ task_id: data.id }) });
+      if (!r.ok) { await db.from("tasks").update({ status: "cancelled" }).eq("id", data.id); return api(r, "Não consegui ligar a tarefa à meta."); }
+      return { ok: true };
+    }
+    if (a.kind === "tarefa_ok") return saved(await supabaseBrowser().from("tasks").update({ status: "done", done_at: new Date().toISOString() }).eq("id", a.id).eq("status", "open").select("id"));
+    if (a.kind === "tarefa_adiar") return saved(await supabaseBrowser().from("tasks").update({ due_date: a.prazo }).eq("id", a.id).select("id"));
+    if (a.kind === "lembrete_off") return saved(await supabaseBrowser().from("reminders").update({ status: "cancelled" }).eq("id", a.id).select("id"));
+    if (a.kind === "conta_paga") return api(await fetch(`/api/finance/itens/${a.itemId}/mes`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ano: a.ano, mes: a.mes, pago: true }) }), "Não consegui marcar a conta.");
+    if (a.kind === "projeto") return saved(await supabaseBrowser().from("projects").insert({ name: a.nome, goal: a.objetivo, color: "sig", status: "active" }).select("id"));
+    if (a.kind === "ajuste") {
+      // Configurações deste aparelho: o texto é aplicado aqui; voz, conversa contínua e tema, pelo app (evento).
+      if (a.ajuste.opcao === "texto") applyTextSize(a.ajuste.valor);
+      else window.dispatchEvent(new CustomEvent("gadu:ajuste", { detail: a.ajuste }));
+      return { ok: true };
+    }
     return { ok: true };
   } catch {
     return { ok: false, msg: "Sem conexão. Tente de novo." };
   }
 }
 
-/** Desfaz o que o servidor já criou (hoje, só o lembrete). */
-async function undo(a: ChatAction): Promise<Result> {
-  if (a.kind !== "lembrete") return { ok: true };
-  const { error } = await supabaseBrowser().from("reminders").delete().eq("id", a.id);
-  return error ? { ok: false, msg: "Não consegui apagar. Tente de novo." } : { ok: true };
+/** Resposta de uma rota do app: 401 vai para o login; 404 costuma ser módulo desligado ou item que não existe mais. */
+async function api(r: Response, fail: string): Promise<Result> {
+  if (r.status === 401) { window.location.href = "/login"; return { ok: false }; }
+  if (r.ok) return { ok: true };
+  const j = await json(r);
+  return { ok: false, msg: (typeof j.message === "string" && j.message) || (r.status === 404 ? "Não encontrei o item (ou o módulo está desligado)." : `${fail} Tente de novo.`) };
+}
+/** Resultado de uma gravação direta pela sessão (RLS): erro ou nenhuma linha alterada = falhou. */
+function saved(r: { error: unknown; data: unknown[] | null }): Result {
+  return !r.error && (r.data?.length ?? 0) > 0 ? { ok: true } : { ok: false, msg: "Não consegui salvar. Tente de novo." };
 }
 
-/** Cartão de confirmação de uma ação da conversa. Um toque ou a voz ("sim"/"não") decidem. */
-export function ActionCard({ a, cmd, onResult, onOpen }: { a: ChatAction; cmd?: VoiceCmd; onResult?: (action: "yes" | "no", ok: boolean) => void; onOpen?: (v: ViewId) => void }) {
+/** Desfaz o que o servidor já criou (lembrete e tarefa anotada). */
+export async function undoAction(a: ChatAction): Promise<Result> {
+  if (a.kind === "lembrete") {
+    const { error } = await supabaseBrowser().from("reminders").delete().eq("id", a.id);
+    return error ? { ok: false, msg: "Não consegui apagar. Tente de novo." } : { ok: true };
+  }
+  if (a.kind === "tarefa_criada") {
+    const { error } = await supabaseBrowser().from("tasks").update({ status: "cancelled" }).eq("id", a.id);
+    return error ? { ok: false, msg: "Não consegui desfazer. Tente de novo." } : { ok: true };
+  }
+  return { ok: true };
+}
+
+export type CardState = { state: State; msg?: string; link?: string; undone?: boolean };
+/** Estado inicial: o que o servidor já criou (lembrete, tarefa anotada) começa como "criado", com Desfazer. */
+export const initialCard = (a: ChatAction): CardState => ({ state: describe(a).applied ? "created" : "proposed" });
+
+/** Cartão de confirmação de uma ação da conversa. O estado mora no app (o mesmo cartão aparece no painel e na Conversa,
+ * e a confirmação falada decide mesmo se o cartão não estiver à vista). Um toque ou a voz ("sim"/"não") decidem. */
+export function ActionCard({ a, st, onConfirm, onDiscard, onUndo, onOpen }: { a: ChatAction; st?: CardState; onConfirm: () => void; onDiscard: () => void; onUndo: () => void; onOpen?: (v: ViewId) => void }) {
   const v = describe(a);
-  const [state, setState] = useState<State>(v.applied ? "created" : "proposed");
-  const [undone, setUndone] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [link, setLink] = useState("");
-  const stateRef = useRef(state);
-  stateRef.current = state;
-
-  async function confirm(): Promise<boolean> {
-    setState("saving");
-    const r = await run(a);
-    if (!r.ok) { setState("error"); setMsg(r.msg || ""); return false; }
-    setLink(r.link || "");
-    setState("created");
-    return true;
-  }
-  async function revert(): Promise<boolean> {
-    setState("saving");
-    const r = await undo(a);
-    if (!r.ok) { setState("error"); setMsg(r.msg || ""); return false; }
-    setUndone(true);
-    setState("discarded");
-    return true;
-  }
-  function discard() { setState("discarded"); }
-
-  // Confirmação falada: o app manda o comando; o cartão executa e avisa o resultado.
-  const resultRef = useRef(onResult);
-  resultRef.current = onResult;
-  useEffect(() => {
-    if (!cmd || handled.has(cmd.n)) return;
-    handled.add(cmd.n);
-    const s = stateRef.current;
-    const done = (ok: boolean) => resultRef.current?.(cmd.action, ok);
-    if (cmd.action === "yes") {
-      if (v.applied || s === "created") return done(true);
-      if (s === "discarded") return done(false);
-      void confirm().then(done);
-    } else {
-      if (s === "discarded") return done(true);
-      if (v.applied) { void revert().then(done); return; }
-      if (s === "created") return done(false);
-      discard();
-      done(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cmd?.n]);
-
+  const { state, msg = "", link = "", undone = false } = st ?? initialCard(a);
   const label = state === "created" ? v.done : state === "discarded" ? v.undone : v.proposed;
   const pending = state === "proposed" || state === "error" || state === "saving";
   return (
@@ -117,13 +117,13 @@ export function ActionCard({ a, cmd, onResult, onOpen }: { a: ChatAction; cmd?: 
       {v.applied ? (
         !undone && (state === "created" || state === "saving" || state === "error") && (
           <div className="evc-actions">
-            <button className="btn btn-sm" disabled={state === "saving"} onClick={() => void revert()}>{state === "saving" ? v.busy : "Desfazer"}</button>
+            <button className="btn btn-sm" disabled={state === "saving"} onClick={onUndo}>{state === "saving" ? v.busy : "Desfazer"}</button>
           </div>
         )
       ) : pending && (
         <div className="evc-actions">
-          <button className="btn btn-sm btn-pri" disabled={state === "saving"} onClick={() => void confirm()}>{state === "saving" ? v.busy : v.confirm}</button>
-          <button className="btn btn-sm" disabled={state === "saving"} onClick={discard}>Descartar</button>
+          <button className="btn btn-sm btn-pri" disabled={state === "saving"} onClick={onConfirm}>{state === "saving" ? v.busy : v.confirm}</button>
+          <button className="btn btn-sm" disabled={state === "saving"} onClick={onDiscard}>Descartar</button>
         </div>
       )}
       {state === "created" && link && <a className="evc-link" href={link} target="_blank" rel="noopener noreferrer">Abrir no Google Agenda<Icon name="chevron" size={14} /></a>}
