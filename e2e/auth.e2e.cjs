@@ -17,7 +17,7 @@ after(h.close);
 // O guia de primeiro uso (UX-4) abre sozinho para pessoa nova: os testes o pulam, menos o teste do próprio guia ({ guia: true }).
 const page = async (vp, { guia, ...opts } = {}) => {
   const p = await rawPage(vp, { ...opts, state: STATE });
-  if (!guia && p.addLocatorHandler) await p.addLocatorHandler(p.getByRole("button", { name: "Pular o guia" }), (b) => b.click());
+  if (!guia && p.addLocatorHandler) await p.addLocatorHandler(p.getByRole("button", { name: "Pular o guia" }).first(), (b) => b.click());
   return p;
 };
 /** Tocar e segurar o microfone central abre o painel do assistente para escrever (um toque abre a tela de escuta). */
