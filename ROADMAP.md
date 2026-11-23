@@ -439,10 +439,11 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa. A
 - [x] **Desfazer** em toda ação que grava (concluir, adiar, apagar, marcar pago): aviso "Feito · Desfazer" por alguns segundos (PR #53, 23/11/2026, 07:09: componente único `UndoToast` + `src/lib/undo.ts`; "desfaz" falado ou escrito; apagar memória, gasto e evento pela conversa não tem Desfazer)
 - [x] Erros claros com o que fazer agora ("Sem internet. Sua mensagem ficou guardada. Tentar de novo"), falados quando a pessoa estiver usando voz (PR #54, 23/11/2026, 07:18: catálogo em `src/lib/errors.ts` com testes; botão "Tentar de novo" na conversa e nos cartões; "tenta de novo" falado)
 
-### UX-5 · Consistência entre módulos (P1)
-- [ ] Um padrão de tela de módulo: título e uma frase, ação principal ("Falar" ou "Adicionar"), lista, estado vazio com um exemplo de frase para falar
-- [ ] Mesmo cartão de confirmação para Evento, Gasto e Meta (mesmo layout, mesmos botões, mesma fala)
-- [ ] Design System etapa 2: componentes compartilhados (lista, cartão, confirmação, aviso de desfazer), migrar os estilos inline e juntar as regras repetidas de `v2.css`
+### UX-5 · Consistência entre módulos (P1) · **publicado em 23/11/2026 pelo Claude Code (PRs #58, #59 e #60)**
+- [x] Um padrão de tela de módulo: título e uma frase, **uma** ação principal, resumo, lista e estado vazio com frase de exemplo e botão "Falar com o GaDu" (PR #58: Tarefas, Projetos, Metas, Financeiro, Memória, Agentes e o painel Lembretes; `ModuleScreen`, `PrimaryAction`, `Summary` e `EmptyState` com `phrase` em `kit.tsx`)
+- [x] Mesmo cartão de confirmação em todo lugar (PR #59): `ConfirmCard`/`CardFrame` na conversa (`ActionCard`), na tela de escuta (`ConfirmSheet`) e nos pedidos de apagar, arquivar e desconectar das telas. Hoje não tem confirmação própria (Feito/Adiar com Desfazer)
+- [x] Design System etapa 2 (PR #60): estilos inline estáticos viraram utilitários com tokens, `Field` e `BackButton`, `v2.css` sem seletor repetido no nível de cima, `docs/DESIGN_SYSTEM.md` 2.3
+- [ ] Sobra: juntar as regras que se repetem entre `globals.css` e `v2.css`, usar `Field` nos formulários de várias linhas, tela própria de Lembretes (pede `modules.ts`), validar o padrão no aparelho (UX-6)
 
 ### UX-6 · Validação (P1)
 - [ ] Teste no aparelho com o Eduardo e com uma pessoa não digital, com 5 tarefas: ver o dia, lançar um gasto por voz, criar um lembrete, concluir uma tarefa, achar o Financeiro. Medir toques até falar (hoje 3, meta 1) e onde a pessoa travou
@@ -452,7 +453,7 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa. A
 1. Validar com pessoa logada, em aparelho, o que foi publicado em 22/11 (Hoje e Fontes, Financeiro, Metas, voz, notificações) e fechar os passos manuais da segurança (senhas vazadas, S-09).
 2. ~~UX-1 a UX-3~~ (navegação, Hoje, voz): **publicados em 22/11** (PRs #34, #35, #36, #38, #39). **Tudo por voz** publicado em 22/11 (PR #42); fechar as lacunas da matriz (FEATURE_MATRIX, seção 11).
 3. **3D-1** (MVP conversa → OpenSCAD), conforme [docs/FEATURE-3D.md](docs/FEATURE-3D.md).
-4. UX-4 a UX-6 (acessibilidade, consistência, teste com pessoa não digital).
+4. ~~UX-4 e UX-5~~ publicados em 23/11 (acessibilidade e consistência). Falta o UX-6 (teste com pessoa não digital, no aparelho).
 5. Financeiro: simulador bruto → líquido, tetos por categoria, fase Conversa.
 6. Auditoria de RLS por acesso (S-05) e organizações (S-08), antes do Agent Office.
 7. 3D-2 (figura a partir de foto); Agent Office; Agent Office Studio.

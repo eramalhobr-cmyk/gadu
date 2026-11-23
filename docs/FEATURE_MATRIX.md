@@ -117,7 +117,7 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Avatar holográfico animado e ícone oficiais | implementado | — | `src/components/avatar-engine.ts`, `RobotFace.tsx`, `public/avatar`, `public/icons` | preservar (decisão oficial) |
 | PWA instalável, tela offline, rascunho local | implementado | — | `public/manifest.webmanifest`, `public/sw.js`, `src/app/offline` | instalável verificado pelo CDP (emulado); falta instalar no aparelho |
 | Guia, dicas e "Como funciona" | implementado | — | `src/app/app/guia`, `src/app/app/sobre`, `src/lib/tips.ts` | — |
-| Design System com tokens centralizados | implementado (v1) | P1 | `src/app/globals.css`, `docs/DESIGN_SYSTEM.md` | PR #10; etapa 2: migrar estilos inline e criar componentes compartilhados |
+| Design System com tokens centralizados | implementado (v2.3, etapa 2 publicada em 23/11/2026, PR #60) | P1 | `src/app/globals.css`, `src/app/v2.css`, `src/app/v2-pages.css`, `src/components/kit.tsx`, `docs/DESIGN_SYSTEM.md` | PR #10; etapa 2: estilos inline estáticos viraram utilitários, `Field` e `BackButton`, `v2.css` sem seletor repetido; falta juntar `globals.css` com `v2.css` |
 | Arquitetura de módulos com status real | implementado | — | `src/lib/modules.ts`, `src/components/ModulePage.tsx` | PR #12; os módulos planejados só têm página de visão geral |
 | Navegação por módulos (menu lateral; barra de baixo e folha de módulos) | substituído (UX-1, PR #34) | — | `GaduApp.tsx` | PR #12 |
 | Hoje em 5 blocos (UX-2): "Falar com o GaDu", Agora, lista única "Merece sua atenção" (Core + metas + memórias) com Feito/Adiar e Desfazer, frases prontas, Ver tudo (lembretes abrem no lugar) | publicado (22/11/2026, PR #35) | — | `TodayPage.tsx`, `AttentionCard.tsx`, `src/lib/core/format.ts` (`toActionItem`), `src/app/api/attention/route.ts`, `src/app/ux.css` | validar Feito/Adiar com dados reais no aparelho |
@@ -129,6 +129,8 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | "Feito · Desfazer" em toda ação que grava (UX-4): aviso único `UndoToast`, 8 s, também nos cartões da conversa e por voz ("desfaz") | publicado (23/11/2026, PR #53) | — | `src/lib/undo.ts`, `UndoToast.tsx`, `ActionCard.tsx` (`capture`), `test/desfazer.test.ts` | apagar memória, gasto ou evento pela conversa não tem Desfazer (o cartão já pede o "sim"); gasto apagado volta com novo id |
 | Erros claros (UX-4): catálogo `src/lib/errors.ts`, "Tentar de novo", erro falado e "tenta de novo" por voz | publicado (23/11/2026, PR #54) | — | `src/lib/errors.ts`, `GaduApp.tsx` (`failChat`), `ActionCard.tsx`, `test/erros.test.ts` | voz de verdade ainda não conferida no aparelho |
 | Primeiro uso guiado e falado (UX-4): nome, microfone e voz, Google; pode pular; Voltar fecha; refazer em Configurações e por voz | publicado (23/11/2026, PR #55) | — | `Onboarding.tsx`, `src/lib/onboarding.ts`, `GaduApp.tsx`, `SettingsPage.tsx`, `test/primeiro-uso.test.ts` | preferência em `profiles.settings.onboarding` (sem migração); gravação real e voz no aparelho não conferidas |
+| Padrão único de tela de módulo (UX-5): título e frase, uma ação principal, resumo, lista, vazio com frase de exemplo e "Falar com o GaDu" | publicado (23/11/2026, PR #58) | P1 | `src/components/kit.tsx` (`ModuleScreen`, `PrimaryAction`, `Summary`, `EmptyState`), `ProjectsPage.tsx`, `MetasPage.tsx`, `FinanceiroPage.tsx`, `MemoryPage.tsx`, `AgentsPage.tsx`, `TodayPage.tsx` (Lembretes) | Lembretes é um painel em Hoje, não uma tela; o "Falar" vem do `GaduApp` por contexto |
+| Cartão de confirmação único (UX-5): conversa, tela de escuta e telas (apagar, arquivar, desconectar) | publicado (23/11/2026, PR #59) | P1 | `src/components/ConfirmCard.tsx`, `ActionCard.tsx`, `ConfirmSheet.tsx`, `src/lib/confirm-card.test.ts` | Memória (Descartar, Esquecer) segue com um toque só |
 | Passagem de bastão entre IAs (AGENTS.md, HANDOFF, modelo de PR) | publicado (22/11/2026, PR #33) | — | `AGENTS.md`, `CLAUDE.md`, `docs/HANDOFF.md`, `.github/pull_request_template.md` | — |
 | Temas claro e escuro | implementado | — | `src/lib/theme.ts`, `src/app/v2.css`, `src/app/layout.tsx` | PR #12; contraste AA medido nos dois temas (PR #14) |
 | Painel Hoje, Conversa, Perfil e ajustes e home no desenho da v2 | implementado | — | `TodayPage.tsx`, `GaduApp.tsx`, `SettingsPage.tsx`, `src/app/page.tsx` | PR #12 |
@@ -149,6 +151,8 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 
 ## 11. Tudo por voz (matriz; princípio do Eduardo de 22/11/2026)
 Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, falando ou escrevendo. A IA só propõe; a pessoa confirma com um toque ou dizendo "sim". Regra em [AGENTS.md](../AGENTS.md), seção 8.1. Código: `src/lib/acoes.ts` (bloco `"acoes"`), `src/lib/acoes-resolver.ts`, `src/lib/chat-actions.ts`, `src/components/ActionCard.tsx`.
+
+**UX-5 (23/11/2026):** toda tela de módulo vazia convida a falar: mostra uma frase de exemplo (só de ações que já existem nesta matriz) e o botão "Falar com o GaDu", que abre a tela de escuta num toque. Agentes: criar por voz continua lacuna, então o convite sugere "Quais agentes você me sugere?". A confirmação falada mostra o mesmo cartão da conversa.
 
 | Módulo | Ação na tela | Pela conversa | Como | Lacuna / motivo |
 |---|---|---|---|---|
