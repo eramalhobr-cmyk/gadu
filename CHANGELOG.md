@@ -7,6 +7,11 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · Tudo por voz: velocidade da fala e trocar a voz pela conversa · desenvolvido e testado
+- **Feito por:** Cursor (Grok Bot), enquanto a cota do Claude Code estava esgotada.
+- "Fala mais devagar", "fala mais rápido", "volta a velocidade normal" e "usa outra voz" viram o cartão de ajuste com "sim" falado (`ajuste` com `velocidade` de 0,7 a 1,6 ou relativo, de 0,15 em 0,15; `voz_trocar` passa para a próxima voz em português do aparelho). Vale neste aparelho, como em Configurações; nada é gravado no servidor.
+- **Testes:** casos novos em `acoes.test.ts`, `chat-actions.test.ts` e `test/goals-chat.integration.test.ts` (valor fora do intervalo é descartado, nada gravado); typecheck; integração 192/192.
+
 ## 2026-11-23 · Revisão cruzada: limite de custo na busca por significado (PR fix/revisao-antigos-busca) · desenvolvido e testado
 - **Feito por:** Cursor (Grok Bot), na revisão do PR #22 (Claude Code).
 - `/api/search` chamava os embeddings pagos do AI Gateway a cada busca, sem cota nem limite. Agora conta por pessoa (hash do id) na tabela de janelas do limite de tentativas: até 60 buscas por 10 minutos; acima disso, ou sem o contador, **não chama a IA** (fail closed) e a tela de Memória segue com a busca por texto. Sem migração.

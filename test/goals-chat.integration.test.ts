@@ -554,3 +554,12 @@ test("guia por voz: sai como ação instantânea, sem ler nem gravar nada e sem 
   assert.equal(voiceWrites.length, 0);
   assert.equal(log.writes.length, 0, "nada gravado: o guia só abre a tela");
 });
+
+test("tudo por voz: velocidade e troca de voz saem como cartão de ajuste, sem gravar nada no servidor; valor inválido é descartado", async () => {
+  modelText = META_TXT([{ tipo: "ajuste", opcao: "velocidade", valor: "mais devagar" }, { tipo: "ajuste", opcao: "voz_trocar", valor: "proxima" }, { tipo: "ajuste", opcao: "velocidade", valor: 9 }]);
+  const ev = await chat("fala mais devagar e troca a voz");
+  const items = ev.find((e) => e.t === "acoes")?.items ?? [];
+  assert.deepEqual(items.map((i) => [i.kind, i.ajuste?.opcao, i.ajuste?.valor]), [["ajuste", "velocidade", "mais_devagar"], ["ajuste", "voz_trocar", "proxima"]]);
+  assert.equal(voiceWrites.length, 0);
+  assert.equal(log.writes.length, 0);
+});

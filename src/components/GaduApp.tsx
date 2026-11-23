@@ -449,6 +449,19 @@ export function GaduApp(props: {
     const on = (e: Event) => {
       const j = (e as CustomEvent<Ajuste>).detail;
       if (j.opcao === "tema") { setTheme(j.valor); applyTheme(j.valor); return; }
+      if (j.opcao === "velocidade") {
+        const cur = prefsRef.current.rate || 1;
+        const rate = j.valor === "mais_devagar" ? cur - 0.15 : j.valor === "mais_rapido" ? cur + 0.15 : j.valor;
+        setPrefs({ ...prefsRef.current, rate: Math.round(Math.min(1.6, Math.max(0.7, rate)) * 20) / 20 });
+        return;
+      }
+      if (j.opcao === "voz_trocar") {
+        const pt = (typeof speechSynthesis !== "undefined" ? speechSynthesis.getVoices() : []).filter((v) => v.lang.toLowerCase().startsWith("pt"));
+        if (!pt.length) return;
+        const i = pt.findIndex((v) => v.voiceURI === prefsRef.current.voiceURI);
+        setPrefs({ ...prefsRef.current, voiceURI: pt[(i + 1) % pt.length].voiceURI });
+        return;
+      }
       const key = j.opcao === "maos_livres" ? "handsFree" : j.opcao === "respostas_curtas" ? "shortVoice" : j.opcao === "voz" ? "voice" : null;
       if (key && typeof j.valor === "boolean") setPrefs({ ...prefsRef.current, [key]: j.valor });
     };

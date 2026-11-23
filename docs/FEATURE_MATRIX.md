@@ -194,7 +194,8 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Memória | esquecer ("esquece que eu…") | sim | `memoria_esquecer` (só memórias aprovadas; confirmação explícita; não dá para desfazer) | — |
 | Agentes | criar, editar | **não** | — | lacuna |
 | Configurações | tamanho do texto, conversa contínua, respostas curtas, resposta falada, tema | sim | `ajuste` | — |
-| Configurações | voz e velocidade, termos bloqueados, limites de IA, notificações, conectar o Google | **não** | — | notificações e Google exigem um toque (regra do navegador e do OAuth); o resto é lacuna |
+| Configurações | velocidade da fala ("fala mais devagar", "volta ao normal") e trocar a voz ("usa outra voz") | sim | `ajuste` (`velocidade`, `voz_trocar`), PR do Cursor de 23/11 | — |
+| Configurações | termos bloqueados, limites de IA, notificações, conectar o Google | **não** | — | notificações e Google exigem um toque (regra do navegador e do OAuth); o resto é lacuna |
 | Conversa | nova conversa | sim | `nova_conversa` (cartão + "sim": começar outra conversa limpa a tela no meio da resposta, então não é instantâneo; a anterior fica no histórico) | — |
 | Navegação | "abre o Financeiro", "vai para Metas", "mostra minhas tarefas" | sim | `navegar` (abre na hora, sem confirmação e sem gravar; telas desligadas por interruptor não abrem; Admin e telas em desenvolvimento ficam de fora) | — |
 | Desfazer | "desfaz", "volta atrás", "foi sem querer" | sim | comando local `parseUndoCommand` (`src/lib/undo.ts`): desfaz a última ação enquanto o aviso "Feito · Desfazer" está à mão; sem modelo e sem custo, então não é uma ação do bloco "acoes" | só vale nos 8 s do aviso |

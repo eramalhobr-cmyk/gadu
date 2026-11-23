@@ -10,7 +10,9 @@ import { MAX_DEPENDENTES } from "./finance/salario.ts";
 import type { Meio } from "./finance/types.ts";
 import { CATEGORIAS, MEDICOES, type Categoria, type Medicao } from "./goals/types.ts";
 
-export type Ajuste = { opcao: "texto"; valor: "100" | "115" | "130" } | { opcao: "maos_livres" | "respostas_curtas" | "voz"; valor: boolean } | { opcao: "tema"; valor: "dark" | "light" };
+export type Ajuste = { opcao: "texto"; valor: "100" | "115" | "130" } | { opcao: "maos_livres" | "respostas_curtas" | "voz"; valor: boolean } | { opcao: "tema"; valor: "dark" | "light" }
+  | { opcao: "velocidade"; valor: number | "mais_devagar" | "mais_rapido" }
+  | { opcao: "voz_trocar"; valor: "proxima" };
 
 export type AcaoProposta =
   | { tipo: "meta_criar"; titulo: string; medicao: Medicao; unidade: string | null; alvo: number | null; inicial: number; prazo: string | null; categoria: Categoria; marcos: string[] }
@@ -102,6 +104,17 @@ function validAjuste(o: Record<string, unknown>): Ajuste | null {
     }
     case "maos_livres": case "respostas_curtas": case "voz":
       return bool === null ? null : { opcao: o.opcao, valor: bool };
+    case "velocidade": {
+      // Número (0,7 a 1,6, como em Configurações) ou relativo ("mais devagar", "mais rápido"); "normal" = 1.
+      if (typeof v === "number") return Number.isFinite(v) && v >= 0.7 && v <= 1.6 ? { opcao: "velocidade", valor: Math.round(v * 20) / 20 } : null;
+      const s = norm(String(v ?? "")).replace(/\s+/g, "_");
+      if (s === "normal") return { opcao: "velocidade", valor: 1 };
+      if (s === "mais_devagar" || s === "devagar" || s === "lento" || s === "mais_lento") return { opcao: "velocidade", valor: "mais_devagar" };
+      if (s === "mais_rapido" || s === "rapido" || s === "mais_depressa") return { opcao: "velocidade", valor: "mais_rapido" };
+      return null;
+    }
+    case "voz_trocar":
+      return v === undefined || v === "proxima" || v === "outra" ? { opcao: "voz_trocar", valor: "proxima" } : null;
     case "tema":
       return v === "dark" || v === "escuro" ? { opcao: "tema", valor: "dark" } : v === "light" || v === "claro" ? { opcao: "tema", valor: "light" } : null;
     default:
@@ -343,6 +356,6 @@ export function acoesRules(): string {
   {"tipo":"nova_conversa"} ("começa uma conversa nova"); {"tipo":"guia"} ("me mostra o guia de novo", "como o GaDu funciona?": abre o guia de primeiro uso na hora, sem confirmação; não grava nada); {"tipo":"navegar","destino":"hoje|conversa|tarefas|agenda|financeiro|metas|projetos|memoria|agentes|ajustes|mais"} ("abre o Financeiro", "vai para Metas", "mostra minhas tarefas": abre a tela na hora, sem confirmação; use só quando a pessoa pedir para ir ou abrir uma tela);
   {"tipo":"projeto_criar","nome":"...","objetivo":"..."};
   {"tipo":"salario_simular","bruto":8000,"dependentes":0,"salvar":false} ("quanto fica líquido um salário de 8 mil?", "e com 2 dependentes?": o SERVIDOR calcula INSS e imposto de renda e mostra o cartão com o passo a passo; você NUNCA calcula nem escreve valores de INSS, imposto ou líquido: diga só que o cartão tem o cálculo, ou repita os números do bloco "Cálculo do salário" se ele estiver no contexto. "salvar":true só quando a pessoa pedir para guardar o líquido como o salário deste mês: vira um cartão de confirmação);
-  {"tipo":"ajuste","opcao":"texto","valor":"100|115|130"} (letra normal, grande, maior), {"tipo":"ajuste","opcao":"maos_livres|respostas_curtas|voz","valor":true|false}, {"tipo":"ajuste","opcao":"tema","valor":"dark|light"}.
+  {"tipo":"ajuste","opcao":"texto","valor":"100|115|130"} (letra normal, grande, maior), {"tipo":"ajuste","opcao":"maos_livres|respostas_curtas|voz","valor":true|false}, {"tipo":"ajuste","opcao":"tema","valor":"dark|light"}, {"tipo":"ajuste","opcao":"velocidade","valor":0.7 a 1.6|"normal"|"mais_devagar"|"mais_rapido"} ("fala mais devagar", "fala mais rápido", "volta a velocidade normal"), {"tipo":"ajuste","opcao":"voz_trocar","valor":"proxima"} ("troca a voz", "usa outra voz": passa para a próxima voz em português do aparelho).
   Diga em uma frase o que preparou ("Preparei, é só confirmar"). Não diga que não consegue fazer algo que está nesta lista. No máximo 5 itens; quase sempre a lista fica vazia.`;
 }
