@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { GaduApp } from "@/components/GaduApp";
+import { GaduMap } from "@/components/GaduMap";
 import { HelpNav } from "@/components/HelpNav";
 import { PageHeader, Panel } from "@/components/kit";
 import { Icon } from "@/components/ui";
@@ -73,6 +74,12 @@ export default async function Guia() {
             </li>
           ))}
         </ol>
+      </section>
+
+      <section className="guide-sec" aria-labelledby="g-map" id="mapa">
+        <h2 id="g-map" className="sec-title">Mapa do GaDu</h2>
+        <p className="muted">Tudo passa pela conversa: falando ou escrevendo, você chega a qualquer tela. As linhas mostram o que se liga a quê.</p>
+        <GaduMap hide={[...(props.financeEnabled ? [] : ["financeiro" as const]), ...(props.goalsEnabled ? [] : ["metas" as const])]} />
       </section>
 
       <section className="guide-sec" aria-labelledby="g-ask">

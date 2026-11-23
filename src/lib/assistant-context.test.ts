@@ -60,3 +60,14 @@ test("linha de contexto avisa quando o módulo é só planejado", () => {
   assert.equal(contextLabel(contextOf("agentes")), "Agent Office › Agentes");
   assert.equal(moduleOf("admin").id, "plataforma");
 });
+
+test("UX-7: grupos dos menus cobrem cada tela principal uma vez só, e escondem o que está desligado", async () => {
+  const { NAV_GROUPS, MAIN_VIEWS, navGroups, DOCK_VIEWS } = await import("./modules.ts");
+  const all = NAV_GROUPS.flatMap((g) => g.views);
+  assert.deepEqual([...all].sort(), [...MAIN_VIEWS].sort());
+  assert.equal(new Set(all).size, all.length);
+  for (const g of NAV_GROUPS) assert.match(g.hint, /^“.+”$/);
+  const off = navGroups((v) => v === "financeiro" || v === "metas", DOCK_VIEWS);
+  assert.deepEqual(off.find((g) => g.id === "vida")?.views, []);
+  assert.deepEqual(off.find((g) => g.id === "dia")?.views, ["agenda", "projetos", "memoria"]);
+});

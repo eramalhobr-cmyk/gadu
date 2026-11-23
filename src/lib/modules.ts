@@ -86,11 +86,11 @@ export const MODULES: ModuleDef[] = [
     needs: ["Agent Office", "Ambiente isolado para executar código", "Sem aplicativos nativos Android/iOS nesta fase"],
   },
   {
-    id: "studio3d", name: "3D Studio", tagline: "Encontrar, organizar e gerar modelos para impressão 3D.", icon: "cube", color: "hot", status: "planejado",
+    id: "studio3d", name: "3D Studio", tagline: "Encontrar, organizar e gerar modelos para impressão 3D.", icon: "cube", color: "hot", status: "parcial",
     views: [{ id: "studio3d", label: "3D Studio", icon: "cube" }],
-    available: [],
-    planned: ["Busca de modelos gratuitos, respeitando licenças", "Biblioteca de modelos", "Figura a partir de foto (3D-2)", "Modelo de projeto A1 PLA 0.4 do Bambu Studio", "Salvar projetos e versões"],
-    needs: ["Beta da conversa → OpenSCAD pronto, desligado até MODELING_3D_ENABLED=1 (docs/FEATURE-3D.md)", "Modelo de projeto do Bambu Studio enviado pelo Eduardo"],
+    available: ["Beta: descrever a peça na conversa e receber o modelo OpenSCAD, com STL e 3MF (liga com MODELING_3D_ENABLED=1)", "Peças e versões salvas na conta"],
+    planned: ["Busca de modelos gratuitos, respeitando licenças", "Biblioteca de modelos", "Figura a partir de foto (3D-2)", "Modelo de projeto A1 PLA 0.4 do Bambu Studio"],
+    needs: ["Modelo de projeto do Bambu Studio enviado pelo Eduardo"],
     doc: "docs/FEATURE-3D.md",
   },
   {
@@ -119,6 +119,20 @@ export const AREAS: AreaDef[] = [
  * Hoje, Conversa e Tarefas ficam na barra de baixo do celular; o resto, em "Mais". */
 export const MAIN_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "projetos", "memoria", "agentes"];
 export const DOCK_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas"];
+/** Grupos dos menus (UX-7): a mesma divisão na tela Mais do celular e no menu lateral do computador.
+ * Cada grupo traz um exemplo do que dizer, porque tudo no GaDu também se faz pela conversa. */
+export type NavGroupId = "dia" | "vida" | "criacao";
+export type NavGroup = { id: NavGroupId; name: string; hint: string; views: ViewId[] };
+export const NAV_GROUPS: NavGroup[] = [
+  { id: "dia", name: "Meu dia", hint: "“Como está meu dia?”", views: ["hoje", "conversa", "tarefas", "agenda", "projetos", "memoria"] },
+  { id: "vida", name: "Vida", hint: "“Quanto gastei este mês?”", views: ["metas", "financeiro"] },
+  { id: "criacao", name: "Agentes e criação", hint: "“Cria um agente para os estudos”", views: ["agentes"] },
+];
+/** Grupos com as telas visíveis: tira as escondidas (interruptores) e as de `skip` (ex.: as da barra de baixo, na tela Mais). Grupo vazio sai. */
+export function navGroups(hidden: (v: ViewId) => boolean = () => false, skip: ViewId[] = []): NavGroup[] {
+  return NAV_GROUPS.map((g) => ({ ...g, views: g.views.filter((v) => !hidden(v) && !skip.includes(v)) }));
+}
+
 /** Endereço antigo → tela de verdade (um lugar só para a conta). */
 export function canonicalView(view: ViewId): ViewId {
   return view === "perfil" || view === "integracoes" ? "ajustes" : view;

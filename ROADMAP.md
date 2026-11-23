@@ -202,7 +202,7 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [ ] Detecção de fim de fala e interrupção natural
 
 ## Fase 4 · Privacidade
-- [ ] Presidio com regras brasileiras (CPF, conta, Pix) no lugar das palavras-chave
+- [x] Regras brasileiras (CPF e CNPJ com dígito verificador, cartão pelo Luhn, agência e conta, chave Pix, Pix copia e cola, senha com valor, tokens) no lugar das palavras-chave (23/11, Cursor; sem Presidio nem serviço novo, roda no servidor)
 - [ ] Transcrição local para assunto sensível
 
 ## Pessoas e administração
@@ -457,8 +457,8 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa. A
 ### UX-7 · Visual, navegação e palco de voz (aprovado pelo Eduardo em 23/11/2026, 14:06) · Cursor (Grok Bot)
 Proposta completa (17 itens), com o levantamento das skills de design no GitHub, na Page "GaDu: revisão de UX e proposta visual". Ordem combinada:
 - [x] **R1/R2 · Palco de voz:** avatar grande na tela de escuta (tela cheia no celular), Conversa do celular com avatar de até 190 px quando vazia ou em voz (encolhe ao digitar), palco maior no computador (340 → 420 px em voz), avatar animado no painel do assistente ao ouvir, pensar e falar; o avatar reage ao som real (medidor do microfone no computador, só com permissão já dada; trechos reconhecidos no celular; palavras faladas pela voz do aparelho) e volta à animação própria sem sinal
-- [ ] **R4/R5 · Mais e menu agrupados por áreas**, com status e contadores; 3D no menu do computador quando ligado
-- [ ] **M2 · Ligações visíveis** entre Metas, Projetos, Tarefas, Agenda e Finanças, e o mapa do GaDu no Guia
+- [x] **R4/R5 · Mais e menu agrupados por áreas** (Meu dia, Vida, Agentes e criação, Conta e ajuda), cada grupo com um exemplo do que dizer; números nos blocos (metas ativas/atrasadas, projetos ativos, memórias a revisar); 3D no menu do computador quando ligado; 3D Studio passa a "parcial" no catálogo (Beta publicado)
+- [x] **M2 · Ligações visíveis**: selo da meta em cada tarefa e projeto ligado (toca e abre Metas) e o **Mapa do GaDu** no Guia (conversa e voz no centro, nós que abrem cada tela, cada ligação com uma frase para dizer). Agenda e Finanças ainda sem selo (a agenda vem do Google; finanças sem tabela de ligação)
 - [ ] **M3 · Hoje em três faixas** (Agora, Depois, Progresso)
 - [ ] **R3** um microfone só no celular · **R6/M1** skills de design revisadas e DESIGN.md · **R7** apagar os motores de rosto sem uso · **M4** telas mais visuais (Finanças, Metas, Agentes) · **M5** "o que posso dizer aqui" · **M6** computador (menu compacto, Ctrl+K) · **G1** modo voz imersivo · **G2** navegação por voz · **G3** design system v2 com testes visuais · **G4** logo novo (espera o arquivo)
 

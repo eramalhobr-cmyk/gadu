@@ -73,6 +73,22 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - **A revisar por outra IA:** o efeito do ajuste no `Studio3D.tsx` (roda uma vez, depois que a peça certa abriu).
 - **Próximo nas sobras do 3D:** imagem do render para o modelo (3D-1b) e as 10 peças de referência com IA real (precisa do Eduardo autorizar o gasto). 3MF "A1 PLA 0.4" espera o projeto do Eduardo.
 
+### 23/11/2026 14:35 · Cursor (Grok Bot), dado sensível brasileiro (fila, item 3)
+- `privacy.ts` passa a detectar o dado (CPF/CNPJ com DV, Luhn, agência e conta, Pix, senha com valor, tokens) no lugar das palavras-chave. Saúde fica por palavra. Usado em todo lugar que já chamava `isSensitive` (chat, Core, memórias, lembretes, tarefas, eventos, gastos, Google).
+- **Decisão a registrar:** é uma regra menos restritiva para conversa comum ("como troco minha senha?" agora passa); o dado em si continua bloqueado. CPF formatado bloqueia mesmo com DV errado.
+- **A revisar por outra IA:** os regex de agência/conta e de senha em `src/lib/privacy.ts`.
+- **Fila 1–3 concluída.** Depois: sobras do 3D e o token da telemetria (manual do Eduardo).
+
+### 23/11/2026 14:30 · Cursor (Grok Bot), UX-7 PR 3: ligações visíveis e Mapa do GaDu
+- **Feito:** selo da meta em tarefas e projetos ligados (`src/lib/ligacoes.ts`, `src/components/links.tsx`, só leitura de `goal_tasks`/`goal_projects`/`goals` com RLS, só com `GOALS_ENABLED`); seção "Mapa do GaDu" no Guia (`src/components/GaduMap.tsx`), com nós que abrem as telas e frases das ações de voz que já existem. Sem migração, sem rota nova.
+- **A revisar por outra IA:** se a frente de Metas (Claude Code) mudar nomes de ação ou frases, atualizar `MAP_LINKS` em `src/lib/ligacoes.ts`.
+- **Próximo passo:** M3, Hoje em três faixas.
+
+### 23/11/2026 14:28 · Cursor (Grok Bot), UX-7 PR 2: Mais e menu por áreas
+- **Feito:** `NAV_GROUPS` em `src/lib/modules.ts` (Meu dia, Vida, Agentes e criação), usado na tela Mais e no menu lateral; grupo "Conta e ajuda" em Mais; exemplo do que dizer por grupo; números (metas, projetos, memórias); 3D no menu do computador com o interruptor ligado; 3D Studio "parcial" no catálogo.
+- **A revisar por outra IA:** o catálogo do 3D em `modules.ts` (frente do Claude Code): status "parcial" e textos de disponível/planejado.
+- **Próximo passo:** PR 3, ligações visíveis e mapa do GaDu no Guia.
+
 ### 23/11/2026 14:20 · Cursor (Grok Bot), UX-7 PR 1: palco de voz
 - **Pedido do Eduardo (14:06):** aplicar a proposta visual inteira (17 itens) em PRs pequenos. Ordem: palco de voz, Mais/menu por áreas, ligações e mapa, Hoje em três faixas, o resto.
 - **Feito:** avatar grande na tela de escuta (tela cheia no celular), na Conversa do celular (até 190 px vazia ou em voz, encolhe ao digitar), no computador (340/420 px) e no painel do assistente (136/168 px ao ouvir, pensar e falar). Nível real da voz: `src/lib/voice-level.ts` (testado), `src/lib/mic-meter.ts` (computador, só com permissão já dada, nada gravado), trechos reconhecidos e `onboundary` da fala. CSS do ciclo em `src/app/ux7.css`.

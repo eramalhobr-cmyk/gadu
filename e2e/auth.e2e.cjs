@@ -87,6 +87,10 @@ describe("app com login", () => {
       assert.ok(tiles.some((t) => t.includes(name)), name);
     }
     assert.ok(!tiles.filter((t) => !t.startsWith("3D")).some((t) => /Planejado|Beta/.test(t)), "sem selos técnicos nos blocos");
+    // UX-7: Mais agrupado por áreas, cada grupo com um exemplo do que dizer.
+    const groups = await p.$$eval(".more-group h2", (els) => els.map((e) => e.textContent));
+    for (const g of ["Meu dia", "Agentes e criação", "Conta e ajuda"]) assert.ok(groups.includes(g), `grupo ${g}`);
+    assert.ok((await p.$$(".more-head p")).length >= 3, "exemplo do que dizer em cada grupo");
     // 3D Studio (Beta): desligado por padrão (MODELING_3D_ENABLED só liga com 1). Sem a variável no servidor de teste, não aparece
     // nem em "Em breve" como bloco; com E2E_3D=1 (servidor com a variável), aparece como "3D" e abre /app/3d.
     const com3d = process.env.E2E_3D === "1";
@@ -234,6 +238,18 @@ describe("app com login", () => {
     await p.context().close();
   });
 
+  test("Guia: Mapa do GaDu mostra as ligações e o que dizer (UX-7)", async () => {
+    const p = await page(PHONE);
+    await p.goto(`${BASE}/app/guia#mapa`);
+    await p.waitForSelector(".gmap-svg");
+    const nodes = await p.$$eval(".gmap-svg a", (a) => a.map((e) => e.getAttribute("aria-label")));
+    assert.ok(nodes.includes("Abrir Tarefas") && nodes.includes("Abrir Agenda"), `nós do mapa: ${nodes}`);
+    const rows = await p.$$eval(".gmap-list li", (l) => l.map((e) => e.textContent));
+    assert.ok(rows.length >= 3 && rows.every((t) => t.includes("“")), "cada ligação traz uma frase para dizer");
+    assert.ok((await overflowX(p)) <= 0, "mapa sem rolagem lateral");
+    await p.context().close();
+  });
+
   test("voz: microfone negado mostra aviso claro", async () => {
     const p = await page(PHONE, { voice: "deny" });
     await p.goto(`${BASE}/app?tab=conversa`);
@@ -333,6 +349,9 @@ describe("app com login", () => {
   test("computador: menu recolhível e painel do assistente com largura ajustável", async () => {
     const p = await page(DESK);
     await p.goto(`${BASE}/app?tab=hoje`);
+    // UX-7: menu lateral agrupado por áreas, como a tela Mais.
+    const navGroups = await p.$$eval(".nav .nav-group-t", (els) => els.map((e) => e.textContent));
+    assert.ok(navGroups.includes("Meu dia") && navGroups.includes("Agentes e criação"), `grupos do menu: ${navGroups}`);
     await p.click(".nav-collapse");
     const w = await p.evaluate(() => document.querySelector(".nav").getBoundingClientRect().width);
     assert.ok(w <= 80, `menu recolhido (${w}px)`);

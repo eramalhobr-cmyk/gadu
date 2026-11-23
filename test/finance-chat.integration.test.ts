@@ -256,7 +256,7 @@ test("proposta com valor inválido, data futura ou fora da conversa de lançamen
 });
 
 test("proposta: descrição com termo bloqueado ou dado sensível é descartada, valor e categoria ficam", async () => {
-  modelText = `Ok.\n<<<META>>>\n${JSON.stringify({ gastos: [{ valor: 80, categoria: "Trabalho", descricao: "almoço da Acme" }, { valor: 15, categoria: "Casa", descricao: "senha do wifi" }, { valor: 7, categoria: "Lazer", descricao: "cinema" }] })}`;
+  modelText = `Ok.\n<<<META>>>\n${JSON.stringify({ gastos: [{ valor: 80, categoria: "Trabalho", descricao: "almoço da Acme" }, { valor: 15, categoria: "Casa", descricao: "senha do wifi 4321" }, { valor: 7, categoria: "Lazer", descricao: "cinema" }] })}`;
   const g = (await chat("gastei 80 no almoço do trabalho")).find((e) => e.t === "gastos")!;
   assert.deepEqual(g.items!.map((i) => [i.valor, i.descricao]), [[80, ""], [15, ""], [7, "cinema"]]);
 });

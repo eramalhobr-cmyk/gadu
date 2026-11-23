@@ -46,7 +46,7 @@ Prioridade: **P0** agora · **P1** próximo ciclo · **P2** depois · **P3** lon
 | Resumo automático de conversas (memória v2) | implementado | — | `src/app/api/chat/route.ts` | — |
 | Busca por significado (pgvector) em memórias, conversas, tarefas e projetos | implementado | — | `src/app/api/search`, `src/lib/embeddings.ts`, `search_index` | — |
 | Insights: conflito de agenda, janela livre, atrasos, e-mail parado, com Aceitar/Ignorar | implementado (Aceitar/Ignorar em 23/11) | — | `src/lib/insights.ts`, `src/lib/percepcoes.ts`, `src/components/PercepcoesCard.tsx` | — |
-| Regra de privacidade (dado sensível não sai nem é gravado) | implementado | — | `src/lib/privacy.ts` | Presidio com regras brasileiras (P2) |
+| Regra de privacidade (dado sensível não sai nem é gravado) | implementado (detecção por dado em 23/11, Cursor) | — | `src/lib/privacy.ts` | CPF/CNPJ com DV, Luhn, agência e conta, chave Pix, senha com valor, tokens; saúde continua por palavra |
 | Contexto entre módulos com permissões (Finanças, Office) | planejado | P2 | — | módulos ainda não existem |
 
 ## 4. Financeiro
