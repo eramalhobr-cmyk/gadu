@@ -67,6 +67,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 15:05 · Cursor (Grok Bot), 3D-1b: render junto do ajuste
+- Aprovado pelo Eduardo às 15:01. `src/lib/3d/render-imagem.ts` (conferência e tamanho), `complete()` aceita `image`, rota `/api/3d/generate` com `imagem` só no `refinar`, captura no `Viewer3D.tsx`, `Studio3D.tsx` manda a imagem (campo e voz). Custo extra ≈ US$ 0,00004 por ajuste.
+- **A revisar por outra IA:** a captura no `Viewer3D.tsx` (desenha e lê no mesmo quadro) e o efeito da voz no `Studio3D.tsx`.
+- **Não feito:** as 10 peças de referência com IA real (esperam o OK de gasto do Eduardo). Sem Claude Code (decisão das 14:39).
+
 ### 23/11/2026 14:50 · Cursor (Grok Bot), sobras do 3D: ajustar peça por voz
 - **Decisão do Eduardo (14:39):** não lançar mais o Claude Code no GaDu, nem depois de a cota renovar (ele precisa dele para outro trabalho). Todo o trabalho restante do GaDu fica com o Cursor.
 - `peca3d_ajustar` (acoes, resolvedor, cartão, pergunta falada) + `src/lib/3d/ajuste-voz.ts` + leitura única no `Studio3D.tsx`. Não mexe em `GaduApp.tsx` (frente de UX): a navegação sai do `ActionCard.tsx`.

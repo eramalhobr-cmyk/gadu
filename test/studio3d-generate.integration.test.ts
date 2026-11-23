@@ -14,7 +14,7 @@ let session: string | null = UID;
 let rpcs: Record<string, (a?: Record<string, unknown>) => Promise<Rpc>> = {};
 let calls: { name: string; args?: Record<string, unknown>; client: "user" | "admin" }[] = [];
 let order: string[] = [];
-let aiCalls: { prompt: string; maxTokens?: number; skip: string[] }[] = [];
+let aiCalls: { prompt: string; maxTokens?: number; skip: string[]; image?: { mediaType: string; data: string } }[] = [];
 let aiMode: "ok" | "throw" = "ok";
 let aiText = "largura = 70; // [30:1:200] Largura\ncube([largura, 10, 5]);";
 let profileSettings: unknown = {};
@@ -47,8 +47,8 @@ mock.module(src("lib/supabase/admin.ts"), {
 mock.module(src("lib/access.ts"), { namedExports: { accessOf: async () => ({ ok: true, admin: false }) } });
 mock.module(src("lib/llm/complete.ts"), {
   namedExports: {
-    complete: async (prompt: string, o: { maxTokens?: number; skip?: Set<string> } = {}) => {
-      order.push("ia"); aiCalls.push({ prompt, maxTokens: o.maxTokens, skip: [...(o.skip ?? [])] });
+    complete: async (prompt: string, o: { maxTokens?: number; skip?: Set<string>; image?: { mediaType: string; data: string } } = {}) => {
+      order.push("ia"); aiCalls.push({ prompt, maxTokens: o.maxTokens, skip: [...(o.skip ?? [])], image: o.image });
       if (aiMode === "throw") throw new Error("provedor fora");
       return { text: aiText, provider: "anthropic", model: "claude-haiku-5-5", input: 900, output: 400, cost: 0.00029 };
     },
@@ -227,4 +227,47 @@ test("motor acima do limite mensal de Ajustes é pulado", async () => {
   rpcs.month_spend_by_provider = ok([{ provider: "anthropic", cost_usd: 9 }]);
   await post(NOVO);
   assert.deepEqual(aiCalls[0].skip, ["anthropic"]);
+});
+
+// ---- 3D-1b: render da peça junto do ajuste ----
+const JPEG = "data:image/jpeg;base64," + Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(2000, 7)]).toString("base64");
+const PNG_FALSO = "data:image/png;base64," + Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(2000, 7)]).toString("base64");
+const REFINAR = { modo: "refinar", pedido: "2 mm mais alto", scad: "largura = 70; // [30:1:200] Largura\ncube([largura, 10, 5]);" };
+
+test("3D-1b: ajuste com o render vai à IA com a imagem e a nota; mesma ordem de custo; reserva conta a imagem", async () => {
+  const sem = await post(REFINAR);
+  assert.equal(sem.status, 200);
+  const estSem = called("server_reserve_ai_budget")[0].args!.p_estimate_usd as number;
+  assert.equal(aiCalls[0].image, undefined, "sem imagem, só o código");
+  assert.doesNotMatch(aiCalls[0].prompt, /imagem anexa/);
+  calls = []; order = []; aiCalls = [];
+  const com = await post({ ...REFINAR, imagem: JPEG });
+  assert.equal(com.status, 200);
+  assert.deepEqual(order, ["month_spend_by_provider", "server_reserve_ai_budget", "consume_daily_quota", "ia", "server_settle_ai_budget"]);
+  assert.equal(aiCalls[0].image?.mediaType, "image/jpeg");
+  assert.match(aiCalls[0].prompt, /imagem anexa é o render atual/);
+  const estCom = called("server_reserve_ai_budget")[0].args!.p_estimate_usd as number;
+  assert.ok(estCom > estSem, "a reserva inclui os tokens da imagem");
+});
+
+test("3D-1b: imagem inválida, grande demais ou fora do ajuste é recusada antes de qualquer custo", async () => {
+  for (const body of [
+    { ...REFINAR, imagem: PNG_FALSO },
+    { ...REFINAR, imagem: "data:image/gif;base64,R0lGODlhAQABAAAAACw=" },
+    { ...REFINAR, imagem: "data:image/jpeg;base64," + "A".repeat(500_000) },
+    { ...NOVO, imagem: JPEG },
+  ]) {
+    const r = await post(body);
+    assert.equal(r.status, 400, JSON.stringify(body).slice(0, 60));
+  }
+  assert.equal(calls.length, 0, "nada de limites, reserva ou cota");
+  assert.equal(aiCalls.length, 0);
+});
+
+test("3D-1b: com a cota do dia esgotada, o ajuste com imagem não chama a IA e libera a reserva", async () => {
+  rpcs.consume_daily_quota = ok({ allowed: false, used: 150, limit: 150 });
+  const r = await post({ ...REFINAR, imagem: JPEG });
+  assert.equal(r.status, 429);
+  assert.equal(aiCalls.length, 0);
+  assert.equal(called("server_release_ai_budget").length, 1);
 });

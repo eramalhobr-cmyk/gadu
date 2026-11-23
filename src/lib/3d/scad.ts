@@ -16,16 +16,19 @@ Regras obrigatórias:
 6. Sem include, use, import, surface ou qualquer arquivo externo. Sem texto() com fontes especiais.
 7. Peça única, sólida e fechada (sem faces soltas), com no máximo ${SCAD_MAX} caracteres.`;
 
-export type PromptInput = { modo: "novo" | "refinar" | "corrigir"; pedido: string; scad?: string; erro?: string };
+export type PromptInput = { modo: "novo" | "refinar" | "corrigir"; pedido: string; scad?: string; erro?: string; comImagem?: boolean };
 
 /** Texto livre da pessoa dentro de delimitadores, para o modelo tratá-lo como dado, não como regra. */
 const fence = (label: string, text: string) => `<${label}>\n${text.replace(/<\/?[a-z_]+>/gi, " ")}\n</${label}>`;
+
+/** 3D-1b: o que a imagem anexa é (a IA vê a forma; as medidas continuam vindo do código). */
+export const IMAGEM_NOTA = "A imagem anexa é o render atual dessa peça no visualizador do GaDu (mesa da Bambu Lab A1 de 256 × 256 mm com grade a cada 32 mm, Z para cima). Use-a para entender a forma e onde está cada parte; as medidas certas são as do código.";
 
 export function buildPrompt(i: PromptInput): string {
   const pedido = i.pedido.slice(0, PEDIDO_MAX);
   if (i.modo === "novo") return `${SCAD_RULES}\n\nPedido da pessoa:\n${fence("pedido", pedido)}\n\nEscreva o código OpenSCAD.`;
   const atual = `Código atual:\n${fence("codigo", (i.scad ?? "").slice(0, SCAD_MAX))}`;
-  if (i.modo === "refinar") return `${SCAD_RULES}\n\n${atual}\n\nAltere o código conforme este pedido, mantendo os parâmetros que continuam valendo:\n${fence("pedido", pedido)}\n\nDevolva o código completo e atualizado.`;
+  if (i.modo === "refinar") return `${SCAD_RULES}\n\n${atual}${i.comImagem ? `\n\n${IMAGEM_NOTA}` : ""}\n\nAltere o código conforme este pedido, mantendo os parâmetros que continuam valendo:\n${fence("pedido", pedido)}\n\nDevolva o código completo e atualizado.`;
   return `${SCAD_RULES}\n\n${atual}\n\nO OpenSCAD não conseguiu renderizar esse código. Mensagem de erro:\n${fence("erro", (i.erro ?? "").slice(0, 1500))}\n\nPedido original da pessoa: ${fence("pedido", pedido)}\n\nCorrija o erro e devolva o código completo.`;
 }
 
