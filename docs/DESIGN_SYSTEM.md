@@ -16,9 +16,10 @@ Versão 2.3, de 23/11/2026 (etapa 2 do Design System, UX-5; antes, Sprint UX/UI 
 - `src/lib/modules.ts`: módulos, telas e status. `src/lib/theme.ts`: tema. `src/lib/assistant-context.ts`: contexto do assistente.
 
 ## Temas
-- **Escuro** é o padrão e a identidade da marca. **Claro** é opcional (Perfil e ajustes › Aparência, ou o botão de sol/lua).
-- A escolha fica no cookie `gadu_theme`; o servidor aplica `data-theme` no `<html>`, sem piscar.
-- O avatar, o menu lateral e o destaque do painel ficam sempre sobre fundo escuro (classe `.on-dark`), nos dois temas.
+- **Claro** é o padrão (23/11/2026, pedido do Eduardo). **Escuro** é opcional (Configurações › Aparência, o botão de sol/lua ou a voz: "muda para o tema escuro").
+- A escolha fica no cookie `gadu_theme`; o servidor aplica `data-theme` no `<html>`, sem piscar, e a `theme-color` e a barra de status do iPhone do tema em uso.
+- Só o disco do avatar fica sobre fundo escuro (classe `.on-dark`); menu lateral, palco da Conversa e painéis seguem o tema.
+- Guia de design para novas telas: `DESIGN.md` na raiz; referências de terceiros revisadas em `docs/design/`.
 - Regra: nenhuma cor fixa em componente. Cores com transparência usam os trios `--*-rgb`: `rgb(var(--sig-rgb) / 0.2)`.
 
 ## Tokens
