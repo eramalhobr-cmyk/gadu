@@ -53,6 +53,7 @@ async function capture(a: ChatAction): Promise<Prep | null> {
       }
       case "conta_paga": return () => () => backApi(put(`/api/finance/itens/${a.itemId}/mes`, { ano: a.ano, mes: a.mes, pago: false }));
       case "conta_desmarcar": return () => () => backApi(put(`/api/finance/itens/${a.itemId}/mes`, { ano: a.ano, mes: a.mes, pago: true }));
+      case "salario": return a.salvar ? (() => { const s = a.salvar; return () => () => backApi(put(`/api/finance/itens/${s.itemId}/mes`, { ano: s.ano, mes: s.mes, valor: s.antes ?? 0, escopo: "mes" })); })() : null;
       case "marco_ok": return () => () => backApi(patch(`/api/goals/${a.goalId}/marcos/${a.marcoId}`, { concluido: false }));
       case "meta_status": {
         const r = await fetch(`/api/goals/${a.goalId}`, { cache: "no-store" });
@@ -147,6 +148,7 @@ async function execute(a: ChatAction): Promise<Result> {
     if (a.kind === "lembrete_off") return saved(await supabaseBrowser().from("reminders").update({ status: "cancelled" }).eq("id", a.id).select("id"));
     if (a.kind === "conta_paga") return api(await fetch(`/api/finance/itens/${a.itemId}/mes`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ano: a.ano, mes: a.mes, pago: true }) }), "Não consegui marcar a conta.");
     if (a.kind === "conta_desmarcar") return api(await fetch(`/api/finance/itens/${a.itemId}/mes`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ano: a.ano, mes: a.mes, pago: false }) }), "Não consegui desmarcar a conta.");
+    if (a.kind === "salario" && a.salvar) return api(await fetch(`/api/finance/itens/${a.salvar.itemId}/mes`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ano: a.salvar.ano, mes: a.salvar.mes, valor: a.calc.liquido, escopo: "mes" }) }), "Não consegui salvar o salário.");
     if (a.kind === "conta_valor") return api(await fetch(`/api/finance/itens/${a.itemId}/mes`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ano: a.ano, mes: a.mes, valor: a.valor, escopo: a.escopo }) }), "Não consegui mudar o valor.");
     if (a.kind === "gasto_apagar") return api(await fetch(`/api/finance/gastos/${a.id}`, { method: "DELETE" }), "Não consegui apagar o gasto.");
     if (a.kind === "gasto_editar") {
@@ -213,7 +215,7 @@ export function ActionCard({ a, st, onConfirm, onDiscard, onUndo, onOpen }: { a:
   return (
     <CardFrame state={state} kind={a.kind} icon={v.icon} label={label} title={v.title} detail={v.detail}>
       {v.applied ? (
-        !undone && (state === "created" || state === "saving" || state === "error") && (
+        !v.info && !undone && (state === "created" || state === "saving" || state === "error") && (
           <div className="evc-actions">
             <button className="btn btn-sm" disabled={state === "saving"} onClick={onUndo}>{state === "saving" ? v.busy : "Desfazer"}</button>
           </div>

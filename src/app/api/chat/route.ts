@@ -31,6 +31,7 @@ import { goalsEnabled } from "@/lib/goals/flag";
 import type { MetaDraft } from "@/lib/goals/types";
 import { collectFinance, financeProposalRules, formatFinanceBlock } from "@/lib/core/finance";
 import { financeEnabled } from "@/lib/finance/flag";
+import { blocoSalario, pedidoSalario } from "@/lib/finance/salario-texto";
 import { hojeSP, isoDia } from "@/lib/finance/datas";
 import type { GastoProposta } from "@/lib/finance/lancamento";
 
@@ -281,7 +282,10 @@ export async function POST(request: Request) {
         let provider = "";
         let sent = 0;
         const system = systemPrompt();
-        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + financeBlock + goalsBlock + (parsed.data.context ? contextLine(parsed.data.context) : "");
+        // Simulador de salário: o servidor calcula (salario.ts) e o resultado entra no contexto; o modelo só repete os números.
+        const salarioPedido = financeEnabled() ? pedidoSalario(message) : null;
+        const salarioBlock = salarioPedido ? blocoSalario(salarioPedido) ?? "" : "";
+        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + financeBlock + goalsBlock + salarioBlock + (parsed.data.context ? contextLine(parsed.data.context) : "");
         inputChars = system.length + context.length + turns.reduce((n, t) => n + t.content.length, 0);
         for await (const ev of routeChat({
           system,
@@ -392,7 +396,13 @@ export async function POST(request: Request) {
         }
         // "Tudo por voz": ações de qualquer módulo (criar meta, marco, concluir tarefa, conta paga, ajustes…). Só propostas:
         // os nomes viram ids SÓ entre os itens da pessoa (sessão + user_id) e ela confirma no cartão ou dizendo "sim".
-        const acoesOk = metaSent ? acaoProposals.filter((a) => a.tipo !== "meta_registrar" && a.tipo !== "meta_concluir") : acaoProposals;
+        let acoesOk = metaSent ? acaoProposals.filter((a) => a.tipo !== "meta_registrar" && a.tipo !== "meta_concluir") : acaoProposals;
+        if (salarioPedido) {
+          // O valor e os dependentes do cartão são os que a pessoa disse, não os que o modelo repetiu; sem ação do modelo, o servidor propõe o cartão.
+          const dele = acoesOk.find((a) => a.tipo === "salario_simular");
+          const base = { tipo: "salario_simular" as const, bruto: salarioPedido.bruto, dependentes: salarioPedido.dependentes };
+          acoesOk = [...acoesOk.filter((a) => a.tipo !== "salario_simular"), { ...base, salvar: dele?.tipo === "salario_simular" ? dele.salvar : false }];
+        }
         if (acoesOk.length) {
           const { actions, misses } = await resolveAcoes(supabase, user.id, acoesOk, {
             goals: goalsEnabled(), finance: financeEnabled(),

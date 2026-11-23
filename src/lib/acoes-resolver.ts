@@ -6,6 +6,7 @@ import type { ChatAction, GastoMudancas, TarefaMudancas } from "./chat-actions.t
 import type { CalEvent } from "./google-format.ts";
 import type { SessionDb } from "./core/types.ts";
 import { hojeSP, isoDia } from "./finance/datas.ts";
+import { calcularSalario } from "./finance/salario.ts";
 import { GASTO_COLS, loadMes, toGasto } from "./finance/load.ts";
 import type { Gasto } from "./finance/types.ts";
 import type { Agregacao, Medicao } from "./goals/types.ts";
@@ -339,6 +340,25 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           if (blocked(a.nome)) break;
           actions.push({ kind: "projeto", nome: a.nome, objetivo: a.objetivo });
           break;
+        case "salario_simular": {
+          // O cálculo é do servidor (nunca do modelo). Só informa; para salvar, o líquido vai para a RECEITA PRINCIPAL da própria
+          // pessoa (Financeiro › Contas › Configurar), que já guarda o valor do mês. Sem receita principal, só mostra o cálculo.
+          if (!opts.finance) break;
+          const calc = calcularSalario(a.bruto, a.dependentes);
+          if (!calc) { misses.push("Não consegui calcular esse salário. Confira o valor e os dependentes."); break; }
+          if (!a.salvar) { actions.push({ kind: "salario", calc, salvar: null }); break; }
+          const hoje = hojeSP(now);
+          const d = await loadMes(db, userId, hoje.ano, hoje.mes);
+          const alvo = d.itens.find((i) => i.tipo === "receita" && i.id === d.config.receita_principal_id);
+          if (!alvo) {
+            actions.push({ kind: "salario", calc, salvar: null });
+            misses.push("Para salvar o salário do mês, escolha a receita principal em Financeiro › Contas › Configurar. Por enquanto, só mostrei o cálculo.");
+            break;
+          }
+          const antes = d.meses.find((m) => m.item_id === alvo.id && m.ano === hoje.ano && m.mes === hoje.mes)?.valor ?? null;
+          actions.push({ kind: "salario", calc, salvar: { itemId: alvo.id, nome: alvo.nome, antes, ano: hoje.ano, mes: hoje.mes } });
+          break;
+        }
         case "ajuste":
           actions.push({ kind: "ajuste", ajuste: a.ajuste });
           break;

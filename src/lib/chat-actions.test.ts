@@ -123,3 +123,25 @@ test("guia: pergunta falada, cartão e abertura instantânea (não vira cartão)
   assert.deepEqual(r.cards, [{ kind: "nova_conversa" }]);
   assert.equal(splitNavegacao([{ kind: "navegar", view: "metas" }]).guia, false);
 });
+
+test("salário: cartão só de informação (sem botões) e cartão de salvar (confirma, nunca pré-aplicado); pergunta falada traz os números do cálculo", async () => {
+  const { actionQuestion, describe: d } = await import("./chat-actions.ts");
+  const { calcularSalario } = await import("./finance/salario.ts");
+  const calc = calcularSalario(8000)!;
+  const info = d({ kind: "salario", calc, salvar: null });
+  assert.equal(info.info, true);
+  assert.equal(info.title, "R$ 6.040,64");
+  assert.match(info.detail, /INSS R\$ 921,51/);
+  assert.match(info.detail, /IR R\$ 1\.037,85/);
+  assert.match(info.detail, /estimativa/);
+  const salvar = { kind: "salario" as const, calc, salvar: { itemId: "i1", nome: "Salário", antes: 5000, ano: 2026, mes: 11 } };
+  const sv = d(salvar);
+  assert.equal(sv.applied, false, "só grava depois do toque ou do sim");
+  assert.equal(sv.info, undefined);
+  assert.equal(sv.confirm, "Salvar");
+  assert.match(sv.proposed, /11\/2026/);
+  assert.match(sv.detail, /Antes: R\$ 5\.000,00/);
+  assert.match(actionQuestion(salvar, NOW), /líquido de .*6\.040.* como o salário de novembro de 2026\?$/);
+  assert.match(actionQuestion({ kind: "salario", calc, salvar: null }, NOW), /líquido R\$ 6\.040,64/);
+  assert.match(d({ kind: "salario", calc: calcularSalario(3000, 1)!, salvar: null }).detail, /IR R\$ 0,00 \(isento\)/);
+});

@@ -1,11 +1,13 @@
 // Ações propostas pela conversa (gasto, meta, evento, lembrete…): um formato só para o cartão de confirmação,
 // a confirmação falada e (no futuro) novas ações. Puro: sem fetch nem React; quem executa é o ActionCard.
 import { formatBRL } from "./finance/money.ts";
-import { MEIO_LABEL, type Meio } from "./finance/types.ts";
+import { MEIO_LABEL, MESES, type Meio } from "./finance/types.ts";
 import { fmtNum } from "./goals/numero.ts";
 import type { MetaDraft } from "./goals/types.ts";
 import { DESTINO_NOME, type Ajuste, type Destino } from "./acoes.ts";
 import type { Categoria, Medicao } from "./goals/types.ts";
+import { SALARIO_ANO, type Salario } from "./finance/salario.ts";
+import { resumoSalario } from "./finance/salario-texto.ts";
 import { confirmQuestion, spokenDay, spokenMoney, type ConfirmItem } from "./voice-confirm.ts";
 
 export type GastoDraft = { valor: number; categoria: string; descricao: string; meio: Meio; data: string };
@@ -19,6 +21,8 @@ export type ChatAction =
   | { kind: "lembrete"; id: number; text: string; dueAt: string }
   // "Tudo por voz" (src/lib/acoes.ts): ids resolvidos no servidor, só entre os itens da própria pessoa.
   | { kind: "meta_nova"; titulo: string; medicao: Medicao; unidade: string | null; alvo: number | null; inicial: number; prazo: string | null; categoria: Categoria; marcos: string[] }
+  /** Simulador de salário: o cálculo vem do servidor. Sem `salvar` é só informação (sem botões); com `salvar`, grava o líquido na receita principal do mês depois da confirmação. */
+  | { kind: "salario"; calc: Salario; salvar: { itemId: string; nome: string; antes: number | null; ano: number; mes: number } | null }
   | { kind: "meta_status"; goalId: string; titulo: string; para: "pausada" | "ativa" | "arquivada" }
   | { kind: "meta_editar"; goalId: string; titulo: string; unidade: string | null; mudancas: { titulo?: string; alvo?: number; prazo?: string } }
   | { kind: "projeto_editar"; id: number; nome: string; mudancas: { nome?: string; objetivo?: string } }
@@ -85,6 +89,8 @@ export type ActionView = {
   /** Botão principal e o texto enquanto grava. Vazio quando a ação já foi aplicada (só Desfazer). */
   confirm: string; busy: string;
   applied: boolean;
+  /** Cartão só de informação (resultado de um cálculo): sem Confirmar, sem Descartar e sem Desfazer; não entra na confirmação falada. */
+  info?: boolean;
   open?: { label: string; view: "financeiro" | "metas" | "agenda" | "hoje" | "tarefas" | "projetos" | "ajustes" | "memoria" };
 };
 
@@ -146,6 +152,13 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
         title: a.titulo, detail: `${alvo}${a.prazo ? ` · até ${dm(a.prazo)}` : ""}`,
         confirm: "Criar meta", busy: "Criando…", applied: false, open: { label: "Ver em Metas", view: "metas" },
       };
+    }
+    case "salario": {
+      const c = a.calc;
+      const linhas = salarioDetalhe(c);
+      if (!a.salvar) return { icon: "coin", proposed: "Salário líquido", done: "Salário líquido", undone: "Descartado", title: formatBRL(c.liquido), detail: linhas, confirm: "", busy: "", applied: true, info: true, open: { label: "Ver no Financeiro", view: "financeiro" } };
+      const mm = `${String(a.salvar.mes).padStart(2, "0")}/${a.salvar.ano}`;
+      return { icon: "coin", proposed: `Salvar como salário de ${mm}?`, done: "Salário salvo", undone: "Descartado", title: `${a.salvar.nome}: ${formatBRL(c.liquido)}`, detail: `${a.salvar.antes === null ? "Entra neste mês" : `Antes: ${formatBRL(a.salvar.antes)}`} · ${linhas}`, confirm: "Salvar", busy: "Salvando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } };
     }
     case "meta_status": {
       const t = { pausada: ["Pausar meta?", "Meta pausada", "Pausar", "Fica em Pausadas; o progresso é mantido"], ativa: ["Retomar meta?", "Meta retomada", "Retomar", "Volta para as ativas"], arquivada: ["Arquivar meta?", "Meta arquivada", "Arquivar", "Some das listas; nada é apagado (dá para restaurar em Metas)"] }[a.para];
@@ -213,6 +226,14 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
     case "ajuste":
       return { icon: "gear", proposed: "Mudar configuração?", done: "Configuração mudada", undone: "Descartado", title: ajusteLabel(a.ajuste), detail: "Vale neste aparelho", confirm: "Mudar", busy: "Salvando…", applied: false, open: { label: "Ver Configurações", view: "ajustes" } };
   }
+}
+
+/** Passo a passo curto do cálculo, com os números de calcularSalario. */
+export function salarioDetalhe(c: Salario): string {
+  const ir = c.irrf > 0 ? formatBRL(c.irrf) : c.irrfDispensado ? "R$ 0,00 (até R$ 10 não retém)" : "R$ 0,00 (isento)";
+  const dep = c.dependentes ? ` · ${c.dependentes} ${c.dependentes === 1 ? "dependente" : "dependentes"}` : "";
+  const red = c.reducao > 0 ? ` · redução da lei ${formatBRL(c.reducao)}` : "";
+  return `Bruto ${formatBRL(c.bruto)}${dep} · INSS ${formatBRL(c.inss)} · IR ${ir}${red} · IR sobre ${formatBRL(c.baseIr)} (${c.modelo === "simplificado" ? "desconto simplificado" : "INSS e dependentes"}) · tabelas de ${SALARIO_ANO}, estimativa de salário mensal CLT`;
 }
 
 function metaMudancasTexto(a: Extract<ChatAction, { kind: "meta_editar" }>): string {
@@ -285,6 +306,7 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     case "nova_conversa": return "Começo uma conversa nova?";
     case "guia": return "Abro o guia?";
     case "navegar": return `Abro ${DESTINO_NOME[a.view]}?`;
+    case "salario": return a.salvar ? `${resumoSalario(a.calc)} Salvo o líquido de ${spokenMoney(a.calc.liquido)} como o salário de ${MESES[a.salvar.mes - 1]} de ${a.salvar.ano}?` : resumoSalario(a.calc);
     case "projeto": return `Crio o projeto ${a.nome}?`;
     case "ajuste": return `${ajusteLabel(a.ajuste)}?`;
   }

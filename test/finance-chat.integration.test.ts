@@ -400,3 +400,75 @@ test("tudo por voz: agenda do Google fora do ar vira aviso, sem cartão", async 
   assert.equal(eventosDe(events).length, 0);
   assert.ok(events.some((e) => e.t === "notice" && /agenda do Google/.test(e.text ?? "")));
 });
+
+// ---- Simulador de salário bruto → líquido: o servidor calcula, o modelo só repete; salvar só com confirmação ----
+test("salário: 'quanto fica líquido um salário de 8 mil?' calcula no servidor, injeta o resultado no contexto e manda o cartão (sem gravar)", async () => {
+  modelText = "O líquido fica em R$ 6.040,64. O cartão tem o passo a passo.";
+  const events = await chat("Quanto fica líquido um salário de 8 mil?");
+  const c = ctxOf();
+  assert.match(c, /Cálculo do salário \(feito pelo servidor/);
+  assert.match(c, /líquido R\$ 6\.040,64/);
+  assert.match(c, /INSS R\$ 921,51, imposto de renda R\$ 1\.037,85/);
+  const items = eventosDe(events);
+  assert.equal(items.length, 1, "o servidor propõe o cartão mesmo sem a ação do modelo");
+  assert.equal(items[0].kind, "salario");
+  assert.equal(items[0].salvar, null, "só informa");
+  assert.deepEqual({ liquido: items[0].calc.liquido, inss: items[0].calc.inss, irrf: items[0].calc.irrf }, { liquido: 6040.64, inss: 921.51, irrf: 1037.85 });
+  assert.equal(completeCalls, 0, "nenhuma IA extra");
+  assert.equal(log.writes.length, 0, "calcular não grava nada");
+});
+
+test("salário: dependentes ditos entram no cálculo; o valor do cartão é o que a pessoa disse, não o que o modelo repetiu", async () => {
+  modelText = ACOES_TXT([{ tipo: "salario_simular", bruto: 9999, dependentes: 5 }]);
+  const events = await chat("quanto sobra de um salário bruto de R$ 6.500 com 2 dependentes?");
+  const items = eventosDe(events);
+  assert.equal(items.length, 1, "uma ação só (a do modelo é trocada pela do servidor)");
+  assert.deepEqual({ bruto: items[0].calc.bruto, dependentes: items[0].calc.dependentes, liquido: items[0].calc.liquido }, { bruto: 6500, dependentes: 2, liquido: 5322.84 });
+  assert.match(ctxOf(), /líquido R\$ 5\.322,84/);
+});
+
+test("salário: sem receita principal, 'salvar' só mostra o cálculo e avisa; nada de B vaza", async () => {
+  store.fin_itens.push({ id: "rb", user_id: B, tipo: "receita", grupo: "Receitas", nome: "SEGREDO-B salário", nota: null, ordem: 0, dia: 5, dia_estimado: false, movivel: false, nao_caixa: false, cartao_id: null, segue_id: null });
+  store.fin_config.push({ user_id: B, dia_adiantamento: 15, dia_restante: 1, adiantamento_pct: 0, receita_principal_id: "rb", cartao_principal_id: null });
+  modelText = ACOES_TXT([{ tipo: "salario_simular", bruto: 8000, dependentes: 0, salvar: true }]);
+  const events = await chat("salva um salário de 8 mil como meu salário do mês");
+  const items = eventosDe(events);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].salvar, null, "A não tem receita principal: nunca usa a de B");
+  assert.ok(events.some((e) => e.t === "notice" && /receita principal/.test(e.text ?? "")));
+  assert.ok(!JSON.stringify(events).includes("SEGREDO-B") && !JSON.stringify(events).includes("\"rb\""));
+  assert.equal(log.writes.length, 0);
+});
+
+test("salário: com receita principal, 'salvar' vira cartão de confirmação com o valor de antes e NÃO grava antes do sim", async () => {
+  store.fin_config.push({ user_id: A, dia_adiantamento: 15, dia_restante: 1, adiantamento_pct: 0, receita_principal_id: "i1", cartao_principal_id: null });
+  modelText = ACOES_TXT([{ tipo: "salario_simular", bruto: 8000, dependentes: 0, salvar: true }]);
+  const events = await chat("guarda o líquido de um salário de 8 mil como meu salário deste mês");
+  const items = eventosDe(events);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].salvar, { itemId: "i1", nome: "Salário", antes: 5000, ano: HOJE.ano, mes: HOJE.mes });
+  assert.equal(items[0].calc.liquido, 6040.64);
+  assert.equal(log.writes.length, 0, "só propõe: quem grava é a pessoa, pela rota com a sessão");
+});
+
+test("salário: FINANCE_ENABLED=0 desliga o cálculo (sem bloco no contexto e sem cartão)", async () => {
+  process.env.FINANCE_ENABLED = "0";
+  modelText = ACOES_TXT([{ tipo: "salario_simular", bruto: 8000, dependentes: 0 }]);
+  const events = await chat("Quanto fica líquido um salário de 8 mil?");
+  assert.ok(!/Cálculo do salário/.test(ctxOf()));
+  assert.equal(events.find((e) => e.t === "acoes"), undefined);
+  assert.equal(log.writes.length, 0);
+});
+
+test("salário: conversa comum não ganha o bloco de cálculo; ação do modelo com valor inválido é descartada", async () => {
+  modelText = ACOES_TXT([{ tipo: "salario_simular", bruto: -5 }, { tipo: "salario_simular", bruto: 5000, dependentes: 99 }]);
+  const events = await chat("gastei 45 no mercado no pix");
+  assert.ok(!/Cálculo do salário/.test(ctxOf()));
+  assert.equal(eventosDe(events).filter((i) => i.kind === "salario").length, 0);
+});
+
+test("salário: o custo continua passando por limites → reserva → cota → IA", async () => {
+  await chat("Quanto fica líquido um salário de 8 mil?");
+  assert.deepEqual(rpcNames.slice(0, 3), ["month_spend_by_provider", "server_reserve_ai_budget", "consume_daily_quota"]);
+  assert.ok(rpcNames.includes("server_settle_ai_budget"));
+});

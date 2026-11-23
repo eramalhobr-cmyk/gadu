@@ -291,3 +291,18 @@ test("guia não lê nada do banco", async () => {
   assert.deepEqual(r.actions, [{ kind: "guia" }]);
   assert.equal(sem.calls.length, 0);
 });
+
+test("salario_simular: calcula no servidor, só informa; 'salvar' usa a receita principal da PRÓPRIA pessoa e avisa quando não há", async () => {
+  const base = { fin_itens: [{ id: "r1", tipo: "receita", grupo: "Receitas", nome: "Salário", ordem: 0, user_id: U }, { id: "rx", tipo: "receita", grupo: "Receitas", nome: "SEGREDO", ordem: 0, user_id: "outra" }], fin_item_meses: [{ item_id: "r1", ano: 2026, mes: 11, valor: 4000, pago: false, user_id: U }], fin_gastos: [] };
+  const sem = fakeDb({ ...base, fin_config: [{ user_id: "outra", receita_principal_id: "rx" }] });
+  const r1 = await resolveAcoes(sem, U, [{ tipo: "salario_simular", bruto: 8000, dependentes: 0, salvar: false }, { tipo: "salario_simular", bruto: 6500, dependentes: 2, salvar: true }], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(r1.actions.map((a) => a.kind === "salario" && [a.calc.liquido, a.salvar]), [[6040.64, null], [5322.84, null]]);
+  assert.equal(r1.misses.length, 1, "avisa que falta a receita principal");
+  assert.ok(sem.calls.every((c) => c.filters.some(([k, v]) => k === "user_id" && v === U)), "toda leitura filtra por user_id");
+  const com = fakeDb({ ...base, fin_config: [{ user_id: U, receita_principal_id: "r1", dia_adiantamento: 15, dia_restante: 1, adiantamento_pct: 0 }] });
+  // este banco falso não imita maybeSingle (a config vem vazia): aqui só vale que nada quebra; o caminho com receita principal é coberto em test/finance-chat.integration.test.ts
+  const r2 = await resolveAcoes(com, U, [{ tipo: "salario_simular", bruto: 8000, dependentes: 0, salvar: true }], { goals: true, finance: true, now: NOW });
+  assert.equal(r2.actions.length, 1);
+  const off = await resolveAcoes(com, U, [{ tipo: "salario_simular", bruto: 8000, dependentes: 0, salvar: false }], { goals: true, finance: false, now: NOW });
+  assert.deepEqual(off.actions, [], "interruptor do Financeiro desligado: nada");
+});

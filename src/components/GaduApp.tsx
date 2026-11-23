@@ -314,7 +314,8 @@ export function GaduApp(props: {
     const toConfirm: { id: string; a: ChatAction }[] = [];
     const addActions = (list: ChatAction[], content: (a: ChatAction) => string) => {
       const ms = list.map((a) => ({ id: crypto.randomUUID(), role: "action" as const, content: content(a), action: a }));
-      if (opts.voice) toConfirm.push(...ms.map((m) => ({ id: m.id, a: m.action })));
+      // Cartão só de informação (resultado de cálculo) não pede "sim": a resposta já foi falada.
+      if (opts.voice) toConfirm.push(...ms.filter((m) => !describe(m.action).info).map((m) => ({ id: m.id, a: m.action })));
       setMessages((prev) => [...prev, ...ms]);
     };
     // Respostas faladas curtas, menos no briefing da manhã (que é feito para ouvir inteiro).
