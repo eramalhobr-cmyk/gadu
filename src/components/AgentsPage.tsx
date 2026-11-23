@@ -47,7 +47,7 @@ export function AgentsPage({ onTalk }: { onTalk: (a: { id: number; name: string 
   return (
     <main className="page" id="conteudo">
       <div className="wrap">
-        <PageHeader eyebrow="Agent Office" title="Agentes" text="Versões do GaDu com instruções próprias para cada área da sua vida. Todos usam a mesma memória, agenda e tarefas."
+        <PageHeader title="Agentes" text="Versões do GaDu com instruções próprias para cada área da sua vida. Todos usam a mesma memória, agenda e tarefas."
           actions={<button className="btn btn-pri" onClick={() => setEdit("new")}><Icon name="plus" size={18} />Novo agente</button>} />
         {err && <div className="notice" role="alert">{err}</div>}
         {items === null ? (
@@ -119,7 +119,7 @@ function AgentForm({ agent, onDone }: { agent: Agent | null; onDone: (saved: boo
     <main className="page" id="conteudo">
       <div className="wrap">
         <button className="back" onClick={() => onDone(false)}><Icon name="chevron" size={16} />Agentes</button>
-        <PageHeader eyebrow="Agent Office" title={agent ? `Editar ${agent.name}` : "Novo agente"} text="Dê um nome, escolha a área e diga como ele deve pensar e falar." />
+        <PageHeader title={agent ? `Editar ${agent.name}` : "Novo agente"} text="Dê um nome, escolha a área e diga como ele deve pensar e falar." />
         <form className="ag-form" onSubmit={save} style={{ ["--c" as string]: colorVar(d.color) }}>
           <div className="grid-2">
             <Panel title="Identidade" icon="user">

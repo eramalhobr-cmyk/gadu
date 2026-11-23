@@ -26,7 +26,7 @@ function TasksScreen() {
   return (
     <main className="page" id="conteudo">
       <div className="wrap">
-        <PageHeader eyebrow="Pessoal" title="Tarefas" text="Tudo o que você precisa fazer, das atrasadas às sem prazo." />
+        <PageHeader title="Tarefas" text="Tudo o que você precisa fazer, das atrasadas às sem prazo." />
         <div className="split">
           <TasksPanel mode="all" title="Suas tarefas" onChange={(open, done) => setStats({ open, done })} />
           <aside className="split-side">
@@ -76,7 +76,7 @@ function ProjectsScreen({ onTalk }: { onTalk: (project: { id: number; name: stri
   return (
     <main className="page" id="conteudo">
       <div className="wrap">
-        <PageHeader eyebrow="Pessoal" title="Projetos" text="Junte tarefas, conversas e próximos passos de algo que você quer tirar do papel."
+        <PageHeader title="Projetos" text="Junte tarefas, conversas e próximos passos de algo que você quer tirar do papel."
           actions={!creating && <button className="btn btn-pri" onClick={() => setCreating(true)}><Icon name="plus" size={18} />Novo projeto</button>} />
         {err && <div className="notice" role="alert">{err}</div>}
         {creating && <ProjectForm onDone={(saved) => { setCreating(false); if (saved) void load(); }} />}

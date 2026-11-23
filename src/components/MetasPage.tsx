@@ -49,7 +49,7 @@ export function MetasPage(props: { onAsk: (q: string) => void; onOpenTasks: () =
   return (
     <main className="page" id="conteudo">
       <div className="wrap stack">
-        <PageHeader eyebrow="Beta" title="Metas" text="Objetivos com prazo, ritmo e progresso real: só conta o que você registra."
+        <PageHeader title="Metas" text="Objetivos com prazo, ritmo e progresso real: só conta o que você registra."
           actions={<>
             <button className="btn btn-sm" onClick={() => props.onAsk("Como estão minhas metas?")}><Icon name="spark" size={16} />Perguntar ao GaDu</button>
             <button className="btn btn-sm btn-pri" onClick={() => setCriando(true)}><Icon name="plus" size={16} />Nova meta</button>

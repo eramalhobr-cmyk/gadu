@@ -112,7 +112,7 @@ export function AttentionCard(props: {
   return (
     <>
       <div className="sec-head"><h2>Merece sua atenção</h2></div>
-      <Panel className="attn-card" action={<button className="btn btn-sm" disabled={props.busy} onClick={() => props.onAsk("O que merece minha atenção hoje?")}><Icon name="spark" size={16} />Perguntar ao GaDu</button>}>
+      <Panel className="attn-card">
         {failed ? <p className="muted">Não consegui montar esta lista agora. <button className="link-btn" onClick={load}>Tentar de novo</button></p>
           : data === null ? <p className="muted">Carregando…</p>
           : total === 0 ? <EmptyState icon="sun" title="Nada pendente para hoje" text={unavailable.length ? "Nas fontes que consegui ler. Veja o aviso abaixo." : "Sem tarefas atrasadas ou de hoje, lembretes, compromissos ou metas pedindo atenção."} />

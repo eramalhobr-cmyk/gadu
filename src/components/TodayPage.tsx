@@ -167,6 +167,9 @@ export function TodayPage(props: {
         {/* (3) Uma lista só: tarefas, lembretes, compromissos, e-mails, metas e memórias, com Feito/Adiar no item. */}
         <AttentionCard key={attnKey} busy={props.busy} onOpen={props.onOpen} onAsk={props.onAsk} goalsEnabled={props.goalsEnabled} pendingMemories={props.pendingMemories} onCount={setAttn} />
 
+        {/* Só 1 ação principal e até 2 secundárias à vista (UX-4): o resto fica em "Mais opções". */}
+        <details className="more-opts">
+          <summary>Mais opções</summary>
         {/* (4) Atalhos de voz. */}
         <section className="voicesc" aria-labelledby="say-h">
           <h2 id="say-h">Peça com um toque</h2>
@@ -217,6 +220,7 @@ export function TodayPage(props: {
             </Panel>
           )}
         </section>
+        </details>
       </div>
     </main>
   );

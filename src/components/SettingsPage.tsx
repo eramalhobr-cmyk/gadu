@@ -94,7 +94,7 @@ export function SettingsPage(props: {
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1>Configurações</h1>
             <div className="muted" style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{props.name ? `${props.name} · ` : ""}{props.email}</div>
-            <div className="mono muted">GaDu {props.version}</div>
+            <details className="set-details"><summary>Detalhes</summary><span className="mono muted">GaDu {props.version}</span></details>
           </div>
           <form action="/auth/signout" method="post"><button className="btn btn-sm" type="submit">Sair</button></form>
         </section>
@@ -226,7 +226,7 @@ function SpendCard() {
 
   const rows = u
     ? [
-        { id: "anthropic" as const, name: "Claude · Anthropic", hint: "Chave direta. A Anthropic não informa o saldo por API: o gasto é estimado pelos tokens." },
+        { id: "anthropic" as const, name: "Claude · Anthropic", hint: "O saldo não é informado pela Anthropic. O gasto é uma estimativa." },
         { id: "gateway" as const, name: "AI Gateway · Vercel", hint: u.gateway ? `Saldo real na Vercel: ${usd(u.gateway.balance)} (já usado: ${usd(u.gateway.used)}).` : "Saldo da Vercel indisponível agora." },
       ]
     : [];

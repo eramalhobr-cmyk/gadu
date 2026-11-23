@@ -49,7 +49,7 @@ export function AdminPage() {
   return (
     <main className="page" id="conteudo">
       <div className="wrap">
-        <PageHeader eyebrow="Plataforma" title="Administração" text="Convide pessoas e acompanhe a configuração inicial. Você vê números e marcas, nunca o conteúdo."
+        <PageHeader title="Administração" text="Convide pessoas e acompanhe a configuração inicial. Você vê números e marcas, nunca o conteúdo."
           actions={!form && <button className="btn btn-pri" onClick={() => setForm(true)}><Icon name="plus" size={18} />Convidar pessoa</button>} />
         {form && <InviteForm onDone={() => { setForm(false); void load(); }} />}
         {err && <div className="notice" role="alert">{err}</div>}
