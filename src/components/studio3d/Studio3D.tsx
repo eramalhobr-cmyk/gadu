@@ -38,9 +38,15 @@ function download(bytes: Uint8Array, name: string, type: string) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
+type PecaResumo = { id: string; titulo: string; pedido: string; updated_at: string };
+type Versao = { id: string; modo: Modo; pedido: string | null; scad: string; created_at: string };
+const quando = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+const jpost = (url: string, body: unknown, method = "POST") => fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+
 const slug = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "peca";
 
-export function Studio3D() {
+/** abrir: "ultima" ou o id de uma peça salva (vem de /app/3d?peca=…, por exemplo pela conversa). */
+export function Studio3D({ abrir }: { abrir?: string } = {}) {
   const [pedido, setPedido] = useState("");
   const [ajuste, setAjuste] = useState("");
   const [ultimoPedido, setUltimoPedido] = useState("");
@@ -53,6 +59,10 @@ export function Studio3D() {
   const [mesh, setMesh] = useState<Mesh | null>(null);
   const [report, setReport] = useState<Report | null>(null);
   const [copiado, setCopiado] = useState(false);
+  const [pecaId, setPecaId] = useState<string | null>(null);
+  const [pecas, setPecas] = useState<PecaResumo[] | null>(null);
+  const [aviso, setAviso] = useState("");
+  const valoresSalvos = useRef("{}");
   const params = useMemo(() => parseParams(scad), [scad]);
   const renderer = useRef<ScadRenderer | null>(null);
   const seq = useRef(0);
@@ -85,6 +95,84 @@ export function Studio3D() {
 
   useEffect(() => () => { renderer.current?.dispose(); renderer.current = null; seq.current++; }, []);
 
+  const carregarLista = useCallback(async () => {
+    try {
+      const r = await fetch("/api/3d/pecas", { cache: "no-store" });
+      const j = r.ok ? await r.json() as { pecas?: PecaResumo[] } : null;
+      const lista = Array.isArray(j?.pecas) ? j.pecas : [];
+      setPecas(lista);
+      return lista;
+    } catch { setPecas([]); return []; }
+  }, []);
+
+  const abrirPeca = useCallback(async (id: string) => {
+    setAviso("");
+    try {
+      const r = await fetch(`/api/3d/pecas/${encodeURIComponent(id)}`, { cache: "no-store" });
+      const j = r.ok ? await r.json() as { peca?: { id: string; pedido: string; valores?: ParamValues }; versoes?: Versao[] } : null;
+      const v = j?.versoes ?? [];
+      if (!j?.peca || !v.length) { setAviso(r.status === 404 ? "Não achei essa peça. Ela pode ter sido apagada." : "Não consegui abrir a peça agora."); return; }
+      const atual = v[0]!.scad;
+      const salvos = j.peca.valores && typeof j.peca.valores === "object" ? j.peca.valores : {};
+      const vals = { ...defaultValues(parseParams(atual)), ...salvos };
+      valoresSalvos.current = JSON.stringify(vals);
+      setPecaId(j.peca.id); setUltimoPedido(j.peca.pedido); setScad(atual); setValues(vals);
+      setAnteriores(v.slice(1).map((x) => x.scad).reverse());
+      setMesh(null); setReport(null); setRender({ state: "busy" }); setErroIA("");
+    } catch { setAviso("Não consegui abrir a peça agora."); }
+  }, []);
+
+  // Lista das peças salvas; abre a pedida pela URL ("ultima" = a mais recente).
+  useEffect(() => {
+    let vivo = true;
+    void carregarLista().then((lista) => {
+      if (!vivo || !abrir) return;
+      const id = abrir === "ultima" ? lista[0]?.id : abrir;
+      if (id) void abrirPeca(id); else setAviso("Você ainda não tem peças salvas.");
+    });
+    return () => { vivo = false; };
+  }, [abrir, carregarLista, abrirPeca]);
+
+  // As medidas dos controles ficam salvas na peça (sem IA), um pouco depois da última mexida.
+  useEffect(() => {
+    if (!pecaId) return;
+    const json = JSON.stringify(values);
+    if (json === valoresSalvos.current) return;
+    const t = setTimeout(() => {
+      void jpost(`/api/3d/pecas/${pecaId}`, { valores: values }, "PATCH").then((r) => { if (r.ok) valoresSalvos.current = json; }).catch(() => {});
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [values, pecaId]);
+
+  /** Salva o código que a IA devolveu: peça nova no "novo", versão nova no ajuste e na correção. */
+  const salvar = useCallback(async (modo: Modo, texto: string, codigo: string, id: string | null) => {
+    try {
+      if (modo === "novo" || !id) {
+        const r = await jpost("/api/3d/pecas", { pedido: texto, scad: codigo });
+        const j = r.ok ? await r.json() as { peca?: { id: string } } : null;
+        if (!j?.peca?.id) { setAviso("A peça não foi salva. Baixe o arquivo para não perder."); return; }
+        setPecaId(j.peca.id);
+      } else {
+        const r = await jpost(`/api/3d/pecas/${id}/versoes`, { modo, pedido: texto, scad: codigo });
+        if (!r.ok) { setAviso("Esta versão não foi salva. Baixe o arquivo para não perder."); return; }
+      }
+      void carregarLista();
+    } catch { setAviso("A peça não foi salva. Confira a internet."); }
+  }, [carregarLista]);
+
+  const apagarPeca = async (p: PecaResumo) => {
+    if (!window.confirm(`Apagar "${p.titulo}" e todas as versões?`)) return;
+    const r = await fetch(`/api/3d/pecas/${p.id}`, { method: "DELETE" }).catch(() => null);
+    if (!r?.ok) { setAviso("Não consegui apagar agora."); return; }
+    if (p.id === pecaId) novaPeca();
+    void carregarLista();
+  };
+
+  function novaPeca() {
+    setPecaId(null); setScad(""); setAnteriores([]); setValues({}); setMesh(null); setReport(null); setUltimoPedido(""); setRender({ state: "idle" }); setAviso("");
+    valoresSalvos.current = "{}";
+  }
+
   const pedirIA = useCallback(async (modo: Modo, texto: string) => {
     setGerando(true); setErroIA("");
     try {
@@ -96,8 +184,12 @@ export function Studio3D() {
       if (!res.ok || !body || typeof body.scad !== "string") { setErroIA(httpMessage(res.status, body)); return; }
       if (scad) setAnteriores((a) => [...a.slice(-9), scad]);
       setScad(body.scad);
-      setValues(defaultValues(parseParams(body.scad)));
+      const vals = defaultValues(parseParams(body.scad));
+      valoresSalvos.current = JSON.stringify(vals);
+      setValues(vals);
       setRender({ state: "busy" });
+      if (modo === "novo") setPecaId(null);
+      void salvar(modo, texto, body.scad, modo === "novo" ? null : pecaId);
       if (modo === "novo") { setUltimoPedido(texto); setMesh(null); setReport(null); }
       setAjuste("");
     } catch {
@@ -105,7 +197,7 @@ export function Studio3D() {
     } finally {
       setGerando(false);
     }
-  }, [scad, render.error, render.log]);
+  }, [scad, render.error, render.log, salvar, pecaId]);
 
   const voltar = () => {
     const prev = anteriores[anteriores.length - 1];
@@ -136,7 +228,25 @@ export function Studio3D() {
           <button className="btn btn-pri" type="submit" disabled={gerando || !pedido.trim()}>{gerando && !scad ? "Gerando…" : "Gerar peça"}</button>
         </form>
         {erroIA && <p className="s3d-err" role="alert">{erroIA}</p>}
+        {aviso && <p className="s3d-err" role="status">{aviso}</p>}
       </Panel>
+
+      {pecas && pecas.length > 0 && (
+        <Panel title="Suas peças" icon="folder" action={scad ? <button className="btn btn-sm" type="button" onClick={novaPeca}>Nova peça</button> : undefined}>
+          <ul className="s3d-pecas">
+            {pecas.map((p) => (
+              <li key={p.id} className={p.id === pecaId ? "on" : undefined}>
+                <div><b>{p.titulo}</b><span className="muted small">{quando(p.updated_at)}{p.id === pecaId ? " · aberta" : ""}</span></div>
+                <div className="s3d-row">
+                  <button className="btn btn-sm" type="button" disabled={p.id === pecaId} onClick={() => void abrirPeca(p.id)}>Abrir</button>
+                  <button className="btn btn-sm" type="button" aria-label={`Apagar ${p.titulo}`} onClick={() => void apagarPeca(p)}>Apagar</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="muted small">Cada peça guarda as últimas 30 versões e as medidas dos controles.</p>
+        </Panel>
+      )}
 
       {scad && (
         <>

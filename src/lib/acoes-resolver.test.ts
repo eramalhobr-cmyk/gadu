@@ -327,3 +327,29 @@ test("abrir conversa anterior: só as da própria pessoa, pelo título ou resumo
   assert.ok(cdb.calls.filter((c) => c.table === "conversations").every((c) => c.filters.some(([k, v]) => k === "user_id" && v === U)));
   assert.equal(r.misses.length, 1);
 });
+
+test("abrir peça do 3D: a mais recente ou pelo nome, só da própria pessoa; interruptor desligado não lê nada", async () => {
+  const pdb = fakeDb({
+    pecas_3d: [
+      { id: "p2", titulo: "Gancho de parede", updated_at: "2026-11-23T13:00:00.000Z", user_id: U },
+      { id: "p1", titulo: "Suporte de celular", updated_at: "2026-11-22T13:00:00.000Z", user_id: U },
+      { id: "pX", titulo: "Suporte SEGREDO", updated_at: "2026-11-23T14:00:00.000Z", user_id: "outra" },
+    ],
+  });
+  const r = await resolveAcoes(pdb, U, [
+    { tipo: "peca3d_abrir", busca: null },
+    { tipo: "peca3d_abrir", busca: "suporte" },
+    { tipo: "peca3d_abrir", busca: "vaso" },
+  ], { goals: true, finance: true, modeling3d: true, now: NOW });
+  assert.deepEqual(r.actions, [
+    { kind: "peca3d_abrir", id: "p2", titulo: "Gancho de parede", quando: "23/11" },
+    { kind: "peca3d_abrir", id: "p1", titulo: "Suporte de celular", quando: "22/11" },
+  ]);
+  assert.equal(r.misses.length, 1);
+  assert.ok(!JSON.stringify(r).includes("SEGREDO"));
+  assert.ok(pdb.calls.every((c) => c.filters.some(([k, v]) => k === "user_id" && v === U)));
+  const off = fakeDb({ pecas_3d: [{ id: "p2", titulo: "Gancho", updated_at: "2026-11-23T13:00:00.000Z", user_id: U }] });
+  const r2 = await resolveAcoes(off, U, [{ tipo: "peca3d_abrir", busca: null }], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(r2.actions, []);
+  assert.equal(off.calls.length, 0, "3D desligado: nenhuma leitura");
+});

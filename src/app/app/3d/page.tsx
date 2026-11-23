@@ -9,8 +9,10 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "3D · GaDu" };
 
 // 3D Studio (Beta). MODELING_3D_ENABLED diferente de "1": a tela não existe (404), antes de ler qualquer dado da pessoa.
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ peca?: string | string[] }> }) {
   if (!modeling3dEnabled()) notFound();
   const { props } = await loadApp({ tab: "modulos" });
-  return <GaduApp {...props} page={<Studio3D />} />;
+  const q = (await searchParams).peca;
+  const peca = typeof q === "string" && (q === "ultima" || /^[0-9a-f-]{36}$/i.test(q)) ? q : undefined;
+  return <GaduApp {...props} page={<Studio3D abrir={peca} />} />;
 }

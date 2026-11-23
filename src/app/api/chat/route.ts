@@ -31,6 +31,7 @@ import { goalsEnabled } from "@/lib/goals/flag";
 import type { MetaDraft } from "@/lib/goals/types";
 import { collectFinance, financeProposalRules, formatFinanceBlock } from "@/lib/core/finance";
 import { financeEnabled } from "@/lib/finance/flag";
+import { modeling3dEnabled } from "@/lib/3d/flag";
 import { blocoSalario, pedidoSalario } from "@/lib/finance/salario-texto";
 import { hojeSP, isoDia } from "@/lib/finance/datas";
 import type { GastoProposta } from "@/lib/finance/lancamento";
@@ -405,7 +406,7 @@ export async function POST(request: Request) {
         }
         if (acoesOk.length) {
           const { actions, misses } = await resolveAcoes(supabase, user.id, acoesOk, {
-            goals: goalsEnabled(), finance: financeEnabled(),
+            goals: goalsEnabled(), finance: financeEnabled(), modeling3d: modeling3dEnabled(),
             // Agenda do Google só para achar o evento pelo nome (token da própria pessoa, só no servidor).
             calendar: async (from, to) => events(await accessToken(supabase, user.id), from, to),
             blocked: (t) => isSensitive(t) || Boolean(blockedTerm(t, blocked)),

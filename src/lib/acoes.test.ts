@@ -194,3 +194,9 @@ test("conta_criar e receita_principal: validação estrita", () => {
   assert.deepEqual(validAcao({ tipo: "receita_principal", receita: "Salário" }, NOW), { tipo: "receita_principal", receita: "Salário" });
   assert.equal(validAcao({ tipo: "receita_principal" }, NOW), null);
 });
+
+test("peca3d_abrir: sem busca ou 'última' = a mais recente", () => {
+  assert.deepEqual(validAcao({ tipo: "peca3d_abrir" }, NOW), { tipo: "peca3d_abrir", busca: null });
+  assert.deepEqual(validAcao({ tipo: "peca3d_abrir", busca: "última peça" }, NOW), { tipo: "peca3d_abrir", busca: null });
+  assert.deepEqual(validAcao({ tipo: "peca3d_abrir", busca: "suporte de celular" }, NOW), { tipo: "peca3d_abrir", busca: "suporte de celular" });
+});

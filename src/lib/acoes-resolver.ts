@@ -14,7 +14,7 @@ import type { Agregacao, Medicao } from "./goals/types.ts";
 type GoalRow = { id: string; titulo: string; medicao: Medicao; unidade: string | null; agregacao: Agregacao; status: string; valor_alvo?: number | string | null; prazo?: string | null };
 /** Agenda do Google (só no servidor, com o token da própria pessoa); ausente nos testes que não usam agenda. */
 export type CalendarLookup = (from: Date, to: Date) => Promise<CalEvent[]>;
-type Opts = { goals: boolean; finance: boolean; calendar?: CalendarLookup; now?: number; blocked?: (text: string) => boolean };
+type Opts = { goals: boolean; finance: boolean; modeling3d?: boolean; calendar?: CalendarLookup; now?: number; blocked?: (text: string) => boolean };
 
 /** Ações resolvidas e avisos do que não deu para achar (o app mostra, sem inventar). */
 export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoProposta[], opts: Opts): Promise<{ actions: ChatAction[]; misses: string[] }> {
@@ -350,6 +350,16 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           const it = matchByName(lista, (x) => x.nome, a.receita);
           if (!it) { misses.push(`Não achei a receita "${a.receita}" no Financeiro.`); break; }
           actions.push({ kind: "receita_principal", itemId: it.id, nome: it.nome });
+          break;
+        }
+        case "peca3d_abrir": {
+          if (!opts.modeling3d) break;
+          const r = await db.from("pecas_3d").select("id, titulo, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(50);
+          const lista = (r.error || !Array.isArray(r.data) ? [] : r.data) as { id: string; titulo: string; updated_at: string }[];
+          const p = a.busca ? matchByName(lista, (x) => x.titulo, a.busca) : lista[0];
+          if (!p || blocked(p.titulo)) { misses.push(a.busca ? `Não achei a peça "${a.busca}" no 3D.` : "Você ainda não tem peças salvas no 3D."); break; }
+          const quando = new Date(p.updated_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
+          actions.push({ kind: "peca3d_abrir", id: p.id, titulo: p.titulo.slice(0, 120), quando });
           break;
         }
         case "nova_conversa":

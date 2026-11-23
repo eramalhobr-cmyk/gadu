@@ -557,6 +557,7 @@ export function GaduApp(props: {
     if (op === "confirm") {
       if (a.kind === "nova_conversa") { newConversation(); setTab("conversa"); }
       else if (a.kind === "conversa_abrir") { setTab("conversa"); void openConversation(a.id); }
+      else if (a.kind === "peca3d_abrir") window.location.assign(`/app/3d?peca=${encodeURIComponent(a.id)}`);
       else if (a.kind === "memoria_aprovar" || a.kind === "memoria_recusar" || a.kind === "memoria_esquecer") void refreshPending();
     }
     return true;
