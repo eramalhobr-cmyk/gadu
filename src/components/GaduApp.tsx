@@ -906,7 +906,7 @@ export function GaduApp(props: {
     <div className={`app ${showAssist ? "with-assist" : ""} ${navMini ? "nav-mini" : ""}`} style={{ ["--assist-w" as string]: `${assistW}px` }}>
       <a className="skip" href="#conteudo">Pular para o conteúdo</a>
 
-      <aside className="nav on-dark" aria-label="Módulos">
+      <aside className="nav" aria-label="Módulos">
         <div className="nav-top">
           <a className="nav-brand" href="/app" aria-label="GaDu, início"><span className="brand">GaDu</span></a>
           <button className="icon-btn nav-collapse" onClick={toggleNavMini} aria-label={navMini ? "Expandir o menu" : "Recolher o menu"} aria-pressed={navMini} title={navMini ? "Expandir o menu" : "Recolher o menu"}><Icon name="panel" /></button>
@@ -941,7 +941,7 @@ export function GaduApp(props: {
 
         {view === "conversa" && (
           <main className={`chat2 ${active || messages.length === 0 ? "stage-big" : ""}`} data-mode={listening ? "listening" : mode} id="conteudo">
-            <aside className="chat-stage on-dark" aria-label="GaDu">
+            <aside className="chat-stage" aria-label="GaDu">
               <div className="chat-ava"><Avatar mode={mode} label={`GaDu: ${stateLabel}`} /></div>
               <div className="meta">
                 <b className="who">GaDu</b>

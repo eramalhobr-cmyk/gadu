@@ -67,6 +67,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 14:59 · Cursor (Grok Bot), tema claro por padrão (pedido do Eduardo, 14:47)
+- **Feito:** `parseTheme` com claro por padrão; `nav` e `chat-stage` sem `on-dark`; `theme-color` e status bar por tema no layout; ícones claros, manifest e `sw.js` (`gadu-v6`); Configurações com Claro primeiro; exemplos de voz do tema no prompt de ações.
+- **A revisar por outra IA:** quem criar tela nova não deve usar `on-dark` em superfícies grandes (só no disco do avatar). Ícone definitivo espera o logo novo (G4).
+- **Próximo passo:** proposta visual (B) com 2 ou 3 direções em `/workspace/gadu-review/visual-direcoes/`, sem implementar até o Eduardo escolher; depois R3, R6/M1, R7.
+
 ### 23/11/2026 14:55 · Cursor (Grok Bot), UX-7 PR 4: Hoje em três faixas
 - **Publicado antes deste PR:** #93 palco de voz (14:32, `d88bfcf`), #95 Mais e menu por áreas (14:37, `26c83f2`), #96 ligações e Mapa do GaDu (14:42, `b9632e7`); CI verde nos quatro jobs e deploy da Vercel conferido no ar. CHANGELOG corrigido para "publicado".
 - **Feito:** `TodayPage` em três faixas (Agora, Depois, Progresso) com `src/lib/hoje-faixas.ts` e testes; e2e do Hoje ampliado. Sem migração.
