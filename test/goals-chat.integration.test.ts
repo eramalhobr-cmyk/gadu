@@ -41,7 +41,7 @@ function query(table: string) {
     get: (_t, key) => {
       if (key === "then") return (res: (v: unknown) => unknown, rej: (e: unknown) => unknown) => Promise.resolve(result()).then(res, rej);
       if (key === "eq") return (c: string, v: unknown) => { eqs.push([c, v]); return p; };
-      if (key === "insert" || key === "update" || key === "delete" || key === "upsert") return (...rows: unknown[]) => { if (["tasks", "reminders", "projects"].includes(table)) voiceWrites.push({ table, op: String(key), rows: rows as Row[] }); return p; };
+      if (key === "insert" || key === "update" || key === "delete" || key === "upsert") return (...rows: unknown[]) => { if (["tasks", "reminders", "projects", "memories"].includes(table)) voiceWrites.push({ table, op: String(key), rows: rows as Row[] }); return p; };
       if (key === "maybeSingle" || key === "single") return () => { mode = "one"; return Promise.resolve(result()); };
       return () => p;
     },
@@ -501,4 +501,46 @@ test("tudo por voz: GOALS_ENABLED=0 não gera cartão de meta (projeto continua)
   modelText = META_TXT([{ tipo: "meta_editar", meta: "livros", titulo: "Livros da Acme" }, { tipo: "projeto_editar", projeto: "casa nova", objetivo: "Projeto Acme" }]);
   const bl = await chat("renomeia a meta e o projeto");
   assert.equal(bl.find((e) => e.t === "acoes"), undefined);
+});
+
+// ---- "Tudo por voz": memória (aprovar, recusar, esquecer), nova conversa e navegação ----
+function seedMemorias() {
+  generic.memories = [
+    { id: 1, user_id: A, content: "A pessoa mora em Curitiba", area: "Pessoal", status: "approved" },
+    { id: 2, user_id: A, content: "Prefere reuniões pela manhã", area: "Trabalho", status: "pending" },
+    { id: 3, user_id: A, content: "Gosta de café sem açúcar", area: "Pessoal", status: "pending" },
+    { id: 90, user_id: B, content: "SEGREDO-B memória pendente", area: "Pessoal", status: "pending" },
+    { id: 91, user_id: B, content: "SEGREDO-B fato aprovado", area: "Pessoal", status: "approved" },
+  ];
+}
+
+test("tudo por voz: aprovar, recusar e esquecer memória viram cartões só com memórias de A; nada é gravado", async () => {
+  seedMemorias();
+  modelText = META_TXT([
+    { tipo: "memoria_aprovar", memoria: "reuniões pela manhã" },
+    { tipo: "memoria_recusar", memoria: "café" },
+    { tipo: "memoria_esquecer", memoria: "Curitiba" },
+    { tipo: "memoria_esquecer", memoria: "SEGREDO-B fato aprovado" },
+    { tipo: "memoria_recusar", memoria: "SEGREDO-B memória pendente" },
+  ]);
+  const events = await chat("aprova a das reuniões, descarta a do café, esquece que moro em Curitiba");
+  const items = events.find((e) => e.t === "acoes")?.items ?? [];
+  assert.deepEqual(items.map((i) => [i.kind, i.id ?? i.ids]), [["memoria_aprovar", [2]], ["memoria_recusar", 3], ["memoria_esquecer", 1]]);
+  assert.ok(events.some((e) => e.t === "notice" && e.kind === "acao"), "as de B viram aviso");
+  assert.ok(!JSON.stringify(items).includes("SEGREDO-B"), "nada de B");
+  assert.equal(voiceWrites.length, 0, "nada gravado em memórias antes da confirmação");
+});
+
+test("tudo por voz: nova conversa e navegação saem como ações, sem ler nem gravar; telas desligadas não abrem", async () => {
+  modelText = META_TXT([{ tipo: "nova_conversa" }, { tipo: "navegar", destino: "tarefas" }, { tipo: "navegar", destino: "metas" }, { tipo: "navegar", destino: "financeiro" }, { tipo: "navegar", destino: "admin" }]);
+  const on = await chat("começa uma conversa nova e abre tarefas, metas e financeiro");
+  assert.deepEqual((on.find((e) => e.t === "acoes")?.items ?? []).map((i) => i.kind === "navegar" ? `navegar:${i.view}` : i.kind), ["nova_conversa", "navegar:tarefas", "navegar:metas", "navegar:financeiro"], "admin nunca abre pela conversa");
+  assert.equal(voiceWrites.length, 0);
+  assert.equal(log.writes.length, 0);
+  process.env.GOALS_ENABLED = "0";
+  process.env.FINANCE_ENABLED = "0";
+  modelText = META_TXT([{ tipo: "navegar", destino: "tarefas" }, { tipo: "navegar", destino: "metas" }, { tipo: "navegar", destino: "financeiro" }]);
+  const off = await chat("abre tarefas, metas e financeiro");
+  assert.deepEqual((off.find((e) => e.t === "acoes")?.items ?? []).map((i) => i.view), ["tarefas"]);
+  assert.ok(off.some((e) => e.t === "notice" && e.kind === "acao"));
 });

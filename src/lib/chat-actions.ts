@@ -4,7 +4,7 @@ import { formatBRL } from "./finance/money.ts";
 import { MEIO_LABEL, type Meio } from "./finance/types.ts";
 import { fmtNum } from "./goals/numero.ts";
 import type { MetaDraft } from "./goals/types.ts";
-import type { Ajuste } from "./acoes.ts";
+import { DESTINO_NOME, type Ajuste, type Destino } from "./acoes.ts";
 import type { Categoria, Medicao } from "./goals/types.ts";
 import { confirmQuestion, spokenDay, spokenMoney, type ConfirmItem } from "./voice-confirm.ts";
 
@@ -42,6 +42,12 @@ export type ChatAction =
   | { kind: "gasto_editar"; id: string; atual: { valor: number; categoria: string; descricao: string; data: string }; mudancas: GastoMudancas }
   | { kind: "evento_editar"; eventId: string; title: string; start: string; end: string; mudancas: { title?: string; start?: string; end?: string; location?: string } }
   | { kind: "evento_apagar"; eventId: string; title: string; start: string; end: string }
+  | { kind: "memoria_aprovar"; ids: number[]; texto: string }
+  | { kind: "memoria_recusar"; id: number; texto: string }
+  | { kind: "memoria_esquecer"; id: number; texto: string }
+  | { kind: "nova_conversa" }
+  /** Abre uma tela na hora (o app trata, sem cartão nem confirmação): não grava nada. */
+  | { kind: "navegar"; view: Destino }
   | { kind: "projeto"; nome: string; objetivo: string | null }
   | { kind: "ajuste"; ajuste: Ajuste };
 
@@ -78,7 +84,7 @@ export type ActionView = {
   /** Botão principal e o texto enquanto grava. Vazio quando a ação já foi aplicada (só Desfazer). */
   confirm: string; busy: string;
   applied: boolean;
-  open?: { label: string; view: "financeiro" | "metas" | "agenda" | "hoje" | "tarefas" | "projetos" | "ajustes" };
+  open?: { label: string; view: "financeiro" | "metas" | "agenda" | "hoje" | "tarefas" | "projetos" | "ajustes" | "memoria" };
 };
 
 const TZ = "America/Sao_Paulo";
@@ -189,6 +195,16 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
     }
     case "evento_apagar":
       return { icon: "calendar", proposed: "Apagar evento?", done: "Evento apagado", undone: "Descartado", title: a.title, detail: `${eventWhen(a.start, a.end)} · não dá para desfazer`, confirm: "Apagar evento", busy: "Apagando…", applied: false, open: { label: "Ver Agenda", view: "agenda" } };
+    case "memoria_aprovar":
+      return { icon: "book", proposed: a.ids.length > 1 ? "Aprovar memórias?" : "Aprovar memória?", done: a.ids.length > 1 ? "Memórias aprovadas" : "Memória aprovada", undone: "Descartado", title: a.texto, detail: "Passa a valer nas próximas conversas", confirm: "Aprovar", busy: "Salvando…", applied: false, open: { label: "Ver Memória", view: "memoria" } };
+    case "memoria_recusar":
+      return { icon: "book", proposed: "Descartar memória?", done: "Memória descartada", undone: "Descartado", title: a.texto, detail: "Não dá para desfazer", confirm: "Descartar memória", busy: "Apagando…", applied: false, open: { label: "Ver Memória", view: "memoria" } };
+    case "memoria_esquecer":
+      return { icon: "book", proposed: "Esquecer isto?", done: "Esquecido", undone: "Descartado", title: a.texto, detail: "O GaDu deixa de saber disso. Não dá para desfazer", confirm: "Esquecer", busy: "Apagando…", applied: false, open: { label: "Ver Memória", view: "memoria" } };
+    case "nova_conversa":
+      return { icon: "plus", proposed: "Começar uma conversa nova?", done: "Conversa nova", undone: "Descartado", title: "Nova conversa", detail: "A conversa atual fica guardada no histórico", confirm: "Começar", busy: "Abrindo…", applied: false };
+    case "navegar":
+      return { icon: "chevron", proposed: `Abrir ${DESTINO_NOME[a.view]}`, done: `Abrindo ${DESTINO_NOME[a.view]}`, undone: "Descartado", title: DESTINO_NOME[a.view], detail: "Abre a tela", confirm: "Abrir", busy: "Abrindo…", applied: false };
     case "projeto":
       return { icon: "folder", proposed: "Projeto novo para confirmar", done: "Projeto criado", undone: "Descartado", title: a.nome, detail: a.objetivo || "Sem objetivo por enquanto", confirm: "Criar projeto", busy: "Criando…", applied: false, open: { label: "Ver Projetos", view: "projetos" } };
     case "ajuste":
@@ -213,6 +229,14 @@ export function ajusteLabel(j: Ajuste): string {
     case "voz": return `${liga(j.valor)} a resposta falada`;
     case "tema": return `Tema ${j.valor === "light" ? "claro" : "escuro"}`;
   }
+}
+
+/** Navegação por voz é instantânea (não grava nada): separa o pedido de abrir tela dos cartões. Vale o último pedido. */
+export function splitNavegacao(items: ChatAction[]): { cards: ChatAction[]; destino: Destino | null } {
+  let destino: Destino | null = null;
+  const cards: ChatAction[] = [];
+  for (const a of items) { if (a.kind === "navegar") destino = a.view; else cards.push(a); }
+  return { cards, destino };
 }
 
 /** Pergunta falada da confirmação (sem o "Diga sim ou não"). */
@@ -251,6 +275,11 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     case "gasto_editar": return `No gasto de ${spokenMoney(a.atual.valor)}, ${a.atual.descricao || a.atual.categoria}, mudo ${gastoFalado(a.mudancas, now)}?`;
     case "evento_editar": return `No evento ${a.title}, mudo ${eventoFalado(a, now)}?`;
     case "evento_apagar": return `Apago o evento ${a.title}, de ${whenLabel(a.start, now)}? Não dá para desfazer.`;
+    case "memoria_aprovar": return a.ids.length > 1 ? `Aprovo as ${a.ids.length} memórias pendentes?` : `Aprovo a memória: ${a.texto}?`;
+    case "memoria_recusar": return `Descarto a memória: ${a.texto}? Não dá para desfazer.`;
+    case "memoria_esquecer": return `Esqueço isto: ${a.texto}? Não dá para desfazer.`;
+    case "nova_conversa": return "Começo uma conversa nova?";
+    case "navegar": return `Abro ${DESTINO_NOME[a.view]}?`;
     case "projeto": return `Crio o projeto ${a.nome}?`;
     case "ajuste": return `${ajusteLabel(a.ajuste)}?`;
   }

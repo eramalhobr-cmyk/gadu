@@ -1,6 +1,7 @@
 // "Tudo por voz": ações que a conversa pode PROPOR para qualquer módulo (bloco de controle "acoes").
 // O modelo nunca grava: o servidor valida aqui, resolve os nomes para ids SÓ entre os itens da própria pessoa
 // e manda cartões; quem grava é a pessoa, com um toque ou dizendo "sim". Puro: sem banco nem rede.
+import type { ViewId } from "./modules.ts";
 import { lerData, hojeSP, isoDia, ordinal } from "./finance/datas.ts";
 import { parseNumero } from "./goals/numero.ts";
 import { normalizarCategoria, normalizarMeio } from "./finance/lancamento.ts";
@@ -35,10 +36,26 @@ export type AcaoProposta =
   | { tipo: "gasto_editar"; gasto: string; de_valor: number | null; de_data: string | null; valor: number | null; categoria: string | null; descricao: string | null; meio: Meio | null; data: string | null }
   | { tipo: "evento_editar"; evento: string; titulo: string | null; inicio: string | null; fim: string | null; local: string | null }
   | { tipo: "evento_apagar"; evento: string }
+  | { tipo: "memoria_aprovar"; memoria: string | null; todas: boolean }
+  | { tipo: "memoria_recusar"; memoria: string }
+  | { tipo: "memoria_esquecer"; memoria: string }
+  | { tipo: "nova_conversa" }
+  | { tipo: "navegar"; destino: Destino }
   | { tipo: "projeto_criar"; nome: string; objetivo: string | null }
   | { tipo: "ajuste"; ajuste: Ajuste };
 
-export const TIPOS = ["meta_criar", "meta_registrar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "projeto_criar", "ajuste"] as const;
+/** Telas que a conversa abre (instantâneo, sem gravar nada). Admin e telas em desenvolvimento ficam de fora. */
+export const DESTINOS = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "projetos", "memoria", "agentes", "ajustes", "modulos"] as const satisfies readonly ViewId[];
+export type Destino = (typeof DESTINOS)[number];
+export const DESTINO_NOME: Record<Destino, string> = { hoje: "Hoje", conversa: "Conversa", tarefas: "Tarefas", agenda: "Agenda", financeiro: "Financeiro", metas: "Metas", projetos: "Projetos", memoria: "Memória", agentes: "Agentes", ajustes: "Configurações", modulos: "Mais" };
+const DESTINO_APELIDO: Record<string, Destino> = { inicio: "hoje", chat: "conversa", calendario: "agenda", financas: "financeiro", dinheiro: "financeiro", configuracoes: "ajustes", configuracao: "ajustes", mais: "modulos" };
+export function destinoDe(v: unknown): Destino | null {
+  if (typeof v !== "string") return null;
+  const k = v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z]/g, "");
+  return (DESTINOS as readonly string[]).includes(k) ? (k as Destino) : DESTINO_APELIDO[k] ?? null;
+}
+
+export const TIPOS = ["meta_criar", "meta_registrar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "nova_conversa", "navegar", "projeto_criar", "ajuste"] as const;
 
 const txt = (v: unknown, max: number): string => (typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "");
 
@@ -216,6 +233,20 @@ export function validAcao(raw: unknown, now = Date.now()): AcaoProposta | null {
       const evento = txt(o.evento, 160);
       return evento ? { tipo: "evento_apagar", evento } : null;
     }
+    case "memoria_aprovar": {
+      const memoria = txt(o.memoria, 300) || null, todas = o.todas === true || o.todas === "true";
+      return memoria || todas ? { tipo: "memoria_aprovar", memoria: todas ? null : memoria, todas } : null;
+    }
+    case "memoria_recusar": case "memoria_esquecer": {
+      const memoria = txt(o.memoria, 300);
+      return memoria ? { tipo: o.tipo, memoria } : null;
+    }
+    case "nova_conversa":
+      return { tipo: "nova_conversa" };
+    case "navegar": {
+      const destino = destinoDe(o.destino);
+      return destino ? { tipo: "navegar", destino } : null;
+    }
     case "projeto_criar": {
       const nome = txt(o.nome, 80);
       return nome ? { tipo: "projeto_criar", nome, objetivo: txt(o.objetivo, 400) || null } : null;
@@ -296,6 +327,8 @@ export function acoesRules(): string {
   {"tipo":"conta_desmarcar","conta":"luz"} ("a luz ainda não foi paga": volta a conta do mês para em aberto); {"tipo":"conta_valor","conta":"luz","valor":210.5,"escopo":"mes|proximos"} ("a luz veio 210,50 este mês"; "proximos" = deste mês até dezembro);
   {"tipo":"gasto_apagar","gasto":"mercado","valor":50,"data":"AAAA-MM-DD"} (apaga um gasto já lançado: nome ou categoria, e o valor ou a data se ajudarem a achar); {"tipo":"gasto_editar","gasto":"mercado","de_valor":50,"de_data":"AAAA-MM-DD","valor":55,"categoria":"Mercado","descricao":"...","meio":"pix","data":"AAAA-MM-DD"} (de_* só para achar o gasto; valor, categoria, descricao, meio e data são o que muda);
   {"tipo":"evento_editar","evento":"título atual","titulo":"novo título","inicio":"AAAA-MM-DDTHH:MM:00-03:00","fim":"AAAA-MM-DDTHH:MM:00-03:00","local":"..."} (só o que muda; sem "fim", a duração é mantida); {"tipo":"evento_apagar","evento":"título"} (eventos da agenda do Google);
+  {"tipo":"memoria_aprovar","memoria":"palavras da memória pendente"} ou {"tipo":"memoria_aprovar","todas":true}; {"tipo":"memoria_recusar","memoria":"..."} (descarta uma memória pendente); {"tipo":"memoria_esquecer","memoria":"palavras do fato"} ("esquece que eu…": apaga uma memória aprovada; use as palavras da lista de memória);
+  {"tipo":"nova_conversa"} ("começa uma conversa nova"); {"tipo":"navegar","destino":"hoje|conversa|tarefas|agenda|financeiro|metas|projetos|memoria|agentes|ajustes|mais"} ("abre o Financeiro", "vai para Metas", "mostra minhas tarefas": abre a tela na hora, sem confirmação; use só quando a pessoa pedir para ir ou abrir uma tela);
   {"tipo":"projeto_criar","nome":"...","objetivo":"..."};
   {"tipo":"ajuste","opcao":"texto","valor":"100|115|130"} (letra normal, grande, maior), {"tipo":"ajuste","opcao":"maos_livres|respostas_curtas|voz","valor":true|false}, {"tipo":"ajuste","opcao":"tema","valor":"dark|light"}.
   Diga em uma frase o que preparou ("Preparei, é só confirmar"). Não diga que não consegue fazer algo que está nesta lista. No máximo 5 itens; quase sempre a lista fica vazia.`;

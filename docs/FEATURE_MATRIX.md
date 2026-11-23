@@ -178,9 +178,13 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Projetos | editar nome e objetivo | sim | `projeto_editar` | — |
 | Projetos | arquivar | sim | `projeto_arquivar` (grava o status `done` = "Concluído"; o banco não tem status "arquivado" e criar um exigiria migração) | — |
 | Memória | guardar um fato ("lembre que…") | sim | `"memorias"` (fica pendente para revisão) | — |
-| Memória | aprovar, recusar, esquecer | **não** | — | lacuna |
+| Memória | aprovar (uma ou todas as pendentes) | sim | `memoria_aprovar` | — |
+| Memória | recusar (descartar pendente) | sim | `memoria_recusar` (confirmação explícita; não dá para desfazer) | — |
+| Memória | esquecer ("esquece que eu…") | sim | `memoria_esquecer` (só memórias aprovadas; confirmação explícita; não dá para desfazer) | — |
 | Agentes | criar, editar | **não** | — | lacuna |
 | Configurações | tamanho do texto, conversa contínua, respostas curtas, resposta falada, tema | sim | `ajuste` | — |
 | Configurações | voz e velocidade, termos bloqueados, limites de IA, notificações, conectar o Google | **não** | — | notificações e Google exigem um toque (regra do navegador e do OAuth); o resto é lacuna |
-| Conversa e navegação | nova conversa, abrir conversa anterior, "abre o Financeiro" | **não** | — | lacuna |
+| Conversa | nova conversa | sim | `nova_conversa` (cartão + "sim": começar outra conversa limpa a tela no meio da resposta, então não é instantâneo; a anterior fica no histórico) | — |
+| Navegação | "abre o Financeiro", "vai para Metas", "mostra minhas tarefas" | sim | `navegar` (abre na hora, sem confirmação e sem gravar; telas desligadas por interruptor não abrem; Admin e telas em desenvolvimento ficam de fora) | — |
+| Conversa | abrir conversa anterior | **não** | — | lacuna: o histórico é por data e título; falta uma busca por nome |
 | 3D | gerar e ajustar peça | pela tela 3D | — | frente do Claude Code, que adiciona as próprias ações |
