@@ -171,3 +171,9 @@ test("ajuste de velocidade e de voz: número no intervalo, relativo ou normal; n
   assert.deepEqual(validAcao({ tipo: "ajuste", opcao: "voz_trocar", valor: "proxima" }, NOW), { tipo: "ajuste", ajuste: { opcao: "voz_trocar", valor: "proxima" } });
   assert.equal(validAcao({ tipo: "ajuste", opcao: "voz_trocar", valor: "https://x" }, NOW), null);
 });
+
+test("conversa_abrir: precisa de um assunto", () => {
+  assert.deepEqual(validAcao({ tipo: "conversa_abrir", busca: "  o condomínio  " }, NOW), { tipo: "conversa_abrir", busca: "o condomínio" });
+  assert.equal(validAcao({ tipo: "conversa_abrir", busca: "" }, NOW), null);
+  assert.equal(validAcao({ tipo: "conversa_abrir" }, NOW), null);
+});

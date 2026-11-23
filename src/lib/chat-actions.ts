@@ -50,6 +50,7 @@ export type ChatAction =
   | { kind: "memoria_recusar"; id: number; texto: string }
   | { kind: "memoria_esquecer"; id: number; texto: string }
   | { kind: "nova_conversa" }
+  | { kind: "conversa_abrir"; id: number; titulo: string; quando: string }
   | { kind: "guia" }
   /** Abre uma tela na hora (o app trata, sem cartão nem confirmação): não grava nada. */
   | { kind: "navegar"; view: Destino }
@@ -217,6 +218,8 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
       return { icon: "book", proposed: "Esquecer isto?", done: "Esquecido", undone: "Descartado", title: a.texto, detail: "O GaDu deixa de saber disso. Não dá para desfazer", confirm: "Esquecer", busy: "Apagando…", applied: false, open: { label: "Ver Memória", view: "memoria" } };
     case "nova_conversa":
       return { icon: "plus", proposed: "Começar uma conversa nova?", done: "Conversa nova", undone: "Descartado", title: "Nova conversa", detail: "A conversa atual fica guardada no histórico", confirm: "Começar", busy: "Abrindo…", applied: false };
+    case "conversa_abrir":
+      return { icon: "chevron", proposed: "Abrir esta conversa?", done: "Conversa aberta", undone: "Descartado", title: a.titulo, detail: `Última mensagem em ${a.quando} · a conversa atual fica guardada`, confirm: "Abrir conversa", busy: "Abrindo…", applied: false };
     case "guia":
       return { icon: "spark", proposed: "Abrir o guia?", done: "Abrindo o guia", undone: "Descartado", title: "Guia de primeiro uso", detail: "Três passos: nome, microfone e voz, Google", confirm: "Abrir", busy: "Abrindo…", applied: false };
     case "navegar":
@@ -306,6 +309,7 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     case "memoria_recusar": return `Descarto a memória: ${a.texto}? Não dá para desfazer.`;
     case "memoria_esquecer": return `Esqueço isto: ${a.texto}? Não dá para desfazer.`;
     case "nova_conversa": return "Começo uma conversa nova?";
+    case "conversa_abrir": return `Abro a conversa ${a.titulo}, de ${a.quando}?`;
     case "guia": return "Abro o guia?";
     case "navegar": return `Abro ${DESTINO_NOME[a.view]}?`;
     case "salario": return a.salvar ? `${resumoSalario(a.calc)} Salvo o líquido de ${spokenMoney(a.calc.liquido)} como o salário de ${MESES[a.salvar.mes - 1]} de ${a.salvar.ano}?` : resumoSalario(a.calc);

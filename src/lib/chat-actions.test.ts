@@ -152,3 +152,11 @@ test("pergunta falada dos ajustes de velocidade e voz", async () => {
   assert.equal(actionQuestion({ kind: "ajuste", ajuste: { opcao: "velocidade", valor: 1.2 } }, NOW), "Velocidade da fala: 1,20×?");
   assert.equal(actionQuestion({ kind: "ajuste", ajuste: { opcao: "voz_trocar", valor: "proxima" } }, NOW), "Trocar para a próxima voz do aparelho?");
 });
+
+test("cartão e pergunta de abrir conversa", async () => {
+  const { actionQuestion, describe: d } = await import("./chat-actions.ts");
+  const a: ChatAction = { kind: "conversa_abrir", id: 7, titulo: "Assembleia do condomínio", quando: "20/11" };
+  assert.equal(d(a).confirm, "Abrir conversa");
+  assert.equal(d(a).applied, false);
+  assert.equal(actionQuestion(a, NOW), "Abro a conversa Assembleia do condomínio, de 20/11?");
+});

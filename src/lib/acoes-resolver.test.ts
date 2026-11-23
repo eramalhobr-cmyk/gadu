@@ -306,3 +306,24 @@ test("salario_simular: calcula no servidor, só informa; 'salvar' usa a receita 
   const off = await resolveAcoes(com, U, [{ tipo: "salario_simular", bruto: 8000, dependentes: 0, salvar: false }], { goals: true, finance: false, now: NOW });
   assert.deepEqual(off.actions, [], "interruptor do Financeiro desligado: nada");
 });
+
+test("abrir conversa anterior: só as da própria pessoa, pelo título ou resumo; nada achado vira aviso", async () => {
+  const cdb = fakeDb({
+    conversations: [
+      { id: 7, title: "Assembleia do condomínio", summary: "votação da obra", updated_at: "2026-11-20T13:00:00.000Z", user_id: U },
+      { id: 8, title: "Viagem para Recife", summary: "passagens e hotel", updated_at: "2026-11-18T13:00:00.000Z", user_id: U },
+      { id: 99, title: "Condomínio da outra pessoa", summary: "SEGREDO", updated_at: "2026-11-21T13:00:00.000Z", user_id: "outra" },
+    ],
+  });
+  (cdb as unknown as { from: (t: string) => Record<string, unknown> }).from = ((orig) => (t: string) => { const q = orig(t) as Record<string, unknown>; q.textSearch = (_c: string, term: string) => { const then = q.then as (r: (v: { data: { title: string; summary: string }[] }) => void) => void; q.then = (res: (v: unknown) => void) => then((v) => res({ ...v, data: v.data.filter((x) => `${x.title} ${x.summary}`.toLowerCase().includes(term.toLowerCase())) })); return q; }; return q; })(cdb.from.bind(cdb));
+  const r = await resolveAcoes(cdb, U, [
+    { tipo: "conversa_abrir", busca: "condomínio" },
+    { tipo: "conversa_abrir", busca: "passagens" },
+    { tipo: "conversa_abrir", busca: "dentista" },
+  ], { goals: true, finance: true, now: NOW });
+  assert.deepEqual(r.actions.map((a) => (a as { id: number }).id), [7, 8]);
+  assert.equal((r.actions[0] as { quando: string }).quando, "20/11");
+  assert.ok(!JSON.stringify(r).includes("SEGREDO"));
+  assert.ok(cdb.calls.filter((c) => c.table === "conversations").every((c) => c.filters.some(([k, v]) => k === "user_id" && v === U)));
+  assert.equal(r.misses.length, 1);
+});
