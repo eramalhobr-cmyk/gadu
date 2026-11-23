@@ -16,12 +16,16 @@ export type AcaoProposta =
   | { tipo: "meta_tarefa"; meta: string; tarefa: string; prazo: string | null }
   | { tipo: "tarefa_concluir"; tarefa: string }
   | { tipo: "tarefa_adiar"; tarefa: string; prazo: string }
+  | { tipo: "tarefa_cancelar"; tarefa: string }
+  | { tipo: "tarefa_reabrir"; tarefa: string }
+  | { tipo: "tarefa_editar"; tarefa: string; titulo: string | null; prioridade: 1 | 2 | 3 | null; prazo: string | null; projeto: string | null }
   | { tipo: "lembrete_cancelar"; lembrete: string }
+  | { tipo: "lembrete_adiar"; lembrete: string; quando: string }
   | { tipo: "conta_paga"; conta: string }
   | { tipo: "projeto_criar"; nome: string; objetivo: string | null }
   | { tipo: "ajuste"; ajuste: Ajuste };
 
-export const TIPOS = ["meta_criar", "meta_registrar", "meta_concluir", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "lembrete_cancelar", "conta_paga", "projeto_criar", "ajuste"] as const;
+export const TIPOS = ["meta_criar", "meta_registrar", "meta_concluir", "meta_marco", "meta_marco_concluir", "meta_tarefa", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "projeto_criar", "ajuste"] as const;
 
 const txt = (v: unknown, max: number): string => (typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "");
 
@@ -41,6 +45,15 @@ function dataPassada(v: unknown, now: number): string | null {
   const hoje = ordinal(hojeSP(now));
   const o = ordinal(d);
   return o <= hoje && o >= hoje - 366 ? isoDia(d) : null;
+}
+
+/** Momento futuro (ISO 8601; sem fuso = Brasília), de 20 s a 1 ano à frente. */
+function quandoFuturo(v: unknown, now: number): string | null {
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  const d = new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(t) ? t : `${t}-03:00`);
+  if (!t || Number.isNaN(d.getTime())) return null;
+  return d.getTime() >= now + 20_000 && d.getTime() <= now + 366 * 86_400_000 ? d.toISOString() : null;
 }
 
 function validAjuste(o: Record<string, unknown>): Ajuste | null {
@@ -113,6 +126,24 @@ export function validAcao(raw: unknown, now = Date.now()): AcaoProposta | null {
     case "tarefa_adiar": {
       const tarefa = txt(o.tarefa, 200), prazo = dataFutura(o.prazo, now);
       return tarefa && prazo ? { tipo: "tarefa_adiar", tarefa, prazo } : null;
+    }
+    case "tarefa_cancelar": case "tarefa_reabrir": {
+      const tarefa = txt(o.tarefa, 200);
+      return tarefa ? { tipo: o.tipo, tarefa } : null;
+    }
+    case "tarefa_editar": {
+      const tarefa = txt(o.tarefa, 200);
+      const titulo = txt(o.titulo, 200) || null;
+      const p = Number(o.prioridade);
+      const prioridade = p === 1 || p === 2 || p === 3 ? p : null;
+      const prazo = dataFutura(o.prazo, now);
+      const projeto = txt(o.projeto, 80) || null;
+      // Sem nenhuma mudança válida não há o que propor.
+      return tarefa && (titulo || prioridade || prazo || projeto) ? { tipo: "tarefa_editar", tarefa, titulo, prioridade, prazo, projeto } : null;
+    }
+    case "lembrete_adiar": {
+      const lembrete = txt(o.lembrete, 300), quando = quandoFuturo(o.quando, now);
+      return lembrete && quando ? { tipo: "lembrete_adiar", lembrete, quando } : null;
     }
     case "lembrete_cancelar": {
       const lembrete = txt(o.lembrete, 300);
@@ -192,6 +223,9 @@ export function acoesRules(): string {
   {"tipo":"meta_registrar","meta":"nome da meta","valor":5,"data":"AAAA-MM-DD"} (data só se não for hoje); {"tipo":"meta_concluir","meta":"..."};
   {"tipo":"meta_marco","meta":"...","titulo":"...","data":"AAAA-MM-DD"}; {"tipo":"meta_marco_concluir","meta":"...","marco":"..."}; {"tipo":"meta_tarefa","meta":"...","tarefa":"...","prazo":"AAAA-MM-DD"};
   {"tipo":"tarefa_concluir","tarefa":"..."}; {"tipo":"tarefa_adiar","tarefa":"...","prazo":"AAAA-MM-DD"}; {"tipo":"lembrete_cancelar","lembrete":"..."};
+  {"tipo":"tarefa_cancelar","tarefa":"..."} ("cancela/apaga a tarefa…"); {"tipo":"tarefa_reabrir","tarefa":"..."} (tarefa já feita ou cancelada que volta a ficar aberta);
+  {"tipo":"tarefa_editar","tarefa":"nome atual","titulo":"novo título","prioridade":1,"prazo":"AAAA-MM-DD","projeto":"nome do projeto"} (só os campos que mudam; prioridade 1 alta, 2 normal, 3 baixa);
+  {"tipo":"lembrete_adiar","lembrete":"...","quando":"AAAA-MM-DDTHH:MM:00-03:00"} ("me lembra daqui a 1 hora", "adia para amanhã às 9": calcule o novo horário a partir de agora, no horário de Brasília);
   {"tipo":"conta_paga","conta":"luz"} ("paguei a luz", "a internet já foi paga": marca a conta do mês como paga);
   {"tipo":"projeto_criar","nome":"...","objetivo":"..."};
   {"tipo":"ajuste","opcao":"texto","valor":"100|115|130"} (letra normal, grande, maior), {"tipo":"ajuste","opcao":"maos_livres|respostas_curtas|voz","valor":true|false}, {"tipo":"ajuste","opcao":"tema","valor":"dark|light"}.

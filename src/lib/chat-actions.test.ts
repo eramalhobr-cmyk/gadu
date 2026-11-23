@@ -44,3 +44,16 @@ test("tudo por voz: cartões e perguntas das ações novas", async () => {
   assert.equal(d({ kind: "tarefa_criada", id: 3, titulo: "Comprar pão", prazo: null }).applied, true);
   assert.equal(d({ kind: "marco", goalId: "g", meta: "Mudar", titulo: "Achar casa", data: null }).confirm, "Adicionar");
 });
+
+test("tudo por voz: cartões e perguntas de tarefa (cancelar, reabrir, editar) e lembrete (adiar)", async () => {
+  const { actionQuestion, describe: d } = await import("./chat-actions.ts");
+  assert.equal(actionQuestion({ kind: "tarefa_cancelar", id: 1, titulo: "Pagar boleto" }, NOW), "Cancelo a tarefa Pagar boleto?");
+  assert.equal(actionQuestion({ kind: "tarefa_reabrir", id: 1, titulo: "Pagar boleto" }, NOW), "Reabro a tarefa Pagar boleto?");
+  const ed: ChatAction = { kind: "tarefa_editar", id: 1, titulo: "Boleto", mudancas: { titulo: "Boleto da luz", prioridade: 1, prazo: "2026-11-23", projeto: "Casa", projetoId: 4 } };
+  assert.equal(d(ed).detail, "título: Boleto da luz · prioridade alta · prazo 23/11 · projeto Casa");
+  assert.equal(actionQuestion(ed, NOW), "Na tarefa Boleto, mudo o título para Boleto da luz, a prioridade para alta, o prazo para amanhã, o projeto para Casa?");
+  const ad: ChatAction = { kind: "lembrete_adiar", id: 2, text: "Tomar o remédio", dueAt: "2026-11-22T20:00:00-03:00", novoDueAt: "2026-11-23T09:00:00-03:00" };
+  assert.equal(d(ad, NOW).detail, "Novo horário: amanhã 09:00");
+  assert.equal(d(ad).applied, false);
+  assert.equal(actionQuestion(ad, NOW), "Adio o lembrete Tomar o remédio para amanhã 09:00?");
+});

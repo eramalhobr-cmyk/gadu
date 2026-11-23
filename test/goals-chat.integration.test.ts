@@ -24,6 +24,7 @@ let rpcFail: string | null = null;
 let reserveAllowed = true;
 let modelText = "Resposta [M1].";
 let goalsFail = false;
+let voiceWrites: { table: string; op: string; rows: Row[] }[] = [];
 
 const goalDb = () => makeFinDb(store, () => sessionUser, log);
 
@@ -40,6 +41,7 @@ function query(table: string) {
     get: (_t, key) => {
       if (key === "then") return (res: (v: unknown) => unknown, rej: (e: unknown) => unknown) => Promise.resolve(result()).then(res, rej);
       if (key === "eq") return (c: string, v: unknown) => { eqs.push([c, v]); return p; };
+      if (key === "insert" || key === "update" || key === "delete" || key === "upsert") return (...rows: unknown[]) => { if (["tasks", "reminders", "projects"].includes(table)) voiceWrites.push({ table, op: String(key), rows: rows as Row[] }); return p; };
       if (key === "maybeSingle" || key === "single") return () => { mode = "one"; return Promise.resolve(result()); };
       return () => p;
     },
@@ -150,7 +152,7 @@ function seed() {
 }
 const tagOf = (titulo: string) => /\[(M\d+)\] [^\n]*?/.exec(ctxOf().split("\n").find((l) => l.includes(titulo)) ?? "")?.[1] ?? "";
 function resetAll() {
-  sessionUser = A; tablesRead = []; providerCalls = []; completeCalls = 0; rpcNames = []; rpcFail = null; reserveAllowed = true; modelText = "Resposta [M1]."; goalsFail = false;
+  sessionUser = A; tablesRead = []; providerCalls = []; completeCalls = 0; rpcNames = []; rpcFail = null; reserveAllowed = true; modelText = "Resposta [M1]."; goalsFail = false; voiceWrites = [];
   log = { tables: [], writes: [] };
   delete process.env.GOALS_ENABLED; delete process.env.CORE_MVP; delete process.env.FINANCE_ENABLED;
   seed();
@@ -401,4 +403,58 @@ test("tudo por voz: termo bloqueado não vira cartão", async () => {
   modelText = META_TXT([{ tipo: "meta_criar", titulo: "Projeto ACME grande", medicao: "tarefas" }]);
   const events = await chat("cria uma meta do projeto");
   assert.equal(events.find((e) => e.t === "acoes"), undefined);
+});
+
+// ---- "Tudo por voz": tarefas (cancelar, reabrir, editar) e lembrete (adiar) ----
+function seedTarefas() {
+  generic.tasks = [
+    { id: 5, user_id: A, title: "Ler aviso do condomínio", status: "open" },
+    { id: 6, user_id: A, title: "Ligar para o dentista", status: "cancelled" },
+    { id: 50, user_id: B, title: "SEGREDO-B tarefa", status: "open" },
+  ];
+  generic.projects = [{ id: 3, user_id: A, name: "Casa nova", status: "active" }, { id: 30, user_id: B, name: "SEGREDO-B projeto", status: "active" }];
+  generic.reminders = [{ id: 9, user_id: A, text: "Tomar o remédio", due_at: "2026-12-30T23:00:00.000Z", status: "pending" }, { id: 90, user_id: B, text: "SEGREDO-B lembrete", due_at: "2026-12-30T23:00:00.000Z", status: "pending" }];
+}
+const AMANHA = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+
+test("tudo por voz: cancelar, reabrir e editar tarefa e adiar lembrete viram cartões; nada é gravado", async () => {
+  seedTarefas();
+  const quando = new Date(Date.now() + 3_600_000).toISOString();
+  modelText = META_TXT([
+    { tipo: "tarefa_cancelar", tarefa: "aviso do condomínio" },
+    { tipo: "tarefa_reabrir", tarefa: "dentista" },
+    { tipo: "tarefa_editar", tarefa: "aviso", prioridade: 1, prazo: AMANHA, projeto: "casa nova" },
+    { tipo: "lembrete_adiar", lembrete: "remédio", quando },
+  ]);
+  const events = await chat("cancela o aviso, reabre o dentista, muda o aviso e adia o remédio");
+  const items = events.find((e) => e.t === "acoes")?.items ?? [];
+  assert.deepEqual(items.map((i) => i.kind), ["tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_adiar"]);
+  assert.deepEqual(items[2].mudancas, { prioridade: 1, prazo: AMANHA, projetoId: 3, projeto: "Casa nova" });
+  assert.equal(items[3].id, 9);
+  assert.equal(items[3].novoDueAt, quando);
+  assert.equal(voiceWrites.length, 0, "só proposta: nada gravado em tarefas, lembretes ou projetos antes da confirmação");
+  assert.ok(!JSON.stringify(events).includes("SEGREDO-B"));
+});
+
+test("tudo por voz: tarefa, projeto e lembrete de B nunca viram cartão (viram aviso)", async () => {
+  seedTarefas();
+  modelText = META_TXT([
+    { tipo: "tarefa_cancelar", tarefa: "SEGREDO-B tarefa" },
+    { tipo: "tarefa_editar", tarefa: "aviso", projeto: "SEGREDO-B projeto" },
+    { tipo: "lembrete_adiar", lembrete: "SEGREDO-B lembrete", quando: new Date(Date.now() + 3_600_000).toISOString() },
+  ]);
+  const events = await chat("mexe nas coisas do outro");
+  assert.equal(events.find((e) => e.t === "acoes"), undefined);
+  assert.ok(events.some((e) => e.t === "notice" && e.kind === "acao"));
+  assert.ok(!JSON.stringify(events.filter((e) => e.t === "acoes")).includes("SEGREDO-B"));
+  assert.equal(voiceWrites.length, 0);
+});
+
+test("tudo por voz: ações de tarefa e lembrete continuam com Metas desligado, e título bloqueado não vira cartão", async () => {
+  process.env.GOALS_ENABLED = "0";
+  process.env.FINANCE_ENABLED = "0";
+  seedTarefas();
+  modelText = META_TXT([{ tipo: "tarefa_cancelar", tarefa: "aviso" }, { tipo: "tarefa_editar", tarefa: "aviso", titulo: "Reunião Acme" }]);
+  const events = await chat("cancela o aviso e renomeia");
+  assert.deepEqual((events.find((e) => e.t === "acoes")?.items ?? []).map((i) => i.kind), ["tarefa_cancelar"]);
 });

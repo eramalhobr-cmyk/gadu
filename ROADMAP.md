@@ -421,11 +421,12 @@ Objetivo: o GaDu fácil para qualquer pessoa, inclusive quem não é digital, co
 Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa. A IA propõe, a pessoa confirma (toque ou "sim"). Regra para toda função nova em [AGENTS.md](AGENTS.md), seção 8.1; matriz completa em [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md), seção 11.
 - [x] Metas pela conversa: criar, registrar, concluir, marcos (adicionar e concluir) e tarefas da meta (PR #42)
 - [x] Tarefas: concluir e adiar; tarefa anotada com Desfazer (PR #42)
+- [x] Tarefas: cancelar, reabrir e editar (título, prioridade, prazo, projeto); lembretes: adiar (PR A `feat/voz-tarefas-lembretes`, testado em 23/11/2026)
 - [x] Lembretes: cancelar; lembrete criado com Desfazer (PRs #39 e #42)
 - [x] Finanças: "paguei a luz" marca a conta do mês como paga (PR #42)
 - [x] Projetos: criar (PR #42)
 - [x] Configurações: tamanho do texto, conversa contínua, respostas curtas, resposta falada e tema (PR #42)
-- [ ] Lacunas: cancelar, reabrir e editar tarefa; adiar lembrete; editar ou apagar gasto e evento; desmarcar conta e mudar valor; pausar, arquivar e editar meta; editar e arquivar projeto; aprovar e esquecer memória; criar agente; nova conversa e navegação por voz ("abre o Financeiro")
+- [ ] Lacunas: editar ou apagar gasto e evento; desmarcar conta e mudar valor; pausar, arquivar e editar meta; editar e arquivar projeto; aprovar e esquecer memória; criar agente; nova conversa e navegação por voz ("abre o Financeiro")
 
 ### UX-4 · Acessibilidade para quem não é digital (P1) · começado em 22/11/2026 pelo Cursor (Grok Bot)
 - [ ] Linguagem simples: sem "Beta", "Planejado", "Plataforma", "Core", "via modelo" e etiquetas [T1] na tela principal (ficam em "Detalhes")
