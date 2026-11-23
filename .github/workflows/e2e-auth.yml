@@ -38,6 +38,7 @@ jobs:
         run: bash scripts/e2e-auth-local.sh
         env:
           E2E_APP_LOG: /tmp/next-auth.log
+          E2E_DEBUG: '1'
       - name: Log do app (só se falhar)
         if: failure()
         run: tail -n 200 /tmp/next-auth.log || true

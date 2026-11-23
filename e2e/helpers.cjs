@@ -50,6 +50,14 @@ async function page(viewport, opts = {}) {
   if (opts.voice) await ctx.addInitScript(fakeVoice(opts.voice));
   const p = await ctx.newPage();
   p.on("pageerror", (e) => { p.__errors = (p.__errors || []).concat(String(e)); });
+  // E2E_DEBUG=1: mostra falhas de rede, erros do console e respostas 4xx/5xx (sem corpo nem cabeçalhos, para não vazar sessão).
+  if (process.env.E2E_DEBUG === "1") {
+    const short = (u) => u.replace(/\?.*$/, "");
+    p.on("requestfailed", (r) => console.error(`[debug] falhou ${r.method()} ${short(r.url())}: ${r.failure()?.errorText}`));
+    p.on("response", (r) => { if (r.status() >= 400) console.error(`[debug] HTTP ${r.status()} ${r.request().method()} ${short(r.url())}`); });
+    p.on("console", (m) => { if (m.type() === "error") console.error(`[debug] console: ${m.text().slice(0, 200)}`); });
+    p.on("pageerror", (e) => console.error(`[debug] pageerror: ${String(e).slice(0, 200)}`));
+  }
   return p;
 }
 /** Chat simulado: conta os pedidos e devolve uma resposta curta, sem IA. */
@@ -74,6 +82,14 @@ async function fixtures(p, { tasks = [], projects = [], tasksStatus = 200 } = {}
     return route.continue();
   });
 }
+/** Fecha o guia de primeiro uso se ele abriu sozinho (pessoa nova). Não faz nada se não abrir em 2 s. */
+async function dismissGuide(p) {
+  const skip = p.getByRole("button", { name: "Pular o guia" }).first();
+  if (await skip.waitFor({ state: "visible", timeout: 2000 }).then(() => true, () => false)) {
+    await skip.click();
+    await skip.waitFor({ state: "hidden" });
+  }
+}
 async function overflowX(p) { return p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); }
 /** Alvos de toque visíveis menores que 44 px (links dentro de texto corrido são exceção do WCAG 2.5.8). */
 async function smallTargets(p) {
@@ -86,4 +102,4 @@ async function smallTargets(p) {
 }
 
 
-module.exports = { need, BASE, STATE, WIDTHS, PHONE, DESK, launch, close, page, mockChat, fixtures, overflowX, smallTargets };
+module.exports = { need, BASE, STATE, WIDTHS, PHONE, DESK, launch, close, page, mockChat, fixtures, dismissGuide, overflowX, smallTargets };

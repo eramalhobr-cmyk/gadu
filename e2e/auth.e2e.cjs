@@ -6,7 +6,7 @@ const { test, describe, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const h = require("./helpers.cjs");
 const { login } = require("./login.cjs");
-const { WIDTHS, PHONE, DESK, page: rawPage, mockChat, fixtures, overflowX, smallTargets } = h;
+const { WIDTHS, PHONE, DESK, page: rawPage, mockChat, fixtures, dismissGuide, overflowX, smallTargets } = h;
 let BASE, STATE;
 before(async () => {
   BASE = h.need("E2E_BASE");
@@ -37,6 +37,12 @@ describe("app com login", () => {
       for (const tab of ["hoje", "modulos", "conversa", "tarefas", "ajustes", "casa"]) {
         await p.goto(`${BASE}/app?tab=${tab}`);
         await p.waitForTimeout(1200);
+        // Pessoa nova vê o guia abrir sozinho: ele também precisa ter alvos de 44 px, e depois é fechado para medir a tela de baixo.
+        if (tab === "hoje" && await p.getByRole("dialog").isVisible()) {
+          const smallGuide = await smallTargets(p);
+          if (smallGuide.length) problems.push(`${w}px guia: ${smallGuide.join(", ")}`);
+          await dismissGuide(p);
+        }
         const ox = await overflowX(p);
         if (ox > 0) problems.push(`${w}px ${tab}: rolagem lateral ${ox}px`);
         const small = await smallTargets(p);
@@ -321,6 +327,13 @@ describe("app com login", () => {
   test("guia de primeiro uso: 3 passos, pular, Voltar do Android fecha e refazer em Configurações", async () => {
     const p = await page(PHONE, { guia: true });
     await p.goto(`${BASE}/app?tab=ajustes`);
+    // Pessoa nova (usuário do CI): o guia abre sozinho no passo 1. Quem já passou por ele (usuário de teste antigo) não vê nada aqui.
+    const abriuSozinho = await p.getByRole("dialog").waitFor({ timeout: 4000 }).then(() => true, () => false);
+    if (abriuSozinho) {
+      assert.match(await p.getByRole("dialog").innerText(), /Passo 1 de 3/);
+      await p.getByRole("button", { name: "Pular o guia" }).last().click();
+      await p.getByRole("dialog").waitFor({ state: "detached" });
+    }
     await p.click("text=Ver o guia de primeiro uso");
     const guia = p.getByRole("dialog");
     await guia.waitFor();
