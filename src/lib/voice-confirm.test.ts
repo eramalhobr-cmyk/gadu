@@ -47,3 +47,11 @@ test("frases de resultado", () => {
   assert.equal(resultLine("evento", "no"), "Tudo bem, descartei.");
   assert.match(resultLine("meta", "yes", false), /Não consegui/);
 });
+
+test("parseAnswer: sim com negação ou pausa não confirma (pergunta de novo)", () => {
+  assert.equal(parseAnswer("claro que não"), null);
+  assert.equal(parseAnswer("sim, espera"), null);
+  assert.equal(parseAnswer("isso, mas não"), null);
+  assert.deepEqual(parseAnswer("sim"), { kind: "yes" });
+  assert.deepEqual(parseAnswer("pode lançar"), { kind: "yes" });
+});

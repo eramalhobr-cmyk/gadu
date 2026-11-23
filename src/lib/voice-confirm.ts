@@ -32,7 +32,10 @@ export function parseAnswer(text: string): Answer {
     const rest = t.replace(NO, "").replace(/^(nao|obrigado|valeu)\b/, "").trim();
     return rest.split(" ").filter(Boolean).length >= 2 && /\d|\b(dia|hora|reais|real|amanha|hoje|segunda|terca|quarta|quinta|sexta|sabado|domingo)\b/.test(rest) ? { kind: "change", text: text.trim() } : { kind: "no" };
   }
-  if (YES.test(t)) return { kind: "yes" };
+  if (YES.test(t)) {
+    // "claro que não", "sim, espera": um "sim" com negação ou pedido de pausa NÃO grava; pergunta de novo.
+    return /\b(nao|nunca|espera|calma|pera|perai|mas)\b/.test(t) ? null : { kind: "yes" };
+  }
   return null;
 }
 

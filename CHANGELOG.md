@@ -7,6 +7,12 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · Revisão dos PRs de 22/11 e correção da confirmação falada · **testado** (PR de `fix/revisao-23-11`)
+- **Feito por:** Claude Code.
+- **Corrige:** o "sim" falado com negação ou pausa ("claro que não", "sim, espera") não grava mais; "muda para…" num item que o servidor já criou (lembrete) agora o desfaz em vez de duplicar.
+- **Revisão (sem bug real):** #38, #42, #44 e a parte de segurança e custo do #40 (3D-1).
+- **Evidência:** typecheck, unit 229/229, integração 149/149, build, e2e público e mobile contra `next start`. Sem migração.
+
 ## 2026-11-22 · UX-4 (começo) · Alvos de toque de 48 px no celular (PR #44, merge `a881411`) · **publicado**
 - **Feito por:** Cursor (Grok Bot).
 - **Estágio:** **publicado** em 22/11/2026 às 21:26 (Brasília), PR #44, merge `a881411`. CI verde (verify, e2e-public, database); deploy Vercel `success`; `--touch:48px` conferido no CSS do site no ar.
