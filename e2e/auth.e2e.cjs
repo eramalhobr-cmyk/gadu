@@ -266,6 +266,25 @@ describe("app com login", () => {
     await d.context().close();
   });
 
+  test("o que posso dizer aqui (UX-7 M5): frases da tela, pelo botão ou pedindo", async () => {
+    const p = await page(PHONE);
+    let chats = 0;
+    p.on("request", (r) => { if (r.url().includes("/api/chat")) chats++; });
+    await p.goto(`${BASE}/app?tab=metas`);
+    await p.click(".say-btn");
+    await p.waitForSelector(".say-pop >> text=Corri 5 km hoje");
+    await p.click(".say-pop >> text=Corri 5 km hoje");
+    assert.equal(await p.isVisible(".say-pop"), false, "fecha ao escolher");
+    assert.equal(await p.inputValue("#msg"), "Corri 5 km hoje", "a frase vai para o campo, sem enviar");
+    await p.goto(`${BASE}/app?tab=conversa`);
+    await p.fill("#msg", "O que posso dizer aqui?");
+    await p.click(".chat-form [aria-label=Enviar]");
+    await p.waitForSelector(".say-pop >> text=Começa uma conversa nova");
+    await p.keyboard.press("Escape");
+    assert.equal(await p.isVisible(".say-pop"), false, "Esc fecha");
+    assert.equal(chats, 0, "sem chamar o modelo");
+    await p.context().close();
+
   test("navegação por intenção (UX-7 G2): abre e volta sem chamar o modelo", async () => {
     const d = await page(DESK);
     let chats = 0;

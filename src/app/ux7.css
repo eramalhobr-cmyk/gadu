@@ -126,3 +126,23 @@ button.tl-tag.link-chip { cursor: pointer; min-height: 26px; }
   .chat-box:not(:focus-within) .round.idle { display: none; }
   .chat-box:not(:focus-within) textarea { padding-left: var(--s-3); }
 }
+
+/* M5 · "O que posso dizer aqui": botão no topo de todas as telas e um cartão com 3 ou 4 frases da tela atual. */
+.say-btn.on { color: var(--sig); background: rgb(var(--sig-rgb) / 0.1); }
+.say-pop {
+  position: fixed; z-index: 60; top: calc(var(--bar-h) + env(safe-area-inset-top, 0px) + var(--s-2)); right: var(--s-3);
+  width: min(360px, calc(100vw - 2 * var(--s-3))); padding: var(--s-3) var(--s-4) var(--s-4);
+  background: var(--panel); color: var(--ink); border: 1px solid var(--line-2); border-radius: var(--r-lg);
+  box-shadow: 0 18px 40px rgb(var(--deep-rgb) / 0.35); animation: say-in 160ms ease-out;
+}
+.say-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); font-size: var(--fs-sm); color: var(--ink-2); }
+.say-pop ul { list-style: none; margin: var(--s-2) 0 0; padding: 0; display: grid; gap: var(--s-2); }
+.say-item {
+  width: 100%; min-height: 44px; text-align: left; padding: var(--s-2) var(--s-3); border-radius: var(--r-md);
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font-size: var(--fs-md); cursor: pointer;
+}
+.say-item:hover, .say-item:focus-visible { border-color: rgb(var(--sig-rgb) / 0.55); background: rgb(var(--sig-rgb) / 0.08); }
+.say-item span { color: var(--ink-3); }
+.say-foot { margin: var(--s-3) 0 0; font-size: var(--fs-xs); color: var(--ink-3); line-height: 1.45; }
+@keyframes say-in { from { opacity: 0; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .say-pop { animation: none; } }
