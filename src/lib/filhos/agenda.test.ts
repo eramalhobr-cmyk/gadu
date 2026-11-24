@@ -99,3 +99,25 @@ test("bloco do chat: sem configuração pede para configurar; com configuração
   assert.match(b, /sex 04\/12 a dom 06\/12: com o outro responsável/);
   assert.match(b, /Natal: com você/, "25/12/2026 é sexta, dentro do fim de semana de 26/12 (com você)");
 });
+
+test("calendário do mês: semanas de domingo a sábado, faixa do fim de semana, troca e feriado", async () => {
+  const { mesCalendario, resumoMes } = await import("./agenda.ts");
+  const ajustes: AjusteFilhos[] = [{ id: "t", tipo: "troca", data: "2026-12-05", comigo: true }];
+  const s = mesCalendario(2026, 12, cfg, ajustes, "2026-12-02");
+  assert.equal(s[0][0].dia, "2026-11-29", "começa no domingo da semana do dia 1");
+  assert.ok(s.every((w) => w.length === 7));
+  const dia = (d: string) => s.flat().find((x) => x.dia === d)!;
+  assert.equal(dia("2026-12-02").hoje, true);
+  assert.equal(dia("2026-12-02").comigo, null, "quarta comum");
+  // Fim de semana de 05/12 (sex 04 a dom 06) com troca: com você.
+  assert.deepEqual([dia("2026-12-04").faixa, dia("2026-12-05").faixa], ["inicio", "fim"], "sex e sáb na mesma linha; dom começa outra");
+  assert.equal(dia("2026-12-06").faixa, "unico");
+  assert.equal(dia("2026-12-05").troca, true);
+  assert.equal(dia("2026-12-05").comigo, true);
+  assert.equal(dia("2026-12-12").comigo, true, "12/12 segue a alternância");
+  assert.equal(dia("2026-12-25").feriado, "Natal");
+  assert.equal(dia("2026-12-25").comigo, true, "Natal (sexta) é do fim de semana de 26/12");
+  assert.equal(dia("2026-11-29").doMes, false);
+  // Sábados de dezembro: 05 (troca, você), 12 (você), 19 (outro), 26 (você).
+  assert.deepEqual(resumoMes(s), { comigo: 3, outro: 1 });
+});

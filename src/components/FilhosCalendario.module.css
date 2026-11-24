@@ -1,0 +1,176 @@
+.cal {
+  --voce: var(--sig);
+  --voce-rgb: var(--sig-rgb);
+  --outro: var(--hot);
+  --outro-rgb: var(--hot-rgb);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mes {
+  margin: 0;
+  font-size: 1.25rem;
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+}
+
+.mes span {
+  color: var(--ink-3);
+  font-weight: 400;
+}
+
+.nav {
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.resumo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.chipVoce, .chipOutro {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 600;
+}
+
+.chipVoce { background-color: rgb(var(--voce-rgb) / 0.16); color: var(--voce); }
+.chipOutro { background-color: rgb(var(--outro-rgb) / 0.16); color: var(--outro); }
+
+.grade {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.linha {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.cab {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink-3);
+  padding-block: 4px;
+}
+
+.dia {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 44px;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+button.dia { cursor: pointer; }
+.fora { opacity: 0.35; }
+
+/* Fim de semana: faixa contínua com a cor de quem fica. */
+.voce { background-color: rgb(var(--voce-rgb) / 0.22); color: var(--ink); font-weight: 700; }
+.outro { background-color: rgb(var(--outro-rgb) / 0.2); color: var(--ink); font-weight: 700; }
+.voce.unico, .outro.unico { border-radius: 12px; }
+.voce.inicio, .outro.inicio { border-radius: 12px 0 0 12px; }
+.voce.meio, .outro.meio { border-radius: 0; }
+.voce.fim, .outro.fim { border-radius: 0 12px 12px 0; }
+.voce::before, .outro::before {
+  content: "";
+  position: absolute;
+  inset-inline: 6px;
+  inset-block-end: 5px;
+  block-size: 3px;
+  border-radius: 2px;
+}
+.voce::before { background: var(--voce); }
+.outro::before { background: var(--outro); }
+
+/* Troca: listras diagonais por cima da cor. */
+.troca {
+  background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgb(var(--line-rgb) / 0.55) 6px 8px);
+}
+
+.hoje { box-shadow: inset 0 0 0 2px var(--ink); }
+.voce.sel { background-color: rgb(var(--voce-rgb) / 0.5); }
+.outro.sel { background-color: rgb(var(--outro-rgb) / 0.42); }
+
+.feriado {
+  position: absolute;
+  inset-block-start: 5px;
+  inset-inline-end: 6px;
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--bad);
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--ink-2);
+}
+
+.legenda li { display: flex; align-items: center; gap: 6px; }
+.legenda i { display: inline-block; inline-size: 14px; block-size: 14px; border-radius: 4px; }
+.lVoce { background: rgb(var(--voce-rgb) / 0.35); box-shadow: inset 0 -3px 0 var(--voce); }
+.lOutro { background: rgb(var(--outro-rgb) / 0.3); box-shadow: inset 0 -3px 0 var(--outro); }
+.lTroca { background: repeating-linear-gradient(135deg, var(--surface-2) 0 3px, rgb(var(--line-rgb) / 0.6) 3px 5px); }
+.lFeriado { border-radius: 50% !important; inline-size: 8px !important; block-size: 8px !important; background: var(--bad); }
+
+.detalhe {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border-inline-start: 4px solid var(--outro);
+  background: rgb(var(--outro-rgb) / 0.1);
+}
+
+.detalhe[data-comigo="true"] {
+  border-inline-start-color: var(--voce);
+  background: rgb(var(--voce-rgb) / 0.1);
+}
+
+.detalhe div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.detalhe small { color: var(--ink-3); }
+.detalhe :global(.btn) { min-height: 44px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .dia { transition: transform 120ms ease; }
+  button.dia:active { transform: scale(0.94); }
+}

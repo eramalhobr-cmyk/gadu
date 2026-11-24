@@ -9,6 +9,12 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-24 · Agenda de filhos: calendário do mês · desenvolvido e testado
+- **Feito por:** Claude Code. Branch `feat/agenda-calendario`. Pedido do Eduardo: agenda mais visual, por mês e fim de semana.
+- Novo painel **Calendário** na Agenda de filhos: grade do mês (domingo a sábado), cada fim de semana pintado como uma faixa contínua com a cor de quem fica (azul-petróleo "com você", laranja "com o outro"), trocas com listras, feriados com ponto vermelho, hoje com contorno, resumo do mês ("3 com você · 1 com o outro") e navegação entre meses. Tocar num fim de semana mostra o detalhe (datas, feriados) com **Trocar** ou **Desfazer troca**. A lista continua embaixo.
+- Cálculo puro `mesCalendario` e `resumoMes` em `src/lib/filhos/agenda.ts` (feriado colado entra na faixa do fim de semana). Cores pelos tokens do tema (claro e escuro); leitor de tela lê cada dia com dono, troca e feriado.
+- **Testes:** unitário do mês (dezembro de 2026: faixas, troca, Natal colado, resumo); conferido renderizando o componente real a 390 px nos temas claro e escuro (sem rolagem lateral, alvos de 44 px); e2e com login ampliado (tocar no fim de semana no calendário).
+
 ## 2026-11-24 · Tudo por voz: Agenda de filhos, apagar agente e termos bloqueados · **publicado**
 - **Publicado** em 24/11/2026 às 07:07 (Brasília), PR #128, merge `7acc4e4`; CI verde (verify, database, e2e-public, e2e com login); deploy de produção pronto.
 - **Feito por:** Claude Code. Branch `feat/voz-config`. Relato do Eduardo: configurar a Agenda de filhos por voz não funcionava (o GaDu mandava configurar na tela).
