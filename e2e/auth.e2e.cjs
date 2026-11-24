@@ -47,6 +47,9 @@ describe("app com login", () => {
         if (ox > 0) problems.push(`${w}px ${tab}: rolagem lateral ${ox}px`);
         const small = await smallTargets(p);
         if (small.length) problems.push(`${w}px ${tab}: ${small.join(", ")}`);
+        // Texto de cartão espremido pelos botões (uma palavra por linha): mínimo de 120 px.
+        const apertados = await p.$$eval(".row-i .wrap-t", (els) => els.filter((e) => e.offsetParent && e.getBoundingClientRect().width < 120).map((e) => e.textContent.slice(0, 30)));
+        if (apertados.length) problems.push(`${w}px ${tab}: texto espremido: ${apertados.join(" | ")}`);
       }
       await p.context().close();
     }
@@ -100,6 +103,29 @@ describe("app com login", () => {
     } finally {
       await p.context().close();
     }
+  });
+
+  test("Voltar do Android volta de tela em vez de fechar o app; abrir direto numa tela volta para Hoje", async () => {
+    const p = await page(PHONE);
+    await p.goto(`${BASE}/app?tab=hoje`);
+    await p.click(".dock-item >> text=Tarefas");
+    await p.waitForURL(/tab=tarefas/);
+    await p.click(".dock-item >> text=Mais");
+    await p.waitForSelector(".more");
+    await p.click(".more-tile >> text=Agenda");
+    await p.waitForURL(/tab=agenda/);
+    await p.goBack();
+    await p.waitForURL(/tab=modulos/);
+    await p.waitForSelector(".more");
+    await p.goBack();
+    await p.waitForURL(/tab=tarefas/);
+    await p.goBack();
+    await p.waitForURL(/tab=hoje/);
+    // Link direto (atalho, notificação): o primeiro Voltar leva para Hoje, ainda dentro do app.
+    await p.goto(`${BASE}/app?tab=metas`);
+    await p.goBack();
+    await p.waitForURL(/tab=hoje/);
+    await p.context().close();
   });
 
   test("Agenda de filhos no celular: referência, troca que persiste, desfazer e consulta de data", async () => {

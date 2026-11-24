@@ -198,7 +198,7 @@ button.pj-card:hover { border-color: color-mix(in srgb, var(--c) 55%, transparen
 .search-input::-webkit-search-cancel-button { display: none; }
 .kind { display: block; font-size: var(--fs-xs); font-weight: 500; color: var(--ink-3); margin-bottom: 2px; }
 .kind.memoria { color: var(--sig); }
-.row-i .t.wrap-t { overflow: visible; overflow-wrap: anywhere; }
+.row-i .t.wrap-t { overflow: visible; overflow-wrap: break-word; }
 .mem-hit { align-items: flex-start; padding: var(--s-3) 0; }
 .mem-cols { display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); align-items: start; }
 .mem-cols > .col { display: contents; }

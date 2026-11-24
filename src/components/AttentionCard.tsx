@@ -9,6 +9,7 @@ import { EVENTO_FALAR } from "@/lib/painel-fala";
 import { showNotice, showUndo, UNDO_TEXT } from "@/lib/undo";
 import { Icon } from "./ui";
 import { EmptyState, Panel } from "./kit";
+import { AbrirEmail } from "./AbrirEmail";
 
 type Data = { enabled: boolean; items?: ActionItem[]; more?: number; unavailable?: { source: string; reason: string; text: string }[] };
 type TetoAviso = { id: string; categoria: string; valor: number; gasto: number; pct: number; nivel: "ok" | "alerta" | "estourou" };
@@ -174,7 +175,7 @@ export function AttentionCard(props: {
                       </>
                     ) : s.href ? (
                       <>
-                        <a className="btn btn-sm" href={s.href} target="_blank" rel="noopener noreferrer">Abrir e-mail</a>
+                        <AbrirEmail href={s.href} />
                         {s.kind === "email" && s.de && <button className="btn btn-sm" onClick={() => naoImportante(s)} aria-label={`Não é importante: e-mails de ${s.de}`}>Não é importante</button>}
                       </>
                     )

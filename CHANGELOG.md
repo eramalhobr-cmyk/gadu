@@ -9,6 +9,14 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-24 · Android: Voltar entre telas e "Abrir e-mail" na conta certa · desenvolvido e testado
+- **Feito por:** Claude Code. Branch `fix/android-voltar-gmail`. Relato do Eduardo no aparelho.
+- **Voltar do Android fechava o app em qualquer tela.** Causa: trocar de tela só substituía o endereço (`history.replaceState`), então o histórico tinha uma entrada só. Agora cada troca de tela cria uma entrada (`src/lib/tab-history.ts`); o Voltar fecha primeiro as camadas abertas (como antes) e depois volta de tela. Abrir o app direto numa tela (atalho, notificação) põe Hoje embaixo, para o primeiro Voltar não sair do app.
+- **"Abrir e-mail" abria outro e-mail.** Causa: o link usava `mail.google.com/mail/u/0/`, que é a primeira conta logada no navegador, nem sempre a conectada ao GaDu; e `#inbox/` falhava com e-mail arquivado. Agora o link leva `authuser=<conta conectada>` e `#all/<conversa>` (`src/lib/gmail-link.ts`), em Compras, no cartão "Merece sua atenção" e nas Fontes da conversa.
+- **Hoje, cartão "O GaDu percebeu" quebrado no celular:** com dois botões ("Reservar foco" e "Ignorar") ao lado, o texto ficava com ~72 px e uma palavra por linha, às vezes partindo a palavra. Agora o texto tem largura mínima e os botões descem para a linha de baixo quando não cabem (`src/app/ux.css`); palavras comuns não são mais partidas. O e2e de 7 larguras passou a acusar texto de cartão com menos de 120 px.
+- **App do Gmail:** o app do Gmail no Android não aceita link para um e-mail específico (abre a caixa de entrada). Por isso "Abrir e-mail" abre o e-mail certo no navegador e, no Android, há um segundo botão "App do Gmail" que abre o app.
+- **Testes:** unitários de `tab-history`, `gmail-link` e da fonte de e-mail do Core; integração de Compras com a conta conectada; `npm run build`; `bash scripts/test-db.sh`. e2e com login a 390 px novo: Hoje → Tarefas → Mais → Agenda e o Voltar refazendo o caminho; link direto volta para Hoje. **Não testado no aparelho** (falta conferir no Android real o Voltar do sistema e o botão do app do Gmail).
+
 ## 2026-11-24 · Agenda de filhos · desenvolvido e testado
 - **Feito por:** Claude Code. Branch `feat/agenda-filhos`. Escopo do plano do ciclo; **mudança no banco aprovada pelo Eduardo** em 24/11/2026.
 - **Mais → Agenda de filhos:** a pessoa escolhe um fim de semana em que as crianças ficam com ela; o GaDu alterna a cada semana, para frente e para trás (virada de ano inclusa). Início na sexta ou no sábado, fim no domingo ou na segunda.

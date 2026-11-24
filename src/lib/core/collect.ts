@@ -35,7 +35,7 @@ export async function collectAttention(input: CollectInput): Promise<CoreResult>
   };
 
   // Status do Google (conectado? quais escopos?) uma vez só, para agenda e e-mail.
-  let status: { connected: boolean; scopes: string[] } | null = null;
+  let status: { connected: boolean; scopes: string[]; email?: string | null } | null = null;
   let statusFailed = false;
   if (input.google) {
     try { status = await input.google.status(); } catch { statusFailed = true; }

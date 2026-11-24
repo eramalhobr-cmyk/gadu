@@ -72,6 +72,10 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 24/11/2026 06:36 · Claude Code, Android: Voltar e links do Gmail
+- Eduardo relatou: Voltar do Android fechava o app; "Abrir e-mail" ia para o Gmail do navegador e não achava o e-mail. Correção em `fix/android-voltar-gmail` (ver CHANGELOG). Sem migração.
+- **Revisar (outra IA):** `navegarTela` com camadas abertas (só troca o endereço para não desalinhar `OverlayHistory`); no aparelho, Voltar do sistema e o botão "App do Gmail".
+
 ### 24/11/2026 06:17 · Claude Code, Agenda de filhos
 - Eduardo aprovou a mudança no banco. PR #126: migração `20261124020001` (2 tabelas, RLS, S-05; **aplicada em produção** em 24/11 ~06:20), cálculo puro em `src/lib/filhos/agenda.ts`, rotas `/api/agenda-filhos`, tela, ações de voz com Desfazer, bloco do chat, testes (unitários, integração, SQL, e2e a 390 px).
 - **Decisões:** feriados só nacionais; feriado colado = dia antes do início ou depois do fim do fim de semana; dia de semana sem feriado colado fica "sem regra"; nada das crianças é guardado além das datas.
