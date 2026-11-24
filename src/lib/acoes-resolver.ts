@@ -473,6 +473,10 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           actions.push({ kind: "receita_principal", itemId: it.id, nome: it.nome });
           break;
         }
+        case "peca3d_criar":
+          if (!opts.modeling3d) { misses.push("O 3D Studio está desligado no momento."); break; }
+          if (!blocked(a.pedido)) actions.push({ kind: "peca3d_criar", pedido: a.pedido });
+          break;
         case "peca3d_abrir":
         case "peca3d_ajustar": {
           if (!opts.modeling3d) break;

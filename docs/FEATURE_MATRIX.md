@@ -248,4 +248,4 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Primeiro uso | pular, voltar e continuar passos do guia | **não** | — | são toques dentro do guia; o nome e o teste do microfone são falados ali dentro |
 | Conversa | abrir conversa anterior ("abre a conversa sobre o condomínio") | sim | `conversa_abrir` (título, resumo ou busca por texto, só as da pessoa; cartão com "sim"), PR do Cursor de 23/11 | — |
 | 3D | ajustar uma peça salva ("deixa o suporte 2 mm mais alto") | sim | `peca3d_ajustar` (cartão com o pedido e o aviso de que usa IA do 3D; confirmado, abre a peça e o 3D Studio faz o ajuste uma vez; o pedido vai pela sessão do navegador, não pela URL; desfazer = "Voltar uma versão" no Studio; desde o 3D-1b o render da peça vai junto do ajuste) | Cursor, 23/11 |
-| 3D | gerar peça nova | pela tela 3D | — | lacuna (gerar do zero pela conversa) |
+| 3D | gerar peça nova | sim | `peca3d_criar` (cartão com o pedido e o aviso de cota; o 3D Studio abre vazio e gera uma vez pelo fluxo normal, com a reserva e a cota do 3D) | Claude Code, 24/11 |
