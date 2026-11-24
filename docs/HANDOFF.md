@@ -82,6 +82,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 24/11/2026 08:58 · Claude Code, publicação da revisão de voz
+- Publicados: #130 (calendário da Agenda de filhos), #132 (Codex: eventos que se repetem e uma confirmação por ação; série sempre com número de repetições) e #133 (criar peça 3D pela conversa). A matriz de voz não tem mais lacuna além do que exige toque por regra do navegador/Google e do guia de primeiro uso.
+- PRs antigos #121, #120 e #1 fechados com comentário. O Eduardo validou a voz no aparelho.
+- **Em aberto:** piloto de transcrição OpenAI (precisa de chave, migração do orçamento e decisão de custo); testar uma série recorrente numa agenda Google real.
+
 ### 24/11/2026 08:44 · Claude Code, revisão do Codex e próximos passos
 - Revisei #131 (publicado) e #132 (rascunho do Codex). No #132, toda série recorrente passa a exigir número de repetições (2 a 365); tirei de rascunho.
 - `feat/voz-3d-criar`: `peca3d_criar` fecha a última lacuna de voz (gerar peça 3D do zero pela conversa).
