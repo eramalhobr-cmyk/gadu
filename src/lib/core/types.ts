@@ -18,6 +18,8 @@ export type AttentionFact = CoreFact & {
   view: ViewId;
   /** Link externo (e-mail), quando existe. */
   href?: string;
+  /** Remetente bruto (só e-mail), para ações na interface. */
+  de?: string;
   /** Conteúdo ocultado pela regra de privacidade (termo bloqueado ou dado sensível). */
   omitted: boolean;
 };

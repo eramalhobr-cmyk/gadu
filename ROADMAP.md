@@ -140,6 +140,7 @@ Sequência combinada: Marco Zero (segurança) → uso diário (gastos visíveis,
 - [x] Agenda e Gmail entram na conversa só quando o assunto pede (e-mails sensíveis ou com termo bloqueado são omitidos)
 - [x] "Começar o dia": briefing falado (agenda, e-mails que pedem ação, foco do dia) e botão para ouvir o Update Diário
 - [x] Atalhos na conversa: Começar o dia, agenda de hoje, e-mails importantes
+- [x] Triagem de e-mails obedece às memórias aprovadas; "isso não é importante" por voz e toque (fix/emails-atencao-memoria)
 - [x] Link do Update Diário configurável em Ajustes
 - [x] Projeto GaDu no Google Cloud, APIs ligadas, cliente OAuth criado
 - [x] GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET cadastrados na Vercel

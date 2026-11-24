@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { accessToken, events, GoogleError, inbox } from "@/lib/google";
 import { spNow } from "@/lib/briefing";
+import { aplicarRegras, carregarRegrasEmail } from "@/lib/email-regras";
 import { insights } from "@/lib/insights";
 import { pendentes, type Resposta } from "@/lib/percepcoes";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
@@ -31,11 +32,14 @@ export async function GET(request: Request) {
     // Do começo de hoje (Brasília) até o fim do período: compromissos que já passaram aparecem apagados.
     const from = spNow().start;
     const to = new Date(from.getTime() + q.data.days * 86_400_000);
-    const [ev, mails, tasks] = await Promise.all([
+    const [ev, mailsBrutos, tasks, regras] = await Promise.all([
       events(token, from, to),
       inbox(token),
       a.supabase.from("tasks").select("title, due_date, priority").eq("status", "open").limit(200),
+      carregarRegrasEmail(a.supabase, a.user.id),
     ]);
+    // Regras das memórias aprovadas: "important" é recalculado e e-mail de baixa prioridade sai da lista.
+    const mails = aplicarRegras(mailsBrutos, regras).filter((m) => m.nivel !== "baixa");
     const hide = (t: string) => isSensitive(t) || Boolean(blockedTerm(t, blocked));
     const visible = ev.filter((e) => !e.declined);
     return NextResponse.json(
