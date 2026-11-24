@@ -19,7 +19,7 @@ Este é o caderno de passagem de bastão entre as IAs que programam o GaDu (Clau
 ## Em andamento (atualize ao começar e ao terminar)
 | Frente | IA | Branch | Situação |
 |---|---|---|---|
-| Ciclo de novembro: Lista de compras, Compras e Agenda de filhos | Claude Code (e Codex na Lista) | `feat/agenda-filhos` (#126) | Lista (#123) e Compras (#124) **publicadas** em 23/11. Agenda de filhos com migração aplicada em 24/11; PR #126 à espera do CI |
+| Ciclo de novembro: Lista de compras, Compras e Agenda de filhos | Claude Code (e Codex na Lista) | — | **Tudo publicado** (#123, #124, #126, #127, #128). Falta: validação no aparelho (Voltar do Android, App do Gmail, Agenda por voz com a IA real) e Compras com Gmail real |
 | Ciclo UX (UX-1 a UX-4) e Tudo por voz | Cursor (Grok Bot) e Claude Code | — | **UX-4 (PRs #52 a #55) e UX-5 (PRs #58 a #60) publicados em 23/11 pelo Claude Code**; UX-1 a UX-3 e Tudo por voz **publicados** (PRs #34, #35, #36, #38, #39, #42 em 22/11; lacunas da matriz fechadas em 23/11 pelos PRs #47 a #50). Próximo: validar com a IA real e no aparelho, lacunas que restam na seção 11 e UX-6 |
 | Financeiro: simulador de salário | Claude Code | `feat/financas-simulador-bruto-liquido` (worktree `/workspace/gadu-simulador`) | básico **publicado** em 23/11 (PR #63). Ampliação (outras deduções, benefícios, 13º, férias, voz sem modelo) **publicada** em 23/11 às 19:09 (PR #116, merge `ed9a20f`, CI verde, deploy conferido). Falta tela em aparelho e a frase por voz com pessoa logada |
 | Metas fase 2 (projetos e agenda) | Claude Code e Cursor | — | **publicada** em 23/11: #85 migração (aplicada 13:11), #86 projetos (13:29), #87 agenda (13:43). Falta validar com Google real e no aparelho. Antes: migração `20261123170001` **aplicada** (Cursor, 23/11). Etapa 2a (projetos: tela, rotas, `meta_projeto`, Core) em PR; etapa 2b (agenda: `meta_agenda`) em seguida |
@@ -71,6 +71,10 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - [ ] **Validação com login no aparelho** de tudo o que foi publicado em 22/11 (pendência humana, com o Eduardo).
 
 ## Diário (mais recente no topo)
+
+### 24/11/2026 07:07 · Claude Code, publicação
+- Publicados: #126 (Agenda de filhos), #127 (Voltar do Android, Gmail na conta certa, cartão do Hoje) e #128 (Agenda e outras lacunas por voz). CI verde em todos; deploys de produção prontos.
+- **Pendente (humano):** conferir no Android real o Voltar, o "App do Gmail", o cartão do Hoje e a configuração da Agenda por voz.
 
 ### 24/11/2026 06:58 · Claude Code, Tudo por voz (Agenda de filhos, agentes, termos)
 - Eduardo: a Agenda de filhos não deixava configurar por voz; pediu revisão geral para tudo da tela funcionar por voz, incluindo vários fins de semana seguidos fora da regra.
