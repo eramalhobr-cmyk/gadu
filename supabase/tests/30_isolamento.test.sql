@@ -80,6 +80,7 @@ begin
     insert into public.fin_gastos (user_id, ano, mes, dia, valor) values (u, 2026, 11, 5, 1.00);
     insert into public.fin_config (user_id) values (u);
     insert into public.fin_tetos (user_id, categoria, valor) values (u, 'Mercado', 800);
+    insert into public.lista_compras_itens (user_id, nome) values (u, 'item sintético');
     insert into public.insight_respostas (user_id, dia, tipo, decisao) values (u, current_date, 'atrasadas', 'ignorada');
     -- Metas (sintético)
     insert into public.goals (user_id, titulo, medicao, valor_alvo) values (u, 'meta sintética', 'numerica', 10);
@@ -128,6 +129,7 @@ insert into iso_cases values
   ('goal_progress',      'user_id',    'valor = 2',           'insert into public.goal_progress (user_id, goal_id, valor, data) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), 1, current_date)'),
   ('goal_milestones',    'user_id',    'titulo = ''x''',      'insert into public.goal_milestones (user_id, goal_id, titulo) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), ''x'')'),
   ('error_events',       'user_id',    'status = 500',        'insert into public.error_events (user_id, origem, rota, nome, impressao) values (%L, ''cliente'', ''/app'', ''x'', repeat(''a'', 16))'),
+  ('lista_compras_itens', 'user_id',  'comprado = true',     'insert into public.lista_compras_itens (user_id, nome) values (%L, ''x'')'),
   ('pecas_3d',           'user_id',    'titulo = ''x''',      'insert into public.pecas_3d (user_id, titulo, pedido) values (%L, ''x'', ''x'')'),
   ('pecas_3d_versoes',   'user_id',    'scad = ''cube(1);''', 'insert into public.pecas_3d_versoes (user_id, peca_id, modo, scad) values (%1$L, (select id from public.pecas_3d where user_id = %1$L limit 1), ''novo'', ''cube(1);'')'),
   ('goal_tasks',         'user_id',    'created_at = now()',  'insert into public.goal_tasks (user_id, goal_id, task_id) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), (select id from public.tasks where user_id = %1$L limit 1))'),

@@ -24,9 +24,13 @@ grant select, insert, update (comprado), delete on public.lista_compras_itens to
 create policy lista_compras_select on public.lista_compras_itens
   for select to authenticated using (user_id = (select auth.uid()));
 create policy lista_compras_insert on public.lista_compras_itens
-  for insert to authenticated with check (user_id = (select auth.uid()) and (select public.can_write()));
+  for insert to authenticated with check (user_id = (select auth.uid()));
 create policy lista_compras_update on public.lista_compras_itens
-  for update to authenticated using (user_id = (select auth.uid()) and (select public.can_write()))
+  for update to authenticated using (user_id = (select auth.uid()))
   with check (user_id = (select auth.uid()));
 create policy lista_compras_delete on public.lista_compras_itens
   for delete to authenticated using (user_id = (select auth.uid()));
+
+-- S-05: conta bloqueada não insere nem altera (políticas restritivas no padrão das outras tabelas; apagar continua permitido).
+create policy lista_compras_itens_ativo_insert on public.lista_compras_itens as restrictive for insert to authenticated with check ((select public.can_write()));
+create policy lista_compras_itens_ativo_update on public.lista_compras_itens as restrictive for update to authenticated using ((select public.can_write())) with check ((select public.can_write()));

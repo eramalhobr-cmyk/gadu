@@ -115,9 +115,9 @@ create function pg_temp.cmds(n int) returns table (tab text, ins text, upd text,
   ) as t(tab, ins, upd, del)
 $f$;
 
--- ===== Estrutura: 24 tabelas x 2 comandos (insert, update) + 2 de reminders; nenhuma de delete; função só para quem deve ===========================
-select pg_temp.check((select count(*) from pg_policies where schemaname = 'public' and permissive = 'RESTRICTIVE' and policyname like '%\_ativo\_%') = 48,
-  '48 políticas restritivas de acesso (24 tabelas x insert, update)');
+-- ===== Estrutura: 25 tabelas x 2 comandos (insert, update) + 2 de reminders; nenhuma de delete; função só para quem deve ===========================
+select pg_temp.check((select count(*) from pg_policies where schemaname = 'public' and permissive = 'RESTRICTIVE' and policyname like '%\_ativo\_%') = 50,
+  '50 políticas restritivas de acesso (25 tabelas x insert, update)');
 select pg_temp.check((select count(*) from pg_policies where schemaname = 'public' and permissive = 'RESTRICTIVE' and cmd = 'DELETE') = 0,
   'nenhuma política restritiva de delete (bloqueada pode apagar os próprios dados)');
 select pg_temp.check((select count(*) from pg_policies where schemaname = 'public' and tablename = 'reminders' and policyname like 'reminders\_conversa\_propria\_%') = 2,
@@ -220,7 +220,7 @@ select pg_temp.check(pg_temp.exec_as('00000000-0000-0000-0000-0000000f6004', $$i
 -- ===== Rollback documentado: desfaz tudo e a pessoa bloqueada volta a gravar (dentro de uma transação desfeita) ===
 begin;
 do $$ declare t text; begin
-  foreach t in array array['agents','conversations','fin_config','fin_gastos','fin_item_meses','fin_itens','fin_tetos','goal_events','goal_milestones','goal_progress','goal_projects','goal_tasks','goals','google_connections','insight_respostas','memories','messages','pecas_3d','pecas_3d_versoes','profiles','projects','push_subscriptions','reminders','tasks'] loop
+  foreach t in array array['agents','conversations','fin_config','fin_gastos','fin_item_meses','fin_itens','fin_tetos','goal_events','goal_milestones','goal_progress','goal_projects','goal_tasks','goals','google_connections','insight_respostas','lista_compras_itens','memories','messages','pecas_3d','pecas_3d_versoes','profiles','projects','push_subscriptions','reminders','tasks'] loop
     execute format('drop policy if exists %I on public.%I', t || '_ativo_insert', t);
     execute format('drop policy if exists %I on public.%I', t || '_ativo_update', t);
   end loop;
@@ -233,6 +233,6 @@ select pg_temp.check((select count(*) from pg_proc where proname = 'can_write') 
 update public.members set access = 'blocked' where user_id = '00000000-0000-0000-0000-0000000f6004';
 select pg_temp.check(pg_temp.exec_as('00000000-0000-0000-0000-0000000f6004', $$insert into public.memories (content) values ('x')$$) = 'GRAVOU', 'rollback: o comportamento anterior volta (bloqueada grava de novo, S-05 aberto)');
 rollback;
-select pg_temp.check((select count(*) from pg_policies where permissive = 'RESTRICTIVE' and schemaname = 'public') = 50, 'depois do rollback de teste, as 50 políticas continuam (transação desfeita)');
+select pg_temp.check((select count(*) from pg_policies where permissive = 'RESTRICTIVE' and schemaname = 'public') = 52, 'depois do rollback de teste, as 52 políticas continuam (transação desfeita)');
 
 \echo 's05: todos os testes SQL passaram'
