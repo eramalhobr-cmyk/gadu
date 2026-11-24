@@ -47,15 +47,16 @@ describe("app com login", () => {
     await p.goto(`${BASE}/app?tab=conversa`);
     await p.fill("#msg", "Crie uma aula a cada duas semanas, cinco vezes");
     await p.click(".chat-form [aria-label=Enviar]");
-    const criar = p.getByRole("button", { name: "Criar na agenda" });
+    const conversa = p.locator("#conteudo");
+    const criar = conversa.getByRole("button", { name: "Criar na agenda" });
     await criar.waitFor();
     assert.equal(await criar.count(), 1);
-    await p.getByText(/a cada 2 semanas, por 5 vezes no total/).waitFor();
+    await conversa.getByText(/a cada 2 semanas, por 5 vezes no total/).waitFor();
     await criar.evaluate((button) => {
       button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-    await p.getByText("Criado na agenda", { exact: true }).waitFor();
+    await conversa.getByText("Criado na agenda", { exact: true }).waitFor();
     assert.equal(requests.length, 1);
     assert.deepEqual(requests[0].recurrence, recurrence);
     await p.context().close();
