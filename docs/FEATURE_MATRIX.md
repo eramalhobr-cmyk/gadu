@@ -1,5 +1,10 @@
 # GaDu · Matriz de funcionalidades
 
+## Piloto de transcrição OpenAI
+
+Estado: teste local preparado. Microfone do GaDu continua no aparelho enquanto a integração opcional e o orçamento não forem verificados. [Plano](PILOTO_VOZ_OPENAI.md).
+
+
 Atualizada em 22/11/2026 (revisão geral: status dos PRs #22, #24, #26 e #30 corrigidos para publicados; 3D por fases; Casa adiada; antes: 14/11/2026, Sprint UX/UI v2.2, PR #16), a partir do código na `main` e de PRs abertos. Status:
 - **implementado**: na `main` e em produção.
 - **beta**: em produção, mas parcial, dependente de passo manual ou sem validação real.

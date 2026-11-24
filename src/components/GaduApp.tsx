@@ -77,7 +77,7 @@ type Target = { kind: "project" | "agent"; id: number; name: string } | null;
 
 const LS_DRAFT = "gadu.draft";
 const LS_PREFS = "gadu.prefs";
-const DEFAULT_PREFS: Prefs = { voice: true, handsFree: false, voiceURI: "", rate: 1, autoSend: false, shortVoice: true };
+const DEFAULT_PREFS: Prefs = { voice: true, handsFree: false, voiceURI: "", rate: 1, autoSend: false, shortVoice: false };
 
 function readPrefs(): Prefs {
   try {
@@ -90,8 +90,8 @@ function readPrefs(): Prefs {
       rate: Number.isFinite(rate) && rate >= 0.7 && rate <= 1.6 ? rate : 1,
       // Envio automático só com escolha explícita (padrão: desligado; o texto fica no campo para revisar).
       autoSend: p.autoSend === true,
-      // Respostas faladas curtas (UX-3): ligado por padrão; o detalhe fica na tela.
-      shortVoice: p.shortVoice !== false,
+      // Ler a resposta inteira por padrão. Resumo falado continua disponível em Ajustes.
+      shortVoice: p.shortVoice === true,
     };
   } catch {
     return DEFAULT_PREFS;
@@ -250,7 +250,9 @@ export function GaduApp(props: {
     const text = props.flash ? FLASH[props.flash] : undefined;
     if (!text) return;
     setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: text }]);
-    window.history.replaceState(null, "", "/app");
+    const url = new URL(window.location.href);
+    url.searchParams.delete("google");
+    window.history.replaceState(window.history.state, "", url);
   }, [props.flash]);
 
   const listen = useCallback(() => {
