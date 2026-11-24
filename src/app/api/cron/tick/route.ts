@@ -4,6 +4,7 @@ import { briefingText, parseTime, spNow } from "@/lib/briefing";
 import { accessToken, events, inbox } from "@/lib/google";
 import { pushConfigured, sendPush, type Sub } from "@/lib/push";
 import { embed, embeddingsAvailable, toVector } from "@/lib/embeddings";
+import { aplicarRegras, carregarRegrasEmail } from "@/lib/email-regras";
 import { insights } from "@/lib/insights";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -86,9 +87,11 @@ async function briefings(db: Db) {
       const end = new Date(now.start.getTime() + 86_400_000);
       const [e, m] = await Promise.all([events(token, now.start, end), inbox(token)]);
       evs = e.filter((x) => !x.declined);
-      mails = m.length;
-      important = m.filter((x) => x.important).length;
-      mailList = m;
+      // Regras das memórias aprovadas da pessoa (cliente do cron filtrado por user_id).
+      const lista = aplicarRegras(m, await carregarRegrasEmail(db, userId));
+      mails = lista.length;
+      important = lista.filter((x) => x.important).length;
+      mailList = lista;
     } catch { /* sem Google: o briefing sai só com lembretes */ }
     const endOfDay = new Date(now.start.getTime() + 86_400_000).toISOString();
     const { count } = await db.from("reminders").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "pending").lt("due_at", endOfDay);

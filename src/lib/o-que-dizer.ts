@@ -3,7 +3,7 @@
 import type { ViewId } from "./modules.ts";
 
 export const SAY_HERE: Partial<Record<ViewId, string[]>> = {
-  hoje: ["Como está meu dia?", "O que tenho mais tarde hoje?", "Me lembra às 18h de ligar para a mãe", "Adia a tarefa do relatório para amanhã"],
+  hoje: ["Como está meu dia?", "Isso não é importante", "Me lembra às 18h de ligar para a mãe", "Adia a tarefa do relatório para amanhã"],
   conversa: ["Começa uma conversa nova", "Abre a conversa sobre a viagem", "Resume o que falamos", "Desfaz"],
   tarefas: ["Cria a tarefa comprar pão para amanhã", "Conclui a tarefa comprar pão", "Adia a tarefa do relatório para sexta", "Reabre a tarefa do relatório"],
   agenda: ["Marca dentista quinta às 10h", "Muda o dentista para as 11h", "Apaga o evento do dentista", "Como está minha agenda amanhã?"],

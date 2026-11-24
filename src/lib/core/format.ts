@@ -31,12 +31,14 @@ export function fitFacts(base: Omit<CoreResult, "more">, maxFacts: number, maxCh
   return n;
 }
 
-export type SourceItem = { tag: string; kind: AttentionFact["kind"]; label: string; text: string; view: AttentionFact["view"]; href?: string; omitted: boolean };
+export type SourceItem = { tag: string; kind: AttentionFact["kind"]; label: string; text: string; view: AttentionFact["view"]; href?: string; omitted: boolean;
+  /** Remetente bruto do e-mail ("Nome <endereço>"), só quando não foi omitido pela privacidade. */
+  de?: string };
 
 /** Item para a interface: texto curto da origem, sem o prefixo do tipo. */
 export function toItem(f: AttentionFact): SourceItem {
   const text = f.text.includes(": ") ? f.text.slice(f.text.indexOf(": ") + 2) : f.text;
-  return { tag: f.tag, kind: f.kind, label: f.label, text, view: f.view, ...(f.href ? { href: f.href } : {}), omitted: f.omitted };
+  return { tag: f.tag, kind: f.kind, label: f.label, text, view: f.view, ...(f.href ? { href: f.href } : {}), omitted: f.omitted, ...(f.de && !f.omitted ? { de: f.de } : {}) };
 }
 
 /** Item da tela Hoje (UX-2): com a referência da linha quando dá para agir no próprio item (Feito/Adiar).

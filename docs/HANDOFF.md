@@ -68,6 +68,14 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 19:35 · Claude Code + Cursor (Grok Bot), e-mails automáticos fora de "Merece sua atenção" (PR #115)
+- Branch `fix/emails-atencao-memoria`. Causa: a triagem de e-mail não lia as memórias aprovadas. Novo `src/lib/email-regras.ts` (regras das memórias, classificação crítico/importante/normal/baixa, "isso não é importante"), aplicado no Core, `/api/today`, cron do briefing, chat e percepções. Rota `POST /api/email/nao-importante`, botão "Não é importante" no `AttentionCard` e comando local no `GaduApp`. Corrigido o limite das memórias no chat (80 mais novas). Sem migração.
+- **Testado:** typecheck, `npm test`, build. **Não testado:** e2e com login (novo teste em `e2e/auth.e2e.cjs`), Google real, aparelho.
+- **A revisar por outra IA:** os padrões de `regrasDeMemorias` (texto livre em português: conferir com memórias reais), e a regra "manter vence silenciar".
+- **Revisão do Cursor (Grok Bot), 18:45:** diff lido; typecheck e `npm test` (419/419 e 250/250) repetidos; a memória real nº 61 ("e-mails de deploy da Vercel... falhas de CI continuam relevantes") silencia "Failed production deployment" da Vercel e mantém "Run failed" do GitHub. Ajuste: confirmação falada quando o pedido vem por voz.
+- **Lista velha:** não há cache de API (`no-store`; o service worker ignora `/api`). O cartão agora refaz a lista ao voltar para o app (`visibilitychange`) e o service worker foi para `gadu-v7`. Conflitos com #116 e #118 resolvidos mantendo as entradas das duas frentes.
+- **Próximo passo:** merge com CI verde, conferir o deploy e conferir em produção que o e-mail da Vercel sumiu da lista.
+
 ### 23/11/2026 19:10 · Cursor (Grok Bot), publicação do simulador de salário ampliado
 - **Feito por (IA):** Claude Code (código); Cursor (Grok Bot) (revisão, merge e conferência no ar).
 - **Publicado:** PR #116, merge `ed9a20f`, 23/11/2026 às 19:09 (Brasília). CI verde (verify, e2e-public, database, e2e com login). Deploy de produção da Vercel concluído. Conferido: `/api/health` 200, `/api/finance/resumo` 401 sem sessão, CSS de produção com `.sal-diga`.

@@ -16,6 +16,7 @@ import { releaseBudget, reserveBudget, settleBudget } from "@/lib/ai-budget";
 import { acoesPermitidas, avisoFerramentas, ferramentasDe, mesSP, pode, tetoAtingido, type AgenteLimites } from "@/lib/agentes/ferramentas";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
+import { aplicarRegras, carregarRegrasEmail } from "@/lib/email-regras";
 import { accessToken, events, formatEvents, formatMails, GoogleError, googleIntent, inbox } from "@/lib/google";
 import { insights, type InTask } from "@/lib/insights";
 import { ACEITAR, pendentes, type Resposta } from "@/lib/percepcoes";
@@ -203,7 +204,7 @@ export async function POST(request: Request) {
         // 4. Contexto: perfil, memória aprovada, histórico recente, conversas antigas relacionadas e gasto por provedor.
         const [profile, memories, history, related, openTasks, activeProjects, agentRow, projectRow] = await Promise.all([
           supabase.from("profiles").select("display_name, settings").eq("id", user.id).maybeSingle(),
-          supabase.from("memories").select("content, area").eq("status", "approved").order("created_at", { ascending: true }).limit(80),
+          supabase.from("memories").select("content, area").eq("status", "approved").order("created_at", { ascending: false }).limit(80),
           supabase.from("messages").select("role, content").eq("conversation_id", conversationId).order("created_at", { ascending: false }).limit(16),
           relatedQuery(message)
             ? supabase.from("conversations").select("title, summary, updated_at").textSearch("search", relatedQuery(message), { type: "websearch", config: "portuguese" }).not("summary", "is", null).neq("id", conversationId).order("updated_at", { ascending: false }).limit(3)
@@ -215,7 +216,8 @@ export async function POST(request: Request) {
         ]);
         // Agente: só as memórias da área dele e as preferências gerais.
         const agentArea = (agentRow.data as { area?: string } | null)?.area;
-        const memFor = pode(agente, "memoria") ? ((memories.data ?? []) as { content: string; area: string }[]).filter((m) => !agentArea || agentAreas(agentArea).includes(m.area)) : [];
+        // As 80 mais novas (a consulta vem da mais nova para a mais antiga); no prompt voltam em ordem cronológica.
+        const memFor = pode(agente, "memoria") ? ([...(memories.data ?? [])].reverse() as { content: string; area: string }[]).filter((m) => !agentArea || agentAreas(agentArea).includes(m.area)) : [];
         const extras = extrasBlock({
           tasks: ((pode(agente, "tarefas") ? (openTasks.data ?? []) : []) as unknown as { title: string; priority: number; due_date: string | null; projects: { name: string } | null }[])
             .map((t) => ({ title: t.title, priority: t.priority, due_date: t.due_date, project: t.projects?.name ?? null })),
@@ -444,7 +446,7 @@ export async function POST(request: Request) {
             // Agenda do Google só para achar o evento pelo nome (token da própria pessoa, só no servidor).
             calendar: async (from, to) => events(await accessToken(supabase, user.id), from, to),
             // E-mails não lidos só para recalcular as percepções de hoje (ação "percepcao").
-            inbox: async () => inbox(await accessToken(supabase, user.id)),
+            inbox: async () => aplicarRegras(await inbox(await accessToken(supabase, user.id)), await carregarRegrasEmail(supabase, user.id)),
             blocked: (t) => isSensitive(t) || Boolean(blockedTerm(t, blocked)),
           });
           if (actions.length) send({ t: "acoes", items: actions });
@@ -596,10 +598,13 @@ async function googleContext(supabase: Db, userId: string, message: string, bloc
     const start = new Date(Date.UTC(sp.getUTCFullYear(), sp.getUTCMonth(), sp.getUTCDate(), 3));
     const end = new Date(start.getTime() + (want.week ? 7 : 2) * 86_400_000);
     const hide = (t: string) => isSensitive(t) || Boolean(blockedTerm(t, blocked));
-    const [ev, mails] = await Promise.all([
+    const [ev, mailsBrutos, regras] = await Promise.all([
       want.agenda ? events(token, start, end) : Promise.resolve(null),
       want.email ? inbox(token) : Promise.resolve(null),
+      want.email ? carregarRegrasEmail(supabase, userId) : Promise.resolve(null),
     ]);
+    // Regras das memórias aprovadas: notificação automática e e-mails silenciados viram "baixa prioridade".
+    const mails = mailsBrutos && regras ? aplicarRegras(mailsBrutos, regras) : null;
     const parts = [ev ? formatEvents(ev) : "", mails ? formatMails(mails, hide) : ""].filter(Boolean);
     // Insights calculados (conflitos, janela livre, atrasos, e-mails parados): use no briefing e ao priorizar.
     const tips = insights({ events: ev ? ev.filter((e) => !e.declined && e.start < new Date(start.getTime() + 86_400_000).toISOString()) : null, tasks, mails: mails?.filter((m) => !hide(`${m.from} ${m.subject} ${m.snippet}`)) ?? null });

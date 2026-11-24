@@ -162,6 +162,7 @@ export async function inbox(token: string, query = "in:inbox is:unread newer_tha
     return {
       thread: /^[0-9a-f]{6,32}$/i.test(m.threadId ?? "") ? m.threadId : undefined,
       from: h("from").replace(/<[^>]+>/, "").replace(/"/g, "").trim().slice(0, 80) || h("from").slice(0, 80),
+      fromEmail: (/<([^>\s]+@[^>\s]+)>/.exec(h("from"))?.[1] ?? (/^[^\s<>@]+@[^\s<>@]+$/.test(h("from").trim()) ? h("from").trim() : undefined))?.slice(0, 120),
       subject: h("subject").slice(0, 160) || "(sem assunto)",
       snippet: decodeEntities(m.snippet ?? "").slice(0, 220),
       date: h("date"),
