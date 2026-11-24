@@ -84,7 +84,7 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
   const [abrindo, setAbrindo] = useState<string | null>(null);
   // Correção automática de qualidade: no máximo UMA por pedido. `pendente` = peça nova/ajustada ainda não conferida.
   const [analisado, setAnalisado] = useState("");
-  const pendente = useRef<{ scad: string; pedido: string; zAntes: number | null } | null>(null);
+  const pendente = useRef<{ pecaId: string; scad: string; pedido: string; zAntes: number | null } | null>(null);
   const valoresSalvos = useRef("{}");
   const rolarAoAbrir = useRef(false);
   const captura = useRef<Captura | null>(null);
@@ -195,16 +195,20 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
       if (modo === "novo" || !id) {
         const r = await jpost("/api/3d/pecas", { pedido: texto, scad: codigo });
         const j = r.ok ? await r.json() as { peca?: { id: string } } : null;
-        if (!j?.peca?.id) { setAviso("A peça não foi salva. Baixe o arquivo para não perder."); return; }
+        if (!j?.peca?.id) { setAviso("A peça não foi salva. Baixe o arquivo para não perder."); return null; }
         setPecaId(j.peca.id);
         id = j.peca.id;
       } else {
         const r = await jpost(`/api/3d/pecas/${id}/versoes`, { modo, pedido: texto, scad: codigo });
-        if (!r.ok) { setAviso("Esta versão não foi salva. Baixe o arquivo para não perder."); return; }
+        if (!r.ok) { setAviso("Esta versão não foi salva. Baixe o arquivo para não perder."); return null; }
       }
       void carregarLista();
       void carregarVersoes(id);
-    } catch { setAviso("A peça não foi salva. Confira a internet."); }
+      return id;
+    } catch {
+      setAviso("A peça não foi salva. Confira a internet.");
+      return null;
+    }
   }, [carregarLista, carregarVersoes]);
 
   const apagarPeca = async (p: PecaResumo) => {
@@ -254,13 +258,15 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
       setValues(vals);
       setRender({ state: "busy" });
       if (modo === "novo") setPecaId(null);
-      void salvar(modo, texto, body.scad, modo === "novo" ? null : pecaId);
+      const persistencia = salvar(modo, texto, body.scad, modo === "novo" ? null : pecaId);
       if (modo === "novo") { setUltimoPedido(texto); setMesh(null); setReport(null); }
       setAjuste("");
-      // Peça nova ou ajuste da pessoa: confere a qualidade quando montar (uma correção automática, no máximo). A correção em si não confere de novo.
-      pendente.current = auto || modo === "corrigir" ? null : { scad: body.scad, pedido: texto, zAntes };
+      // Aguarda salvar antes de corrigir: o retry deve acrescentar uma versão à peça, mesmo se a malha montar primeiro.
+      pendente.current = null;
       // A peça nova/ajustada fica à vista (a página não pode ficar parada lá embaixo, longe da prévia).
       mostrarPeca(false);
+      const salvo = await persistencia;
+      if (salvo && modo !== "corrigir") pendente.current = { pecaId: salvo, scad: body.scad, pedido: texto, zAntes };
     } catch {
       setErroIA(httpMessage(0, null));
     } finally {
@@ -280,13 +286,13 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
   // Conferência de qualidade depois que a peça da IA montou: UMA correção automática (partes soltas, parede fina, medida que não bate, "N mm mais alto" errado).
   useEffect(() => {
     const p = pendente.current;
-    if (!p || gerando || render.state !== "ok" || !mesh || !report || analisado !== p.scad || scad !== p.scad) return;
+    if (!p || p.pecaId !== pecaId || gerando || render.state !== "ok" || !mesh || !report || analisado !== p.scad || scad !== p.scad) return;
     pendente.current = null;
     const problemas = problemasQualidade({ report, pedido: p.pedido, zAntes: p.zAntes, zDepois: boundingBox(mesh)?.size[2] ?? null });
     if (!problemas.length) return;
     setAviso("Conferi a peça e achei um problema. Pedi uma correção à IA, uma vez só.");
     void pedirIA("corrigir", p.pedido, { erro: mensagemQualidade(problemas) });
-  }, [gerando, render.state, mesh, report, analisado, scad, pedirIA]);
+  }, [gerando, render.state, mesh, report, analisado, scad, pecaId, pedirIA]);
 
   const voltar = () => {
     const prev = anteriores[anteriores.length - 1];
