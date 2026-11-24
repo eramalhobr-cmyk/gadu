@@ -231,6 +231,18 @@ test("peca3d_abrir: sem busca ou 'última' = a mais recente", () => {
   assert.deepEqual(validAcao({ tipo: "peca3d_abrir", busca: "suporte de celular" }, NOW), { tipo: "peca3d_abrir", busca: "suporte de celular" });
 });
 
+test("peca3d_abrir: \"abre a peça do chaveiro\" busca por chaveiro", () => {
+  assert.deepEqual(validAcao({ tipo: "peca3d_abrir", busca: "peça do chaveiro" }, NOW), { tipo: "peca3d_abrir", busca: "chaveiro" });
+  assert.deepEqual(validAcao({ tipo: "peca3d_abrir", busca: "a peça da placa de porta" }, NOW), { tipo: "peca3d_abrir", busca: "placa de porta" });
+  assert.deepEqual(validAcao({ tipo: "peca3d_abrir", busca: "peça" }, NOW), { tipo: "peca3d_abrir", busca: null });
+  assert.deepEqual(validAcao({ tipo: "peca3d_ajustar", busca: "peça do chaveiro", pedido: "2 mm mais alto" }, NOW), { tipo: "peca3d_ajustar", busca: "chaveiro", pedido: "2 mm mais alto" });
+  // Sem limpar o prefixo, "peça do chaveiro" empata com um título que também tem "peça"; por isso o validAcao tira "peça do".
+  const titulos = ["Chaveiro com o nome GADU", "Placa de porta", "Peça de teste"];
+  assert.equal(matchByName(titulos, (t) => t, "peça do chaveiro"), null);
+  assert.equal(matchByName(titulos, (t) => t, "chaveiro"), "Chaveiro com o nome GADU");
+  assert.equal(matchByName(["Chaveiro com o nome GADU", "Placa de porta"], (t) => t, "peça do chaveiro"), "Chaveiro com o nome GADU");
+});
+
 test("teto_definir: valor em reais ou null para tirar", () => {
   assert.deepEqual(validAcao({ tipo: "teto_definir", categoria: "restaurante", valor: "800" }, NOW), { tipo: "teto_definir", categoria: "restaurante", valor: 800 });
   assert.deepEqual(validAcao({ tipo: "teto_definir", categoria: "Lazer", valor: null }, NOW), { tipo: "teto_definir", categoria: "Lazer", valor: null });

@@ -572,4 +572,52 @@ describe("app com login", () => {
     await guia.waitFor({ state: "detached" });
     await p.context().close();
   });
+
+  test("3D Studio no celular: Abrir uma peça salva mostra a prévia, o pedido e as versões", async () => {
+    // Precisa do interruptor ligado no servidor (scripts/e2e-auth-local.sh define MODELING_3D_ENABLED=1 e E2E_3D=1).
+    assert.equal(process.env.E2E_3D, "1", "E2E_3D=1 e MODELING_3D_ENABLED=1 no servidor de teste");
+    const p = await page(PHONE);
+    await p.goto(`${BASE}/app/3d`);
+    const SCAD1 = "lado = 20; // [5:1:50] Lado do cubo (mm)\n$fn = 24;\ncube(lado);";
+    const SCAD2 = "lado = 22; // [5:1:50] Lado do cubo (mm)\n$fn = 24;\ncube(lado);";
+    const criado = await p.evaluate(async ({ scad, pedido }) => {
+      const r = await fetch("/api/3d/pecas", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ pedido, scad }) });
+      const j = await r.json();
+      return { ok: r.ok, status: r.status, id: j?.peca?.id, titulo: j?.peca?.titulo };
+    }, { scad: SCAD1, pedido: "Um cubo de teste de 20 mm" });
+    assert.equal(criado.ok, true, `criar peça: HTTP ${criado.status}`);
+    assert.ok(criado.id, "id da peça");
+    const versao = await p.evaluate(async ({ id, scad }) => {
+      const r = await fetch(`/api/3d/pecas/${id}/versoes`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ modo: "refinar", pedido: "Deixa 2 mm mais alto", scad }) });
+      return { ok: r.ok, status: r.status };
+    }, { id: criado.id, scad: SCAD2 });
+    assert.equal(versao.ok, true, `versão: HTTP ${versao.status}`);
+
+    const aguardarVisivel = (sel) => p.waitForFunction((s) => {
+      const el = document.querySelector(s);
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return r.bottom > 40 && r.top < window.innerHeight - 20 && r.width > 0;
+    }, sel);
+
+    await p.goto(`${BASE}/app/3d`);
+    await p.waitForSelector(".s3d-pecas");
+    await p.getByRole("button", { name: `Abrir ${criado.titulo}` }).click();
+    await p.waitForSelector("#s3d-peca");
+    await p.waitForSelector("#s3d-pedido");
+    await p.waitForSelector("#s3d-versoes");
+    assert.match(await p.locator("#s3d-pedido").innerText(), /cubo de teste de 20 mm/i);
+    assert.match(await p.locator("#s3d-versoes").innerText(), /Versões \(2\)/);
+    assert.match(await p.locator("#s3d-versoes").innerText(), /Deixa 2 mm mais alto/);
+    await aguardarVisivel("#s3d-peca");
+
+    await p.goto(`${BASE}/app/3d?peca=${criado.id}`);
+    await p.waitForSelector("#s3d-peca");
+    await p.waitForSelector("#s3d-pedido");
+    await p.waitForSelector("#s3d-versoes");
+    assert.match(await p.locator("#s3d-pedido").innerText(), /cubo de teste de 20 mm/i);
+    assert.match(await p.locator("#s3d-versoes").innerText(), /Versões \(2\)/);
+    await aguardarVisivel("#s3d-peca");
+    await p.context().close();
+  });
 });
