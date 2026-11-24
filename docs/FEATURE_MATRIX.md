@@ -3,9 +3,9 @@
 **Agenda e voz, em revisão:** criar série diária, semanal, mensal ou anual pela conversa. Conferir frequência, intervalo e total no cartão ou pela voz, antes de gravar.
 
 
-## Piloto de transcrição OpenAI
+## Piloto de transcrição pelo AI Gateway
 
-Estado: teste local preparado. Microfone do GaDu continua no aparelho enquanto a integração opcional e o orçamento não forem verificados. [Plano](PILOTO_VOZ_OPENAI.md).
+Estado: rodada 1 feita em 24/11 (voz sintética, 4 modelos, todos acertaram; `microsoft/mai-transcribe-2` o mais rápido e barato). Falta a rodada com voz real. O microfone do GaDu continua no aparelho. [Plano, decisões e resultados](PILOTO_VOZ_GATEWAY.md).
 
 
 Atualizada em 22/11/2026 (revisão geral: status dos PRs #22, #24, #26 e #30 corrigidos para publicados; 3D por fases; Casa adiada; antes: 14/11/2026, Sprint UX/UI v2.2, PR #16), a partir do código na `main` e de PRs abertos. Status:

@@ -1,62 +1,36 @@
-// Piloto local: uma gravação sintética ou autorizada, sem integrar o chat ou persistir áudio.
-import { open } from "node:fs/promises";
+// Piloto local de transcrição pelo Vercel AI Gateway (decisão de 24/11/2026: Gateway, não chave da OpenAI).
+// Uso: node scripts/piloto-transcricao.mjs [--enviar] [--modelo provedor/modelo] amostra.(wav|mp3)
+// Sem --enviar, só mede o áudio e estima o custo pelo preço ao vivo do Gateway. Não guarda áudio nem transcrição.
+import { readFile } from "node:fs/promises";
+import { cabecalhos, custo, duracaoWav, GATEWAY, MAX_BYTES, tipoAudio } from "./piloto-voz/lib.mjs";
 
 const args = process.argv.slice(2);
-const executar = args[0] === "--enviar";
-const caminho = executar ? args[1] : args[0];
-const MAX = 44 + 20 * 16000 * 2;
-
-async function carregarOnda() {
-  const arquivo = await open(caminho, "r");
-  try {
-    const buffer = Buffer.alloc(MAX + 1);
-    let total = 0;
-    while (total < buffer.length) {
-      const { bytesRead } = await arquivo.read(buffer, total, buffer.length - total, total);
-      if (!bytesRead) break;
-      total += bytesRead;
-    }
-    return buffer.subarray(0, total);
-  } finally {
-    await arquivo.close();
-  }
-}
+const enviar = args.includes("--enviar");
+const iModelo = args.indexOf("--modelo");
+const modelo = iModelo >= 0 ? args[iModelo + 1] : "openai/gpt-transcribe";
+const caminho = args.filter((a, i) => !a.startsWith("--") && !(iModelo >= 0 && i === iModelo + 1)).pop();
 
 async function main() {
-  if (!caminho || args.length !== (executar ? 2 : 1)) {
-    throw new Error("Uso: node scripts/piloto-transcricao.mjs [--enviar] amostra.wav");
-  }
-  const audio = await carregarOnda();
-  if (audio.length <= 44 || audio.length > MAX || audio.length % 2 ||
-      audio.toString("ascii", 0, 4) !== "RIFF" || audio.toString("ascii", 8, 16) !== "WAVEfmt " ||
-      audio.readUInt32LE(4) !== audio.length - 8 || audio.readUInt32LE(16) !== 16 ||
-      audio.readUInt16LE(20) !== 1 || audio.readUInt16LE(22) !== 1 ||
-      audio.readUInt32LE(24) !== 16000 || audio.readUInt32LE(28) !== 32000 ||
-      audio.readUInt16LE(32) !== 2 || audio.readUInt16LE(34) !== 16 ||
-      audio.toString("ascii", 36, 40) !== "data" || audio.readUInt32LE(40) !== audio.length - 44) {
-    throw new Error("Use WAV PCM mono de 16 kHz e 16 bits, de até 20 segundos, sem metadados extras.");
-  }
-  const segundos = (audio.length - 44) / 32000;
-  console.log(`Áudio: ${segundos.toFixed(2)} s. Estimativa de transcrição: US$ ${(segundos * 0.0045 / 60).toFixed(5)}.`);
-  if (!executar) return;
-  const chave = process.env.OPENAI_API_KEY;
-  if (!chave) throw new Error("Configure OPENAI_API_KEY no ambiente de teste para enviar o áudio.");
-  const form = new FormData();
-  form.set("model", "gpt-transcribe");
-  form.set("language", "pt");
-  form.set("file", new Blob([audio], { type: "audio/wav" }), "amostra.wav");
-  const inicio = performance.now();
-  const resposta = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-    method: "POST", headers: { Authorization: `Bearer ${chave}` }, body: form,
-    signal: AbortSignal.timeout(30_000),
+  if (!caminho) throw new Error("Uso: node scripts/piloto-transcricao.mjs [--enviar] [--modelo provedor/modelo] amostra.wav");
+  const audio = await readFile(caminho);
+  const tipo = tipoAudio(audio);
+  if (!tipo || audio.length > MAX_BYTES) throw new Error("Use WAV ou MP3 de até 2 MB.");
+  const precos = Object.fromEntries(((await (await fetch(`${GATEWAY}/v1/models`)).json()).data ?? []).map((m) => [m.id, m.pricing]));
+  const seg = duracaoWav(audio);
+  const est = seg !== null ? custo(seg, precos[modelo]) : null;
+  console.log(`Áudio ${tipo}${seg !== null ? `, ${seg.toFixed(2)} s` : ""}. Modelo ${modelo}.${est !== null ? ` Estimativa: US$ ${est.toFixed(5)}.` : ""}`);
+  if (!enviar) return;
+  const chave = process.env.AI_GATEWAY_API_KEY;
+  if (!chave) throw new Error("Configure AI_GATEWAY_API_KEY (chave do AI Gateway) no ambiente de teste.");
+  const t0 = performance.now();
+  const r = await fetch(`${GATEWAY}/v4/ai/transcription-model`, {
+    method: "POST", headers: cabecalhos(chave, modelo, "transcription"),
+    body: JSON.stringify({ audio: audio.toString("base64"), mediaType: tipo }), signal: AbortSignal.timeout(60_000),
   });
-  if (!resposta.ok) throw new Error(`A OpenAI respondeu com HTTP ${resposta.status}.`);
-  const { text } = await resposta.json();
-  if (typeof text !== "string" || !text.trim()) throw new Error("A resposta não trouxe uma transcrição.");
-  console.log(`Transcrição em ${((performance.now() - inicio) / 1000).toFixed(2)} s: ${text}`);
+  if (!r.ok) throw new Error(`O Gateway respondeu HTTP ${r.status}.`);
+  const j = await r.json();
+  if (typeof j.text !== "string" || !j.text.trim()) throw new Error("A resposta não trouxe transcrição.");
+  console.log(`Transcrição em ${((performance.now() - t0) / 1000).toFixed(2)} s (${j.language ?? "?"}): ${j.text}`);
 }
 
-main().catch((erro) => {
-  console.error(erro.message);
-  process.exitCode = 1;
-});
+main().catch((e) => { console.error(e.message); process.exitCode = 1; });

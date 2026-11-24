@@ -7,11 +7,12 @@
 
 ## Piloto de voz e revisão mobile
 
-- [ ] Comparar transcrição do aparelho e da OpenAI com clipes curtos.
+- [x] Piloto pelo AI Gateway (decisão de 24/11): scripts de comparação e rodada 1 com voz sintética (4 modelos, todos 0% de erro justo; diferença em tempo e custo).
+- [ ] Rodada 2 com voz real do Eduardo (com ruído) e comparação com o microfone do aparelho.
 - [ ] Validar leitura completa, navegação e abertura do Gmail no Android real.
 - [ ] Preparar integração opcional com controle de gasto no servidor.
 
-[Plano do piloto](docs/PILOTO_VOZ_OPENAI.md).
+[Plano, decisões e resultados do piloto](docs/PILOTO_VOZ_GATEWAY.md).
 
 
 Atualizado a cada entrega. Última atualização: 22/11/2026 (revisão geral do plano: plano do 3D por fases, novo ciclo de UX com voz primeiro, Casa Inteligente adiada; antes: Metas, base, **publicada**, PR #30; Finanças, base, PR #26; celular, PRs #28 e #29; Core "atenção hoje", PR #24; segurança P1, PR #22). Produção: https://gadu-agent.vercel.app.

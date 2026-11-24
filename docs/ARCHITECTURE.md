@@ -53,6 +53,7 @@ Migrações versionadas em `supabase/migrations/AAAAMMDDHHMMSS_nome.sql`, nunca 
 - **Adaptadores de modelo.** `src/lib/llm/*`: um provedor novo é um arquivo novo. Independência de provedor de IA.
 - **Streaming de ponta a ponta** e **cache de prompt** (parte estável em cache, memória e data em bloco separado).
 - **Voz no aparelho.** Reconhecimento e síntese do navegador, sem custo. A voz paga futura não muda o servidor de conversa.
+- **Áudio pago pelo AI Gateway (24/11/2026).** Transcrição e voz natural, quando entrarem, passam pelo Vercel AI Gateway (mesma autenticação e registros do chat), com orçamento e cota no servidor como o chat. Escolha do modelo pelo piloto: [PILOTO_VOZ_GATEWAY.md](PILOTO_VOZ_GATEWAY.md).
 - **Memória com aprovação.** O modelo propõe; só o que a pessoa aprova volta ao contexto.
 
 ## Decisões de produto vigentes (oficiais, 13/11/2026)

@@ -20,6 +20,11 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-24 · Piloto de voz pelo AI Gateway · rodada 1 (fora do app)
+- **Feito por:** Claude Code. Branch `feat/piloto-voz-gateway`. **Decisão do Eduardo:** o piloto usa o Vercel AI Gateway em vez da chave da OpenAI.
+- Scripts: `scripts/piloto-voz/gerar-audios.mjs` (clipes de teste com voz sintética), `scripts/piloto-voz/comparar.mjs` (erro de palavras justo e bruto, tempo e custo pelo preço ao vivo) e `scripts/piloto-transcricao.mjs` (agora pelo Gateway). Funções puras com testes em `scripts/piloto-voz/lib.test.mjs`. Nada de áudio no repositório (`.piloto-voz/` ignorada).
+- **Rodada 1:** 4 modelos × 6 frases fictícias, todos com 0% de erro justo; `microsoft/mai-transcribe-2` o mais rápido (0,36 s) e barato (US$ 0,0006 nas 6 frases). Detalhes e limites em `docs/PILOTO_VOZ_GATEWAY.md`. O app não mudou.
+
 ## 2026-11-24 · 3D: criar peça nova pela conversa · **publicado**
 - **Publicado** em 24/11/2026 às 08:58 (Brasília), PR #133, merge `61cbb00`; CI verde (inclui o e2e com login do 3D por voz).
 - **Feito por:** Claude Code. Branch `feat/voz-3d-criar`. Última lacuna real da matriz de voz (seção 11).

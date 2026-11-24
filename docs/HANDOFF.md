@@ -82,6 +82,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 24/11/2026 20:12 · Claude Code, piloto de voz pelo AI Gateway
+- Eduardo aprovou trocar o piloto da OpenAI direta pelo AI Gateway. Decisões, método e resultados em `docs/PILOTO_VOZ_GATEWAY.md` (o plano antigo virou um aviso de substituição); decisão técnica registrada em `docs/ARCHITECTURE.md`.
+- Rodada 1 (voz sintética): 4 modelos sem erro; diferença só de tempo e custo. Chave do Gateway salva como segredo de rede do ambiente Cloud (`ai-gateway.vercel.sh`); Node precisa de `NODE_USE_ENV_PROXY=1`.
+- **Próximo:** rodada com voz real do Eduardo; só então decidir integrar (migração do orçamento com aprovação).
+
 ### 24/11/2026 08:58 · Claude Code, publicação da revisão de voz
 - Publicados: #130 (calendário da Agenda de filhos), #132 (Codex: eventos que se repetem e uma confirmação por ação; série sempre com número de repetições) e #133 (criar peça 3D pela conversa). A matriz de voz não tem mais lacuna além do que exige toque por regra do navegador/Google e do guia de primeiro uso.
 - PRs antigos #121, #120 e #1 fechados com comentário. O Eduardo validou a voz no aparelho.
