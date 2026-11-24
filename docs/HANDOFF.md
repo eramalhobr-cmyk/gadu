@@ -72,6 +72,11 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 24/11/2026 06:58 · Claude Code, Tudo por voz (Agenda de filhos, agentes, termos)
+- Eduardo: a Agenda de filhos não deixava configurar por voz; pediu revisão geral para tudo da tela funcionar por voz, incluindo vários fins de semana seguidos fora da regra.
+- Branch `feat/voz-config` (sobre `fix/android-voltar-gmail`, PR #127): ações `filhos_configurar`, `filhos_mudanca_remover`, `agente_apagar`, `termo_bloquear`/`termo_desbloquear`; trocas de um pedido num cartão só; calendário dos sábados no bloco do chat.
+- **Revisar (outra IA):** frases reais com a IA (o modelo precisa escolher as datas do calendário do bloco); no aparelho, confirmação falada do cartão com várias trocas.
+
 ### 24/11/2026 06:36 · Claude Code, Android: Voltar e links do Gmail
 - Eduardo relatou: Voltar do Android fechava o app; "Abrir e-mail" ia para o Gmail do navegador e não achava o e-mail. Correção em `fix/android-voltar-gmail` (ver CHANGELOG). Sem migração.
 - **Revisar (outra IA):** `navegarTela` com camadas abertas (só troca o endereço para não desalinhar `OverlayHistory`); no aparelho, Voltar do sistema e o botão "App do Gmail".

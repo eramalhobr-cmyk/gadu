@@ -44,6 +44,19 @@ const desfazFilhos = async (p: Promise<Response>) => {
   if (r.ok) atualizaFilhos();
   return r;
 };
+/** Termos bloqueados (Configurações): mesma gravação da tela, em profiles.settings.blocked, pela sessão (RLS). */
+async function salvarTermo(termo: string, bloquear: boolean): Promise<{ error: unknown }> {
+  const db = supabaseBrowser();
+  const { data: auth } = await db.auth.getUser();
+  if (!auth.user) return { error: "auth" };
+  const { data } = await db.from("profiles").select("settings").eq("id", auth.user.id).maybeSingle();
+  const settings = (data?.settings as { blocked?: unknown } | null) ?? {};
+  const atual = Array.isArray(settings.blocked) ? settings.blocked.map(String) : [];
+  const chave = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const blocked = bloquear ? [...new Set([...atual, termo])] : atual.filter((x) => chave(x) !== chave(termo));
+  const { error } = await db.from("profiles").update({ settings: { ...settings, blocked } }).eq("id", auth.user.id);
+  return { error };
+}
 const put = (path: string, body: unknown) => fetch(path, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 const patch = (path: string, body: unknown) => fetch(path, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
@@ -61,6 +74,22 @@ async function capture(a: ChatAction): Promise<Prep | null> {
         return () => desfazFilhos(anterior === null ? fetch(`${filhosApi}/${id}`, { method: "DELETE" }) : postFilhos(tipo, a.sabado, anterior));
       };
       case "filhos_troca_remover": return () => () => desfazFilhos(postFilhos("troca", a.sabado, a.comigo));
+      case "filhos_mudanca_remover": return () => () => desfazFilhos(postFilhos("recorrencia", a.sabado, a.comigo));
+      case "filhos_config": return () => () => desfazFilhos(a.anterior ? put("/api/agenda-filhos", a.anterior) : fetch("/api/agenda-filhos", { method: "DELETE" }));
+      // Várias trocas: o id traz [{id, anterior}] de cada uma, para desfazer todas.
+      case "filhos_trocas": return (r) => {
+        if (!r.id) return undefined;
+        const feitos = JSON.parse(r.id) as { id: string; sabado: string; anterior: boolean | null }[];
+        return async () => {
+          for (const f of feitos) {
+            const res = await backApi(f.anterior === null ? fetch(`${filhosApi}/${f.id}`, { method: "DELETE" }) : postFilhos("troca", f.sabado, f.anterior));
+            if (!res.ok) return res;
+          }
+          atualizaFilhos();
+          return { ok: true };
+        };
+      };
+      case "termo": return () => () => back(salvarTermo(a.termo, !a.bloquear));
       case "lista_compra_adicionar": return (r) => (r.id ? () => desfazLista(fetch(`${listaApi}/${r.id}`, { method: "DELETE" })) : undefined);
       case "lista_compra_status": return () => () => desfazLista(patch(`${listaApi}/${a.id}`, { comprado: !a.comprado }));
       case "tarefa_ok": case "tarefa_cancelar": case "tarefa_reabrir": case "tarefa_adiar": case "tarefa_editar": {
@@ -129,6 +158,34 @@ async function capture(a: ChatAction): Promise<Prep | null> {
 
 async function execute(a: ChatAction): Promise<Result> {
   try {
+    if (a.kind === "filhos_config") {
+      const r = await put("/api/agenda-filhos", { ancora: a.ancora, inicio: a.inicio, fim: a.fim, feriadoSegue: a.feriadoSegue });
+      const result = await api(r, "Não consegui configurar a Agenda de filhos.");
+      if (result.ok) atualizaFilhos();
+      return result;
+    }
+    if (a.kind === "filhos_trocas") {
+      const feitos: { id: string; sabado: string; anterior: boolean | null }[] = [];
+      for (const t of a.itens) {
+        const r = await postFilhos("troca", t.sabado, t.comigo);
+        const result = await api(r, "Não consegui trocar todos os fins de semana.");
+        if (!result.ok) { atualizaFilhos(); return feitos.length ? { ...result, msg: `${result.msg ?? ""} ${feitos.length} de ${a.itens.length} já foram trocados.`.trim() } : result; }
+        const j = await json(r) as { ajuste?: { id?: string }; anterior?: boolean | null };
+        if (j.ajuste?.id) feitos.push({ id: j.ajuste.id, sabado: t.sabado, anterior: j.anterior ?? null });
+      }
+      atualizaFilhos();
+      return { ok: true, id: JSON.stringify(feitos) };
+    }
+    if (a.kind === "filhos_mudanca_remover") {
+      const result = await api(await fetch(`${filhosApi}/${a.id}`, { method: "DELETE" }), "Não consegui desfazer a mudança.");
+      if (result.ok) atualizaFilhos();
+      return result;
+    }
+    if (a.kind === "agente_apagar") return saved(await supabaseBrowser().from("agents").delete().eq("id", a.id).select("id"));
+    if (a.kind === "termo") {
+      const { error } = await salvarTermo(a.termo, a.bloquear);
+      return error ? { ok: false, msg: MSG.save } : { ok: true };
+    }
     if (a.kind === "filhos_troca" || a.kind === "filhos_mudar" || a.kind === "filhos_troca_remover") {
       const r = a.kind === "filhos_troca_remover" ? await fetch(`${filhosApi}/${a.id}`, { method: "DELETE" })
         : await postFilhos(a.kind === "filhos_troca" ? "troca" : "recorrencia", a.sabado, a.comigo);

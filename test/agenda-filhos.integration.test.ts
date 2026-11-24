@@ -117,3 +117,13 @@ test("zod recusa campos a mais, data impossível e user_id no corpo", async () =
   assert.equal((await raiz.GET(req("/api/agenda-filhos?semanas=999"))).status, 400);
   assert.equal(tables.filhos_agenda_config.length, 0);
 });
+
+test("DELETE apaga só a referência da própria pessoa (Desfazer da configuração por voz)", async () => {
+  tables.filhos_agenda_config.push({ user_id: B, ancora: "2026-11-28", inicio: "sexta", fim: "domingo", feriado_segue: true });
+  await raiz.PUT(req("/api/agenda-filhos", "PUT", { ancora: "2026-11-28", inicio: "sexta", fim: "domingo", feriadoSegue: true }));
+  await ajustes.POST(req("/api/agenda-filhos/ajustes", "POST", { tipo: "troca", data: "2026-12-05", comigo: true }));
+  assert.equal((await raiz.DELETE()).status, 200);
+  assert.deepEqual(tables.filhos_agenda_config.map((x) => x.user_id), [B], "a de outra pessoa continua");
+  assert.equal(tables.filhos_agenda_ajustes.length, 1, "ajustes ficam");
+  assert.equal(semFiltroUser, 0);
+});

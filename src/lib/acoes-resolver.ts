@@ -142,14 +142,42 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
 
   let agenda: { config: ConfigFilhos | null; ajustes: AjusteFilhos[] } | null = null;
   const agendaFilhos = async () => (agenda ??= await carregarAgenda(db, userId).catch(() => ({ config: null, ajustes: [] })));
+  // Configuração proposta no MESMO pedido: as trocas seguintes já são calculadas sobre ela.
+  let configNova: ConfigFilhos | null = null;
+  const trocasNoPedido = acoes.filter((x) => x.tipo === "filhos_troca").length;
 
   for (const a of acoes) {
     try {
       switch (a.tipo) {
+        case "filhos_configurar": {
+          if (!opts.agendaFilhos) break;
+          const { config } = await agendaFilhos();
+          const nova: ConfigFilhos = { ancora: sabadoDe(a.data), inicio: a.inicio ?? config?.inicio ?? "sexta", fim: a.fim ?? config?.fim ?? "domingo", feriadoSegue: a.feriado_segue ?? config?.feriadoSegue ?? true };
+          if (config && config.inicio === nova.inicio && config.fim === nova.fim && config.feriadoSegue === nova.feriadoSegue && comigoNo(nova.ancora, config, []).comigo) {
+            misses.push("A Agenda de filhos já está assim. Nada para mudar.");
+            break;
+          }
+          configNova = nova;
+          // O cartão da configuração vem antes das trocas (elas dependem dele).
+          actions.unshift({ kind: "filhos_config", ...nova, anterior: config });
+          break;
+        }
+        case "filhos_mudanca_remover": {
+          if (!opts.agendaFilhos) break;
+          const { ajustes } = await agendaFilhos();
+          const sabado = sabadoDe(a.data);
+          const rec = ajustes.find((x) => x.tipo === "recorrencia" && x.data === sabado);
+          if (rec) actions.push({ kind: "filhos_mudanca_remover", id: rec.id, sabado, comigo: rec.comigo });
+          else misses.push("Não há mudança de alternância começando nesse fim de semana.");
+          break;
+        }
         case "filhos_troca": case "filhos_troca_desfazer": case "filhos_mudar": {
           if (!opts.agendaFilhos) break;
-          const { config, ajustes } = await agendaFilhos();
-          if (!config) { misses.push("Configure primeiro o fim de semana de referência em Agenda de filhos."); break; }
+          const carregada = await agendaFilhos();
+          const config = configNova ?? carregada.config;
+          // Com referência nova no mesmo pedido, as trocas antigas não valem para o cálculo (a troca guardada continua valendo no app).
+          const ajustes = configNova ? carregada.ajustes.filter((x) => x.tipo === "troca") : carregada.ajustes;
+          if (!config) { misses.push("Primeiro preciso saber um fim de semana em que as crianças ficam com você. Me diga qual é, que eu configuro."); break; }
           const sabado = sabadoDe(a.data);
           const atual = comigoNo(sabado, config, ajustes);
           if (a.tipo === "filhos_mudar") { actions.push({ kind: "filhos_mudar", sabado, comigo: a.comigo }); break; }
@@ -160,7 +188,9 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
             break;
           }
           const alvo = a.comigo ?? !atual.comigo;
-          if (alvo === atual.comigo) { misses.push(`Esse fim de semana já está ${alvo ? "com você" : "com o outro responsável"}.`); break; }
+          // Num pedido com vários fins de semana, os que já estão certos ficam quietos (sem cartão e sem aviso).
+          if (alvo === atual.comigo && atual.origem !== "troca") { if (trocasNoPedido <= 1) misses.push(`Esse fim de semana já está ${alvo ? "com você" : "com o outro responsável"}.`); break; }
+          if (alvo === atual.comigo) break;
           actions.push({ kind: "filhos_troca", sabado, comigo: alvo });
           break;
         }
@@ -518,6 +548,23 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           actions.push({ kind: "agente_novo", nome: a.nome, area: area ?? "Pessoal", instrucoes: a.instrucoes ?? "" });
           break;
         }
+        case "agente_apagar": {
+          const ag = matchByName(await agents(), (x) => x.name, a.agente);
+          if (!ag) { misses.push(`Não achei o agente "${a.agente}". Diga o nome como está em Agentes.`); break; }
+          actions.push({ kind: "agente_apagar", id: ag.id, nome: ag.name });
+          break;
+        }
+        case "termo_bloquear": case "termo_desbloquear": {
+          const { data } = await db.from("profiles").select("settings").eq("id", userId).maybeSingle();
+          const lista = Array.isArray((data as { settings?: { blocked?: unknown } } | null)?.settings?.blocked) ? ((data as { settings: { blocked: unknown[] } }).settings.blocked).map(String) : [];
+          const atual = lista.find((x) => norm(x) === norm(a.termo));
+          if (a.tipo === "termo_bloquear") {
+            if (atual) misses.push(`"${atual}" já está bloqueado.`);
+            else actions.push({ kind: "termo", termo: a.termo, bloquear: true });
+          } else if (!atual) misses.push(`"${a.termo}" não está na lista de termos bloqueados.`);
+          else actions.push({ kind: "termo", termo: atual, bloquear: false });
+          break;
+        }
         case "agente_editar": {
           if ((a.nome && blocked(a.nome)) || (a.instrucoes && blocked(a.instrucoes))) break;
           const ag = matchByName(await agents(), (x) => x.name, a.agente);
@@ -577,6 +624,16 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
     } catch {
       misses.push("Não consegui preparar uma das ações agora. Tente de novo.");
     }
+  }
+  // Várias trocas de fim de semana num pedido viram UM cartão (uma confirmação só, também por voz).
+  const trocas = actions.filter((x): x is Extract<ChatAction, { kind: "filhos_troca" }> => x.kind === "filhos_troca");
+  if (trocas.length > 1) {
+    const i = actions.findIndex((x) => x.kind === "filhos_troca");
+    const itens = trocas.map((t) => ({ sabado: t.sabado, comigo: t.comigo })).sort((x, y) => x.sabado.localeCompare(y.sabado)).slice(0, 12);
+    const resto = actions.filter((x) => x.kind !== "filhos_troca");
+    resto.splice(Math.min(i, resto.length), 0, { kind: "filhos_trocas", itens });
+    actions.length = 0;
+    actions.push(...resto);
   }
   return { actions: actions.slice(0, 5), misses: [...new Set(misses)].slice(0, 3) };
 }

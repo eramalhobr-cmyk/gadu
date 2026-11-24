@@ -139,7 +139,7 @@ export function FilhosPage() {
         <EmptyState title="Não consegui abrir a agenda" action={<button className="btn" onClick={() => setRevisao((n) => n + 1)}>Tentar de novo</button>} />
       ) : !dados ? <p role="status">Carregando agenda…</p> : !config ? (
         <Panel title="Comece pela referência" icon="calendar">
-          <p className="muted">Escolha um fim de semana em que as crianças ficam com você. O GaDu alterna a partir dele.</p>
+          <p className="muted">Escolha um fim de semana em que as crianças ficam com você, ou diga, por exemplo: <q>pego na sexta e devolvo na segunda; o fim de semana de 5 de dezembro é comigo</q>. O GaDu alterna a partir dele.</p>
           {formConfig}
         </Panel>
       ) : (

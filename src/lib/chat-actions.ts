@@ -15,6 +15,11 @@ export type GastoDraft = { valor: number; categoria: string; descricao: string; 
 export type EventDraft = { title: string; start: string; end: string; location: string | null };
 
 export type ChatAction =
+  | { kind: "filhos_config"; ancora: string; inicio: "sexta" | "sabado"; fim: "domingo" | "segunda"; feriadoSegue: boolean; anterior: { ancora: string; inicio: "sexta" | "sabado"; fim: "domingo" | "segunda"; feriadoSegue: boolean } | null }
+  | { kind: "filhos_trocas"; itens: { sabado: string; comigo: boolean }[] }
+  | { kind: "filhos_mudanca_remover"; id: string; sabado: string; comigo: boolean }
+  | { kind: "agente_apagar"; id: number; nome: string }
+  | { kind: "termo"; termo: string; bloquear: boolean }
   | { kind: "filhos_troca"; sabado: string; comigo: boolean }
   | { kind: "filhos_troca_remover"; id: string; sabado: string; comigo: boolean }
   | { kind: "filhos_mudar"; sabado: string; comigo: boolean }
@@ -137,6 +142,7 @@ export type ActionView = {
 };
 
 const TZ = "America/Sao_Paulo";
+const ddmmOf = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 const hm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
 
 /** "sábado, 28 de nov · 10:00–11:00". */
@@ -170,6 +176,20 @@ const PERCEPCAO_PERGUNTA: Record<"conflito" | "livre" | "atrasadas" | "email" | 
 
 export function describe(a: ChatAction, now = new Date()): ActionView {
   switch (a.kind) {
+    case "filhos_config": {
+      const quando = `de ${a.inicio === "sexta" ? "sexta" : "sábado"} a ${a.fim}`;
+      return { icon: "calendar", proposed: a.anterior ? "Mudar a referência" : "Configurar a Agenda de filhos", done: "Agenda de filhos configurada", undone: "Descartado", title: `Fim de semana de ${ddmmOf(a.ancora)} com você; daí em diante, alterna toda semana`, detail: `${quando}${a.feriadoSegue ? " · feriado colado segue o fim de semana" : ""}`, confirm: a.anterior ? "Mudar" : "Configurar", busy: "Salvando…", applied: false, open: { label: "Ver Agenda de filhos", view: "filhos" } };
+    }
+    case "filhos_trocas": {
+      const lista = a.itens.map((t) => `${ddmmOf(t.sabado)}: ${t.comigo ? "com você" : "com o outro responsável"}`).join(" · ");
+      return { icon: "calendar", proposed: `Trocar ${a.itens.length} fins de semana`, done: "Fins de semana trocados", undone: "Descartado", title: lista, detail: "Só esses fins de semana mudam; a alternância continua igual.", confirm: "Trocar", busy: "Salvando…", applied: false, open: { label: "Ver Agenda de filhos", view: "filhos" } };
+    }
+    case "filhos_mudanca_remover":
+      return { icon: "calendar", proposed: "Desfazer mudança de alternância", done: "Mudança desfeita", undone: "Descartado", title: `Mudança a partir de ${ddmmOf(a.sabado)}`, detail: "Volta a valer a alternância de antes.", confirm: "Desfazer", busy: "Salvando…", applied: false, open: { label: "Ver Agenda de filhos", view: "filhos" } };
+    case "agente_apagar":
+      return { icon: "agents", proposed: "Apagar agente", done: "Agente apagado", undone: "Descartado", title: a.nome, detail: "As conversas e a memória desse agente também somem.", confirm: "Apagar", busy: "Apagando…", applied: false, open: { label: "Ver Agentes", view: "agentes" } };
+    case "termo":
+      return { icon: "lock", proposed: a.bloquear ? "Bloquear termo" : "Desbloquear termo", done: a.bloquear ? "Termo bloqueado" : "Termo desbloqueado", undone: "Descartado", title: a.termo, detail: a.bloquear ? "O que tiver esse termo fica de fora das respostas e do Hoje." : "Esse termo volta a aparecer.", confirm: a.bloquear ? "Bloquear" : "Desbloquear", busy: "Salvando…", applied: false, open: { label: "Ver Configurações", view: "ajustes" } };
     case "filhos_troca": case "filhos_troca_remover": case "filhos_mudar": {
       const fds = `Fim de semana de ${a.sabado.slice(8, 10)}/${a.sabado.slice(5, 7)}`;
       const quem = (v: boolean) => (v ? "com você" : "com o outro responsável");
@@ -379,6 +399,11 @@ export function splitNavegacao(items: ChatAction[]): { cards: ChatAction[]; dest
 /** Pergunta falada da confirmação (sem o "Diga sim ou não"). */
 export function actionQuestion(a: ChatAction, now = new Date()): string {
   switch (a.kind) {
+    case "filhos_config": return `Configuro a Agenda de filhos com o fim de semana de ${spokenDay(a.ancora, now)} com você, de ${a.inicio === "sexta" ? "sexta" : "sábado"} a ${a.fim}, alternando daí em diante?`;
+    case "filhos_trocas": return `Troco ${a.itens.length} fins de semana: ${a.itens.map((t) => `${spokenDay(t.sabado, now)}, ${t.comigo ? "com você" : "com o outro responsável"}`).join("; ")}?`;
+    case "filhos_mudanca_remover": return `Desfaço a mudança de alternância do fim de semana de ${spokenDay(a.sabado, now)}?`;
+    case "agente_apagar": return `Apago o agente ${a.nome}? As conversas e a memória dele também somem.`;
+    case "termo": return a.bloquear ? `Bloqueio o termo ${a.termo}?` : `Desbloqueio o termo ${a.termo}?`;
     case "filhos_troca": return `Troco o fim de semana de ${spokenDay(a.sabado, now)}, para ficar ${a.comigo ? "com você" : "com o outro responsável"}?`;
     case "filhos_troca_remover": return `Desfaço a troca do fim de semana de ${spokenDay(a.sabado, now)}?`;
     case "filhos_mudar": return `Mudo a alternância a partir do fim de semana de ${spokenDay(a.sabado, now)}, começando ${a.comigo ? "com você" : "com o outro responsável"}?`;

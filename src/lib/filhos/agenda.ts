@@ -116,21 +116,24 @@ export function consultarData(dia: string, cfg: ConfigFilhos, ajustes: AjusteFil
 
 const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 export const DIAS_CURTOS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+const DIAS_LONGOS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 export const rotuloData = (d: string) => `${DIAS_CURTOS[diaDaSemana(d)]} ${ddmm(d)}`;
 
 /** Pergunta sobre a agenda dos filhos ("o fim de semana que vem é meu?", "as crianças ficam comigo no feriado?"). */
 export function pedeFilhos(mensagem: string): boolean {
   const t = mensagem.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   return /\b(filhos?|filhas?|criancas?|meninos?|meninas?|guarda compartilhada|agenda de filhos)\b/.test(t)
-    || /\bfim de semana (que vem |do dia [0-9/]+ )?(e|eh|fica) (meu|comigo)\b/.test(t);
+    || (/\b(fim|fins|final|finais) de semana\b/.test(t) && /\b(meu|comigo|pego|pegar|busco|buscar|fica|ficam|revez\w*|altern\w*|troc\w*|guarda|mae dele|mae dela|pai dele|pai dela)\b/.test(t));
 }
 
 /** Bloco de contexto para o modelo: os próximos fins de semana e feriados próximos, com a regra. Só fatos calculados. */
 export function blocoFilhos(cfg: ConfigFilhos | null, ajustes: AjusteFilhos[], hoje: string): string {
-  if (!cfg) return "AGENDA DE FILHOS: ainda não configurada. Diga que a pessoa escolhe o fim de semana de referência em Mais → Agenda de filhos; não invente datas.";
+  const proximos = Array.from({ length: 10 }, (_, i) => somaDias(sabadoDe(hoje), 7 * i)).map((s) => `sáb ${ddmm(s)} (${s})`).join(", ");
+  const calendario = `Hoje é ${DIAS_LONGOS[diaDaSemana(hoje)]}, ${ddmm(hoje)} (${hoje}). Sábados dos próximos fins de semana, em ordem: ${proximos}. O primeiro da lista é o fim de semana em curso (ou o que vem primeiro, num dia de semana); o que já passou foi o de sáb ${ddmm(somaDias(sabadoDe(hoje), -7))}.`;
+  if (!cfg) return `AGENDA DE FILHOS: ainda não configurada. ${calendario}\nSe a pessoa contar com quem as crianças estão, PROPONHA a configuração pela ação "filhos_configurar" (um fim de semana com ela, mais início e fim); não mande ir para a tela. Não invente datas.`;
   const fs = fimsDeSemana(hoje, 8, cfg, ajustes).map((f) =>
     `- ${rotuloData(f.de)} a ${rotuloData(f.ate)}: ${f.comigo ? "com você" : "com o outro responsável"}${f.origem === "troca" ? " (troca)" : ""}${f.feriados.length ? ` · feriado: ${f.feriados.map((x) => `${x.nome} ${ddmm(x.data)}`).join(", ")}${cfg.feriadoSegue ? " (segue o fim de semana)" : ""}` : ""}`);
   const feriados = [...feriadosNacionais(+hoje.slice(0, 4)), ...feriadosNacionais(+hoje.slice(0, 4) + 1)].filter((f) => f.data >= hoje && f.data <= somaDias(hoje, 90))
     .map((f) => { const c = consultarData(f.data, cfg, ajustes); return `- ${rotuloData(f.data)} ${f.nome}: ${c.comigo === null ? "sem regra (dia de semana)" : c.comigo ? "com você" : "com o outro responsável"}`; });
-  return `AGENDA DE FILHOS (calculada pelo app; hoje é ${ddmm(hoje)}; responda só com isto, sem inventar):\nPróximos fins de semana:\n${fs.join("\n")}${feriados.length ? `\nFeriados nacionais nos próximos 90 dias:\n${feriados.join("\n")}` : ""}`;
+  return `AGENDA DE FILHOS (calculada pelo app; responda só com isto, sem inventar). ${calendario}\nReferência atual: fim de semana de ${ddmm(cfg.ancora)} com você, de ${cfg.inicio} a ${cfg.fim}${cfg.feriadoSegue ? ", feriado colado segue o fim de semana" : ""}.\nPróximos fins de semana:\n${fs.join("\n")}${feriados.length ? `\nFeriados nacionais nos próximos 90 dias:\n${feriados.join("\n")}` : ""}`;
 }
