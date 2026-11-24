@@ -12,14 +12,15 @@ Regras obrigatórias:
    arredondar = true; // [true] Bordas arredondadas
    Todo número ajustável tem [mínimo:passo:máximo] e um rótulo curto em português. Nomes em português, sem acentos.
 4. Depois dos parâmetros: módulos e a peça. Comentários em português.
-5. Parede mínima de 1,2 mm. Nenhuma dimensão acima de 256 mm. Use $fn entre 24 e 96.
+5. Parede, nervura, reforço, ponta de gancho, margem entre furo e borda e o TRAÇO do texto em relevo: no mínimo 1,2 mm (bico 0.4), a menos que a pessoa peça mais fino. Nenhuma dimensão acima de 256 mm. Use $fn entre 24 e 96.
 6. Sem include, use, import, surface ou qualquer arquivo externo.
-7. Peça única, sólida e fechada (sem faces soltas), com no máximo ${SCAD_MAX} caracteres.
-8. Eixos: X = largura (ou comprimento), Y = profundidade, Z = altura, de baixo para cima a partir da mesa. "Altura", "alto", "mais alto", "mais baixo" e "mais grosso" SEMPRE mudam o eixo Z. O parâmetro do eixo Y se chama profundidade (nunca altura).
-9. Texto em relevo: text() com font = "Liberation Sans" ou font = "Liberation Sans:style=Bold" (as únicas fontes que existem), com linear_extrude, saindo da face de cima (somado com union) ou gravado nela (difference).
-10. Código enxuto: até cerca de 120 linhas, comentários curtos, sem blocos repetidos (use for e módulos). Termine sempre a peça inteira.`;
+7. Peça única, sólida e fechada (sem faces soltas), com no máximo ${SCAD_MAX} caracteres. Todas as partes entram num só union() e se sobrepõem 0,1 a 0,2 mm: nada solto ou flutuando, nenhum triângulo de papel (extrusões e rotate alinhadas ao Y da peça, confira o intervalo de cada eixo). Só caixa e tampa podem ficar separadas, lado a lado na mesa.
+8. Eixos: X = largura (ou comprimento), Y = profundidade, Z = altura, de baixo para cima a partir da mesa. "Altura", "alto", "mais alto", "mais baixo" e "mais grosso" SEMPRE mudam o eixo Z. O parâmetro do eixo Y se chama profundidade (nunca altura). "N mm mais alto/baixo" muda o Z TOTAL da peça em N mm: mexa no parâmetro da altura geral (ou no comprimento do apoio inclinado, para o Z subir N mm), nunca só numa aba, ranhura ou relevo.
+9. Texto em relevo: text() com font = "Liberation Sans" ou font = "Liberation Sans:style=Bold" (as únicas fontes que existem), com linear_extrude, saindo da face de cima (somado com union) ou gravado nela (difference). Prefira "Liberation Sans:style=Bold", size 9 ou mais (ou offset(delta=0.3)) para o traço passar de 1,2 mm.
+10. Código enxuto: até cerca de 120 linhas, comentários curtos, sem blocos repetidos (use for e módulos). Termine sempre a peça inteira.
+11. As medidas pedidas aparecem na peça: altura, largura, comprimento e profundidade são medidas EXTERNAS e o parâmetro com esse nome é igual ao tamanho da parte correspondente. Caixa com tampa lado a lado: o corpo tem a altura pedida (não altura − tampa).`;
 
-export type PromptInput = { modo: "novo" | "refinar" | "corrigir"; pedido: string; scad?: string; erro?: string; comImagem?: boolean };
+export type PromptInput = { modo: "novo" | "refinar" | "corrigir"; pedido: string; scad?: string; erro?: string; comImagem?: boolean; causa?: "render" | "qualidade" };
 
 /** Texto livre da pessoa dentro de delimitadores, para o modelo tratá-lo como dado, não como regra. */
 const fence = (label: string, text: string) => `<${label}>\n${text.replace(/<\/?[a-z_]+>/gi, " ")}\n</${label}>`;
@@ -32,6 +33,7 @@ export function buildPrompt(i: PromptInput): string {
   if (i.modo === "novo") return `${SCAD_RULES}\n\nPedido da pessoa:\n${fence("pedido", pedido)}\n\nEscreva o código OpenSCAD.`;
   const atual = `Código atual:\n${fence("codigo", (i.scad ?? "").slice(0, SCAD_MAX))}`;
   if (i.modo === "refinar") return `${SCAD_RULES}\n\n${atual}${i.comImagem ? `\n\n${IMAGEM_NOTA}` : ""}\n\nAltere o código conforme este pedido, mantendo os parâmetros que continuam valendo:\n${fence("pedido", pedido)}\n\nDevolva o código completo e atualizado.`;
+  if (i.causa === "qualidade") return `${SCAD_RULES}\n\n${atual}\n\nO código renderiza, mas a peça montada falhou nestas conferências (medidas feitas na malha real):\n${fence("erro", (i.erro ?? "").slice(0, 1500))}\n\nPedido original da pessoa: ${fence("pedido", pedido)}\n\nCorrija SÓ esses problemas, mantendo o pedido, os parâmetros e o resto da peça, e devolva o código completo.`;
   return `${SCAD_RULES}\n\n${atual}\n\nO OpenSCAD não conseguiu renderizar esse código. Mensagem de erro:\n${fence("erro", (i.erro ?? "").slice(0, 1500))}\n\nPedido original da pessoa: ${fence("pedido", pedido)}\n\nCorrija o erro e devolva o código completo.`;
 }
 

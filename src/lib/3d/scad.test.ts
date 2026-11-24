@@ -75,7 +75,23 @@ test("regras: altura = Z, texto com Liberation Sans, código enxuto; nova tentat
   assert.match(SCAD_RULES, /profundidade \(nunca altura\)/);
   assert.match(SCAD_RULES, /Liberation Sans/);
   assert.match(SCAD_RULES, /120 linhas/);
+  assert.match(SCAD_RULES, /TRAÇO do texto/);
+  assert.match(SCAD_RULES, /union\(\)/);
+  assert.match(SCAD_RULES, /Z TOTAL/);
+  assert.match(SCAD_RULES, /não altura/);
   const p = buildRetryPrompt({ modo: "novo", pedido: "caixa 80 x 60 x 40" });
   assert.match(p, /caixa 80 x 60 x 40/);
   assert.match(p, /foi cortada no meio/);
+});
+
+test("regras e prompt: correção de qualidade e causa no corpo da rota", () => {
+  const q = buildPrompt({ modo: "corrigir", pedido: "caixa 80 x 60 x 40", scad: "altura = 40;\ncube(1);", erro: "altura em 40 mm, mas a peça mede 28 mm", causa: "qualidade" });
+  assert.match(q, /conferências/);
+  assert.match(q, /28 mm/);
+  assert.match(q, /caixa 80 x 60 x 40/);
+  const r = buildPrompt({ modo: "corrigir", pedido: "caixa", scad: "cube(", erro: "ERROR: Parser error" });
+  assert.match(r, /não conseguiu renderizar/i);
+  assert.ok(GenerateBody.safeParse({ modo: "corrigir", pedido: "x", scad: "cube(1);", erro: "parede fina", causa: "qualidade" }).success);
+  assert.ok(!GenerateBody.safeParse({ modo: "refinar", pedido: "x", scad: "cube(1);", causa: "qualidade" }).success, "causa só na correção");
+  assert.ok(!GenerateBody.safeParse({ modo: "novo", pedido: "x", causa: "qualidade" }).success);
 });
