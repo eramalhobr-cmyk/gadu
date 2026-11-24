@@ -125,6 +125,7 @@ describe("app com login", () => {
     await p.click(".attn-i [aria-label^='Feito']");
     await p.waitForSelector(".undo-toast >> text=Desfazer");
     assert.equal(await p.$(".attn-i >> text=Tarefa fictícia de teste"), null, "some da lista");
+    await p.getByText("Entre os e-mails recentes consultados", { exact: false }).waitFor();
     await p.click(".undo-toast >> text=Desfazer");
     await p.waitForSelector(".attn-i >> text=Tarefa fictícia de teste");
     assert.equal(patches.length, 2, "gravou e desfez");
