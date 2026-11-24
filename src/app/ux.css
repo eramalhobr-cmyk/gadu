@@ -40,9 +40,10 @@
 .attn-i .grow { flex: 1 1 calc(100% - 56px); }
 .attn-acts { display: flex; gap: var(--s-2); flex: 1 1 100%; justify-content: flex-end; }
 .attn-acts .btn { min-width: 96px; justify-content: center; }
-.attn-i.one { flex-wrap: nowrap; align-items: center; }
-.attn-i.one .grow { flex: 1; }
-.attn-i.one .attn-acts { flex: none; }
+/* Uma linha quando cabe; no celular, se o texto ficaria espremido (menos de ~10rem), os botões descem para a linha de baixo. */
+.attn-i.one { flex-wrap: wrap; align-items: center; }
+.attn-i.one .grow { flex: 1 1 10rem; }
+.attn-i.one .attn-acts { flex: 0 0 auto; margin-left: auto; }
 .attn-i.one .attn-acts .btn { min-width: 0; }
 @media (min-width: 720px) { .attn-i { flex-wrap: nowrap; align-items: center; } .attn-i .grow { flex: 1; } .attn-acts { flex: none; } }
 .undo-toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-h) + var(--safe-b) + var(--s-4)); z-index: var(--z-assist); display: flex; align-items: center; gap: var(--s-3); max-width: calc(100vw - 32px); padding: var(--s-2) var(--s-2) var(--s-2) var(--s-4); border-radius: var(--r-lg); background: var(--ink); color: var(--bg); font-size: var(--fs-md); box-shadow: 0 8px 24px rgb(var(--shadow-rgb) / 0.4); }

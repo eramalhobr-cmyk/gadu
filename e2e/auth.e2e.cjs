@@ -47,6 +47,9 @@ describe("app com login", () => {
         if (ox > 0) problems.push(`${w}px ${tab}: rolagem lateral ${ox}px`);
         const small = await smallTargets(p);
         if (small.length) problems.push(`${w}px ${tab}: ${small.join(", ")}`);
+        // Texto de cartão espremido pelos botões (uma palavra por linha): mínimo de 120 px.
+        const apertados = await p.$$eval(".row-i .wrap-t", (els) => els.filter((e) => e.offsetParent && e.getBoundingClientRect().width < 120).map((e) => e.textContent.slice(0, 30)));
+        if (apertados.length) problems.push(`${w}px ${tab}: texto espremido: ${apertados.join(" | ")}`);
       }
       await p.context().close();
     }
