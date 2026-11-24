@@ -19,6 +19,7 @@ Este é o caderno de passagem de bastão entre as IAs que programam o GaDu (Clau
 ## Em andamento (atualize ao começar e ao terminar)
 | Frente | IA | Branch | Situação |
 |---|---|---|---|
+| Ciclo de novembro: Lista de compras e Compras | Claude Code (e Codex na Lista) | `feat/codex-lista-compras` (#123), `feat/compras-pedidos` | Migração da Lista **aplicada** em 23/11. #123 à espera do e2e público. Compras pronta e testada, PR em seguida. Agenda de filhos não começou |
 | Ciclo UX (UX-1 a UX-4) e Tudo por voz | Cursor (Grok Bot) e Claude Code | — | **UX-4 (PRs #52 a #55) e UX-5 (PRs #58 a #60) publicados em 23/11 pelo Claude Code**; UX-1 a UX-3 e Tudo por voz **publicados** (PRs #34, #35, #36, #38, #39, #42 em 22/11; lacunas da matriz fechadas em 23/11 pelos PRs #47 a #50). Próximo: validar com a IA real e no aparelho, lacunas que restam na seção 11 e UX-6 |
 | Financeiro: simulador de salário | Claude Code | `feat/financas-simulador-bruto-liquido` (worktree `/workspace/gadu-simulador`) | básico **publicado** em 23/11 (PR #63). Ampliação (outras deduções, benefícios, 13º, férias, voz sem modelo) **publicada** em 23/11 às 19:09 (PR #116, merge `ed9a20f`, CI verde, deploy conferido). Falta tela em aparelho e a frase por voz com pessoa logada |
 | Metas fase 2 (projetos e agenda) | Claude Code e Cursor | — | **publicada** em 23/11: #85 migração (aplicada 13:11), #86 projetos (13:29), #87 agenda (13:43). Falta validar com Google real e no aparelho. Antes: migração `20261123170001` **aplicada** (Cursor, 23/11). Etapa 2a (projetos: tela, rotas, `meta_projeto`, Core) em PR; etapa 2b (agenda: `meta_agenda`) em seguida |
@@ -68,6 +69,12 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 - [ ] **Validação com login no aparelho** de tudo o que foi publicado em 22/11 (pendência humana, com o Eduardo).
 
 ## Diário (mais recente no topo)
+
+### 23/11/2026 22:45 · Claude Code, ciclo de novembro (Lista de compras, Saúde, Compras)
+- **Publicado:** #117 (Saúde do sistema) e #122. Migração da Lista de compras **aplicada em produção** (~22:28; RLS, 6 políticas, S-05, anon sem acesso).
+- **#123 (Lista, Codex):** apliquei o padrão S-05 (restritivas separadas), entrada na suíte de isolamento e contagens do `85_s05`. CI: verify, database, e2e-auth verdes; o `e2e-public` foi **cancelado por tempo** baixando pacotes do Ubuntu (antes de rodar teste). Não consegui re-executar daqui (403). O PR de Compras contém o #123 inteiro e roda o mesmo e2e público.
+- **Compras (`feat/compras-pedidos`):** tela, rota, bloco do chat e navegação por voz prontos; testes locais verdes. Sem migração. `COMPRAS_ENABLED=0` desliga.
+- **Próximo:** merge do #123 com CI verde, depois o PR de Compras; conferir em produção. Agenda de filhos espera aprovação de migração.
 
 ### 23/11/2026 21:38 · Codex, revisão da Saúde do sistema (PR #117)
 - Atualizei a branch com a `main` em `cb8638d`, preservando a triagem de e-mails e os comandos locais de Saúde.

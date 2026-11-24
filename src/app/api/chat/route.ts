@@ -40,7 +40,6 @@ import { collectFinance, financeProposalRules, formatFinanceBlock } from "@/lib/
 import { financeEnabled } from "@/lib/finance/flag";
 import { modeling3dEnabled } from "@/lib/3d/flag";
 import { comprasEnabled } from "@/lib/compras/flag";
-import { carregarPedidos } from "@/lib/compras/carregar";
 import { blocoCompras, diaSP, pedeCompras, SITUACAO_TEXTO } from "@/lib/compras/pedidos";
 import { blocoSalario, calcularPedido, pedeSalvarSalario, pedidoSalario, resumoSalario } from "@/lib/finance/salario-texto";
 import { hojeSP, isoDia } from "@/lib/finance/datas";
@@ -319,6 +318,7 @@ export async function POST(request: Request) {
         let comprasBlock = "";
         if (!coreBlock && !finIntent && !goalsIntent && comprasEnabled() && pode(agente, "email") && pedeCompras(message)) {
           try {
+            const { carregarPedidos } = await import("@/lib/compras/carregar");
             const { pedidos } = await carregarPedidos(supabase, user.id);
             comprasBlock = `\n\n${blocoCompras(pedidos, diaSP(new Date()))}`;
             coreSources = {

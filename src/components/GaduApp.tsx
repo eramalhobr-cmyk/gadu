@@ -6,6 +6,7 @@ import { ConfirmSheet } from "./ConfirmSheet";
 import type { ActionView, ChatAction, EventDraft, GastoDraft } from "@/lib/chat-actions";
 import type { Ajuste } from "@/lib/acoes";
 import { ListaComprasPage } from "./ListaComprasPage";
+import { ComprasPage } from "./ComprasPage";
 import { actionQuestion, describe, splitNavegacao } from "@/lib/chat-actions";
 import { GIVE_UP_LINE, parseAnswer, resultLine, RETRY_LINE } from "@/lib/voice-confirm";
 import { SourcesDetail, type SourcesData } from "./SourcesDetail";
@@ -113,6 +114,8 @@ export function GaduApp(props: {
   /** GOALS_ENABLED: false esconde a tela Metas, o módulo na navegação e o resumo do Hoje. */
   goalsEnabled: boolean;
   listaComprasEnabled: boolean;
+  /** COMPRAS_ENABLED=0: esconde a tela Compras (pedidos lidos do e-mail). */
+  comprasEnabled: boolean;
   /** MODELING_3D_ENABLED=1: mostra a entrada "3D" (Beta) em Mais. Desligado por padrão. */
   modeling3dEnabled?: boolean;
   seenTips: string[];
@@ -903,7 +906,7 @@ export function GaduApp(props: {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  const PALETA_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "lista_compras", "projetos", "memoria", "agentes", "studio3d", "ajustes", "perfil", "integracoes", "modulos"];
+  const PALETA_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "lista_compras", "compras", "projetos", "memoria", "agentes", "studio3d", "ajustes", "perfil", "integracoes", "modulos"];
   const runPaleta = (it: PaletaItem) => {
     setPaleta(false);
     if (it.kind === "tela") { if (it.view === "studio3d") window.location.href = "/app/3d"; else setTab(it.view); return; }
@@ -1021,7 +1024,7 @@ export function GaduApp(props: {
 
   /** Tela que acende no menu: Perfil e Integrações são a mesma tela de Configurações. */
   const current = view ? canonicalView(view) : null;
-  const hidden = (v: ViewId) => (v === "financeiro" && !props.financeEnabled) || (v === "metas" && !props.goalsEnabled) || (v === "lista_compras" && !props.listaComprasEnabled);
+  const hidden = (v: ViewId) => (v === "financeiro" && !props.financeEnabled) || (v === "metas" && !props.goalsEnabled) || (v === "lista_compras" && !props.listaComprasEnabled) || (v === "compras" && !props.comprasEnabled);
   navHiddenRef.current = (v: ViewId) => hidden(v) || (v === "studio3d" && !props.modeling3dEnabled) || (v === "admin" && !props.admin);
   setTabRef.current = setTab;
   /** Menu lateral do computador: os mesmos nomes do celular, agrupados por áreas como a tela Mais (UX-7). Sem planejados. */
@@ -1199,9 +1202,10 @@ export function GaduApp(props: {
         {(view === "tarefas" || view === "projetos") && <ProjectsPage key={`pp-${view}`} initialView={view} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
         {view === "agenda" && <AgendaView onBack={() => setTab("hoje")} />}
         {view === "modulos" && <ModulesHub onOpen={setTab} onHistory={() => setDrawer(true)} pending={pending} admin={props.admin} name={name} email={props.email}
-          hide={[...(props.financeEnabled ? [] : ["financeiro" as const]), ...(props.goalsEnabled ? [] : ["metas" as const]), ...(props.listaComprasEnabled ? [] : ["lista_compras" as const])]} show3d={Boolean(props.modeling3dEnabled)} />}
+          hide={[...(props.financeEnabled ? [] : ["financeiro" as const]), ...(props.goalsEnabled ? [] : ["metas" as const]), ...(props.listaComprasEnabled ? [] : ["lista_compras" as const]), ...(props.comprasEnabled ? [] : ["compras" as const])]} show3d={Boolean(props.modeling3dEnabled)} />}
         {view === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
         {view === "lista_compras" && props.listaComprasEnabled && <ListaComprasPage />}
+        {view === "compras" && props.comprasEnabled && <ComprasPage />}
         {view === "financeiro" && props.financeEnabled && <FinanceiroPage />}
         {view === "metas" && props.goalsEnabled && <MetasPage onAsk={(q) => { if (q.endsWith(" ")) { setDraft(q); openAssist(true); } else { speaker?.unlock(); openAssist(true); void send(q); } }} onOpenTasks={() => setTab("tarefas")} />}
         {view && isOverview(view) && <ModulePage id={moduleOf(view).id} onOpen={setTab} />}

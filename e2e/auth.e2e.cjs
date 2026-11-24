@@ -102,6 +102,36 @@ describe("app com login", () => {
     }
   });
 
+  test("Compras no celular: pedidos lidos do e-mail, entrega de hoje e Google desconectado", async () => {
+    const p = await page(PHONE);
+    try {
+      // /api/compras simulado com dados sintéticos: o teste nunca lê e-mail real.
+      const hoje = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
+      const pedido = (o) => ({ chave: o.numero, loja: "Loja Exemplo", numero: o.numero, situacao: o.situacao, previsao: o.previsao ?? null, rastreio: o.rastreio ?? null, atualizadoEm: new Date().toISOString(), emails: 1, thread: "t" + o.numero, assunto: "Pedido " + o.numero });
+      const a = pedido({ numero: "111111", situacao: "enviado", previsao: hoje, rastreio: "AB123456789BR" });
+      const b = pedido({ numero: "222222", situacao: "confirmado" });
+      let conectado = true;
+      await p.route("**/api/compras", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(conectado
+        ? { connected: true, hoje, pedidos: [a, b], calendario: { dias: [{ dia: hoje, pedidos: [a] }], semPrevisao: [b] }, omitidos: 1 }
+        : { connected: false, error: "not_connected" }) }));
+      await p.goto(`${BASE}/app?tab=modulos`);
+      await p.getByRole("button", { name: /^Compras/ }).click();
+      await p.getByText("Pedido 111111", { exact: false }).first().waitFor();
+      assert.match(p.url(), /tab=compras/);
+      await p.getByText("Próximas entregas").waitFor();
+      await p.getByText("Sem previsão no e-mail").first().waitFor();
+      assert.ok(await p.getByRole("button", { name: "Copiar o código de rastreio AB123456789BR" }).isVisible(), "rastreio a um toque");
+      await p.getByText("1 e-mail ficou de fora", { exact: false }).waitFor();
+      assert.equal(await overflowX(p), 0, "sem rolagem lateral no celular");
+      assert.deepEqual(await smallTargets(p), [], "alvos de 44 px");
+      conectado = false;
+      await p.reload();
+      await p.getByRole("link", { name: "Conectar o Google" }).waitFor();
+    } finally {
+      await p.context().close();
+    }
+  });
+
   test("barra de baixo e tela Mais: só o que funciona, planejados numa linha Em breve", async () => {
     const p = await page(PHONE);
     await p.goto(`${BASE}/app?tab=hoje`);

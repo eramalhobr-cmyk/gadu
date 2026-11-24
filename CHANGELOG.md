@@ -9,6 +9,17 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · Compras: pedidos e entregas lidos do e-mail · desenvolvido e testado
+- **Feito por:** Claude Code. Branch `feat/compras-pedidos`. Escopo do plano do ciclo (`docs/PLANO_CICLO_COMPRAS_FAMILIA.md`, PR #121): Compras acompanha pedidos já feitos; a Lista de compras (abaixo) é outra coisa.
+- **Mais → Compras:** pedidos dos últimos 45 dias lidos do Gmail com o token da própria pessoa (só leitura, nada gravado, sem tabela nova). Agrupa por loja e número (ou pela conversa), mostra a situação mais avançada, previsão de entrega (só quando o e-mail diz), rastreio a um toque e "Abrir e-mail". Bloco "Próximas entregas" por dia (Hoje, Amanhã, dia da semana) e "Sem previsão no e-mail".
+- **Privacidade:** e-mail sensível (`isSensitive`) ou com termo bloqueado em Ajustes fica de fora e só aparece como contagem.
+- **Pela conversa:** "Quando chega meu pedido?", "Tem alguma entrega hoje?" trazem os pedidos com etiquetas [C1]… e Fontes; sem pedidos, o GaDu diz isso e não inventa. "Abre minhas compras" navega. Frases da lista de mercado e de gasto não acionam a leitura de e-mail (teste).
+- **Interruptor** `COMPRAS_ENABLED=0` esconde a tela, a rota e o bloco do chat (ligado por padrão). Sem migração.
+- **Testes (máquina local):** `npm run typecheck`; `npm test` (unitários 473/473, integração 282/282, com `src/lib/compras/*.test.ts` e `test/compras.integration.test.ts`: sessão obrigatória, token só da sessão, nada gravado, termo bloqueado, Google desconectado × revogado); `npm run build`; `bash scripts/test-db.sh`. e2e com login a 390 px escrito (Mais → Compras, rastreio, omitidos, Google desconectado, sem rolagem lateral e alvos de 44 px), roda no CI. **Não testado:** Gmail real (lojas reais variam o formato dos e-mails).
+
+## 2026-11-23 · Lista de compras · migração aplicada, código em PR
+- **Feito por:** Codex (código, PR #123) e Claude Code (padrão S-05 nas políticas, suíte de isolamento, aplicação da migração). **Migração `20261124010001_lista_compras.sql` aplicada em produção** em 23/11/2026 ~22:28 (Brasília) com aprovação do Eduardo; conferido: RLS ligado, 6 políticas (4 por pessoa + 2 restritivas S-05), `anon` sem acesso. O código entra com o merge do #123 (`LISTA_COMPRAS_ENABLED=0` desliga).
+
 ## 2026-11-23 · Monitoramento e alerta de erro · desenvolvido e testado
 - **Feito por:** Claude Code (código) e Cursor (Grok Bot) (revisão, testes e publicação). O Claude Code começou a implementação e parou no limite de 5 h (18:47, Brasília); o Cursor concluiu a revisão e os testes.
 - Captura do servidor unificada em `capturarErroServidor` (rotas de API, IA, 3D e cron, inclusive erro tratado que responde 500/502/504; sem sessão, `user_id` nulo depois da migração). Continua a captura do navegador (error boundary, `onerror`, `unhandledrejection`, com limite de taxa).

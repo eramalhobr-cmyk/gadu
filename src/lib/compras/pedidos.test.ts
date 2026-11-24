@@ -98,3 +98,8 @@ test("conversa: detecta perguntas de compras e monta o bloco com origem, sem inv
   const b = blocoCompras(ps, "2026-11-24");
   assert.match(b, /\[C1\] Loja Exemplo · pedido 800001 · A caminho · previsão: hoje/);
 });
+
+test("pedeCompras não confunde lista de mercado nem gasto com pedido online", () => {
+  for (const m of ["Coloca café na lista de compras", "Abre a lista de compras", "Gastei 50 reais em compras no mercado"]) assert.equal(pedeCompras(m), false, m);
+  for (const m of ["Quando chega meu pedido?", "Tem alguma entrega hoje?", "Minhas compras chegaram?"]) assert.equal(pedeCompras(m), true, m);
+});

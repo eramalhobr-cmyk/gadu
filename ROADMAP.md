@@ -476,6 +476,15 @@ Proposta completa (17 itens), com o levantamento das skills de design no GitHub,
 - [x] **G3** design system v2: vitrine `/design` (desligada em produção) e testes visuais no CI (contraste, 44 px, sem rolagem lateral, comparação com referência em claro/escuro, 390/1440)
 - [ ] **G4** logo novo (espera o arquivo) · direção escolhida: G2 JARVIS (23/11, 16:33)
 
+## Ciclo de novembro · compras e família (plano em docs/PLANO_CICLO_COMPRAS_FAMILIA.md)
+- [x] Saúde do sistema: monitoramento e alerta de erro (PR #117, publicado em 23/11; migração aplicada)
+- [x] Lista de compras: migração aplicada em produção (23/11)
+- [ ] Lista de compras: merge do PR #123 e conferência em produção
+- [ ] Compras: pedidos e entregas pelo Gmail (branch `feat/compras-pedidos`, testado; PR a abrir)
+- [ ] Agenda de filhos (precisa de migração e aprovação)
+- [ ] Validar no aparelho: Hoje e voz (`docs/CHECKLIST_CELULAR.md`), painel e push da Saúde, Lista e Compras
+- [ ] 3D: 3ª rodada com IA real e teste no iPhone
+
 ## Próximo ciclo (prioridades, em ordem; revisado em 22/11/2026)
 1. Validar com pessoa logada, em aparelho, o que foi publicado em 22/11 (Hoje e Fontes, Financeiro, Metas, voz, notificações) e fechar os passos manuais da segurança (senhas vazadas, S-09).
 2. ~~UX-1 a UX-3~~ (navegação, Hoje, voz): **publicados em 22/11** (PRs #34, #35, #36, #38, #39). **Tudo por voz** publicado em 22/11 (PR #42); fechar as lacunas da matriz (FEATURE_MATRIX, seção 11).

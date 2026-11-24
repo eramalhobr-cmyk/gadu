@@ -90,6 +90,7 @@ export function ModulePage({ id, onOpen }: { id: ModuleId; onOpen: (view: ViewId
 const MORE_TEXT: Partial<Record<ViewId, string>> = {
   agenda: "Seus compromissos da semana",
   lista_compras: "O que falta comprar",
+  compras: "Pedidos e entregas",
   financeiro: "Contas e gastos do mês",
   metas: "Seus objetivos e o progresso",
   projetos: "Tarefas separadas por projeto",
