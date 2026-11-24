@@ -319,7 +319,7 @@ export async function POST(request: Request) {
         // Prioridade: atenção do dia > finanças > metas > compras. Falha vira aviso ao modelo (nunca inventar pedidos).
         // Agenda de filhos: fatos calculados pelo app (fins de semana e feriados), só quando a pergunta é sobre isso.
         let filhosBlock = "";
-        if (agendaFilhosEnabled() && pedeFilhos(message)) {
+        if (agendaFilhosEnabled() && (pedeFilhos(message) || parsed.data.context?.view === "filhos")) {
           try {
             const { carregarAgenda } = await import("@/lib/filhos/carregar");
             const { config, ajustes } = await carregarAgenda(supabase, user.id);

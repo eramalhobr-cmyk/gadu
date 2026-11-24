@@ -43,3 +43,11 @@ export async function PUT(request: Request) {
   const ins = await db.from("filhos_agenda_config").insert({ user_id: g.a.user.id, ...row }).select(CONFIG_COLS).single();
   return ins.error || !ins.data ? falha(ins.error) : resposta({ config: toConfig(ins.data) }, 201);
 }
+
+/** Apaga só a referência (usado pelo Desfazer da primeira configuração por voz). Os ajustes ficam. */
+export async function DELETE() {
+  const g = await filhosGuard();
+  if (!g.ok) return g.res;
+  const { error } = await g.a.supabase.from("filhos_agenda_config").delete().eq("user_id", g.a.user.id);
+  return error ? falha(error) : resposta({ ok: true });
+}
