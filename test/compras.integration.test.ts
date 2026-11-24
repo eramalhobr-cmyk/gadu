@@ -21,9 +21,9 @@ let emails: Record<string, unknown>[] = [];
 
 const supabase = {
   from: (t: string) => {
-    assert.equal(t, "profiles", "Compras só lê o perfil (termos bloqueados)");
+    assert.ok(t === "profiles" || t === "google_connections", "Compras só lê o perfil (termos bloqueados) e a conta Google conectada");
     return {
-      select: () => ({ eq: (_c: string, v: string) => ({ maybeSingle: async () => ({ data: v === A ? { settings: { blocked } } : null, error: null }) }) }),
+      select: () => ({ eq: (_c: string, v: string) => ({ maybeSingle: async () => ({ data: v !== A ? null : t === "profiles" ? { settings: { blocked } } : { google_email: "pessoa@exemplo.test" }, error: null }) }) }),
       insert: () => { writes++; return {}; },
       update: () => { writes++; return {}; },
     };
@@ -80,6 +80,7 @@ test("agrupa os pedidos com o token da própria pessoa e não grava nada", async
   assert.equal(p.rastreio, "AB123456789BR");
   assert.equal(p.emails, 2);
   assert.ok(Array.isArray(j.calendario.dias));
+  assert.equal(j.conta, "pessoa@exemplo.test", "a conta conectada vai para o link do Gmail");
   assert.equal(writes, 0, "Compras nunca grava");
   assert.equal(r.headers.get("cache-control"), "no-store");
 });

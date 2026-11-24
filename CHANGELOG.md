@@ -9,6 +9,13 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-24 · Android: Voltar entre telas e "Abrir e-mail" na conta certa · desenvolvido e testado
+- **Feito por:** Claude Code. Branch `fix/android-voltar-gmail`. Relato do Eduardo no aparelho.
+- **Voltar do Android fechava o app em qualquer tela.** Causa: trocar de tela só substituía o endereço (`history.replaceState`), então o histórico tinha uma entrada só. Agora cada troca de tela cria uma entrada (`src/lib/tab-history.ts`); o Voltar fecha primeiro as camadas abertas (como antes) e depois volta de tela. Abrir o app direto numa tela (atalho, notificação) põe Hoje embaixo, para o primeiro Voltar não sair do app.
+- **"Abrir e-mail" abria outro e-mail.** Causa: o link usava `mail.google.com/mail/u/0/`, que é a primeira conta logada no navegador, nem sempre a conectada ao GaDu; e `#inbox/` falhava com e-mail arquivado. Agora o link leva `authuser=<conta conectada>` e `#all/<conversa>` (`src/lib/gmail-link.ts`), em Compras, no cartão "Merece sua atenção" e nas Fontes da conversa.
+- **App do Gmail:** o app do Gmail no Android não aceita link para um e-mail específico (abre a caixa de entrada). Por isso "Abrir e-mail" abre o e-mail certo no navegador e, no Android, há um segundo botão "App do Gmail" que abre o app.
+- **Testes:** unitários de `tab-history`, `gmail-link` e da fonte de e-mail do Core; integração de Compras com a conta conectada; `npm run build`; `bash scripts/test-db.sh`. e2e com login a 390 px novo: Hoje → Tarefas → Mais → Agenda e o Voltar refazendo o caminho; link direto volta para Hoje. **Não testado no aparelho** (falta conferir no Android real o Voltar do sistema e o botão do app do Gmail).
+
 ## 2026-11-23 · Compras: pedidos e entregas lidos do e-mail · **publicado**
 - **Publicado** em 23/11/2026 às 22:55 (Brasília), PR #124, merge `a2d6897`; CI verde (verify, database, e2e-public, e2e com login). Deploy de produção `dpl_8xbfqAkAiombYYGFxSzLUrcjjF4X` pronto; a página inicial de produção mostra o módulo Compras. Sem migração.
 - **Feito por:** Claude Code. Branch `feat/compras-pedidos`. Escopo do plano do ciclo (`docs/PLANO_CICLO_COMPRAS_FAMILIA.md`, PR #121): Compras acompanha pedidos já feitos; a Lista de compras (abaixo) é outra coisa.

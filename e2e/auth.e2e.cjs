@@ -102,6 +102,29 @@ describe("app com login", () => {
     }
   });
 
+  test("Voltar do Android volta de tela em vez de fechar o app; abrir direto numa tela volta para Hoje", async () => {
+    const p = await page(PHONE);
+    await p.goto(`${BASE}/app?tab=hoje`);
+    await p.click(".dock-item >> text=Tarefas");
+    await p.waitForURL(/tab=tarefas/);
+    await p.click(".dock-item >> text=Mais");
+    await p.waitForSelector(".more");
+    await p.click(".more-tile >> text=Agenda");
+    await p.waitForURL(/tab=agenda/);
+    await p.goBack();
+    await p.waitForURL(/tab=modulos/);
+    await p.waitForSelector(".more");
+    await p.goBack();
+    await p.waitForURL(/tab=tarefas/);
+    await p.goBack();
+    await p.waitForURL(/tab=hoje/);
+    // Link direto (atalho, notificação): o primeiro Voltar leva para Hoje, ainda dentro do app.
+    await p.goto(`${BASE}/app?tab=metas`);
+    await p.goBack();
+    await p.waitForURL(/tab=hoje/);
+    await p.context().close();
+  });
+
   test("Compras no celular: pedidos lidos do e-mail, entrega de hoje e Google desconectado", async () => {
     const p = await page(PHONE);
     try {

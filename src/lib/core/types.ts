@@ -41,7 +41,7 @@ export type CoreResult = {
 
 /** Leitura do Google, injetada (o Core não conhece tokens). Erros trazem `kind`. */
 export type GoogleReader = {
-  status(): Promise<{ connected: boolean; scopes: string[] }>;
+  status(): Promise<{ connected: boolean; scopes: string[]; email?: string | null }>;
   events(from: Date, to: Date): Promise<import("../google-format.ts").CalEvent[]>;
   inbox(max: number): Promise<import("../google-format.ts").Mail[]>;
 };

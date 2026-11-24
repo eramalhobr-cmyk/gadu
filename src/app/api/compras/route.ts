@@ -15,8 +15,8 @@ export async function GET() {
   if (!a) return json({ error: "unauthorized" }, 401);
   if (!comprasEnabled()) return json({ error: "disabled" }, 404);
   try {
-    const { pedidos, omitidos } = await carregarPedidos(a.supabase, a.user.id);
-    return json({ connected: true, hoje: diaSP(new Date()), pedidos, calendario: calendarioEntregas(pedidos), omitidos });
+    const { pedidos, omitidos, conta } = await carregarPedidos(a.supabase, a.user.id);
+    return json({ connected: true, hoje: diaSP(new Date()), conta, pedidos, calendario: calendarioEntregas(pedidos), omitidos });
   } catch (e) {
     const kind = e instanceof GoogleError ? e.kind : "api";
     return json({ connected: kind !== "not_connected", error: kind }, kind === "not_connected" ? 200 : 502);

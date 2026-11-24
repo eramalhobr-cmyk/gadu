@@ -71,6 +71,10 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 24/11/2026 06:36 · Claude Code, Android: Voltar e links do Gmail
+- Eduardo relatou: Voltar do Android fechava o app; "Abrir e-mail" ia para o Gmail do navegador e não achava o e-mail. Correção em `fix/android-voltar-gmail` (ver CHANGELOG). Sem migração.
+- **Revisar (outra IA):** `navegarTela` com camadas abertas (só troca o endereço para não desalinhar `OverlayHistory`); no aparelho, Voltar do sistema e o botão "App do Gmail".
+
 ### 23/11/2026 22:55 · Claude Code, Lista de compras e Compras publicadas
 - **#123 (Lista de compras)** e **#124 (Compras)** integrados (merges `0f46085` e `a2d6897`); deploy de produção pronto; a página inicial de produção mostra os dois módulos.
 - O `e2e-public` do #123 tinha sido cancelado por tempo; usei o do #124 (verde), que roda sobre o código do #123 inteiro.

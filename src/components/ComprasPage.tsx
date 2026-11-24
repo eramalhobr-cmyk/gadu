@@ -2,10 +2,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { EmptyState, ModuleScreen, Panel, Summary } from "./kit";
 import { SITUACAO_TEXTO, type DiaEntrega, type Pedido } from "@/lib/compras/pedidos";
+import { gmailLink } from "@/lib/gmail-link";
+import { AbrirEmail } from "./AbrirEmail";
 import styles from "./ComprasPage.module.css";
 
 type Resposta =
-  | { connected: true; hoje: string; pedidos: Pedido[]; calendario: { dias: DiaEntrega[]; semPrevisao: Pedido[] }; omitidos: number }
+  | { connected: true; hoje: string; conta?: string | null; pedidos: Pedido[]; calendario: { dias: DiaEntrega[]; semPrevisao: Pedido[] }; omitidos: number }
   | { connected: boolean; error: string };
 
 const SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
@@ -113,7 +115,7 @@ export function ComprasPage() {
                       </button>
                     )}
                     {p.thread && (
-                      <a className="btn btn-sm" href={`https://mail.google.com/mail/u/0/#all/${p.thread}`} target="_blank" rel="noopener noreferrer">Abrir e-mail</a>
+                      <AbrirEmail href={gmailLink(p.thread, data.conta)} />
                     )}
                   </div>
                 </li>

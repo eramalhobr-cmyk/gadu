@@ -7,10 +7,10 @@ export function googleReader(db: SessionDb, userId: string): GoogleReader {
   return {
     async status() {
       // RLS: a pessoa só enxerga a própria conexão.
-      const { data, error } = await db.from("google_connections").select("scopes").eq("user_id", userId).maybeSingle();
+      const { data, error } = await db.from("google_connections").select("scopes, google_email").eq("user_id", userId).maybeSingle();
       if (error) throw new Error("status");
       if (!data || typeof (data as { scopes?: unknown }).scopes !== "string") return { connected: false, scopes: [] };
-      return { connected: true, scopes: (data as { scopes: string }).scopes.split(/\s+/).filter(Boolean) };
+      return { connected: true, scopes: (data as { scopes: string }).scopes.split(/\s+/).filter(Boolean), email: (data as { google_email?: string | null }).google_email ?? null };
     },
     async events(from, to) { return events(await token(), from, to); },
     // Só não lidos recentes (48 h), sem promoções e redes sociais. Nenhuma escrita.

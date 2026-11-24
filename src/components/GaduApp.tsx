@@ -15,6 +15,7 @@ import { parseSayHelp, sayHere, sayHereSpoken } from "@/lib/o-que-dizer";
 import { CommandPalette } from "./CommandPalette";
 import { isPaletaKey, parseMenuCommand, type PaletaItem } from "@/lib/paleta";
 import { navSpoken, parseNavIntent, pushTab } from "@/lib/nav-intent";
+import { navegarTela, prepararHistorico } from "@/lib/tab-history";
 import { EVENTO_FALAR, parseLerResumo } from "@/lib/painel-fala";
 import { calcularPedido, pedeSalvarSalario, pedidoSalario, resumoSalario } from "@/lib/finance/salario-texto";
 import { parseSaudeVoz, responderSaude } from "@/lib/saude-voz";
@@ -144,7 +145,8 @@ export function GaduApp(props: {
   function setTab(t: ViewId) {
     if (t === "admin" && !props.admin) t = "ajustes";
     setPageOpen(false);
-    window.history.replaceState(null, "", `/app?tab=${t}`);
+    // Uma entrada de histórico por troca de tela: o Voltar do Android volta de tela em vez de fechar o app.
+    navegarTela(window.history, pageOpen ? null : tabRef.current, t, ohRef.current?.depth ?? 0);
     setTabState(t);
   }
   function openAssist(on: boolean) {
@@ -942,6 +944,8 @@ export function GaduApp(props: {
   const confirmCancelRef = useRef(cancelConfirm);
   confirmCancelRef.current = cancelConfirm;
   useEffect(() => {
+    // Abriu direto numa tela (atalho, link, notificação): "Hoje" fica embaixo, para o Voltar não fechar o app.
+    if (window.location.pathname === "/app") prepararHistorico(window.history, tabRef.current);
     const oh = new OverlayHistory({
       history: window.history,
       onBack: () => {
