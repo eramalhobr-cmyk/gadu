@@ -89,6 +89,7 @@ export function ModulePage({ id, onOpen }: { id: ModuleId; onOpen: (view: ViewId
 /** Itens de "Mais", na ordem dos menus. Texto curto, em linguagem simples. */
 const MORE_TEXT: Partial<Record<ViewId, string>> = {
   agenda: "Seus compromissos da semana",
+  lista_compras: "O que falta comprar",
   financeiro: "Contas e gastos do mês",
   metas: "Seus objetivos e o progresso",
   projetos: "Tarefas separadas por projeto",

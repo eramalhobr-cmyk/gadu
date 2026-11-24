@@ -1,0 +1,58 @@
+.form, .paginacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.form > label {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.itens {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.item + .item {
+  border-top: 1px solid var(--line-2);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.check input {
+  flex: none;
+  inline-size: 20px;
+  block-size: 20px;
+  accent-color: var(--sig);
+}
+
+.check small {
+  display: block;
+  color: var(--ink-3);
+}
+
+.status:empty {
+  position: absolute;
+}
+
+.paginacao {
+  margin-top: 12px;
+}
