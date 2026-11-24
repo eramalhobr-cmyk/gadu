@@ -69,8 +69,8 @@ Atualizado em 23/11/2026 às 18:10 (Brasília): **3D, correções da rodada de r
 ## Em andamento
 | Trabalho | Estágio | Onde |
 |---|---|---|
-| **Lista de compras** (mercado, sincronizada na conta) | Migração aplicada em produção em 23/11/2026; código no PR #123 (CI verde exceto o e2e público, cancelado por tempo de instalação) | PR #123 |
-| **Compras** (pedidos e entregas lidos do Gmail, só leitura) | Desenvolvido e testado em 23/11/2026; sem migração; PR a abrir | branch `feat/compras-pedidos` |
+| **Lista de compras** (mercado, sincronizada na conta) | **Publicada** em 23/11/2026 (migração aplicada, PR #123). Falta validar no aparelho | PR #123 |
+| **Compras** (pedidos e entregas lidos do Gmail, só leitura) | **Publicado** em 23/11/2026, sem migração. Falta conferir com Gmail real e no aparelho | PR #124 |
 | **Segurança P1 / fase 0 do Core** (S-01, S-02, S-03 parcial, S-04, S-05 parcial, S-06, S-07, S-10, S-11, S-12) | **Publicada em 22/11/2026**: PR #22 integrado, migrações aditiva e restritiva aplicadas, deploy no ar. Pendentes: senhas vazadas (painel), S-09 (backups), chat logado e encerramento de sessões em produção ainda não verificados | PR #22, merge `cc850400ff982d2463cf750de539fa194b04b5b6`; [docs/SEGURANCA_P1_MANUAL.md](docs/SEGURANCA_P1_MANUAL.md) |
 | **Core Contextual: "O que merece minha atenção hoje?"** (fase 1, escopo pessoal, só leitura, sem banco novo) | **Publicado em 22/11/2026** (PR #24, merge `215edab`), sem migração. No ar e ligado por padrão (`CORE_MVP` não existe na Vercel); `CORE_MVP=0` desliga. Pendente: validar com pessoa logada (tela Hoje e Fontes, Gmail e agenda reais, voz no aparelho) e medir o custo por mensagem | [docs/CORE_ATENCAO_HOJE.md](docs/CORE_ATENCAO_HOJE.md), [docs/CORE_CONTEXTUAL_MVP.md](docs/CORE_CONTEXTUAL_MVP.md) |
 | Documentação Marco Zero (contexto mestre, auditoria, governança) | Rascunho, não integrado. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` | PR #1 |
