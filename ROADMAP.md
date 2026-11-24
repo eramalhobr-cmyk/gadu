@@ -476,6 +476,15 @@ Proposta completa (17 itens), com o levantamento das skills de design no GitHub,
 - [x] **G3** design system v2: vitrine `/design` (desligada em produção) e testes visuais no CI (contraste, 44 px, sem rolagem lateral, comparação com referência em claro/escuro, 390/1440)
 - [ ] **G4** logo novo (espera o arquivo) · direção escolhida: G2 JARVIS (23/11, 16:33)
 
+## Ciclo de 24/11/2026 · Compras, Lista de compras e Agenda de filhos
+
+- [ ] **Compras:** acompanhar pedidos por e-mail, agrupados por compra, com previsão, rastreio e calendário de entregas.
+- [ ] **Lista de compras:** adicionar por toque, voz ou texto e marcar itens comprados.
+- [ ] **Agenda de filhos:** alternância, trocas pontuais ou futuras e consulta de datas e feriados.
+- [ ] Validar Hoje e voz com login, concluir Studio 3D (#119) e Saúde do sistema (#117).
+
+[Escopo e critérios de validação](docs/PLANO_CICLO_COMPRAS_FAMILIA.md).
+
 ## Próximo ciclo (prioridades, em ordem; revisado em 22/11/2026)
 1. Validar com pessoa logada, em aparelho, o que foi publicado em 22/11 (Hoje e Fontes, Financeiro, Metas, voz, notificações) e fechar os passos manuais da segurança (senhas vazadas, S-09).
 2. ~~UX-1 a UX-3~~ (navegação, Hoje, voz): **publicados em 22/11** (PRs #34, #35, #36, #38, #39). **Tudo por voz** publicado em 22/11 (PR #42); fechar as lacunas da matriz (FEATURE_MATRIX, seção 11).

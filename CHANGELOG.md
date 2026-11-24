@@ -1,5 +1,10 @@
 # GaDu · Changelog
 
+## 24/11/2026 · Em desenvolvimento
+
+- Ciclo iniciado para Compras, Lista de compras e Agenda de filhos, com validação de Hoje e voz e retomada de 3D e Saúde do sistema. [Plano](docs/PLANO_CICLO_COMPRAS_FAMILIA.md).
+
+
 Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em branch), **testado** (testes automáticos ou verificação executada, descrita na entrada), **publicado** (na `main` e em produção na Vercel, com migrações aplicadas quando houver). Datas são as do commit. Antes de 12/11 o histórico foi reconstruído a partir do `git log` e do ROADMAP; o que não tem evidência registrada aparece como "verificação não registrada".
 
 ## Em aberto (não publicado)

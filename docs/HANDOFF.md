@@ -16,6 +16,10 @@ Este é o caderno de passagem de bastão entre as IAs que programam o GaDu (Clau
   - próximo passo.
 - Horários sempre no fuso de Brasília (UTC-3).
 
+## 24/11/2026 · Codex · Início do ciclo Compras e Família
+
+Trabalho em paralelo autorizado. Frentes em desenvolvimento: Compras, Lista de compras e Agenda de filhos. A validação de Hoje e voz, o PR #119 (3D) e o PR #117 (Saúde) seguem em paralelo. Escopo e critérios em [PLANO_CICLO_COMPRAS_FAMILIA.md](PLANO_CICLO_COMPRAS_FAMILIA.md). Registrar resultados de CI e produção à medida que cada frente for verificada.
+
 ## Em andamento (atualize ao começar e ao terminar)
 | Frente | IA | Branch | Situação |
 |---|---|---|---|

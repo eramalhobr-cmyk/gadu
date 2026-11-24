@@ -1,5 +1,16 @@
 # GaDu · Matriz de funcionalidades
 
+## Ciclo de 24/11/2026
+
+| Funcionalidade | Estado | Conversa |
+|---|---|---|
+| Compras | Em desenvolvimento | Abrir e consultar entregas |
+| Lista de compras | Em desenvolvimento | Consultar e propor inclusão ou atualização, com confirmação |
+| Agenda de filhos | Em desenvolvimento | Consultar datas e propor alterações, com confirmação |
+
+[Cenários de validação](PLANO_CICLO_COMPRAS_FAMILIA.md).
+
+
 Atualizada em 22/11/2026 (revisão geral: status dos PRs #22, #24, #26 e #30 corrigidos para publicados; 3D por fases; Casa adiada; antes: 14/11/2026, Sprint UX/UI v2.2, PR #16), a partir do código na `main` e de PRs abertos. Status:
 - **implementado**: na `main` e em produção.
 - **beta**: em produção, mas parcial, dependente de passo manual ou sem validação real.
