@@ -712,6 +712,31 @@ describe("app com login", () => {
     await p.context().close();
   });
 
+  test("3D por voz: peça nova pedida na conversa gera uma vez no Studio vazio", async () => {
+    assert.equal(process.env.E2E_3D, "1", "E2E_3D=1 e MODELING_3D_ENABLED=1 no servidor de teste");
+    const p = await page(PHONE);
+    // IA do 3D simulada (sem custo): o teste confere só o pedido que chega e quantas vezes.
+    const pedidos = [];
+    await p.route("**/api/3d/generate", async (route) => {
+      pedidos.push(JSON.parse(route.request().postData() || "{}"));
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ scad: "lado = 20; // [5:1:50] Lado (mm)\n$fn = 24;\ncube(lado);" }) });
+    });
+    await p.goto(`${BASE}/app?tab=hoje`);
+    // O cartão confirmado guarda o pedido na sessão e abre o Studio (o mesmo que o ActionCard faz).
+    await p.evaluate(() => sessionStorage.setItem("gadu.3d.criar", JSON.stringify({ pedido: "Gancho de parede para chaves", t: Date.now() })));
+    await p.goto(`${BASE}/app/3d`);
+    await p.waitForFunction(() => document.querySelector("textarea")?.value === "Gancho de parede para chaves");
+    await p.waitForTimeout(800);
+    assert.equal(pedidos.length, 1, "gera uma vez só");
+    assert.equal(pedidos[0].modo, "novo");
+    assert.equal(pedidos[0].pedido, "Gancho de parede para chaves");
+    assert.equal(await p.evaluate(() => sessionStorage.getItem("gadu.3d.criar")), null, "o pedido é apagado depois de lido");
+    await p.reload();
+    await p.waitForTimeout(800);
+    assert.equal(pedidos.length, 1, "recarregar não gera de novo");
+    await p.context().close();
+  });
+
   test("3D Studio no celular: Abrir uma peça salva mostra a prévia, o pedido e as versões", async () => {
     // Precisa do interruptor ligado no servidor (scripts/e2e-auth-local.sh define MODELING_3D_ENABLED=1 e E2E_3D=1).
     assert.equal(process.env.E2E_3D, "1", "E2E_3D=1 e MODELING_3D_ENABLED=1 no servidor de teste");

@@ -12,7 +12,7 @@ import { PageHeader, Panel } from "../kit";
 import { Viewer3D, type Captura } from "./Viewer3D";
 import { IMAGEM_DATAURL_MAX } from "@/lib/3d/render-imagem";
 import "./studio3d.css";
-import { AJUSTE_3D_KEY, lerAjuste } from "@/lib/3d/ajuste-voz";
+import { AJUSTE_3D_KEY, CRIAR_3D_KEY, lerAjuste, lerCriacao } from "@/lib/3d/ajuste-voz";
 import { mensagemQualidade, problemasQualidade } from "@/lib/3d/qualidade";
 
 type Modo = "novo" | "refinar" | "corrigir";
@@ -273,6 +273,18 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
       setGerando(false);
     }
   }, [scad, render.state, render.error, render.log, salvar, pecaId, mesh, values, params]);
+
+  // Peça nova pedida pela conversa (cartão confirmado): com o Studio vazio, gera uma vez pelo fluxo normal.
+  const criacaoLida = useRef(false);
+  useEffect(() => {
+    if (abrir || criacaoLida.current) return;
+    criacaoLida.current = true;
+    let texto: string | null = null;
+    try { texto = lerCriacao(sessionStorage.getItem(CRIAR_3D_KEY)); sessionStorage.removeItem(CRIAR_3D_KEY); } catch { texto = null; }
+    if (!texto) return;
+    setPedido(texto);
+    void pedirIA("novo", texto);
+  }, [abrir, pedirIA]);
 
   useEffect(() => {
     const texto = ajusteVoz.current;

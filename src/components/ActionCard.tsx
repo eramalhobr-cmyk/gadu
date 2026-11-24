@@ -8,7 +8,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { applyTextSize } from "@/lib/text-size";
 import { CardFrame } from "./ConfirmCard";
 import { Icon } from "./ui";
-import { AJUSTE_3D_KEY } from "@/lib/3d/ajuste-voz";
+import { AJUSTE_3D_KEY, CRIAR_3D_KEY } from "@/lib/3d/ajuste-voz";
 
 export type Result = { ok: boolean; msg?: string; link?: string; /** Id do que foi criado (gasto, evento), para o Desfazer. */ id?: string; /** Como voltar atrás, quando dá: usado pelo aviso "Feito · Desfazer" (UX-4). */ undo?: () => Promise<Result> };
 export type State = "proposed" | "saving" | "created" | "discarded" | "error";
@@ -277,6 +277,11 @@ async function execute(a: ChatAction): Promise<Result> {
     if (a.kind === "registro_apagar") return api(await fetch(`/api/goals/${a.goalId}/progresso/${a.registroId}`, { method: "DELETE" }), "Não consegui apagar o registro.");
     // nova_conversa, conversa_abrir, peca3d_abrir e navegar são tratados pelo app (GaduApp), não gravam nada.
     // Ajuste de peça por voz: o pedido vai pela sessão do navegador (não pela URL) e o 3D Studio faz o ajuste ao abrir.
+    if (a.kind === "peca3d_criar") {
+      sessionStorage.setItem(CRIAR_3D_KEY, JSON.stringify({ pedido: a.pedido, t: Date.now() }));
+      window.location.assign("/app/3d");
+      return { ok: true };
+    }
     if (a.kind === "peca3d_ajustar") {
       sessionStorage.setItem(AJUSTE_3D_KEY, JSON.stringify({ id: a.id, pedido: a.pedido, t: Date.now() }));
       window.location.assign(`/app/3d?peca=${encodeURIComponent(a.id)}`);

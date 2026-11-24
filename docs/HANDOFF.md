@@ -77,6 +77,12 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 24/11/2026 08:44 · Claude Code, revisão do Codex e próximos passos
+- Revisei #131 (publicado) e #132 (rascunho do Codex). No #132, toda série recorrente passa a exigir número de repetições (2 a 365); tirei de rascunho.
+- `feat/voz-3d-criar`: `peca3d_criar` fecha a última lacuna de voz (gerar peça 3D do zero pela conversa).
+- Faxina: PRs #121, #120 e #1 fechados com comentário (documentos superados).
+- **Piloto de transcrição OpenAI (docs/PILOTO_VOZ_OPENAI.md):** não iniciado. O Eduardo validou a voz atual no aparelho; o piloto exige chave da OpenAI, migração do orçamento e decisão de custo.
+
 ### 24/11/2026 07:17 · Claude Code, Agenda de filhos em calendário
 - Painel Calendário (mês, faixas coloridas por responsável, trocas, feriados, Trocar/Desfazer pelo toque). Branch `feat/agenda-calendario`. Sem migração.
 
