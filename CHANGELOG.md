@@ -19,7 +19,8 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **Banco:** migração aditiva `20261124020001_agenda_filhos.sql` (`filhos_agenda_config` e `filhos_agenda_ajustes`, com `user_id`, RLS com `(select auth.uid())`, datas só de sábado, S-05). Interruptor `AGENDA_FILHOS_ENABLED=0` desliga tela, rotas, ações e bloco do chat.
 - **Testes (máquina local):** `npm run typecheck`; `npm test` (unitários 487/487 com `src/lib/filhos/*.test.ts`: alternância, troca, mudança, virada do ano, Páscoa, feriado colado, ações e resolvedor; integração 287/287 com `test/agenda-filhos.integration.test.ts`: sessão, interruptor, filtro por pessoa, sábado, Desfazer, zod); `npm run build`; `bash scripts/test-db.sh` (isolamento, S-05 com 54 políticas e `97_filhos_agenda.test.sql`). e2e com login a 390 px escrito (referência, troca que persiste, desfazer, consulta), roda no CI.
 
-## 2026-11-23 · Compras: pedidos e entregas lidos do e-mail · desenvolvido e testado
+## 2026-11-23 · Compras: pedidos e entregas lidos do e-mail · **publicado**
+- **Publicado** em 23/11/2026 às 22:55 (Brasília), PR #124, merge `a2d6897`; CI verde (verify, database, e2e-public, e2e com login). Deploy de produção `dpl_8xbfqAkAiombYYGFxSzLUrcjjF4X` pronto; a página inicial de produção mostra o módulo Compras. Sem migração.
 - **Feito por:** Claude Code. Branch `feat/compras-pedidos`. Escopo do plano do ciclo (`docs/PLANO_CICLO_COMPRAS_FAMILIA.md`, PR #121): Compras acompanha pedidos já feitos; a Lista de compras (abaixo) é outra coisa.
 - **Mais → Compras:** pedidos dos últimos 45 dias lidos do Gmail com o token da própria pessoa (só leitura, nada gravado, sem tabela nova). Agrupa por loja e número (ou pela conversa), mostra a situação mais avançada, previsão de entrega (só quando o e-mail diz), rastreio a um toque e "Abrir e-mail". Bloco "Próximas entregas" por dia (Hoje, Amanhã, dia da semana) e "Sem previsão no e-mail".
 - **Privacidade:** e-mail sensível (`isSensitive`) ou com termo bloqueado em Ajustes fica de fora e só aparece como contagem.
@@ -27,7 +28,8 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **Interruptor** `COMPRAS_ENABLED=0` esconde a tela, a rota e o bloco do chat (ligado por padrão). Sem migração.
 - **Testes (máquina local):** `npm run typecheck`; `npm test` (unitários 473/473, integração 282/282, com `src/lib/compras/*.test.ts` e `test/compras.integration.test.ts`: sessão obrigatória, token só da sessão, nada gravado, termo bloqueado, Google desconectado × revogado); `npm run build`; `bash scripts/test-db.sh`. e2e com login a 390 px escrito (Mais → Compras, rastreio, omitidos, Google desconectado, sem rolagem lateral e alvos de 44 px), roda no CI. **Não testado:** Gmail real (lojas reais variam o formato dos e-mails).
 
-## 2026-11-23 · Lista de compras · migração aplicada, código em PR
+## 2026-11-23 · Lista de compras · **publicado**
+- **Publicado** em 23/11/2026, PR #123, merge `0f46085`. O `e2e-public` do #123 foi cancelado por tempo de instalação; o mesmo teste passou no #124, que contém o #123 inteiro. Deploy de produção pronto; a página inicial mostra a Lista de compras.
 - **Feito por:** Codex (código, PR #123) e Claude Code (padrão S-05 nas políticas, suíte de isolamento, aplicação da migração). **Migração `20261124010001_lista_compras.sql` aplicada em produção** em 23/11/2026 ~22:28 (Brasília) com aprovação do Eduardo; conferido: RLS ligado, 6 políticas (4 por pessoa + 2 restritivas S-05), `anon` sem acesso. O código entra com o merge do #123 (`LISTA_COMPRAS_ENABLED=0` desliga).
 
 ## 2026-11-23 · Monitoramento e alerta de erro · desenvolvido e testado
