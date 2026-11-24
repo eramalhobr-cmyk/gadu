@@ -27,6 +27,7 @@ class Q implements PromiseLike<{ data: Row[] | null; count: number | null; error
   constructor(opts: { head?: boolean } = {}) { this.head = !!opts.head; }
   del() { this.mode = "delete"; return this; }
   eq(c: string, v: unknown) { this.filters.push((r) => r[c] === v); return this; }
+  is(c: string, v: null) { this.filters.push((r) => (r[c] ?? null) === v); return this; }
   gte(c: string, v: string) { this.filters.push((r) => String(r[c]) >= v); return this; }
   lt(c: string, v: string) { this.ltVal = v; this.filters.push((r) => String(r[c]) < v); return this; }
   order() { return this; }
@@ -45,7 +46,8 @@ mock.module(src("lib/supabase/admin.ts"), {
       dbCalls++;
       return {
         from: (t: string) => {
-          assert.equal(t, "error_events");
+          // O alerta (outro arquivo de teste) usa as tabelas de estado: aqui elas "não existem" e o alerta se cala.
+          if (t !== "error_events") return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: { message: "sem tabela" } }) }) }) } as never;
           return {
             select: (_c: string, o?: { head?: boolean }) => new Q(o),
             insert: async (row: Row) => { if (tableMissing) return { error: { message: "x" } }; rows.push({ created_at: new Date().toISOString(), ...row }); return { error: null }; },
@@ -146,11 +148,13 @@ test("interruptor TELEMETRIA_ENABLED=0: 204 sem tocar no banco, nem a captura do
   assert.equal(dbCalls, 0);
 });
 
-test("captura do servidor: só com sessão, sem mensagem, com 'arquivo:linha', status 500 e nunca a própria rota", async () => {
+test("captura do servidor: com ou sem sessão, sem mensagem, com 'arquivo:linha', status 500 e nunca a própria rota", async () => {
   const err = Object.assign(new Error("saldo de maria@exemplo.com inválido"), { name: "RangeError" });
   err.stack = "RangeError: saldo de maria@exemplo.com inválido\n    at f (/var/task/.next/server/app/api/chat/route.js:9:5)";
   await registrarErroDeRequisicao(err, { path: "/api/chat?x=maria@exemplo.com", headers: { cookie: "sb-token=abc" } });
-  assert.equal(rows.length, 0, "sem pessoa logada pelo cookie, nada é gravado");
+  assert.equal(rows.length, 1, "sem pessoa logada pelo cookie, o erro entra com user_id nulo");
+  assert.equal(rows[0].user_id, null);
+  rows = [];
   cookieUser = A;
   await registrarErroDeRequisicao(err, { path: "/api/chat?x=maria@exemplo.com", headers: { cookie: "sb-token=abc" } });
   assert.equal(rows.length, 1);
@@ -164,7 +168,8 @@ test("captura do servidor: só com sessão, sem mensagem, com 'arquivo:linha', s
   await registrarErroDeRequisicao(err, { path: "/api/telemetria/erro", headers: { cookie: "sb-token=abc" } });
   assert.equal(rows.length, 1, "não registra a própria rota (evita laço)");
   await registrarErroDeRequisicao(err, { path: "/api/chat", headers: {} });
-  assert.equal(rows.length, 1, "sem cookie, nada");
+  assert.equal(rows.length, 2, "sem cookie, entra com user_id nulo");
+  assert.equal(rows[1].user_id, null);
 });
 
 test("Admin: pessoa comum 403; administrador vê grupos, totais e nenhum user_id", async () => {

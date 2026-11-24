@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { sensivel } from "./privado.ts";
 
 // Telemetria de erros SEM dado pessoal. Nada de texto de mensagem, e-mail, IP, corpo de requisição ou conteúdo da pessoa.
 // Só entram: de onde veio (servidor/cliente), a rota (sem query string e com ids trocados por :id), o nome do erro
@@ -65,6 +66,15 @@ export function localDaPilha(stack: unknown): string | null {
   return null;
 }
 
+/**
+ * Última barreira de privacidade (PR #94): campo que o detector de dado sensível marcar é descartado (rota vira "/",
+ * nome vira "Error", código e local viram nulos). Vale para tudo o que é gravado e para o texto do alerta.
+ */
+export function protegerEvento(e: EventoErro): EventoErro {
+  const ok = (v: string | null) => v === null || !sensivel(v);
+  return { ...e, rota: ok(e.rota) ? e.rota : "/", nome: ok(e.nome) ? e.nome : "Error", codigo: ok(e.codigo) ? e.codigo : null, local: ok(e.local) ? e.local : null };
+}
+
 /** Corpo que o navegador manda. `.strict()`: campo desconhecido (como `message`) é recusado, não ignorado. */
 export const ErroClienteBody = z.object({
   rota: z.string().max(400),
@@ -74,7 +84,7 @@ export const ErroClienteBody = z.object({
 }).strict();
 
 export function eventoDoCliente(body: z.infer<typeof ErroClienteBody>): EventoErro {
-  return { origem: "cliente", rota: sanitizeRoute(body.rota), nome: sanitizeName(body.nome), codigo: sanitizeCode(body.codigo), status: null, local: sanitizeLocal(body.local) };
+  return protegerEvento({ origem: "cliente", rota: sanitizeRoute(body.rota), nome: sanitizeName(body.nome), codigo: sanitizeCode(body.codigo), status: null, local: sanitizeLocal(body.local) });
 }
 
 /** Impressão digital para agrupar erros iguais: hash de origem, rota, nome e local. Não é reversível para nenhum dado da pessoa. */

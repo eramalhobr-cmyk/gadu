@@ -15,6 +15,7 @@ export const SAY_HERE: Partial<Record<ViewId, string[]>> = {
   ajustes: ["Muda para o tema escuro", "Aumenta a letra", "Fala mais devagar", "Liga a conversa contínua"],
   perfil: ["Muda para o tema escuro", "Aumenta a letra", "Fala mais devagar"],
   modulos: ["Abre finanças", "Abre as metas", "Mostra o guia", "Abre o modo voz"],
+  admin: ["Teve algum erro hoje?", "O que quebrou hoje?", "Mostra a saúde do sistema", "Abre a administração"],
   studio3d: ["Abre minha última peça", "Deixa o suporte 2 mm mais alto", "Arredonda as bordas da minha última peça"],
 };
 

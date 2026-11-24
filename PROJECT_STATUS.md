@@ -98,7 +98,7 @@ Atualizado em 23/11/2026 às 18:10 (Brasília): **3D, correções da rodada de r
 - Passos manuais no painel: proteção contra senhas vazadas; S-09: o plano é Free, então decidir entre plano Pro ou dump lógico agendado; só depois decidir sobre os backups lógicos.
 - Decidir o destino do usuário de teste e da liberação do host do Supabase no ambiente "Gadu".
 - Auditoria completa de RLS e isolamento; administração de créditos por pessoa.
-- Monitoramento e alerta de erro (migração `error_events` mergeada no PR #76 e aplicada pelo Cursor; falta rota, Admin e alerta).
+- Monitoramento e alerta de erro: código na branch `feat/monitoramento-alerta-erro` (captura, push com throttle, painel Saúde, voz). Falta publicar, aplicar a migração `20261123200001` e validar o push no aparelho. A issue diária com `TELEMETRIA_TOKEN` fica para o fim do roadmap.
 - Módulos planejados, sem código: 3D Studio, Agent Office (além dos agentes), Agent Office Studio. Financeiro: base publicada (PR #26); o restante da especificação segue planejado.
 
 ## Segurança P1: publicação (22/11/2026)
@@ -117,7 +117,7 @@ Atualizado em 23/11/2026 às 18:10 (Brasília): **3D, correções da rodada de r
 - **e2e com login no CI** (workflow `e2e-auth.yml`, Supabase local, sem segredo): 17 de 17. Detalhe e achados em docs/TESTES_E2E.md. Corrigidos: CSP para Supabase local, link "Pular o guia" com 44 px, testes antigos.
 
 ## Telemetria de erros, código (23/11/2026)
-- Rota `/api/telemetria/erro`, captura do servidor (`instrumentation.ts`) e do navegador, Admin › Erros recentes, resumo `POST /api/cron/telemetria-resumo` e alerta diário (`alerta-erros.yml`). Interruptor `TELEMETRIA_ENABLED`. Falta o Eduardo criar `TELEMETRIA_TOKEN` (GitHub e Vercel). Ver docs/OBSERVABILIDADE.md.
+- Rota `/api/telemetria/erro`, captura do servidor (`capturarErroServidor`, `instrumentation.ts`) e do navegador, Admin › Saúde do sistema (`GET /api/admin/saude`), alerta por push com throttle (sem `TELEMETRIA_TOKEN`), resumo `POST /api/cron/telemetria-resumo` e issue diária opcional (`alerta-erros.yml`). Interruptor `TELEMETRIA_ENABLED`. Ver docs/OBSERVABILIDADE.md.
 
 ## Problemas conhecidos e riscos
 Matriz completa, com evidências e o **status de cada S-xx**: [docs/SECURITY_AUDIT_2026-11-15.md](docs/SECURITY_AUDIT_2026-11-15.md).
@@ -165,7 +165,7 @@ Matriz completa, com evidências e o **status de cada S-xx**: [docs/SECURITY_AUD
 Só documentação, sem mudança de código. Leitura de todos os `.md` e revisão de experiência pelo código e por capturas a 412 × 915 (telas com login num app local com dados simulados, sem banco real).
 - **Feito e publicado:** base do assistente; segurança P1 (PR #22); Core "atenção hoje" (PR #24); Financeiro base (PR #26); celular (PRs #28 e #29); Metas fase 1 (PR #30).
 - **Parcial:** nada do que foi publicado em 22/11 foi validado com pessoa logada em aparelho; modo conversa e notificações em beta; eventos pela voz bloqueados até `calendar.events`; senhas vazadas e S-09 pendentes; Design System etapa 2.
-- **Não começado:** 3D Studio (só especificação), Agent Office e Studio, Saúde, voz natural paga, simulador bruto → líquido, testes com login no CI, monitoramento de erros.
+- **Não começado (à época desta nota):** 3D Studio (só especificação), Agent Office e Studio, Saúde (integração de aparelhos), voz natural paga, simulador bruto → líquido, testes com login no CI, monitoramento de erros. Em 23/11 o monitoramento de erros avançou (branch `feat/monitoramento-alerta-erro`); e2e com login e 3D-1 já foram publicados depois.
 - **3D Studio:** **3D-1 **publicado** em 22/11/2026 às 20:55 (Brasília), PR #40, merge `6d87a5f`, CI verde (verify, e2e-public, database), deploy de produção da Vercel concluído. No ar: `/api/3d/generate` sem sessão 401, `/vendor/openscad/render-worker.js` 200 com a CSP própria, e2e público contra a produção 10/10. `MODELING_3D_ENABLED` não definida na Vercel: o 3D está **desligado** em produção até o Eduardo ligar**: conversa → OpenSCAD (modelo barato, pipeline de custo do chat) → OpenSCAD WASM num Web Worker (GPL, componente separado) → three.js, controles, verificações da A1, STL e 3MF; interruptor `MODELING_3D_ENABLED` desligado por padrão; sem migração; 3MF "A1 PLA 0.4" pronto mas desativado até o Eduardo enviar o projeto. Pendente: IA real, refino por voz/imagem, salvar versões. Especificação 3D-0 feita ([docs/FEATURE-3D.md](docs/FEATURE-3D.md)); fases 3D-1 (conversa → OpenSCAD → STL/3MF para a A1), 3D-2 (figura a partir de foto, modelos abertos gratuitos) e 3D-3 (envio direto, depois) no [ROADMAP](ROADMAP.md). Sem serviço pago por geração.
 - **UX:** novo ciclo "voz primeiro e uso simples" (UX-1 a UX-6) no [ROADMAP](ROADMAP.md), com as evidências: Hoje com 9 blocos e cerca de 4,7 telas de rolagem; falar exige 3 toques no celular; navegação dividida entre barra de baixo, menu sanfona e tela Módulos; nomes repetidos; textos de 11 px; nenhuma ação com "Desfazer".
 - **Casa Inteligente:** adiada por decisão do Eduardo; quando retomar, Home Assistant como camada ([docs/CASA_INTELIGENTE.md](docs/CASA_INTELIGENTE.md)).
