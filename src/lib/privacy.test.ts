@@ -100,3 +100,10 @@ test("estimativa de custo máximo para reservar orçamento", () => {
   assert.ok(estimateMaxCost("modelo-novo", 3000, 1000) >= estimateMaxCost("claude-opus-5-5", 3000, 1000));
   assert.equal(estimateMaxCost("claude-opus-5-5", NaN, -5), 0);
 });
+
+test("eventos propostos validam recorrência sem transformar regra inválida em evento único", () => {
+  const event = { titulo: "Aula", inicio: "2026-11-12T09:00:00", recorrencia: { frequency: "WEEKLY", interval: 2, count: 5 } };
+  const r = splitMeta("Preparei.\n<<<META>>>\n" + JSON.stringify({ eventos: [event, { ...event, recorrencia: { frequency: "SECONDLY" } }] }), Date.parse("2026-11-10T12:00:00Z"));
+  assert.equal(r.events.length, 1);
+  assert.deepEqual(r.events[0].recurrence, event.recorrencia);
+});

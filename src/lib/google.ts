@@ -1,3 +1,4 @@
+import { recurrenceRule, type Recurrence } from "./calendar-recurrence.ts";
 // Google (Agenda e Gmail), só leitura. Fluxo OAuth com PKCE; token de renovação guardado criptografado.
 import { createHash, randomBytes } from "node:crypto";
 import { hasTokenKey, open, seal } from "@/lib/crypto";
@@ -213,7 +214,7 @@ function decodeEntities(s: string): string {
 
 
 /** Cria um evento na agenda principal. Só é chamado depois que a pessoa confirma. */
-export async function createEvent(token: string, ev: { title: string; start: string; end: string; location?: string; description?: string }) {
+export async function createEvent(token: string, ev: { title: string; start: string; end: string; location?: string; description?: string; recurrence?: Recurrence }) {
   const r = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?fields=id,htmlLink,summary,start,end", {
     method: "POST",
     headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
@@ -221,6 +222,7 @@ export async function createEvent(token: string, ev: { title: string; start: str
       summary: ev.title,
       location: ev.location || undefined,
       description: ev.description || "Criado pelo GaDu.",
+      ...(ev.recurrence ? { recurrence: [recurrenceRule(ev.recurrence)] } : {}),
       start: { dateTime: ev.start, timeZone: TZ },
       end: { dateTime: ev.end, timeZone: TZ },
     }),

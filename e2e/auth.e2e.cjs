@@ -30,6 +30,37 @@ async function holdMic(p) {
 }
 
 describe("app com login", () => {
+  test("evento recorrente repetido no fluxo gera um cartão e uma gravação", async () => {
+    const p = await page(PHONE);
+    const recurrence = { frequency: "WEEKLY", interval: 2, count: 5 };
+    const evento = { title: "Aula de teste", start: "2027-01-05T10:00:00-03:00", end: "2027-01-05T11:00:00-03:00", location: null, recurrence };
+    const requests = [];
+    await p.route("**/api/chat", (r) => r.fulfill({
+      contentType: "application/x-ndjson",
+      body: [{ t: "delta", text: "Preparei o evento." }, { t: "events", items: [evento, evento] }, { t: "done", memories: 0 }]
+        .map((item) => JSON.stringify(item)).join("\n") + "\n",
+    }));
+    await p.route("**/api/calendar", async (r) => {
+      requests.push(r.request().postDataJSON());
+      await r.fulfill({ json: { ok: true, id: "abc123def", link: "https://example.test" } });
+    });
+    await p.goto(`${BASE}/app?tab=conversa`);
+    await p.fill("#msg", "Crie uma aula a cada duas semanas, cinco vezes");
+    await p.click(".chat-form [aria-label=Enviar]");
+    const criar = p.getByRole("button", { name: "Criar na agenda" });
+    await criar.waitFor();
+    assert.equal(await criar.count(), 1);
+    await p.getByText(/a cada 2 semanas, por 5 vezes no total/).waitFor();
+    await criar.evaluate((button) => {
+      button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await p.getByText("Criado na agenda", { exact: true }).waitFor();
+    assert.equal(requests.length, 1);
+    assert.deepEqual(requests[0].recurrence, recurrence);
+    await p.context().close();
+  });
+
   test("sem rolagem lateral e com alvos de 44 px em 7 larguras", async () => {
     const problems = [];
     for (const w of WIDTHS) {

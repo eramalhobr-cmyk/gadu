@@ -186,14 +186,14 @@ export function GaduApp(props: {
   /** Estado de cada cartão de ação (o mesmo no painel e na Conversa). */
   const [cards, setCards] = useState<Record<string, CardState>>({});
   const cardsRef = useRef(cards);
-  cardsRef.current = cards;
+
   const confirmQ = useRef<{ id: string; a: ChatAction }[]>([]);
   const confirmStage = useRef<null | "asking" | "listening" | "working" | "result">(null);
   const confirmListenRef = useRef(false);
   const confirmStep = useRef(0);
   const confirmTotal = useRef(0);
   const confirmTries = useRef(0);
-  const confirmFns = useRef({ next: () => false as boolean, answer: (_t: string) => {}, noAnswer: () => {}, idle: () => false as boolean });
+  const confirmFns = useRef({ cancel: () => {}, next: () => false as boolean, answer: (_t: string) => {}, noAnswer: () => {}, idle: () => false as boolean });
   const [pending, setPending] = useState(0);
   const logRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -325,6 +325,7 @@ export function GaduApp(props: {
   }, [speaker]);
   const send = useCallback(async (text: string, opts: { voice?: boolean } = {}) => {
     const message = text.trim();
+    if (message && (confirmStage.current !== null || confirmQ.current.length)) confirmFns.current.cancel();
     // "Desfaz": desfaz a última ação enquanto o aviso "Feito · Desfazer" está à mão. Sem modelo e sem custo.
     if (message && parseUndoCommand(message) && undoBus.active) {
       setDraft("");
@@ -468,10 +469,16 @@ export function GaduApp(props: {
     let answerStarted = false;
     // Ações propostas nesta resposta que a confirmação falada vai ler (só quando a pessoa falou).
     const toConfirm: { id: string; a: ChatAction }[] = [];
+    const seenActions = new Set<string>();
     const addActions = (list: ChatAction[], content: (a: ChatAction) => string) => {
-      const ms = list.map((a) => ({ id: crypto.randomUUID(), role: "action" as const, content: content(a), action: a }));
+      const ms = list.filter((a) => {
+        const key = JSON.stringify(a);
+        if (seenActions.has(key)) return false;
+        seenActions.add(key);
+        return true;
+      }).map((a) => ({ id: crypto.randomUUID(), role: "action" as const, content: content(a), action: a }));
       // Cartão só de informação (resultado de cálculo) não pede "sim": a resposta já foi falada.
-      if (opts.voice) toConfirm.push(...ms.filter((m) => !describe(m.action).info).map((m) => ({ id: m.id, a: m.action })));
+      if (opts.voice) toConfirm.push(...ms.filter((m) => !describe(m.action).info && initialCard(m.action).state === "proposed").map((m) => ({ id: m.id, a: m.action })));
       setMessages((prev) => [...prev, ...ms]);
     };
     // Respostas faladas curtas, menos no briefing da manhã (que é feito para ouvir inteiro).
@@ -547,7 +554,7 @@ export function GaduApp(props: {
         // Contingência: uma nova tentativa automática se a rede caiu (ou o servidor falhou) antes de responder.
         // Erros da própria mensagem (4xx) não melhoram tentando de novo.
         const st = (e as { status?: number }).status ?? 0;
-        if (ctrl.signal.aborted || answer || (st >= 400 && st < 500)) throw e;
+        if (ctrl.signal.aborted || answer || seenActions.size || (st >= 400 && st < 500)) throw e;
         await new Promise((r) => setTimeout(r, 800));
         await attempt();
       }
@@ -563,10 +570,11 @@ export function GaduApp(props: {
       setBusy(false);
       abortRef.current = null;
       // Confirmação falada: depois que a resposta terminar de ser falada, o GaDu lê cada ação e espera "sim" ou "não".
-      const voiceConfirm = toConfirm.length > 0 && !ctrl.signal.aborted && prefsRef.current.voice && canSpeak() && canListen();
-      if (voiceConfirm) { confirmQ.current = toConfirm; confirmStep.current = 0; confirmTotal.current = toConfirm.length; }
+      const pendentes = toConfirm.filter(({ id }) => !cardsRef.current[id]);
+      const voiceConfirm = pendentes.length > 0 && !ctrl.signal.aborted && prefsRef.current.voice && canSpeak() && canListen();
+      if (voiceConfirm) { confirmQ.current = pendentes; confirmStep.current = 0; confirmTotal.current = pendentes.length; }
       if (spoke && speaker) speaker.flush();
-      else if (voiceConfirm) { setMode("idle"); setTimeout(() => confirmFns.current.next(), 300); }
+      else if (voiceConfirm) { setMode("idle"); setTimeout(() => { if (confirmQ.current === pendentes && confirmStage.current === null) confirmFns.current.next(); }, 300); }
       else {
         setMode("idle");
         // Modo conversa com a voz da resposta desligada: volta a ouvir mesmo assim.
@@ -648,6 +656,7 @@ export function GaduApp(props: {
   }
   /** Lê a próxima ação da fila. Sem nada na fila, fecha e devolve false. */
   function nextConfirm(): boolean {
+    while (confirmQ.current[0] && cardsRef.current[confirmQ.current[0].id]) confirmQ.current.shift();
     const item = confirmQ.current[0];
     if (!item) { closeConfirm(); return false; }
     confirmStep.current += 1;
@@ -671,7 +680,7 @@ export function GaduApp(props: {
   }
   function answerConfirm(text: string) {
     const item = confirmQ.current[0];
-    if (!item) return;
+    if (!item || (confirmStage.current !== "asking" && confirmStage.current !== "listening")) return;
     const ans = parseAnswer(text);
     if (!ans) { retryOrGiveUp(); return; }
     if (ans.kind === "change") {
@@ -703,9 +712,13 @@ export function GaduApp(props: {
   }
   /** Toque no cartão (ou decisão falada): grava, descarta ou desfaz, e guarda o estado do cartão. */
   async function cardOp(id: string, a: ChatAction, op: "confirm" | "discard" | "undo"): Promise<boolean> {
-    const set = (c: CardState) => setCards((m) => ({ ...m, [id]: c }));
+    const set = (c: CardState) => {
+      cardsRef.current = { ...cardsRef.current, [id]: c };
+      setCards(cardsRef.current);
+    };
+    const state = (cardsRef.current[id] ?? initialCard(a)).state;
+    if (state === "saving" || state === "discarded" || (state === "created" && op !== "undo")) return false;
     if (op === "discard") { set({ state: "discarded" }); return true; }
-    if ((cardsRef.current[id]?.state) === "saving") return false;
     set({ state: "saving" });
     const r = op === "confirm" ? await runAction(a) : await undoAction(a);
     if (!r.ok) { cardErr.current = r.msg ?? ""; set({ state: "error", msg: r.msg }); return false; }
@@ -736,6 +749,7 @@ export function GaduApp(props: {
   }
   /** Toque em Sim/Não na tela de confirmação. */
   function tapConfirm(yes: boolean) {
+    if (confirmStage.current !== "asking" && confirmStage.current !== "listening") return;
     if (confirmListenRef.current) { confirmListenRef.current = false; try { recRef.current?.abort(); } catch {} }
     speaker?.cancel();
     answerConfirm(yes ? "sim" : "não");
@@ -747,12 +761,19 @@ export function GaduApp(props: {
     setMode("idle");
   }
   confirmFns.current = {
+    cancel: cancelConfirm,
     next: nextConfirm,
     answer: answerConfirm,
     noAnswer: () => { if (confirmStage.current === "listening") retryOrGiveUp(); },
     idle: () => {
       const st = confirmStage.current;
-      if (st === "asking") { setTimeout(listenConfirm, 250); return true; }
+      if (st === "asking") {
+        const item = confirmQ.current[0];
+        setTimeout(() => {
+          if (confirmStage.current === "asking" && item && confirmQ.current[0] === item) listenConfirm();
+        }, 250);
+        return true;
+      }
       if (st === "result" || (st === null && confirmQ.current.length > 0)) return nextConfirm();
       return st === "listening" || st === "working";
     },
@@ -817,6 +838,7 @@ export function GaduApp(props: {
   dockTalkRef.current = () => dockTalk();
   function dockTalk() {
     speaker?.unlock();
+    if (confirmStage.current !== null || confirmQ.current.length) cancelConfirm();
     if (!voiceOk) { if (tabRef.current === "conversa") document.getElementById("msg")?.focus(); else openAssist(true); return; }
     if (busy || mode === "speaking") { abortRef.current?.abort(); speaker?.cancel(); setMode("idle"); }
     setHeard(null);
@@ -849,6 +871,7 @@ export function GaduApp(props: {
 
   function micClick() {
     speaker?.unlock();
+    if (confirmStage.current !== null || confirmQ.current.length) cancelConfirm();
     if (!voiceOk && !busy) {
       setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: "Este navegador não reconhece voz. Use o Chrome (Android ou computador) ou o Safari (iPhone), ou o microfone do teclado." }]);
       return;
@@ -860,6 +883,7 @@ export function GaduApp(props: {
   }
 
   function newConversation(next: Target = null) {
+    if (confirmStage.current !== null || confirmQ.current.length) cancelConfirm();
     abortRef.current?.abort();
     speaker?.cancel();
     setConversationId(null);
@@ -875,6 +899,7 @@ export function GaduApp(props: {
   }
 
   async function openConversation(id: number) {
+    if (confirmStage.current !== null || confirmQ.current.length) cancelConfirm();
     abortRef.current?.abort();
     speaker?.cancel();
     setMode("idle");

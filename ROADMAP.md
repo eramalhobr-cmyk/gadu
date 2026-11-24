@@ -1,5 +1,10 @@
 # GaDu · Roadmap
 
+## Agenda e confirmações
+
+- [ ] Validar evento recorrente por voz e toque, uma gravação por cartão e nova conversa sem aprovações antigas.
+
+
 ## Piloto de voz e revisão mobile
 
 - [ ] Comparar transcrição do aparelho e da OpenAI com clipes curtos.

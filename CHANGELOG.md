@@ -1,5 +1,11 @@
 # GaDu · Changelog
 
+## Agenda recorrente e confirmação única · em revisão
+
+- Eventos pela conversa podem repetir diariamente, semanalmente, mensalmente ou anualmente. A frequência, o intervalo e o total aparecem antes da confirmação.
+- Respostas deixam a confirmação ao cartão ou à voz. A fila ignora cartões processados e é descartada ao iniciar outro pedido ou trocar de conversa.
+
+
 ## Piloto de voz e revisão mobile · em desenvolvimento
 
 - Leitura completa por padrão para novas preferências, abertura de conversa no Gmail Android com alternativa web, e preservação da aba após retorno do Google. Piloto local de transcrição preparado.

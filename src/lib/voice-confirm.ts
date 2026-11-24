@@ -1,3 +1,4 @@
+import { recurrenceLabel, type Recurrence } from "./calendar-recurrence.ts";
 // Confirmações faladas (UX-3): depois de uma resposta por voz que propõe gravar algo (gasto, meta, evento)
 // ou que já criou um lembrete, o GaDu lê o que vai gravar e aceita "sim", "não" ou "muda para…" por voz.
 // O cartão continua na tela para quem prefere tocar. Só funções puras aqui; o microfone e a fala ficam no app.
@@ -70,7 +71,7 @@ function spokenNum(n: number): string {
 export type ConfirmItem =
   | { kind: "gasto"; valor: number; categoria: string; descricao: string; data: string }
   | { kind: "meta"; titulo: string; acao: "registrar" | "concluir"; valor: number | null; unidade: string | null }
-  | { kind: "evento"; title: string; start: string }
+  | { kind: "evento"; title: string; start: string; recurrence?: Recurrence }
   | { kind: "lembrete"; text: string; dueAt: string };
 
 const ASK = "Diga sim ou não.";
@@ -87,7 +88,7 @@ export function confirmQuestion(item: ConfirmItem, now = new Date()): string {
       if (item.acao === "concluir" || item.valor === null) return `Marco a meta ${item.titulo} como concluída?`;
       return `Registro ${spokenNum(item.valor)}${item.unidade ? (item.unidade === "%" ? " por cento" : ` ${item.unidade}`) : ""} na meta ${item.titulo}?`;
     case "evento":
-      return `Crio na agenda: ${item.title}, ${spokenDay(dayKey(new Date(item.start)), now)} ${spokenTime(item.start)}?`;
+      return `Crio na agenda: ${item.title}, ${spokenDay(dayKey(new Date(item.start)), now)} ${spokenTime(item.start)}${item.recurrence ? `, repetindo ${recurrenceLabel(item.recurrence)}` : ""}?`;
     case "lembrete":
       return `Anotei o lembrete ${item.text}, ${spokenDay(dayKey(new Date(item.dueAt)), now)} ${spokenTime(item.dueAt)}. Está certo?`;
   }

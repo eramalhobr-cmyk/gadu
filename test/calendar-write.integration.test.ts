@@ -20,7 +20,7 @@ mock.module(src("lib/google.ts"), {
     accessToken: async (_db: unknown, userId: string) => { tokenUsers.push(userId); return "tok"; },
     updateEvent: async (...args: unknown[]) => { calls.push({ fn: "update", args }); if (googleFail) throw new GoogleError(googleFail); return { id: "ev1", htmlLink: "https://exemplo.test/ev1" }; },
     deleteEvent: async (...args: unknown[]) => { calls.push({ fn: "delete", args }); if (googleFail) throw new GoogleError(googleFail); },
-    createEvent: async () => ({ id: "x", htmlLink: "" }), events: async () => [],
+    createEvent: async (...args: unknown[]) => { calls.push({ fn: "create", args }); return { id: "x", htmlLink: "" }; }, events: async () => [],
   },
 });
 mock.module("next/server", { namedExports: { NextResponse: { json: (body: unknown, init?: ResponseInit) => Response.json(body, init) } } });
@@ -62,4 +62,22 @@ test("erros do Google: evento que não existe (404), falta de permissão (403) e
   googleFail = "gone"; assert.equal((await del("abc123def")).status, 404);
   googleFail = "scope"; assert.equal((await patch("abc123def", { title: "x" })).status, 403);
   googleFail = "api"; assert.equal((await del("abc123def")).status, 502);
+});
+
+const createRoute = await import(src("app/api/calendar/route.ts"));
+const create = (body: unknown) => createRoute.POST(new Request("http://localhost/api/calendar", {
+  method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+}));
+
+test("série recorrente usa o token da sessão e rejeita regra inválida antes de chamar o Google", async () => {
+  const start = new Date(Date.now() + 86_400_000).toISOString();
+  const end = new Date(Date.parse(start) + 3_600_000).toISOString();
+  const recurrence = { frequency: "WEEKLY", interval: 2, count: 5 };
+  const draft = { title: "Aula", start, end, recurrence };
+  assert.equal((await create({ ...draft, recurrence: { ...recurrence, interval: 0 } })).status, 400);
+  assert.equal((await create({ ...draft, recurrence: { rrule: "RRULE:FREQ=SECONDLY" } })).status, 400);
+  assert.equal(calls.length, 0);
+  assert.equal((await create(draft)).status, 200);
+  assert.deepEqual(calls, [{ fn: "create", args: ["tok", { ...draft, location: undefined }] }]);
+  assert.deepEqual(tokenUsers, [sessionUser]);
 });

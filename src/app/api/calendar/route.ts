@@ -1,3 +1,4 @@
+import { Recurrence } from "@/lib/calendar-recurrence";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { accessToken, createEvent, events } from "@/lib/google";
@@ -12,6 +13,7 @@ const Create = z.object({
   start: z.string().datetime({ offset: true }),
   end: z.string().datetime({ offset: true }),
   location: z.string().trim().max(160).optional(),
+  recurrence: Recurrence.optional(),
 }).strict();
 
 
@@ -44,7 +46,7 @@ export async function POST(request: Request) {
   }
   try {
     const token = await accessToken(a.supabase, a.user.id);
-    const ev = await createEvent(token, { title: p.data.title, start: p.data.start, end: p.data.end, location: p.data.location });
+    const ev = await createEvent(token, { title: p.data.title, start: p.data.start, end: p.data.end, location: p.data.location, recurrence: p.data.recurrence });
     return NextResponse.json({ ok: true, id: ev.id, link: ev.htmlLink });
   } catch (e) {
     return fail(e);
