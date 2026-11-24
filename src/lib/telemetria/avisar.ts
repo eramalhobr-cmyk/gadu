@@ -46,9 +46,9 @@ async function tentarAvisar(db: Db, g: Grupo, motivo: Motivo, vezes: number, ago
   const limite = new Date(agora.getTime() - GRUPO_HORAS * 3_600_000).toISOString();
   const { data: antes } = await db.from("error_alert_state").select("ultimo_alerta, alertas").eq("impressao", g.impressao).maybeSingle();
   if (!antes) return false;
-  const { data: tomou, error } = await db.from("error_alert_state").update({ ultimo_alerta: iso, alertas: Number(antes.alertas ?? 0) + 1 }).eq("impressao", g.impressao).or(`ultimo_alerta.is.null,ultimo_alerta.lt.${limite}`).select("impressao");
+  const { data: tomou, error } = await db.from("error_alert_state").update({ ultimo_alerta: iso, alertas: Number(antes.alertas ?? 0) + 1 }).eq("impressao", g.impressao).or(`ultimo_alerta.is.null,ultimo_alerta.lte.${limite}`).select("impressao");
   if (error || !tomou?.length) return false;
-  const desfazGrupo = () => db.from("error_alert_state").update({ ultimo_alerta: antes.ultimo_alerta ?? null, alertas: Number(antes.alertas ?? 0) }).eq("impressao", g.impressao);
+  const desfazGrupo = () => db.from("error_alert_state").update({ ultimo_alerta: antes.ultimo_alerta ?? null, alertas: Number(antes.alertas ?? 0) }).eq("impressao", g.impressao).eq("ultimo_alerta", iso);
   const dia = diaBrasilia(agora);
   const vaga = await tomarVaga(db, dia);
   if (vaga === null) { await desfazGrupo(); return false; }
@@ -68,12 +68,18 @@ export async function avaliarEAvisar(e: EventoErro, agora: Date = new Date()): P
     const { data: est, error } = await db.from("error_alert_state").select("primeira_vez, ultima_vez, ultimo_alerta, alertas").eq("impressao", imp).maybeSingle();
     if (error) return false; // sem tabela de estado não há como limitar: silêncio
     const anterior = est as EstadoGrupo | null;
-    const novo = grupoNovo(anterior, agora);
+    let novo = grupoNovo(anterior, agora);
     if (!anterior) {
       const ins = await db.from("error_alert_state").insert({ impressao: imp, primeira_vez: iso, ultima_vez: iso });
       if (ins.error) return false; // outra execução criou ao mesmo tempo: ela cuida do aviso
+    } else if (novo) {
+      // Só a primeira execução que viu o grupo ausente inaugura a nova aparição.
+      // Preserva o último alerta para nenhuma execução apagar uma vaga concorrente.
+      const mudou = await db.from("error_alert_state").update({ primeira_vez: iso, ultima_vez: iso }).eq("impressao", imp).eq("ultima_vez", anterior.ultima_vez).select("impressao");
+      if (mudou.error) return false;
+      novo = !!mudou.data?.length;
     } else {
-      await db.from("error_alert_state").update(novo ? { primeira_vez: iso, ultima_vez: iso, ultimo_alerta: null } : { ultima_vez: iso }).eq("impressao", imp);
+      await db.from("error_alert_state").update({ ultima_vez: iso }).eq("impressao", imp).lt("ultima_vez", iso);
     }
     let vezes = 1;
     if (!novo) {
@@ -106,7 +112,9 @@ export async function redeDeSeguranca(db: Db = supabaseAdmin(), agora: Date = ne
       const s = est as EstadoGrupo | null;
       if (!s) await db.from("error_alert_state").insert({ impressao: g.impressao, primeira_vez: g.primeira, ultima_vez: g.ultima });
       // Novo = ainda não avisado nesta aparição (primeira vez nos últimos 30 min). O resto só vale se virou pico.
-      const novo = !s || (s.ultimo_alerta === null && new Date(s.primeira_vez).getTime() >= agora.getTime() - REDE_JANELA_MIN * 60_000);
+      const primeira = s ? new Date(s.primeira_vez).getTime() : null;
+      const ultimoAlerta = s?.ultimo_alerta ? new Date(s.ultimo_alerta).getTime() : null;
+      const novo = primeira === null || ((ultimoAlerta === null || ultimoAlerta < primeira) && primeira >= agora.getTime() - REDE_JANELA_MIN * 60_000);
       const vezes = linhas.filter((l) => l.impressao === g.impressao && new Date(l.created_at).getTime() >= janela).length;
       const d = decidirAlerta({ novo, ocorrenciasNaJanela: vezes, ultimoAlerta: s?.ultimo_alerta ?? null, agora });
       if (d.enviar && d.motivo && await tentarAvisar(db, g, d.motivo, Math.max(vezes, 1), agora)) enviados++;

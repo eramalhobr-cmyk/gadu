@@ -69,6 +69,12 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 21:38 · Codex, revisão da Saúde do sistema (PR #117)
+- Atualizei a branch com a `main` em `cb8638d`, preservando a triagem de e-mails e os comandos locais de Saúde.
+- Corrigi a corrida de avisos quando um grupo volta depois de sete dias. O retorno preserva o último alerta e a liberação das seis horas vale no instante exato. Acrescentei regressões para a concorrência com o cron e o limite.
+- Typecheck e integração passaram localmente no Node 22. O CI anterior do PR passou, incluindo banco e e2e com login. A nova revisão precisa do CI atualizado.
+- Migração `20261123200001_alerta_erros.sql` permanece igual à do PR. Produção pendente de aprovação explícita da migração e acesso ao projeto correto. Depois de aplicar, conferir as duas tabelas com RLS e grants restritos, integrar com CI verde e validar Administração e push com sessão de administrador.
+
 ### 23/11/2026 19:35 · Claude Code + Cursor (Grok Bot), e-mails automáticos fora de "Merece sua atenção" (PR #115)
 - Branch `fix/emails-atencao-memoria`. Causa: a triagem de e-mail não lia as memórias aprovadas. Novo `src/lib/email-regras.ts` (regras das memórias, classificação crítico/importante/normal/baixa, "isso não é importante"), aplicado no Core, `/api/today`, cron do briefing, chat e percepções. Rota `POST /api/email/nao-importante`, botão "Não é importante" no `AttentionCard` e comando local no `GaduApp`. Corrigido o limite das memórias no chat (80 mais novas). Sem migração.
 - **Testado:** typecheck, `npm test`, build. **Não testado:** e2e com login (novo teste em `e2e/auth.e2e.cjs`), Google real, aparelho.

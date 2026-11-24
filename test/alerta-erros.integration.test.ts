@@ -39,7 +39,7 @@ class Q implements PromiseLike<{ data: unknown; count: number | null; error: { c
   is(c: string, v: null) { this.f.push((r) => (r[c] ?? null) === v); return this; }
   neq(c: string, v: unknown) { this.f.push((r) => r[c] !== v); return this; }
   or(expr: string) {
-    const conds = expr.split(",").map((p) => { const [c, op, ...rest] = p.split("."); const v = rest.join("."); return (r: Row) => (op === "is" ? (r[c] ?? null) === null : r[c] != null && String(r[c]) < v); });
+    const conds = expr.split(",").map((p) => { const [c, op, ...rest] = p.split("."); const v = rest.join("."); return (r: Row) => (op === "is" ? (r[c] ?? null) === null : r[c] != null && (op === "lte" ? String(r[c]) <= v : String(r[c]) < v)); });
     this.f.push((r) => conds.some((c) => c(r))); return this;
   }
   order() { return this; }
@@ -197,6 +197,24 @@ test("grupo que voltou depois de mais de 7 dias é novo de novo", async () => {
   seedErros(e, 1, 1);
   assert.equal(await avaliarEAvisar(e, agora), true);
   assert.equal(T.error_alert_state[0].alertas, 2);
+});
+
+test("grupo que volta com ocorrências simultâneas inaugura a aparição e avisa uma vez", async () => {
+  const e = ev();
+  T.error_alert_state = [{ impressao: impressao(e), primeira_vez: antes(20 * 24 * 60), ultima_vez: antes(9 * 24 * 60), ultimo_alerta: antes(9 * 24 * 60), alertas: 1 }];
+  seedErros(e, 5, 1);
+  const results = await Promise.all([avaliarEAvisar(e, agora), avaliarEAvisar(e, agora), redeDeSeguranca(supabaseAdmin(), agora)]);
+  assert.equal(results.filter(Boolean).length, 1);
+  assert.equal(enviados.length, 1);
+  assert.equal(T.error_alert_state[0].alertas, 2);
+  assert.equal(T.error_alert_dia.length, 1);
+});
+
+test("pico libera aviso quando completam exatamente 6 horas", async () => {
+  const e = ev();
+  T.error_alert_state = [{ impressao: impressao(e), primeira_vez: antes(3 * 24 * 60), ultima_vez: antes(60), ultimo_alerta: antes(6 * 60), alertas: 1 }];
+  seedErros(e, 5);
+  assert.equal(await avaliarEAvisar(e, agora), true);
 });
 
 test("limite diário: no máximo 4 pushes; os outros erros continuam gravados", async () => {
