@@ -593,7 +593,7 @@ describe("app com login", () => {
     }, { id: criado.id, scad: SCAD2 });
     assert.equal(versao.ok, true, `versão: HTTP ${versao.status}`);
 
-    const visivel = async (sel) => p.evaluate((s) => {
+    const aguardarVisivel = (sel) => p.waitForFunction((s) => {
       const el = document.querySelector(s);
       if (!el) return false;
       const r = el.getBoundingClientRect();
@@ -609,7 +609,7 @@ describe("app com login", () => {
     assert.match(await p.locator("#s3d-pedido").innerText(), /cubo de teste de 20 mm/i);
     assert.match(await p.locator("#s3d-versoes").innerText(), /Versões \(2\)/);
     assert.match(await p.locator("#s3d-versoes").innerText(), /Deixa 2 mm mais alto/);
-    assert.equal(await visivel("#s3d-peca"), true, "prévia à vista depois de Abrir");
+    await aguardarVisivel("#s3d-peca");
 
     await p.goto(`${BASE}/app/3d?peca=${criado.id}`);
     await p.waitForSelector("#s3d-peca");
@@ -617,7 +617,7 @@ describe("app com login", () => {
     await p.waitForSelector("#s3d-versoes");
     assert.match(await p.locator("#s3d-pedido").innerText(), /cubo de teste de 20 mm/i);
     assert.match(await p.locator("#s3d-versoes").innerText(), /Versões \(2\)/);
-    assert.equal(await visivel("#s3d-peca"), true, "prévia à vista pelo endereço da voz");
+    await aguardarVisivel("#s3d-peca");
     await p.context().close();
   });
 });
