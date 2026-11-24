@@ -20,6 +20,12 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-24 · Eventos que se repetem e uma confirmação por ação · desenvolvido e testado
+- **Feito por:** Codex (PR #132) e Claude Code (revisão e ajuste). "Toda segunda às 7h por 10 semanas" vira **uma série** no Google Agenda, confirmada uma vez (cartão ou "sim"); o cartão e a pergunta falada dizem a repetição.
+- **Voz mais firme:** o mesmo cartão não é confirmado duas vezes; cartões repetidos na mesma resposta somem; se a rede cair depois de vir uma ação, não há nova tentativa (evita ação dupla); um "sim" atrasado não confirma outro cartão; tocar no microfone, mandar outra mensagem ou trocar de conversa cancela a confirmação pendente; fim de fala de uma fala cancelada não atrapalha a próxima.
+- **Ajuste da revisão:** toda série precisa de número de repetições (2 a 365); sem fim dito pela pessoa, o GaDu pergunta quantas vezes. Série sem fim é recusada pela rota (teste novo).
+- **Testes:** unitários de recorrência, voz e confirmação; integração da rota da agenda com Google simulado; e2e da confirmação na conversa principal. **Não testado** com uma agenda Google real.
+
 ## 2026-11-24 · Agenda de filhos: calendário do mês · desenvolvido e testado
 - **Feito por:** Claude Code. Branch `feat/agenda-calendario`. Pedido do Eduardo: agenda mais visual, por mês e fim de semana.
 - Novo painel **Calendário** na Agenda de filhos: grade do mês (domingo a sábado), cada fim de semana pintado como uma faixa contínua com a cor de quem fica (azul-petróleo "com você", laranja "com o outro"), trocas com listras, feriados com ponto vermelho, hoje com contorno, resumo do mês ("3 com você · 1 com o outro") e navegação entre meses. Tocar num fim de semana mostra o detalhe (datas, feriados) com **Trocar** ou **Desfazer troca**. A lista continua embaixo.

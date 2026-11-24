@@ -76,6 +76,8 @@ test("série recorrente usa o token da sessão e rejeita regra inválida antes d
   const draft = { title: "Aula", start, end, recurrence };
   assert.equal((await create({ ...draft, recurrence: { ...recurrence, interval: 0 } })).status, 400);
   assert.equal((await create({ ...draft, recurrence: { rrule: "RRULE:FREQ=SECONDLY" } })).status, 400);
+  assert.equal((await create({ ...draft, recurrence: { frequency: "WEEKLY" } })).status, 400, "série sem fim não é aceita");
+  assert.equal((await create({ ...draft, recurrence: { frequency: "DAILY", count: 366 } })).status, 400, "no máximo 365 repetições");
   assert.equal(calls.length, 0);
   assert.equal((await create(draft)).status, 200);
   assert.deepEqual(calls, [{ fn: "create", args: ["tok", { ...draft, location: undefined }] }]);
