@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { validAcao } from "./acoes.ts";
 import { resolveAcoes } from "./acoes-resolver.ts";
 
 const NOW = Date.parse("2026-11-22T15:00:00-03:00");
@@ -326,6 +327,19 @@ test("abrir conversa anterior: só as da própria pessoa, pelo título ou resumo
   assert.ok(!JSON.stringify(r).includes("SEGREDO"));
   assert.ok(cdb.calls.filter((c) => c.table === "conversations").every((c) => c.filters.some(([k, v]) => k === "user_id" && v === U)));
   assert.equal(r.misses.length, 1);
+});
+
+test("abrir peça do 3D pela voz: \"abre a peça do chaveiro\" acha o título com chaveiro", async () => {
+  const pdb = fakeDb({
+    pecas_3d: [
+      { id: "c1", titulo: "Chaveiro retangular com o nome GADU", updated_at: "2026-11-23T13:00:00.000Z", user_id: U },
+      { id: "c2", titulo: "Peça L de parede", updated_at: "2026-11-23T14:00:00.000Z", user_id: U },
+      { id: "c3", titulo: "Suporte de celular", updated_at: "2026-11-22T13:00:00.000Z", user_id: U },
+    ],
+  });
+  const acao = validAcao({ tipo: "peca3d_abrir", busca: "peça do chaveiro" }, NOW)!;
+  const r = await resolveAcoes(pdb, U, [acao], { goals: true, finance: true, modeling3d: true, now: NOW });
+  assert.deepEqual(r.actions, [{ kind: "peca3d_abrir", id: "c1", titulo: "Chaveiro retangular com o nome GADU", quando: "23/11" }]);
 });
 
 test("abrir peça do 3D: a mais recente ou pelo nome, só da própria pessoa; interruptor desligado não lê nada", async () => {

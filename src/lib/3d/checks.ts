@@ -7,7 +7,7 @@ import type { Param, ParamValues } from "./params.ts";
 // (raios amostrados dentro da peça), e o balanço é só um aviso: nenhum dos dois substitui o fatiador.
 
 export type Status = "ok" | "aviso" | "erro";
-export type Check = { id: "tamanho" | "malha" | "base" | "parede" | "balanco"; titulo: string; status: Status; mensagem: string; sugestao?: string; estimativa?: boolean };
+export type Check = { id: "tamanho" | "malha" | "partes" | "medidas" | "base" | "parede" | "balanco"; titulo: string; status: Status; mensagem: string; sugestao?: string; estimativa?: boolean };
 export type Report = { checks: Check[]; ok: boolean; avisos: number; erros: number };
 
 const f1 = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1, minimumFractionDigits: 0 });
@@ -71,6 +71,93 @@ export function checkManifold(mesh: Mesh): Check {
   if (s.nonManifold) partes.push(`${s.nonManifold} aresta(s) com mais de 2 faces`);
   if (s.flipped) partes.push(`${s.flipped} aresta(s) com face invertida`);
   return { id: "malha", titulo, status: "erro", mensagem: `A malha não está fechada: ${partes.join(", ")}.`, sugestao: "Evite partes que só se tocam numa linha ou ponto e formas de espessura zero. Peça ao GaDu para unir as peças com uma pequena sobreposição." };
+}
+
+// --- Partes soltas (componentes conectados) ---
+export type Parte = { min: [number, number, number]; max: [number, number, number]; triangulos: number };
+
+/** Componentes conectados da malha (triângulos que compartilham vértices), cada um com a sua caixa delimitadora. */
+export function partesConectadas(mesh: Mesh): Parte[] {
+  const p = mesh.positions;
+  const ids = new Map<string, number>();
+  const pai: number[] = [];
+  const raiz = (x: number): number => { while (pai[x] !== x) { pai[x] = pai[pai[x]]; x = pai[x]; } return x; };
+  const id = (i: number) => {
+    const k = `${Math.round(p[i] * SNAP)},${Math.round(p[i + 1] * SNAP)},${Math.round(p[i + 2] * SNAP)}`;
+    let v = ids.get(k);
+    if (v === undefined) { v = ids.size; ids.set(k, v); pai.push(v); }
+    return v;
+  };
+  const n = triangleCount(mesh);
+  const primeiro = new Int32Array(n);
+  for (let t = 0; t < n; t++) {
+    const a = id(t * 9), b = id(t * 9 + 3), c = id(t * 9 + 6);
+    primeiro[t] = a;
+    pai[raiz(b)] = raiz(a);
+    pai[raiz(c)] = raiz(a);
+  }
+  const partes = new Map<number, Parte>();
+  for (let t = 0; t < n; t++) {
+    const r = raiz(primeiro[t]);
+    let q = partes.get(r);
+    if (!q) { q = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity], triangulos: 0 }; partes.set(r, q); }
+    q.triangulos++;
+    for (let v = 0; v < 3; v++) for (let k = 0; k < 3; k++) {
+      const x = p[t * 9 + v * 3 + k];
+      if (x < q.min[k]) q.min[k] = x;
+      if (x > q.max[k]) q.max[k] = x;
+    }
+  }
+  return [...partes.values()];
+}
+
+/**
+ * Uma peça só deve ser um corpo só. Dois corpos apoiados na mesa (caixa e tampa lado a lado) são aviso;
+ * parte flutuando no ar ou mais de dois corpos são erro (reforço solto, peça que não se uniu).
+ */
+export function checkPartes(mesh: Mesh): Check {
+  const titulo = "Peça em um corpo só";
+  const box = boundingBox(mesh);
+  if (!box) return { id: "partes", titulo, status: "erro", mensagem: "A peça está vazia." };
+  const partes = partesConectadas(mesh);
+  if (partes.length <= 1) return { id: "partes", titulo, status: "ok", mensagem: "Todas as partes estão unidas num corpo só." };
+  const zmin = box.min[2];
+  const noAr = partes.filter((q) => q.min[2] > zmin + 0.05).length;
+  const sug = "Ponha todas as partes num union() e faça cada uma entrar 0,1 a 0,2 mm na outra. Só caixa e tampa podem ficar separadas, lado a lado na mesa.";
+  if (noAr > 0) return { id: "partes", titulo, status: "erro", mensagem: `A peça tem ${partes.length} corpos separados e ${noAr} deles não encosta(m) na mesa (parte solta no ar).`, sugestao: sug };
+  if (partes.length > 2) return { id: "partes", titulo, status: "erro", mensagem: `A peça tem ${partes.length} corpos separados.`, sugestao: sug };
+  return { id: "partes", titulo, status: "aviso", mensagem: "A peça tem 2 corpos separados, apoiados na mesa (como caixa e tampa lado a lado). Tudo bem se for de propósito.", sugestao: "Se era para ser uma peça só, una as partes com uma pequena sobreposição." };
+}
+
+// --- Medidas dos parâmetros x medidas da malha ---
+const ALTURA_PRINCIPAL = /^altura(_(total|externa|da_caixa|caixa|corpo|peca))?$/;
+const LARGURA_PRINCIPAL = /^(largura|comprimento|profundidade)(_(total|externa))?$/;
+
+/**
+ * Um parâmetro de medida principal (altura, largura, comprimento, profundidade) precisa aparecer na malha:
+ * altura = Z; as demais = algum eixo. Vale a peça inteira ou um dos corpos (caixa e tampa lado a lado).
+ * Pega o controle que diz 40 enquanto a peça mede 28.
+ */
+export function checkMedidas(mesh: Mesh, params: Param[] = [], values: ParamValues = {}): Check {
+  const titulo = "Medidas batem com os controles";
+  const box = boundingBox(mesh);
+  if (!box) return { id: "medidas", titulo, status: "ok", mensagem: "Sem peça para comparar." };
+  const corpos = [{ size: box.size as number[] }, ...partesConectadas(mesh).map((q) => ({ size: [q.max[0] - q.min[0], q.max[1] - q.min[1], q.max[2] - q.min[2]] }))];
+  const problemas: string[] = [];
+  let comparados = 0;
+  for (const p of params) {
+    if (p.kind !== "number") continue;
+    const alt = ALTURA_PRINCIPAL.test(p.name);
+    if (!alt && !LARGURA_PRINCIPAL.test(p.name)) continue;
+    const v = typeof values[p.name] === "number" ? (values[p.name] as number) : p.value;
+    const tol = Math.max(1.5, v * 0.04);
+    const eixos = alt ? [2] : [0, 1, 2];
+    comparados++;
+    if (corpos.some((c) => eixos.some((e) => Math.abs(c.size[e] - v) <= tol))) continue;
+    problemas.push(alt ? `"${p.label || p.name}" está em ${f1(v)} mm, mas a altura (Z) da peça mede ${[...new Set(corpos.map((c) => f1(c.size[2])))].join(" ou ")} mm` : `"${p.label || p.name}" está em ${f1(v)} mm, mas nenhuma medida da peça (${f1(box.size[0])} × ${f1(box.size[1])} × ${f1(box.size[2])} mm) bate com isso`);
+  }
+  if (problemas.length) return { id: "medidas", titulo, status: "aviso", mensagem: `${problemas.join("; ")}.`, sugestao: "A medida pedida tem de aparecer na peça: ajuste o código para o controle e a peça concordarem." };
+  return { id: "medidas", titulo, status: "ok", mensagem: comparados ? "Altura, largura, comprimento e profundidade dos controles aparecem na peça." : "Sem controle de medida principal para comparar." };
 }
 
 // --- Base plana ---
@@ -211,7 +298,7 @@ export function checkOverhang(mesh: Mesh): Check {
 }
 
 export function analyze(mesh: Mesh, params: Param[] = [], values: ParamValues = {}): Report {
-  const checks = [checkSize(mesh), checkManifold(mesh), checkBase(mesh), checkWall(mesh, params, values), checkOverhang(mesh)];
+  const checks = [checkSize(mesh), checkManifold(mesh), checkPartes(mesh), checkMedidas(mesh, params, values), checkBase(mesh), checkWall(mesh, params, values), checkOverhang(mesh)];
   const erros = checks.filter((c) => c.status === "erro").length;
   const avisos = checks.filter((c) => c.status === "aviso").length;
   return { checks, ok: erros === 0, avisos, erros };

@@ -49,10 +49,12 @@ export NEXT_PUBLIC_SUPABASE_URL="$API_URL"
 export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
 export SUPABASE_SECRET_KEY="$SERVICE_KEY"
 export ALLOWED_EMAILS="$EMAIL"
+# 3D Studio (Beta) ligado só neste servidor de teste, para o e2e de abrir peça salva no celular.
+export MODELING_3D_ENABLED=1
 npm run build
 npx next start -p "$PORT" > "${E2E_APP_LOG:-/tmp/next-auth.log}" 2>&1 &
 APP_PID=$!
 for i in $(seq 1 60); do curl -sf "http://127.0.0.1:$PORT/api/health" >/dev/null && break; sleep 1; done
 curl -sf "http://127.0.0.1:$PORT/api/health" >/dev/null || { cat "${E2E_APP_LOG:-/tmp/next-auth.log}"; exit 1; }
 
-E2E_BASE="http://127.0.0.1:$PORT" E2E_EMAIL="$EMAIL" E2E_PASSWORD="$PASSWORD" npm run test:e2e:auth
+E2E_BASE="http://127.0.0.1:$PORT" E2E_EMAIL="$EMAIL" E2E_PASSWORD="$PASSWORD" E2E_3D=1 npm run test:e2e:auth

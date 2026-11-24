@@ -13,6 +13,7 @@ import { Viewer3D, type Captura } from "./Viewer3D";
 import { IMAGEM_DATAURL_MAX } from "@/lib/3d/render-imagem";
 import "./studio3d.css";
 import { AJUSTE_3D_KEY, lerAjuste } from "@/lib/3d/ajuste-voz";
+import { mensagemQualidade, problemasQualidade } from "@/lib/3d/qualidade";
 
 type Modo = "novo" | "refinar" | "corrigir";
 type RenderState = { state: "idle" | "busy" | "ok" | "erro"; error?: string; log?: string };
@@ -48,6 +49,18 @@ type Versao = { id: string; modo: Modo; pedido: string | null; scad: string; cre
 const quando = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 const jpost = (url: string, body: unknown, method = "POST") => fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
+const MODO_ROTULO: Record<Modo, string> = { novo: "Primeira versão", refinar: "Ajuste", corrigir: "Correção" };
+
+/** Leva a prévia da peça para a vista. `sempre`: abrir peça salva (a lista fica acima); senão só se ela estiver fora da parte de cima da tela. */
+function mostrarPeca(sempre: boolean) {
+  window.setTimeout(() => {
+    const el = document.getElementById("s3d-peca");
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (sempre || r.top < 0 || r.top > window.innerHeight * 0.5) el.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, sempre ? 150 : 80);
+}
+
 const slug = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "peca";
 
 /** abrir: "ultima" ou o id de uma peça salva (vem de /app/3d?peca=…, por exemplo pela conversa). */
@@ -67,7 +80,13 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
   const [pecaId, setPecaId] = useState<string | null>(null);
   const [pecas, setPecas] = useState<PecaResumo[] | null>(null);
   const [aviso, setAviso] = useState("");
+  const [versoes, setVersoes] = useState<Versao[]>([]);
+  const [abrindo, setAbrindo] = useState<string | null>(null);
+  // Correção automática de qualidade: no máximo UMA por pedido. `pendente` = peça nova/ajustada ainda não conferida.
+  const [analisado, setAnalisado] = useState("");
+  const pendente = useRef<{ pecaId: string; scad: string; pedido: string; zAntes: number | null } | null>(null);
   const valoresSalvos = useRef("{}");
+  const rolarAoAbrir = useRef(false);
   const captura = useRef<Captura | null>(null);
   const params = useMemo(() => parseParams(scad), [scad]);
   const renderer = useRef<ScadRenderer | null>(null);
@@ -88,6 +107,7 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
           if (triangleCount(m) > TRIANGULOS_MAX) throw new Error("A peça ficou detalhada demais para o celular.");
           setMesh(m);
           setReport(analyze(m, params, values));
+          setAnalisado(scad);
           setRender({ state: "ok" });
         } catch (e) {
           setRender({ state: "erro", error: e instanceof Error ? e.message : "Não consegui ler a peça.", log: "" });
@@ -112,7 +132,7 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
   }, []);
 
   const abrirPeca = useCallback(async (id: string) => {
-    setAviso("");
+    setAviso(""); setAbrindo(id);
     try {
       const r = await fetch(`/api/3d/pecas/${encodeURIComponent(id)}`, { cache: "no-store" });
       const j = r.ok ? await r.json() as { peca?: { id: string; pedido: string; valores?: ParamValues }; versoes?: Versao[] } : null;
@@ -124,8 +144,20 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
       valoresSalvos.current = JSON.stringify(vals);
       setPecaId(j.peca.id); setUltimoPedido(j.peca.pedido); setScad(atual); setValues(vals);
       setAnteriores(v.slice(1).map((x) => x.scad).reverse());
+      setVersoes(v);
+      pendente.current = null;
+      rolarAoAbrir.current = true;
       setMesh(null); setReport(null); setRender({ state: "busy" }); setErroIA("");
-    } catch { setAviso("Não consegui abrir a peça agora."); }
+    } catch { setAviso("Não consegui abrir a peça agora."); } finally { setAbrindo(null); }
+  }, []);
+
+  /** Recarrega o histórico de versões da peça (depois de salvar uma). */
+  const carregarVersoes = useCallback(async (id: string) => {
+    try {
+      const r = await fetch(`/api/3d/pecas/${encodeURIComponent(id)}`, { cache: "no-store" });
+      const j = r.ok ? await r.json() as { versoes?: Versao[] } : null;
+      if (Array.isArray(j?.versoes)) setVersoes(j.versoes);
+    } catch { /* o histórico é só para ver; a peça já está salva */ }
   }, []);
 
   // Lista das peças salvas; abre a pedida pela URL ("ultima" = a mais recente).
@@ -138,6 +170,13 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
     });
     return () => { vivo = false; };
   }, [abrir, carregarLista, abrirPeca]);
+
+  // A prévia só existe depois do React pintar o SCAD carregado; rolar no mesmo instante do setState perdia o alvo no celular.
+  useEffect(() => {
+    if (!rolarAoAbrir.current || !scad) return;
+    rolarAoAbrir.current = false;
+    mostrarPeca(true);
+  }, [scad, pecaId]);
 
   // As medidas dos controles ficam salvas na peça (sem IA), um pouco depois da última mexida.
   useEffect(() => {
@@ -156,15 +195,21 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
       if (modo === "novo" || !id) {
         const r = await jpost("/api/3d/pecas", { pedido: texto, scad: codigo });
         const j = r.ok ? await r.json() as { peca?: { id: string } } : null;
-        if (!j?.peca?.id) { setAviso("A peça não foi salva. Baixe o arquivo para não perder."); return; }
+        if (!j?.peca?.id) { setAviso("A peça não foi salva. Baixe o arquivo para não perder."); return null; }
         setPecaId(j.peca.id);
+        id = j.peca.id;
       } else {
         const r = await jpost(`/api/3d/pecas/${id}/versoes`, { modo, pedido: texto, scad: codigo });
-        if (!r.ok) { setAviso("Esta versão não foi salva. Baixe o arquivo para não perder."); return; }
+        if (!r.ok) { setAviso("Esta versão não foi salva. Baixe o arquivo para não perder."); return null; }
       }
       void carregarLista();
-    } catch { setAviso("A peça não foi salva. Confira a internet."); }
-  }, [carregarLista]);
+      void carregarVersoes(id);
+      return id;
+    } catch {
+      setAviso("A peça não foi salva. Confira a internet.");
+      return null;
+    }
+  }, [carregarLista, carregarVersoes]);
 
   const apagarPeca = async (p: PecaResumo) => {
     if (!window.confirm(`Apagar "${p.titulo}" e todas as versões?`)) return;
@@ -175,7 +220,7 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
   };
 
   function novaPeca() {
-    setPecaId(null); setScad(""); setAnteriores([]); setValues({}); setMesh(null); setReport(null); setUltimoPedido(""); setRender({ state: "idle" }); setAviso("");
+    setPecaId(null); setScad(""); setAnteriores([]); setVersoes([]); pendente.current = null; setValues({}); setMesh(null); setReport(null); setUltimoPedido(""); setRender({ state: "idle" }); setAviso("");
     // Peça nova começa do zero: sem o pedido e o ajuste da anterior na caixa de texto.
     setPedido(""); setAjuste(""); setErroIA("");
     valoresSalvos.current = "{}";
@@ -191,15 +236,18 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
     } catch { ajusteVoz.current = null; }
   }, [abrir]);
 
-  const pedirIA = useCallback(async (modo: Modo, texto: string) => {
+  /** `auto`: correção de qualidade pedida pelo próprio Studio (no máximo uma por pedido, sem laço). */
+  const pedirIA = useCallback(async (modo: Modo, texto: string, auto?: { erro: string }) => {
     setGerando(true); setErroIA("");
+    // A medida de Z de antes só vale para "N mm mais alto" se os controles estavam nos valores do código (o ajuste da IA os reinicia).
+    const zAntes = modo === "refinar" && mesh && JSON.stringify(values) === JSON.stringify(defaultValues(params)) ? boundingBox(mesh)?.size[2] ?? null : null;
     // 3D-1b: no ajuste, o render atual vai junto (a IA vê a forma). Sem render pronto ou sem WebGL, vai só o código.
     const img = modo === "refinar" && render.state === "ok" ? captura.current?.() ?? null : null;
     const imagem = img && img.length <= IMAGEM_DATAURL_MAX ? img : null;
     try {
       const res = await fetch("/api/3d/generate", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ modo, pedido: texto, ...(modo !== "novo" ? { scad } : {}), ...(imagem ? { imagem } : {}), ...(modo === "corrigir" ? { erro: `${render.error ?? ""}\n${render.log ?? ""}`.trim().slice(0, 1500) } : {}) }),
+        body: JSON.stringify({ modo, pedido: texto, ...(modo !== "novo" ? { scad } : {}), ...(imagem ? { imagem } : {}), ...(modo === "corrigir" ? { erro: auto ? auto.erro : `${render.error ?? ""}\n${render.log ?? ""}`.trim().slice(0, 1500), ...(auto ? { causa: "qualidade" } : {}) } : {}) }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok || !body || typeof body.scad !== "string") { setErroIA(httpMessage(res.status, body)); return; }
@@ -210,22 +258,21 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
       setValues(vals);
       setRender({ state: "busy" });
       if (modo === "novo") setPecaId(null);
-      void salvar(modo, texto, body.scad, modo === "novo" ? null : pecaId);
+      const persistencia = salvar(modo, texto, body.scad, modo === "novo" ? null : pecaId);
       if (modo === "novo") { setUltimoPedido(texto); setMesh(null); setReport(null); }
       setAjuste("");
+      // Aguarda salvar antes de corrigir: o retry deve acrescentar uma versão à peça, mesmo se a malha montar primeiro.
+      pendente.current = null;
       // A peça nova/ajustada fica à vista (a página não pode ficar parada lá embaixo, longe da prévia).
-      window.setTimeout(() => {
-        const el = document.getElementById("s3d-peca");
-        if (!el) return;
-        const r = el.getBoundingClientRect();
-        if (r.top < 0 || r.top > window.innerHeight * 0.5) el.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-      }, 80);
+      mostrarPeca(false);
+      const salvo = await persistencia;
+      if (salvo && modo !== "corrigir") pendente.current = { pecaId: salvo, scad: body.scad, pedido: texto, zAntes };
     } catch {
       setErroIA(httpMessage(0, null));
     } finally {
       setGerando(false);
     }
-  }, [scad, render.state, render.error, render.log, salvar, pecaId]);
+  }, [scad, render.state, render.error, render.log, salvar, pecaId, mesh, values, params]);
 
   useEffect(() => {
     const texto = ajusteVoz.current;
@@ -235,6 +282,17 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
     setAjuste(texto);
     void pedirIA("refinar", texto);
   }, [scad, pecaId, abrir, gerando, pedirIA, render.state, mesh]);
+
+  // Conferência de qualidade depois que a peça da IA montou: UMA correção automática (partes soltas, parede fina, medida que não bate, "N mm mais alto" errado).
+  useEffect(() => {
+    const p = pendente.current;
+    if (!p || p.pecaId !== pecaId || gerando || render.state !== "ok" || !mesh || !report || analisado !== p.scad || scad !== p.scad) return;
+    pendente.current = null;
+    const problemas = problemasQualidade({ report, pedido: p.pedido, zAntes: p.zAntes, zDepois: boundingBox(mesh)?.size[2] ?? null });
+    if (!problemas.length) return;
+    setAviso("Conferi a peça e achei um problema. Pedi uma correção à IA, uma vez só.");
+    void pedirIA("corrigir", p.pedido, { erro: mensagemQualidade(problemas) });
+  }, [gerando, render.state, mesh, report, analisado, scad, pecaId, pedirIA]);
 
   const voltar = () => {
     const prev = anteriores[anteriores.length - 1];
@@ -275,7 +333,7 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
               <li key={p.id} className={p.id === pecaId ? "on" : undefined}>
                 <div><b>{p.titulo}</b><span className="muted small">{quando(p.updated_at)}{p.id === pecaId ? " · aberta" : ""}</span></div>
                 <div className="s3d-row">
-                  <button className="btn btn-sm" type="button" disabled={p.id === pecaId} onClick={() => void abrirPeca(p.id)}>Abrir</button>
+                  <button className="btn btn-sm" type="button" disabled={p.id === pecaId || abrindo !== null} aria-label={`Abrir ${p.titulo}`} onClick={() => void abrirPeca(p.id)}>{abrindo === p.id ? "Abrindo…" : "Abrir"}</button>
                   <button className="btn btn-sm" type="button" aria-label={`Apagar ${p.titulo}`} onClick={() => void apagarPeca(p)}>Apagar</button>
                 </div>
               </li>
@@ -300,6 +358,26 @@ export function Studio3D({ abrir }: { abrir?: string } = {}) {
                   </div>
                 )}
               </Panel>
+
+              {pecaId && (
+                <Panel title="Pedido e versões" icon="folder">
+                  {ultimoPedido && <p id="s3d-pedido" className="s3d-pedido"><span className="muted small">Pedido</span><br />{ultimoPedido}</p>}
+                  {versoes.length > 0 && (
+                    <details id="s3d-versoes" open>
+                      <summary>Versões ({versoes.length})</summary>
+                      <ol className="s3d-versoes">
+                        {versoes.map((v, i) => (
+                          <li key={v.id} className={i === 0 ? "on" : undefined}>
+                            <b>{MODO_ROTULO[v.modo] ?? "Versão"}{i === 0 ? " · atual" : ""}</b>
+                            <span className="muted small">{quando(v.created_at)}</span>
+                            {v.pedido && <span className="s3d-vped">{v.pedido}</span>}
+                          </li>
+                        ))}
+                      </ol>
+                    </details>
+                  )}
+                </Panel>
+              )}
 
               <Panel title="Baixar" icon="folder">
                 <div className="s3d-dl">
