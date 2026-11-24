@@ -15,6 +15,9 @@ export type GastoDraft = { valor: number; categoria: string; descricao: string; 
 export type EventDraft = { title: string; start: string; end: string; location: string | null };
 
 export type ChatAction =
+  | { kind: "lista_compra_adicionar"; nome: string }
+  | { kind: "lista_compra_status"; id: string; nome: string; comprado: boolean }
+  | { kind: "lista_compra_remover"; id: string; nome: string }
   | { kind: "gasto"; g: GastoDraft }
   | { kind: "meta"; d: MetaDraft }
   | { kind: "registro_apagar"; goalId: string; registroId: string; meta: string; valor: number; unidade: string | null; data: string }
@@ -127,7 +130,7 @@ export type ActionView = {
   applied: boolean;
   /** Cartão só de informação (resultado de um cálculo): sem Confirmar, sem Descartar e sem Desfazer; não entra na confirmação falada. */
   info?: boolean;
-  open?: { label: string; view: "financeiro" | "metas" | "agenda" | "hoje" | "tarefas" | "projetos" | "ajustes" | "memoria" | "agentes" };
+  open?: { label: string; view: "financeiro" | "metas" | "agenda" | "hoje" | "tarefas" | "projetos" | "ajustes" | "memoria" | "agentes" | "lista_compras" };
 };
 
 const TZ = "America/Sao_Paulo";
@@ -164,6 +167,13 @@ const PERCEPCAO_PERGUNTA: Record<"conflito" | "livre" | "atrasadas" | "email" | 
 
 export function describe(a: ChatAction, now = new Date()): ActionView {
   switch (a.kind) {
+    case "lista_compra_adicionar": case "lista_compra_status": case "lista_compra_remover": {
+      const [proposed, done, confirm] = a.kind === "lista_compra_adicionar" ? ["Item para adicionar", "Item adicionado", "Adicionar"]
+        : a.kind === "lista_compra_remover" ? ["Item para remover", "Item removido", "Remover"]
+          : a.comprado ? ["Item para marcar como comprado", "Item comprado", "Marcar como comprado"]
+            : ["Item para voltar à lista", "Item pendente", "Voltar aos pendentes"];
+      return { icon: "check", proposed, done, undone: "Descartado", title: a.nome, detail: "Lista de compras", confirm, busy: "Salvando…", applied: false, open: { label: "Ver Lista de compras", view: "lista_compras" } };
+    }
     case "gasto": {
       const [, m, d] = a.g.data.split("-");
       return {
@@ -358,6 +368,9 @@ export function splitNavegacao(items: ChatAction[]): { cards: ChatAction[]; dest
 /** Pergunta falada da confirmação (sem o "Diga sim ou não"). */
 export function actionQuestion(a: ChatAction, now = new Date()): string {
   switch (a.kind) {
+    case "lista_compra_adicionar": return `Adiciono ${a.nome} à Lista de compras?`;
+    case "lista_compra_remover": return `Removo ${a.nome} da Lista de compras?`;
+    case "lista_compra_status": return a.comprado ? `Marco ${a.nome} como comprado?` : `Volto ${a.nome} para os pendentes?`;
     case "gasto": case "meta": case "evento": case "lembrete": return confirmQuestion(toConfirmItem(a), now);
     case "meta_nova": {
       const alvo = a.medicao === "numerica" && a.alvo !== null ? `, de ${fmtNum(a.inicial)} até ${fmtNum(a.alvo)}${a.unidade ? ` ${a.unidade}` : ""}` : a.medicao === "marcos" ? `, com ${a.marcos.length} ${a.marcos.length === 1 ? "marco" : "marcos"}` : "";
