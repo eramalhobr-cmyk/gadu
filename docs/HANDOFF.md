@@ -1,5 +1,10 @@
 # GaDu · Diário de bordo entre IAs
 
+## 24/11/2026 · Codex · Piloto de voz e navegação
+
+Base e3724d1. Piloto local, leitura completa por padrão, tentativa de abrir a conversa no Gmail Android e correção do histórico no retorno do Google. Validar a abertura e a leitura no aparelho. Retomar com o [roteiro de voz](PILOTO_VOZ_OPENAI.md).
+
+
 Este é o caderno de passagem de bastão entre as IAs que programam o GaDu (Claude Code, Codex, Cursor/Grok Bot e outras). Regras em [AGENTS.md](../AGENTS.md).
 
 **Como usar**

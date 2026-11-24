@@ -1,5 +1,10 @@
 # GaDu · Changelog
 
+## Piloto de voz e revisão mobile · em desenvolvimento
+
+- Leitura completa por padrão para novas preferências, abertura de conversa no Gmail Android com alternativa web, e preservação da aba após retorno do Google. Piloto local de transcrição preparado.
+
+
 Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em branch), **testado** (testes automáticos ou verificação executada, descrita na entrada), **publicado** (na `main` e em produção na Vercel, com migrações aplicadas quando houver). Datas são as do commit. Antes de 12/11 o histórico foi reconstruído a partir do `git log` e do ROADMAP; o que não tem evidência registrada aparece como "verificação não registrada".
 
 ## Em aberto (não publicado)
