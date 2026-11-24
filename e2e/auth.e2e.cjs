@@ -120,10 +120,14 @@ describe("app com login", () => {
       await p.getByRole("button", { name: "Salvar referência" }).click();
       await p.getByText("Referência salva.", { exact: true }).waitFor();
       // Alterna: o fim de semana da referência é com você; o seguinte, com o outro responsável.
+      // A lista mostra "sex dd/mm a dom dd/mm": procura pelo domingo do fim de semana da referência.
+      const dom = new Date(`${sab}T12:00:00Z`);
+      dom.setUTCDate(dom.getUTCDate() + 1);
+      const domTxt = `dom ${dom.toISOString().slice(8, 10)}/${dom.toISOString().slice(5, 7)}`;
       const itens = p.locator("ul li").filter({ hasText: /Com você|Com o outro responsável/ });
-      await itens.first().waitFor();
+      await itens.filter({ hasText: domTxt }).filter({ hasText: "Com você" }).first().waitFor();
       const textos = await itens.allTextContents();
-      const i = textos.findIndex((t) => t.includes(`${sab.slice(8, 10)}/${sab.slice(5, 7)}`));
+      const i = textos.findIndex((t) => t.includes(domTxt));
       assert.ok(i >= 0 && textos[i].includes("Com você"), "referência com você");
       assert.ok(textos[i + 1].includes("Com o outro responsável"), "o seguinte alterna");
       // Troca o seguinte e confere depois de recarregar.
