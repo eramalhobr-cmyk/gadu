@@ -285,6 +285,7 @@ export class Speaker {
       // Um onend/onerror que chega depois de cancelar não pertence à nova fila.
       if (done || !this.timers.delete(timer)) return;
       done = true;
+      clearTimeout(timer);
       this.queue = Math.max(0, this.queue - 1);
       this.maybeIdle();
     };
