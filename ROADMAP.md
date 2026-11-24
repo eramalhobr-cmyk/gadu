@@ -481,7 +481,7 @@ Proposta completa (17 itens), com o levantamento das skills de design no GitHub,
 - [x] Lista de compras: migração aplicada em produção (23/11)
 - [x] Lista de compras: publicada (PR #123, 23/11)
 - [x] Compras: pedidos e entregas pelo Gmail, publicada (PR #124, 23/11); falta conferir com Gmail real
-- [ ] Agenda de filhos (precisa de migração e aprovação)
+- [ ] Agenda de filhos: migração aprovada e aplicada em produção (24/11); código e testes no PR #126; falta publicar
 - [ ] Validar no aparelho: Hoje e voz (`docs/CHECKLIST_CELULAR.md`), painel e push da Saúde, Lista e Compras
 - [ ] 3D: 3ª rodada com IA real e teste no iPhone
 

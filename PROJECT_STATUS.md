@@ -69,6 +69,7 @@ Atualizado em 23/11/2026 às 18:10 (Brasília): **3D, correções da rodada de r
 ## Em andamento
 | Trabalho | Estágio | Onde |
 |---|---|---|
+| **Agenda de filhos** (fins de semana alternados, trocas, feriados) | Desenvolvida e testada em 24/11/2026; migração aprovada pelo Eduardo e **aplicada em produção** em 24/11 | PR #126 |
 | **Lista de compras** (mercado, sincronizada na conta) | **Publicada** em 23/11/2026 (migração aplicada, PR #123). Falta validar no aparelho | PR #123 |
 | **Compras** (pedidos e entregas lidos do Gmail, só leitura) | **Publicado** em 23/11/2026, sem migração. Falta conferir com Gmail real e no aparelho | PR #124 |
 | **Segurança P1 / fase 0 do Core** (S-01, S-02, S-03 parcial, S-04, S-05 parcial, S-06, S-07, S-10, S-11, S-12) | **Publicada em 22/11/2026**: PR #22 integrado, migrações aditiva e restritiva aplicadas, deploy no ar. Pendentes: senhas vazadas (painel), S-09 (backups), chat logado e encerramento de sessões em produção ainda não verificados | PR #22, merge `cc850400ff982d2463cf750de539fa194b04b5b6`; [docs/SEGURANCA_P1_MANUAL.md](docs/SEGURANCA_P1_MANUAL.md) |

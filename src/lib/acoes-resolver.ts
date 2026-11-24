@@ -5,6 +5,8 @@ import { insights, type InTask } from "./insights.ts";
 import { ACEITAR, pendentes, type Resposta } from "./percepcoes.ts";
 import { spNow } from "./briefing.ts";
 import { ITEM_COLS, nomeChave, type ItemCompra } from "./lista-compras/types.ts";
+import { comigoNo, sabadoDe, type AjusteFilhos, type ConfigFilhos } from "./filhos/agenda.ts";
+import { carregarAgenda } from "./filhos/carregar.ts";
 import type { AcaoProposta } from "./acoes.ts";
 import { DESTINO_NOME, matchByName, norm } from "./acoes.ts";
 import { AREAS } from "./meta.ts";
@@ -24,7 +26,7 @@ type GoalRow = { id: string; titulo: string; medicao: Medicao; unidade: string |
 export type CalendarLookup = (from: Date, to: Date) => Promise<CalEvent[]>;
 /** E-mails não lidos da própria pessoa (token só no servidor), para as percepções. */
 export type InboxLookup = () => Promise<{ from: string; subject: string; snippet: string; date: string; important: boolean }[]>;
-type Opts = { listaCompras?: boolean; goals: boolean; finance: boolean; modeling3d?: boolean; calendar?: CalendarLookup; inbox?: InboxLookup; now?: number; blocked?: (text: string) => boolean };
+type Opts = { listaCompras?: boolean; agendaFilhos?: boolean; goals: boolean; finance: boolean; modeling3d?: boolean; calendar?: CalendarLookup; inbox?: InboxLookup; now?: number; blocked?: (text: string) => boolean };
 
 /** Área do agente: só as da lista de Agentes (como na tela); outra coisa vira nulo. */
 function areaDe(v: string | null): string | null {
@@ -138,9 +140,30 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
     return g;
   };
 
+  let agenda: { config: ConfigFilhos | null; ajustes: AjusteFilhos[] } | null = null;
+  const agendaFilhos = async () => (agenda ??= await carregarAgenda(db, userId).catch(() => ({ config: null, ajustes: [] })));
+
   for (const a of acoes) {
     try {
       switch (a.tipo) {
+        case "filhos_troca": case "filhos_troca_desfazer": case "filhos_mudar": {
+          if (!opts.agendaFilhos) break;
+          const { config, ajustes } = await agendaFilhos();
+          if (!config) { misses.push("Configure primeiro o fim de semana de referência em Agenda de filhos."); break; }
+          const sabado = sabadoDe(a.data);
+          const atual = comigoNo(sabado, config, ajustes);
+          if (a.tipo === "filhos_mudar") { actions.push({ kind: "filhos_mudar", sabado, comigo: a.comigo }); break; }
+          const troca = ajustes.find((x) => x.tipo === "troca" && x.data === sabado);
+          if (a.tipo === "filhos_troca_desfazer") {
+            if (troca) actions.push({ kind: "filhos_troca_remover", id: troca.id, sabado, comigo: troca.comigo });
+            else misses.push("Esse fim de semana não tem troca; já está no combinado.");
+            break;
+          }
+          const alvo = a.comigo ?? !atual.comigo;
+          if (alvo === atual.comigo) { misses.push(`Esse fim de semana já está ${alvo ? "com você" : "com o outro responsável"}.`); break; }
+          actions.push({ kind: "filhos_troca", sabado, comigo: alvo });
+          break;
+        }
         case "lista_compra_adicionar":
           if (opts.listaCompras && !blocked(a.nome)) actions.push({ kind: "lista_compra_adicionar", nome: a.nome });
           break;
@@ -484,7 +507,7 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           break;
         case "navegar":
           // Telas desligadas pelo interruptor não abrem (o menu também esconde).
-          if ((a.destino === "lista_compras" && !opts.listaCompras) || (a.destino === "financeiro" && !opts.finance) || (a.destino === "metas" && !opts.goals)) { misses.push(`${DESTINO_NOME[a.destino]} está desligado no momento.`); break; }
+          if ((a.destino === "lista_compras" && !opts.listaCompras) || (a.destino === "filhos" && !opts.agendaFilhos) || (a.destino === "financeiro" && !opts.finance) || (a.destino === "metas" && !opts.goals)) { misses.push(`${DESTINO_NOME[a.destino]} está desligado no momento.`); break; }
           actions.push({ kind: "navegar", view: a.destino });
           break;
         case "agente_criar": {

@@ -1,9 +1,9 @@
 // Arquitetura de módulos do GaDu (UX v2.2). Fonte única para menu, painel, home e assistente.
 // Regra: um módulo só aparece como "disponível" quando existe e funciona; o resto mostra o status real.
 
-export type ModuleId = "pessoal" | "lista_compras" | "compras" | "metas" | "financeiro" | "casa" | "office" | "studio" | "studio3d" | "plataforma";
+export type ModuleId = "pessoal" | "lista_compras" | "compras" | "filhos" | "metas" | "financeiro" | "casa" | "office" | "studio" | "studio3d" | "plataforma";
 export type ModuleStatus = "disponivel" | "parcial" | "desenvolvimento" | "planejado";
-export type ViewId = "hoje" | "modulos" | "conversa" | "tarefas" | "agenda" | "projetos" | "lista_compras" | "compras" | "memoria" | "metas" | "financeiro" | "casa" | "agentes" | "office" | "studio" | "studio3d" | "integracoes" | "ajustes" | "perfil" | "admin";
+export type ViewId = "hoje" | "modulos" | "conversa" | "tarefas" | "agenda" | "projetos" | "lista_compras" | "compras" | "filhos" | "memoria" | "metas" | "financeiro" | "casa" | "agentes" | "office" | "studio" | "studio3d" | "integracoes" | "ajustes" | "perfil" | "admin";
 
 export type ViewDef = { id: ViewId; label: string; icon: string; adminOnly?: boolean; /** Aparece no topo do menu, fora dos grupos ("Início"). */ home?: boolean; /** Tela de navegação (não aparece nos grupos). */ hub?: boolean; /** Endereço antigo que abre outra tela (ex.: Perfil e Integrações abrem Configurações); não aparece nos menus. */ alias?: boolean };
 export type ModuleDef = {
@@ -73,6 +73,12 @@ export const MODULES: ModuleDef[] = [
     available: ["Pedidos agrupados por loja e número, lidos do Gmail (só leitura)", "Situação, previsão de entrega e rastreio", "Pergunta por voz: “Quando chega meu pedido?”"], planned: [], needs: [],
   },
   {
+    id: "filhos", name: "Agenda de filhos", tagline: "Fins de semana alternados, trocas e feriados, sem confusão.",
+    icon: "calendar", color: "hot", status: "disponivel",
+    views: [{ id: "filhos", label: "Agenda de filhos", icon: "calendar" }],
+    available: ["Fins de semana alternados a partir de uma referência", "Troca pontual e mudança a partir de uma data", "Feriados nacionais colados ao fim de semana", "Pergunta por voz: “O fim de semana que vem é meu?”"], planned: ["Feriados estaduais e municipais", "Férias escolares"], needs: [],
+  },
+  {
     id: "casa", name: "Casa Inteligente", brand: "GaDu Casa", tagline: "Sua casa conectada, por voz e texto, com segurança.", icon: "home", color: "blue", status: "planejado",
     views: [{ id: "casa", label: "Casa Inteligente", icon: "home" }],
     available: [],
@@ -123,13 +129,13 @@ export const MODULES: ModuleDef[] = [
 export type AreaDef = { id: string; name: string; text: string; modules: ModuleId[] };
 export const AREAS: AreaDef[] = [
   { id: "produtividade", name: "Produtividade pessoal", text: "Seu dia, conversas, tarefas, agenda, projetos e memória.", modules: ["pessoal"] },
-  { id: "vida", name: "Vida pessoal", text: "Metas, dinheiro e casa.", modules: ["metas", "financeiro", "lista_compras", "compras", "casa"] },
+  { id: "vida", name: "Vida pessoal", text: "Metas, dinheiro e casa.", modules: ["metas", "financeiro", "lista_compras", "compras", "filhos", "casa"] },
   { id: "criacao", name: "Agentes e criação", text: "Agentes, sites e aplicações, modelos 3D.", modules: ["office", "studio", "studio3d"] },
   { id: "plataforma", name: "Plataforma", text: "Conta, aparência, conexões e custos.", modules: ["plataforma"] },
 ];
 /** Telas que funcionam, na ordem única dos menus (UX-1): a mesma no celular ("Mais") e no computador (menu lateral).
  * Hoje, Conversa e Tarefas ficam na barra de baixo do celular; o resto, em "Mais". */
-export const MAIN_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "lista_compras", "compras", "projetos", "memoria", "agentes"];
+export const MAIN_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "lista_compras", "compras", "filhos", "projetos", "memoria", "agentes"];
 export const DOCK_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas"];
 /** Grupos dos menus (UX-7): a mesma divisão na tela Mais do celular e no menu lateral do computador.
  * Cada grupo traz um exemplo do que dizer, porque tudo no GaDu também se faz pela conversa. */
@@ -137,7 +143,7 @@ export type NavGroupId = "dia" | "vida" | "criacao";
 export type NavGroup = { id: NavGroupId; name: string; hint: string; views: ViewId[] };
 export const NAV_GROUPS: NavGroup[] = [
   { id: "dia", name: "Meu dia", hint: "“Como está meu dia?”", views: ["hoje", "conversa", "tarefas", "agenda", "projetos", "memoria"] },
-  { id: "vida", name: "Vida", hint: "“Quanto gastei este mês?”", views: ["metas", "financeiro", "lista_compras", "compras"] },
+  { id: "vida", name: "Vida", hint: "“Quanto gastei este mês?”", views: ["metas", "financeiro", "lista_compras", "compras", "filhos"] },
   { id: "criacao", name: "Agentes e criação", hint: "“Cria um agente para os estudos”", views: ["agentes"] },
 ];
 /** Grupos com as telas visíveis: tira as escondidas (interruptores) e as de `skip` (ex.: as da barra de baixo, na tela Mais). Grupo vazio sai. */

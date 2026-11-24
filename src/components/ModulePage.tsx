@@ -91,6 +91,7 @@ const MORE_TEXT: Partial<Record<ViewId, string>> = {
   agenda: "Seus compromissos da semana",
   lista_compras: "O que falta comprar",
   compras: "Pedidos e entregas",
+  filhos: "Fins de semana e trocas",
   financeiro: "Contas e gastos do mês",
   metas: "Seus objetivos e o progresso",
   projetos: "Tarefas separadas por projeto",
