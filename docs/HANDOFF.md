@@ -72,6 +72,9 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 24/11/2026 07:17 · Claude Code, Agenda de filhos em calendário
+- Painel Calendário (mês, faixas coloridas por responsável, trocas, feriados, Trocar/Desfazer pelo toque). Branch `feat/agenda-calendario`. Sem migração.
+
 ### 24/11/2026 07:07 · Claude Code, publicação
 - Publicados: #126 (Agenda de filhos), #127 (Voltar do Android, Gmail na conta certa, cartão do Hoje) e #128 (Agenda e outras lacunas por voz). CI verde em todos; deploys de produção prontos.
 - **Pendente (humano):** conferir no Android real o Voltar, o "App do Gmail", o cartão do Hoje e a configuração da Agenda por voz.

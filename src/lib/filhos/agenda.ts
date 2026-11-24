@@ -137,3 +137,51 @@ export function blocoFilhos(cfg: ConfigFilhos | null, ajustes: AjusteFilhos[], h
     .map((f) => { const c = consultarData(f.data, cfg, ajustes); return `- ${rotuloData(f.data)} ${f.nome}: ${c.comigo === null ? "sem regra (dia de semana)" : c.comigo ? "com você" : "com o outro responsável"}`; });
   return `AGENDA DE FILHOS (calculada pelo app; responda só com isto, sem inventar). ${calendario}\nReferência atual: fim de semana de ${ddmm(cfg.ancora)} com você, de ${cfg.inicio} a ${cfg.fim}${cfg.feriadoSegue ? ", feriado colado segue o fim de semana" : ""}.\nPróximos fins de semana:\n${fs.join("\n")}${feriados.length ? `\nFeriados nacionais nos próximos 90 dias:\n${feriados.join("\n")}` : ""}`;
 }
+
+export type DiaCalendario = {
+  dia: string;
+  doMes: boolean;
+  hoje: boolean;
+  /** Com quem as crianças ficam (só dias de fim de semana e feriados colados); nulo = dia comum. */
+  comigo: boolean | null;
+  /** Sábado do fim de semana a que o dia pertence (para tocar e trocar). */
+  sabado: string | null;
+  troca: boolean;
+  feriado: string | null;
+  /** Posição na faixa do fim de semana: primeiro, meio ou último dia (para desenhar a faixa contínua). */
+  faixa: "inicio" | "meio" | "fim" | "unico" | null;
+};
+
+/** Semanas (domingo a sábado) do mês, com o dono de cada dia de fim de semana. Mês de 1 a 12. */
+export function mesCalendario(ano: number, mes: number, cfg: ConfigFilhos, ajustes: AjusteFilhos[], hoje: string): DiaCalendario[][] {
+  const primeiro = `${ano}-${String(mes).padStart(2, "0")}-01`;
+  const inicio = somaDias(primeiro, -diaDaSemana(primeiro));
+  const ultimo = somaDias(`${mes === 12 ? ano + 1 : ano}-${String(mes === 12 ? 1 : mes + 1).padStart(2, "0")}-01`, -1);
+  const fim = somaDias(ultimo, 6 - diaDaSemana(ultimo));
+  const dias: DiaCalendario[] = [];
+  for (let d = inicio; d <= fim; d = somaDias(d, 1)) {
+    const c = consultarData(d, cfg, ajustes);
+    const sabado = c.comigo === null ? null : c.sabado;
+    dias.push({
+      dia: d, doMes: d.slice(5, 7) === primeiro.slice(5, 7), hoje: d === hoje, comigo: sabado ? c.comigo : null, sabado,
+      troca: Boolean(sabado && ajustes.some((a) => a.tipo === "troca" && a.data === sabado)), feriado: c.feriado, faixa: null,
+    });
+  }
+  // Faixa contínua: dias seguidos do mesmo fim de semana, dentro da mesma linha (semana).
+  for (let i = 0; i < dias.length; i++) {
+    const x = dias[i];
+    if (!x.sabado) continue;
+    const antes = i % 7 > 0 && dias[i - 1].sabado === x.sabado;
+    const depois = i % 7 < 6 && dias[i + 1]?.sabado === x.sabado;
+    x.faixa = antes && depois ? "meio" : antes ? "fim" : depois ? "inicio" : "unico";
+  }
+  return Array.from({ length: dias.length / 7 }, (_, s) => dias.slice(s * 7, s * 7 + 7));
+}
+
+/** Resumo do mês: fins de semana (por sábado no mês) com cada responsável. */
+export function resumoMes(semanas: DiaCalendario[][]): { comigo: number; outro: number } {
+  const sabados = new Map<string, boolean>();
+  for (const d of semanas.flat()) if (d.doMes && d.sabado && d.dia === d.sabado) sabados.set(d.sabado, Boolean(d.comigo));
+  const v = [...sabados.values()];
+  return { comigo: v.filter(Boolean).length, outro: v.filter((x) => !x).length };
+}

@@ -163,6 +163,13 @@ describe("app com login", () => {
       await itens.nth(i + 1).getByText(/Com você · troca/).waitFor();
       await itens.nth(i + 1).getByRole("button", { name: /^Desfazer a troca/ }).click();
       await p.getByText("Troca desfeita. Voltou ao combinado.", { exact: true }).waitFor();
+      // Calendário do mês: grade com a cor de cada fim de semana; tocar no sábado da referência mostra o detalhe.
+      const grade = p.getByRole("grid", { name: /^Agenda de filhos,/ });
+      await grade.waitFor();
+      const diaSab = grade.getByRole("gridcell", { name: new RegExp(`, ${+sab.slice(8, 10)} de .*com você`) }).first();
+      if (await diaSab.count() === 0) await p.getByRole("button", { name: "Próximo mês" }).click();
+      await grade.getByRole("gridcell", { name: new RegExp(`^sábado, ${+sab.slice(8, 10)} de .*com você`) }).first().click();
+      await p.getByRole("region", { name: "Fim de semana escolhido" }).getByText("Com você").waitFor();
       // Consulta de data: o sábado da referência.
       await p.getByLabel("Data", { exact: true }).fill(sab);
       await p.getByRole("button", { name: "Consultar", exact: true }).click();

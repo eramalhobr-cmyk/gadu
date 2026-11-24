@@ -5,6 +5,7 @@ import { rotuloData, type AjusteFilhos, type Consulta, type ConfigFilhos, type F
 import { AGENDA_FILHOS_ATUALIZADA } from "@/lib/filhos/carregar";
 import { MSG } from "@/lib/errors";
 import { EmptyState, Field, ModuleScreen, Panel, Summary } from "./kit";
+import { FilhosCalendario } from "./FilhosCalendario";
 import styles from "./FilhosPage.module.css";
 
 const API = "/api/agenda-filhos";
@@ -144,6 +145,12 @@ export function FilhosPage() {
         </Panel>
       ) : (
         <>
+          <Panel title="Calendário" icon="calendar">
+            <FilhosCalendario config={config} ajustes={dados.ajustes} hoje={dados.hoje} gravando={gravando}
+              onTrocar={(sabado, comigo) => void gravar(`${API}/ajustes`, "POST", "Fim de semana trocado.", { tipo: "troca", data: sabado, comigo })}
+              onDesfazer={(id) => void gravar(`${API}/ajustes/${id}`, "DELETE", "Troca desfeita. Voltou ao combinado.")} />
+          </Panel>
+
           <Panel title="Próximos fins de semana" icon="calendar">
             <ul className={styles.lista}>
               {dados.fins.map((f) => (
