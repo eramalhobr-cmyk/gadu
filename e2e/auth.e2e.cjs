@@ -102,6 +102,48 @@ describe("app com login", () => {
     }
   });
 
+  test("Agenda de filhos no celular: referência, troca que persiste, desfazer e consulta de data", async () => {
+    const p = await page(PHONE);
+    try {
+      // Referência: o próximo sábado (data fictícia relativa a hoje).
+      const d = new Date(Date.now() - 3 * 3600_000);
+      d.setUTCDate(d.getUTCDate() + ((6 - d.getUTCDay() + 7) % 7 || 7));
+      const sab = d.toISOString().slice(0, 10);
+      await p.goto(`${BASE}/app?tab=modulos`);
+      await p.getByRole("button", { name: /^Agenda de filhos/ }).click();
+      assert.match(p.url(), /tab=filhos/);
+      const editar = p.getByRole("button", { name: "Editar", exact: true });
+      const campo = p.getByLabel("Um dia de um fim de semana em que as crianças ficam com você");
+      await Promise.race([editar.waitFor(), campo.waitFor()]);
+      if (await editar.isVisible()) await editar.click();
+      await campo.fill(sab);
+      await p.getByRole("button", { name: "Salvar referência" }).click();
+      await p.getByText("Referência salva.", { exact: true }).waitFor();
+      // Alterna: o fim de semana da referência é com você; o seguinte, com o outro responsável.
+      const itens = p.locator("ul li").filter({ hasText: /Com você|Com o outro responsável/ });
+      await itens.first().waitFor();
+      const textos = await itens.allTextContents();
+      const i = textos.findIndex((t) => t.includes(`${sab.slice(8, 10)}/${sab.slice(5, 7)}`));
+      assert.ok(i >= 0 && textos[i].includes("Com você"), "referência com você");
+      assert.ok(textos[i + 1].includes("Com o outro responsável"), "o seguinte alterna");
+      // Troca o seguinte e confere depois de recarregar.
+      await itens.nth(i + 1).getByRole("button", { name: /^Trocar o fim de semana/ }).click();
+      await p.getByText("Fim de semana trocado.", { exact: true }).waitFor();
+      await p.reload();
+      await itens.nth(i + 1).getByText(/Com você · troca/).waitFor();
+      await itens.nth(i + 1).getByRole("button", { name: /^Desfazer a troca/ }).click();
+      await p.getByText("Troca desfeita. Voltou ao combinado.", { exact: true }).waitFor();
+      // Consulta de data: o sábado da referência.
+      await p.getByLabel("Data", { exact: true }).fill(sab);
+      await p.getByRole("button", { name: "Consultar", exact: true }).click();
+      await p.getByText(/com você · fim de semana\./).waitFor();
+      assert.equal(await overflowX(p), 0, "sem rolagem lateral no celular");
+      assert.deepEqual(await smallTargets(p), [], "alvos de 44 px");
+    } finally {
+      await p.context().close();
+    }
+  });
+
   test("Compras no celular: pedidos lidos do e-mail, entrega de hoje e Google desconectado", async () => {
     const p = await page(PHONE);
     try {

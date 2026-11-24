@@ -9,6 +9,16 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-24 · Agenda de filhos · desenvolvido e testado
+- **Feito por:** Claude Code. Branch `feat/agenda-filhos`. Escopo do plano do ciclo; **mudança no banco aprovada pelo Eduardo** em 24/11/2026.
+- **Mais → Agenda de filhos:** a pessoa escolhe um fim de semana em que as crianças ficam com ela; o GaDu alterna a cada semana, para frente e para trás (virada de ano inclusa). Início na sexta ou no sábado, fim no domingo ou na segunda.
+- **Troca pontual** (botão Trocar e Desfazer troca) muda só aquele fim de semana; **mudança a partir de uma data** recomeça a alternância dali em diante, sem mexer no passado.
+- **Feriados nacionais** (fixos, Carnaval, Sexta-feira Santa e Corpus Christi pela Páscoa): feriado colado ao fim de semana (dia antes do início ou depois do fim) fica com quem tem o fim de semana, se a regra estiver ligada; feriado no meio da semana fica sem regra. **Consultar uma data** responde com quem as crianças ficam e por quê. Feriados estaduais e municipais não entram.
+- **Pela conversa:** perguntas ("o fim de semana que vem é meu?") usam um bloco de fatos calculados pelo app; ações `filhos_troca`, `filhos_troca_desfazer` e `filhos_mudar` viram cartão com confirmação (toque ou "sim") e Desfazer. A referência inicial só se define na tela.
+- **Privacidade:** nenhum nome, idade ou dado das crianças é guardado; só datas e de quem é o fim de semana.
+- **Banco:** migração aditiva `20261124020001_agenda_filhos.sql` (`filhos_agenda_config` e `filhos_agenda_ajustes`, com `user_id`, RLS com `(select auth.uid())`, datas só de sábado, S-05). Interruptor `AGENDA_FILHOS_ENABLED=0` desliga tela, rotas, ações e bloco do chat.
+- **Testes (máquina local):** `npm run typecheck`; `npm test` (unitários 487/487 com `src/lib/filhos/*.test.ts`: alternância, troca, mudança, virada do ano, Páscoa, feriado colado, ações e resolvedor; integração 287/287 com `test/agenda-filhos.integration.test.ts`: sessão, interruptor, filtro por pessoa, sábado, Desfazer, zod); `npm run build`; `bash scripts/test-db.sh` (isolamento, S-05 com 54 políticas e `97_filhos_agenda.test.sql`). e2e com login a 390 px escrito (referência, troca que persiste, desfazer, consulta), roda no CI.
+
 ## 2026-11-23 · Compras: pedidos e entregas lidos do e-mail · desenvolvido e testado
 - **Feito por:** Claude Code. Branch `feat/compras-pedidos`. Escopo do plano do ciclo (`docs/PLANO_CICLO_COMPRAS_FAMILIA.md`, PR #121): Compras acompanha pedidos já feitos; a Lista de compras (abaixo) é outra coisa.
 - **Mais → Compras:** pedidos dos últimos 45 dias lidos do Gmail com o token da própria pessoa (só leitura, nada gravado, sem tabela nova). Agrupa por loja e número (ou pela conversa), mostra a situação mais avançada, previsão de entrega (só quando o e-mail diz), rastreio a um toque e "Abrir e-mail". Bloco "Próximas entregas" por dia (Hoje, Amanhã, dia da semana) e "Sem previsão no e-mail".

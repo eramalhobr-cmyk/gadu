@@ -1,0 +1,84 @@
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.form > label {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.form input, .form select {
+  min-height: 44px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  flex: 1 1 100%;
+}
+
+.check input {
+  flex: none;
+  inline-size: 20px;
+  block-size: 20px;
+  min-height: 0;
+  accent-color: var(--sig);
+}
+
+.lista {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+
+.fim {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  min-width: 0;
+}
+
+.fim + .fim {
+  border-top: 1px solid var(--line-2);
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.info small {
+  color: var(--ink-3);
+}
+
+.selo {
+  color: var(--ink-2);
+}
+
+.fim[data-comigo="true"] .selo {
+  color: var(--sig);
+  font-weight: 600;
+}
+
+.fim :global(.btn) {
+  flex: none;
+  min-height: 44px;
+}
+
+.resposta {
+  margin-top: 12px;
+}
+
+.status:empty {
+  position: absolute;
+}
