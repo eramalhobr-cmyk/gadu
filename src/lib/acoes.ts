@@ -73,10 +73,10 @@ export type AcaoProposta =
   | { tipo: "ajuste"; ajuste: Ajuste };
 
 /** Telas que a conversa abre (instantâneo, sem gravar nada). Admin e telas em desenvolvimento ficam de fora. */
-export const DESTINOS = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "projetos", "memoria", "agentes", "ajustes", "modulos", "lista_compras"] as const satisfies readonly ViewId[];
+export const DESTINOS = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "projetos", "memoria", "agentes", "ajustes", "modulos", "lista_compras", "compras"] as const satisfies readonly ViewId[];
 export type Destino = (typeof DESTINOS)[number];
-export const DESTINO_NOME: Record<Destino, string> = { hoje: "Hoje", conversa: "Conversa", tarefas: "Tarefas", agenda: "Agenda", financeiro: "Financeiro", metas: "Metas", projetos: "Projetos", memoria: "Memória", agentes: "Agentes", ajustes: "Configurações", modulos: "Mais", lista_compras: "Lista de compras" };
-const DESTINO_APELIDO: Record<string, Destino> = { inicio: "hoje", chat: "conversa", calendario: "agenda", financas: "financeiro", dinheiro: "financeiro", configuracoes: "ajustes", configuracao: "ajustes", mais: "modulos", listadecompras: "lista_compras", listacompras: "lista_compras", listademercado: "lista_compras" };
+export const DESTINO_NOME: Record<Destino, string> = { hoje: "Hoje", conversa: "Conversa", tarefas: "Tarefas", agenda: "Agenda", financeiro: "Financeiro", metas: "Metas", projetos: "Projetos", memoria: "Memória", agentes: "Agentes", ajustes: "Configurações", modulos: "Mais", lista_compras: "Lista de compras", compras: "Compras" };
+const DESTINO_APELIDO: Record<string, Destino> = { inicio: "hoje", chat: "conversa", calendario: "agenda", financas: "financeiro", dinheiro: "financeiro", configuracoes: "ajustes", configuracao: "ajustes", mais: "modulos", listadecompras: "lista_compras", listacompras: "lista_compras", listademercado: "lista_compras", pedidos: "compras", entregas: "compras", meuspedidos: "compras" };
 export function destinoDe(v: unknown): Destino | null {
   if (typeof v !== "string") return null;
   const k = v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z]/g, "");
@@ -452,7 +452,7 @@ export function matchByName<T>(items: T[], name: (t: T) => string, query: string
 /** Instruções do bloco "acoes" (parte estável do prompt). */
 export function acoesRules(): string {
   return `- "acoes": para fazer pela conversa tudo o que dá para fazer tocando no app. Você NÃO grava: o app mostra um cartão e a pessoa confirma com um toque ou dizendo "sim". Use os nomes como a pessoa disse ou como aparecem no contexto; o app acha o item. Tipos:
-  {"tipo":"lista_compra_adicionar","nome":"leite"} para incluir na lista de compras. Use uma ação por item. Para marcar como comprado, devolver aos pendentes ou tirar da lista, use "lista_compra_marcar", "lista_compra_reabrir" ou "lista_compra_remover" com o nome. Só use quando a pessoa pedir uma mudança na lista de compras; nunca confunda com compra online, gasto ou tarefa. Para mostrar a lista, use {"tipo":"navegar","destino":"lista_compras"}.
+  {"tipo":"lista_compra_adicionar","nome":"leite"} para incluir na lista de compras. Use uma ação por item. Para marcar como comprado, devolver aos pendentes ou tirar da lista, use "lista_compra_marcar", "lista_compra_reabrir" ou "lista_compra_remover" com o nome. Só use quando a pessoa pedir uma mudança na lista de compras; nunca confunda com compra online, gasto ou tarefa. Para mostrar a lista, use {"tipo":"navegar","destino":"lista_compras"}. Pedidos online e entregas ficam em {"tipo":"navegar","destino":"compras"} (só leitura, nada a confirmar).
   {"tipo":"meta_criar","titulo":"Correr 50 km","medicao":"numerica","unidade":"km","alvo":50,"inicial":0,"prazo":"AAAA-MM-DD","categoria":"saude"} (medicao: numerica com alvo, percentual, marcos com "marcos":["..."], ou tarefas; categoria: financeira, familiar, profissional, saude, desenvolvimento ou educacao; sem alvo numa meta numérica, pergunte);
   {"tipo":"meta_registrar","meta":"nome da meta","valor":5,"data":"AAAA-MM-DD"} (data só se não for hoje); {"tipo":"meta_concluir","meta":"..."}; {"tipo":"meta_registro_apagar","meta":"...","valor":5,"data":"AAAA-MM-DD"} ("apaga o último registro da meta de corrida", "aquele registro de 5 km de ontem foi engano": valor e data são opcionais; sem eles, o mais recente);
   {"tipo":"meta_pausar","meta":"..."}; {"tipo":"meta_retomar","meta":"..."}; {"tipo":"meta_arquivar","meta":"..."} (some das listas, nada é apagado);

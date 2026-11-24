@@ -4,7 +4,7 @@ import { AssistantContextSchema, contextLabel, contextLine, contextOf, scopesFor
 import { AREAS, isOverview, MODULES, moduleOf, parseView, VIEW_IDS } from "./modules.ts";
 
 test("módulos: telas únicas e status coerente", () => {
-  assert.deepEqual(MODULES.map((m) => m.id), ["pessoal", "metas", "financeiro", "lista_compras", "casa", "office", "studio", "studio3d", "plataforma"]);
+  assert.deepEqual(MODULES.map((m) => m.id), ["pessoal", "metas", "financeiro", "lista_compras", "compras", "casa", "office", "studio", "studio3d", "plataforma"]);
   assert.equal(new Set(VIEW_IDS).size, VIEW_IDS.length);
   for (const m of MODULES) {
     if (m.status === "planejado") assert.equal(m.available.length, 0, `${m.name} planejado não lista nada como disponível`);

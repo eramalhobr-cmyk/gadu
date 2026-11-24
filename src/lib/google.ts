@@ -118,6 +118,42 @@ async function gget<T>(token: string, url: string): Promise<T> {
   return (await r.json()) as T;
 }
 
+/** Compras: e-mails de pedido (só leitura). Assunto, remetente, data e o começo do texto, para achar
+ * número, situação, previsão e rastreio. Nada é gravado; o corpo é cortado e nunca vai para log. */
+export async function pedidosEmails(token: string, query: string, max = 40): Promise<import("@/lib/compras/pedidos").EmailPedido[]> {
+  const list = await gget<{ messages?: { id: string }[] }>(token, `https://gmail.googleapis.com/gmail/v1/users/me/messages?${new URLSearchParams({ q: query, maxResults: String(max) })}`);
+  type Part = { mimeType?: string; body?: { data?: string }; parts?: Part[] };
+  type Msg = { id?: string; threadId?: string; snippet?: string; payload?: Part & { headers?: { name: string; value: string }[] } };
+  const fields = "id,threadId,snippet,payload(headers,mimeType,body/data,parts(mimeType,body/data,parts(mimeType,body/data)))";
+  const msgs = await Promise.all(
+    (list.messages ?? []).map((m) =>
+      gget<Msg>(token, `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(m.id)}?format=full&fields=${encodeURIComponent(fields)}`).catch(() => null),
+    ),
+  );
+  const decode = (d?: string) => (d ? Buffer.from(d.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8") : "");
+  const find = (p: Part | undefined, mime: string): string => {
+    if (!p) return "";
+    if (p.mimeType === mime && p.body?.data) return decode(p.body.data);
+    for (const c of p.parts ?? []) { const t = find(c, mime); if (t) return t; }
+    return "";
+  };
+  return msgs.filter((m): m is Msg => Boolean(m?.id)).map((m) => {
+    const h = (n: string) => m.payload?.headers?.find((x) => x.name.toLowerCase() === n)?.value ?? "";
+    const html = find(m.payload, "text/html").replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi, " ").replace(/<[^>]+>/g, " ");
+    const corpo = (find(m.payload, "text/plain") || html).replace(/&nbsp;/g, " ");
+    const from = h("from");
+    return {
+      id: m.id as string,
+      thread: /^[0-9a-f]{6,32}$/i.test(m.threadId ?? "") ? m.threadId : undefined,
+      from: from.replace(/<[^>]+>/, "").replace(/"/g, "").trim().slice(0, 80) || from.slice(0, 80),
+      fromEmail: (/<([^>\s]+@[^>\s]+)>/.exec(from)?.[1] ?? (/^[^\s<>@]+@[^\s<>@]+$/.test(from.trim()) ? from.trim() : undefined))?.slice(0, 120),
+      subject: h("subject").slice(0, 200) || "(sem assunto)",
+      text: decodeEntities(`${m.snippet ?? ""} ${corpo}`).replace(/\s+/g, " ").slice(0, 2500),
+      date: h("date"),
+    };
+  });
+}
+
 import type { CalEvent, Mail } from "@/lib/google-format";
 export type { CalEvent, Mail };
 export { formatEvents, formatMails, googleIntent } from "@/lib/google-format";

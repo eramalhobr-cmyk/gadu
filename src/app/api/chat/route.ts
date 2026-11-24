@@ -39,6 +39,8 @@ import type { MetaDraft } from "@/lib/goals/types";
 import { collectFinance, financeProposalRules, formatFinanceBlock } from "@/lib/core/finance";
 import { financeEnabled } from "@/lib/finance/flag";
 import { modeling3dEnabled } from "@/lib/3d/flag";
+import { comprasEnabled } from "@/lib/compras/flag";
+import { blocoCompras, diaSP, pedeCompras, SITUACAO_TEXTO } from "@/lib/compras/pedidos";
 import { blocoSalario, calcularPedido, pedeSalvarSalario, pedidoSalario, resumoSalario } from "@/lib/finance/salario-texto";
 import { hojeSP, isoDia } from "@/lib/finance/datas";
 import type { GastoProposta } from "@/lib/finance/lancamento";
@@ -310,6 +312,25 @@ export async function POST(request: Request) {
             }
           }
         }
+        // Compras (COMPRAS_ENABLED, padrão ligado): "quando chega meu pedido?" lê os e-mails de pedido da própria pessoa
+        // (Gmail, só leitura) e injeta o bloco [C1]…. Precisa da ferramenta "email" do agente. Nada é gravado.
+        // Prioridade: atenção do dia > finanças > metas > compras. Falha vira aviso ao modelo (nunca inventar pedidos).
+        let comprasBlock = "";
+        if (!coreBlock && !finIntent && !goalsIntent && comprasEnabled() && pode(agente, "email") && pedeCompras(message)) {
+          try {
+            const { carregarPedidos } = await import("@/lib/compras/carregar");
+            const { pedidos } = await carregarPedidos(supabase, user.id);
+            comprasBlock = `\n\n${blocoCompras(pedidos, diaSP(new Date()))}`;
+            coreSources = {
+              items: pedidos.slice(0, 15).map((p, i) => ({ tag: `C${i + 1}`, kind: "email" as const, label: SITUACAO_TEXTO[p.situacao], text: `${p.loja}${p.numero ? ` · pedido ${p.numero}` : ""}${p.previsao ? ` · previsão ${p.previsao.split("-").reverse().join("/")}` : ""}`, view: "compras" as const, omitted: false })),
+              unavailable: [],
+            };
+          } catch (e) {
+            const motivo = e instanceof GoogleError && e.kind === "not_connected" ? "Sua conta Google não está conectada, então não vejo os e-mails de pedidos." : "Não consegui ler seus e-mails de pedidos agora.";
+            comprasBlock = `\n\nCompras: ${motivo} Diga isso com franqueza e não invente pedidos.`;
+            coreSources = { items: [], unavailable: [motivo] };
+          }
+        }
         // O Core já traz agenda e e-mails de hoje: não lê o Google duas vezes (exceto se pediu a semana).
         const google = coreBlock && !googleIntent(message).week ? "" : await googleContext(supabase, user.id, message, blocked, taskList, { agenda: pode(agente, "agenda"), email: pode(agente, "email") });
         const lastTurn = turns[turns.length - 1];
@@ -323,7 +344,7 @@ export async function POST(request: Request) {
         // Simulador de salário: o servidor calcula (salario.ts) e o resultado entra no contexto; o modelo só repete os números.
         const salarioPedido = financeEnabled() && pode(agente, "financas") ? pedidoSalario(message) : null;
         const salarioBlock = salarioPedido ? blocoSalario(salarioPedido) ?? "" : "";
-        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + financeBlock + goalsBlock + salarioBlock + avisoFerramentas(agente) + (parsed.data.context ? contextLine(parsed.data.context) : "");
+        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + financeBlock + goalsBlock + comprasBlock + salarioBlock + avisoFerramentas(agente) + (parsed.data.context ? contextLine(parsed.data.context) : "");
         inputChars = system.length + context.length + turns.reduce((n, t) => n + t.content.length, 0);
         for await (const ev of routeChat({
           system,
