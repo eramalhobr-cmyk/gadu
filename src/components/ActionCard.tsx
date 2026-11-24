@@ -227,7 +227,7 @@ async function execute(a: ChatAction): Promise<Result> {
       return r.ok ? { ok: true } : { ok: false, msg: r.status === 404 ? "Não encontrei a meta (ou Metas está desligado)." : "Não consegui atualizar. Tente de novo." };
     }
     if (a.kind === "evento") {
-      const r = await fetch("/api/calendar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: a.ev.title, start: a.ev.start, end: a.ev.end, ...(a.ev.location ? { location: a.ev.location } : {}) }) });
+      const r = await fetch("/api/calendar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: a.ev.title, start: a.ev.start, end: a.ev.end, ...(a.ev.location ? { location: a.ev.location } : {}), ...(a.ev.recurrence ? { recurrence: a.ev.recurrence } : {}) }) });
       const j = await json(r);
       return r.ok ? { ok: true, link: typeof j.link === "string" ? j.link : "", ...(typeof j.id === "string" ? { id: j.id } : {}) } : { ok: false, msg: (typeof j.message === "string" && j.message) || "Não consegui criar. Tente de novo." };
     }

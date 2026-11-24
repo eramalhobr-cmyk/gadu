@@ -1,5 +1,10 @@
 # GaDu · Diário de bordo entre IAs
 
+## 24/11/2026 · Codex · Agenda e confirmações
+
+A criação pelo chat passa a validar e gravar uma série no Google Agenda, com a permissão existente. O cartão e a pergunta falada mostram a frequência. A fila perde propostas obsoletas, e cartões já processados não iniciam outra gravação. A recorrência inicial aceita uma cadência simples com intervalo e total opcionais. Google real e voz no aparelho ainda precisam ser conferidos.
+
+
 ## 24/11/2026 · Codex · Piloto de voz e navegação
 
 Base e3724d1. Piloto local, leitura completa por padrão, tentativa de abrir a conversa no Gmail Android e correção do histórico no retorno do Google. Validar a abertura e a leitura no aparelho. Retomar com o [roteiro de voz](PILOTO_VOZ_OPENAI.md).

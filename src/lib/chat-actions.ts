@@ -1,3 +1,4 @@
+import { recurrenceLabel, type Recurrence } from "./calendar-recurrence.ts";
 // Ações propostas pela conversa (gasto, meta, evento, lembrete…): um formato só para o cartão de confirmação,
 // a confirmação falada e (no futuro) novas ações. Puro: sem fetch nem React; quem executa é o ActionCard.
 import { formatBRL } from "./finance/money.ts";
@@ -12,7 +13,7 @@ import { resumoSalario } from "./finance/salario-texto.ts";
 import { confirmQuestion, spokenDay, spokenMoney, spokenTime, type ConfirmItem } from "./voice-confirm.ts";
 
 export type GastoDraft = { valor: number; categoria: string; descricao: string; meio: Meio; data: string };
-export type EventDraft = { title: string; start: string; end: string; location: string | null };
+export type EventDraft = { title: string; start: string; end: string; location: string | null; recurrence?: Recurrence };
 
 export type ChatAction =
   | { kind: "filhos_config"; ancora: string; inicio: "sexta" | "sabado"; fim: "domingo" | "segunda"; feriadoSegue: boolean; anterior: { ancora: string; inicio: "sexta" | "sabado"; fim: "domingo" | "segunda"; feriadoSegue: boolean } | null }
@@ -229,7 +230,7 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
     case "evento":
       return {
         icon: "calendar", proposed: "Evento para confirmar", done: "Criado na agenda", undone: "Descartado",
-        title: a.ev.title, detail: `${eventWhen(a.ev.start, a.ev.end)}${a.ev.location ? ` · ${a.ev.location}` : ""}`,
+        title: a.ev.title, detail: `${eventWhen(a.ev.start, a.ev.end)}${a.ev.recurrence ? ` · Repete ${recurrenceLabel(a.ev.recurrence)}` : ""}${a.ev.location ? ` · ${a.ev.location}` : ""}`,
         confirm: "Criar na agenda", busy: "Criando…", applied: false,
       };
     case "lembrete":
@@ -506,7 +507,7 @@ export function toConfirmItem(a: Extract<ChatAction, { kind: "gasto" | "meta" | 
   switch (a.kind) {
     case "gasto": return { kind: "gasto", valor: a.g.valor, categoria: a.g.categoria, descricao: a.g.descricao, data: a.g.data };
     case "meta": return { kind: "meta", titulo: a.d.titulo, acao: a.d.acao, valor: a.d.valor, unidade: a.d.unidade };
-    case "evento": return { kind: "evento", title: a.ev.title, start: a.ev.start };
+    case "evento": return { kind: "evento", title: a.ev.title, start: a.ev.start, ...(a.ev.recurrence ? { recurrence: a.ev.recurrence } : {}) };
     case "lembrete": return { kind: "lembrete", text: a.text, dueAt: a.dueAt };
   }
 }

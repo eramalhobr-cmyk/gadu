@@ -1,5 +1,11 @@
 # GaDu · Changelog
 
+## Agenda recorrente e confirmação única · em revisão
+
+- Eventos pela conversa podem repetir diariamente, semanalmente, mensalmente ou anualmente. A frequência, o intervalo e o total aparecem antes da confirmação.
+- Respostas deixam a confirmação ao cartão ou à voz. A fila ignora cartões processados e é descartada ao iniciar outro pedido ou trocar de conversa.
+
+
 ## Piloto de voz e revisão mobile · em desenvolvimento
 
 - Leitura completa por padrão para novas preferências, abertura de conversa no Gmail Android com alternativa web, e preservação da aba após retorno do Google. Piloto local de transcrição preparado.
@@ -18,6 +24,12 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **Feito por:** Claude Code. Branch `feat/voz-3d-criar`. Última lacuna real da matriz de voz (seção 11).
 - "Cria no 3D um gancho de parede para chaves" vira um cartão ("Criar peça nova no 3D?", com o aviso de que usa a cota de IA do 3D). Confirmado (toque ou "sim"), o pedido fica 2 minutos na sessão do navegador e o 3D Studio abre vazio, preenche o pedido e gera **uma vez** pelo fluxo normal (mesma reserva, cota e correção automática). Recarregar não gera de novo. `MODELING_3D_ENABLED` desligado: o GaDu avisa. Termo bloqueado: sem cartão.
 - **Testes:** unitários (leitura única com validade, validação, interruptor, termo bloqueado, cartão e pergunta falada) e e2e com login (`E2E_3D=1`, IA simulada: uma chamada em modo "novo", pedido apagado, recarregar não repete).
+
+## 2026-11-24 · Eventos que se repetem e uma confirmação por ação · desenvolvido e testado
+- **Feito por:** Codex (PR #132) e Claude Code (revisão e ajuste). "Toda segunda às 7h por 10 semanas" vira **uma série** no Google Agenda, confirmada uma vez (cartão ou "sim"); o cartão e a pergunta falada dizem a repetição.
+- **Voz mais firme:** o mesmo cartão não é confirmado duas vezes; cartões repetidos na mesma resposta somem; se a rede cair depois de vir uma ação, não há nova tentativa (evita ação dupla); um "sim" atrasado não confirma outro cartão; tocar no microfone, mandar outra mensagem ou trocar de conversa cancela a confirmação pendente; fim de fala de uma fala cancelada não atrapalha a próxima.
+- **Ajuste da revisão:** toda série precisa de número de repetições (2 a 365); sem fim dito pela pessoa, o GaDu pergunta quantas vezes. Série sem fim é recusada pela rota (teste novo).
+- **Testes:** unitários de recorrência, voz e confirmação; integração da rota da agenda com Google simulado; e2e da confirmação na conversa principal. **Não testado** com uma agenda Google real.
 
 ## 2026-11-24 · Agenda de filhos: calendário do mês · desenvolvido e testado
 - **Feito por:** Claude Code. Branch `feat/agenda-calendario`. Pedido do Eduardo: agenda mais visual, por mês e fim de semana.

@@ -282,9 +282,10 @@ export class Speaker {
     if (this.queue === 1) this.onStart();
     let done = false;
     const finish = () => {
-      if (done) return;
+      // Um onend/onerror que chega depois de cancelar não pertence à nova fila.
+      if (done || !this.timers.delete(timer)) return;
       done = true;
-      this.timers.delete(timer);
+      clearTimeout(timer);
       this.queue = Math.max(0, this.queue - 1);
       this.maybeIdle();
     };
