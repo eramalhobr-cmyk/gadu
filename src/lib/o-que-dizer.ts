@@ -6,6 +6,7 @@ export const SAY_HERE: Partial<Record<ViewId, string[]>> = {
   hoje: ["Como está meu dia?", "Isso não é importante", "Me lembra às 18h de ligar para a mãe", "Adia a tarefa do relatório para amanhã"],
   conversa: ["Começa uma conversa nova", "Abre a conversa sobre a viagem", "Resume o que falamos", "Desfaz"],
   tarefas: ["Cria a tarefa comprar pão para amanhã", "Conclui a tarefa comprar pão", "Adia a tarefa do relatório para sexta", "Reabre a tarefa do relatório"],
+  lista_compras: ["Coloca café na lista de compras", "Marca café como comprado na lista de compras", "Tira café da lista de compras"],
   agenda: ["Marca dentista quinta às 10h", "Muda o dentista para as 11h", "Apaga o evento do dentista", "Como está minha agenda amanhã?"],
   financeiro: ["Gastei 50 reais no mercado", "Quanto gastei este mês?", "Paguei a conta de luz", "Define um teto de 800 reais para mercado"],
   metas: ["Quero correr 50 km este mês", "Corri 5 km hoje", "Como estou nas minhas metas?", "Pausa a meta de leitura"],

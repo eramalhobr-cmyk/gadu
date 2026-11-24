@@ -4,6 +4,7 @@ import type { Msg } from "@/components/GaduApp";
 import { cookies } from "next/headers";
 import { parseView } from "@/lib/modules";
 import { financeEnabled } from "@/lib/finance/flag";
+import { listaComprasEnabled } from "@/lib/lista-compras/flag";
 import { goalsEnabled } from "@/lib/goals/flag";
 import { modeling3dEnabled } from "@/lib/3d/flag";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
@@ -51,9 +52,10 @@ export async function loadApp({ google, tab, start }: AppParams = {}) {
       version: APP_VERSION,
       morningLink: morning,
       // FINANCE_ENABLED=0 e GOALS_ENABLED=0 escondem a tela: o endereço ?tab=financeiro (ou metas) volta para o Hoje.
-      initialView: (() => { const v = parseView(tab, access.admin); return ((v === "financeiro" && !financeEnabled()) || (v === "metas" && !goalsEnabled()) ? null : v) ?? (google ? "conversa" : "hoje"); })(),
+      initialView: (() => { const v = parseView(tab, access.admin); return ((v === "financeiro" && !financeEnabled()) || (v === "metas" && !goalsEnabled()) || (v === "lista_compras" && !listaComprasEnabled()) ? null : v) ?? (google ? "conversa" : "hoje"); })(),
       financeEnabled: financeEnabled(),
       goalsEnabled: goalsEnabled(),
+      listaComprasEnabled: listaComprasEnabled(),
       modeling3dEnabled: modeling3dEnabled(),
       initialTheme: parseTheme((await cookies()).get(THEME_COOKIE)?.value),
       admin: access.admin,

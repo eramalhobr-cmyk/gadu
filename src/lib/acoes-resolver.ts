@@ -4,6 +4,7 @@ import { nomeCategoria } from "./finance/tetos.ts";
 import { insights, type InTask } from "./insights.ts";
 import { ACEITAR, pendentes, type Resposta } from "./percepcoes.ts";
 import { spNow } from "./briefing.ts";
+import { ITEM_COLS, nomeChave, type ItemCompra } from "./lista-compras/types.ts";
 import type { AcaoProposta } from "./acoes.ts";
 import { DESTINO_NOME, matchByName, norm } from "./acoes.ts";
 import { AREAS } from "./meta.ts";
@@ -23,7 +24,7 @@ type GoalRow = { id: string; titulo: string; medicao: Medicao; unidade: string |
 export type CalendarLookup = (from: Date, to: Date) => Promise<CalEvent[]>;
 /** E-mails não lidos da própria pessoa (token só no servidor), para as percepções. */
 export type InboxLookup = () => Promise<{ from: string; subject: string; snippet: string; date: string; important: boolean }[]>;
-type Opts = { goals: boolean; finance: boolean; modeling3d?: boolean; calendar?: CalendarLookup; inbox?: InboxLookup; now?: number; blocked?: (text: string) => boolean };
+type Opts = { listaCompras?: boolean; goals: boolean; finance: boolean; modeling3d?: boolean; calendar?: CalendarLookup; inbox?: InboxLookup; now?: number; blocked?: (text: string) => boolean };
 
 /** Área do agente: só as da lista de Agentes (como na tela); outra coisa vira nulo. */
 function areaDe(v: string | null): string | null {
@@ -140,6 +141,23 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
   for (const a of acoes) {
     try {
       switch (a.tipo) {
+        case "lista_compra_adicionar":
+          if (opts.listaCompras && !blocked(a.nome)) actions.push({ kind: "lista_compra_adicionar", nome: a.nome });
+          break;
+        case "lista_compra_marcar": case "lista_compra_reabrir": case "lista_compra_remover": {
+          if (!opts.listaCompras || blocked(a.nome)) break;
+          const { data, error } = await db.from("lista_compras_itens").select(ITEM_COLS).eq("user_id", userId)
+            .eq("nome_chave", nomeChave(a.nome)).maybeSingle();
+          const item = data as ItemCompra | null;
+          if (error || !item || blocked(item.nome)) {
+            misses.push("Não achei esse item. Diga o nome como aparece na Lista de compras.");
+            break;
+          }
+          if (a.tipo === "lista_compra_remover") actions.push({ kind: "lista_compra_remover", id: item.id, nome: item.nome });
+          else if (item.comprado === (a.tipo === "lista_compra_marcar")) misses.push(item.comprado ? "Esse item já está comprado." : "Esse item já está pendente.");
+          else actions.push({ kind: "lista_compra_status", id: item.id, nome: item.nome, comprado: a.tipo === "lista_compra_marcar" });
+          break;
+        }
         case "meta_criar":
           if (!opts.goals) break;
           if (blocked(a.titulo)) break;
@@ -466,7 +484,7 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           break;
         case "navegar":
           // Telas desligadas pelo interruptor não abrem (o menu também esconde).
-          if ((a.destino === "financeiro" && !opts.finance) || (a.destino === "metas" && !opts.goals)) { misses.push(`${DESTINO_NOME[a.destino]} está desligado no momento.`); break; }
+          if ((a.destino === "lista_compras" && !opts.listaCompras) || (a.destino === "financeiro" && !opts.finance) || (a.destino === "metas" && !opts.goals)) { misses.push(`${DESTINO_NOME[a.destino]} está desligado no momento.`); break; }
           actions.push({ kind: "navegar", view: a.destino });
           break;
         case "agente_criar": {

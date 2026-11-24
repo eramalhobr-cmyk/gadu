@@ -1,4 +1,5 @@
 "use client";
+import { LISTA_COMPRAS_ATUALIZADA } from "@/lib/lista-compras/types";
 import { MSG, RETRY_LABEL } from "@/lib/errors";
 import { describe, type ChatAction } from "@/lib/chat-actions";
 import type { ViewId } from "@/lib/modules";
@@ -27,6 +28,13 @@ export async function runAction(a: ChatAction): Promise<Result> {
 type Prep = (r: Result) => (() => Promise<Result>) | undefined;
 const back = async (p: PromiseLike<{ error: unknown }>, fail = MSG.undo): Promise<Result> => { const { error } = await p; return error ? { ok: false, msg: fail } : { ok: true }; };
 const backApi = async (p: Promise<Response>): Promise<Result> => { try { const r = await p; return r.ok ? { ok: true } : { ok: false, msg: MSG.undo }; } catch { return { ok: false, msg: MSG.offlineDo }; } };
+const listaApi = "/api/lista-compras";
+const atualizaLista = () => window.dispatchEvent(new Event(LISTA_COMPRAS_ATUALIZADA));
+const desfazLista = async (p: Promise<Response>) => {
+  const r = await backApi(p);
+  if (r.ok) atualizaLista();
+  return r;
+};
 const put = (path: string, body: unknown) => fetch(path, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 const patch = (path: string, body: unknown) => fetch(path, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
@@ -36,6 +44,8 @@ async function capture(a: ChatAction): Promise<Prep | null> {
   const db = supabaseBrowser();
   try {
     switch (a.kind) {
+      case "lista_compra_adicionar": return (r) => (r.id ? () => desfazLista(fetch(`${listaApi}/${r.id}`, { method: "DELETE" })) : undefined);
+      case "lista_compra_status": return () => () => desfazLista(patch(`${listaApi}/${a.id}`, { comprado: !a.comprado }));
       case "tarefa_ok": case "tarefa_cancelar": case "tarefa_reabrir": case "tarefa_adiar": case "tarefa_editar": {
         const { data } = await db.from("tasks").select("status, done_at, due_date, title, priority, project_id").eq("id", a.id).maybeSingle();
         if (!data) return null;
@@ -102,6 +112,20 @@ async function capture(a: ChatAction): Promise<Prep | null> {
 
 async function execute(a: ChatAction): Promise<Result> {
   try {
+    if (a.kind === "lista_compra_adicionar" || a.kind === "lista_compra_status" || a.kind === "lista_compra_remover") {
+      const r = a.kind === "lista_compra_adicionar"
+        ? await fetch(listaApi, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nome: a.nome }) })
+        : a.kind === "lista_compra_status" ? await patch(`${listaApi}/${a.id}`, { comprado: a.comprado })
+          : await fetch(`${listaApi}/${a.id}`, { method: "DELETE" });
+      const result = await api(r, "Não consegui atualizar a lista.");
+      if (!result.ok) return result;
+      atualizaLista();
+      if (a.kind === "lista_compra_adicionar") {
+        const j = await json(r) as { item?: { id?: string } };
+        return { ...result, id: j.item?.id };
+      }
+      return result;
+    }
     if (a.kind === "gasto") {
       const [ano, mes, dia] = a.g.data.split("-").map(Number);
       const r = await fetch("/api/finance/gastos", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ano, mes, dia, valor: a.g.valor, categoria: a.g.categoria, descricao: a.g.descricao, meio: a.g.meio, origem: "conversa" }) });

@@ -33,6 +33,7 @@ import { formatCoreBlock, toItem, type SourceItem } from "@/lib/core/format";
 import { googleReader } from "@/lib/core/google-adapter";
 import { detectFinanceIntent, detectGoalsIntent, detectIntent } from "@/lib/core/plan";
 import { collectGoals, formatGoalsBlock, goalsProposalRules, type GoalRef } from "@/lib/core/goals";
+import { listaComprasEnabled } from "@/lib/lista-compras/flag";
 import { goalsEnabled } from "@/lib/goals/flag";
 import type { MetaDraft } from "@/lib/goals/types";
 import { collectFinance, financeProposalRules, formatFinanceBlock } from "@/lib/core/finance";
@@ -464,7 +465,7 @@ export async function POST(request: Request) {
         }
         if (acoesOk.length) {
           const { actions, misses } = await resolveAcoes(supabase, user.id, acoesOk, {
-            goals: goalsEnabled(), finance: financeEnabled(), modeling3d: modeling3dEnabled(),
+            listaCompras: listaComprasEnabled(), goals: goalsEnabled(), finance: financeEnabled(), modeling3d: modeling3dEnabled(),
             // Agenda do Google só para achar o evento pelo nome (token da própria pessoa, só no servidor).
             calendar: async (from, to) => events(await accessToken(supabase, user.id), from, to),
             // E-mails não lidos só para recalcular as percepções de hoje (ação "percepcao").

@@ -73,6 +73,35 @@ describe("app com login", () => {
     await p.context().close();
   });
 
+  test("Lista de compras no celular: adiciona, marca, reabre e remove um item", async () => {
+    const p = await page(PHONE);
+    const item = "Aveia de teste " + Date.now();
+    try {
+      await p.goto(`${BASE}/app?tab=modulos`);
+      await p.getByRole("button", { name: /Lista de compras/ }).click();
+      await p.getByLabel("O que você precisa comprar?").fill(item);
+      await p.getByRole("button", { name: "Adicionar", exact: true }).click();
+      const checkbox = p.getByRole("checkbox", { name: new RegExp(item) });
+      await checkbox.waitFor();
+      const comprado = p.locator("label").filter({ hasText: item }).getByText("Comprado", { exact: true });
+      await checkbox.click();
+      await comprado.waitFor();
+      await p.reload();
+      await checkbox.waitFor();
+      assert.ok(await checkbox.isChecked(), "estado salvo na conta");
+      await checkbox.click();
+      await p.getByText("Item voltou aos pendentes.", { exact: true }).waitFor();
+      await checkbox.waitFor();
+      assert.ok(!await checkbox.isChecked(), "item voltou aos pendentes");
+      assert.equal(await overflowX(p), 0, "sem rolagem lateral no celular");
+      await p.getByRole("button", { name: `Remover ${item}` }).click();
+      await p.getByText("Item removido.", { exact: true }).waitFor();
+      await p.waitForFunction((nome) => !document.querySelector('input[type="checkbox"]') || !Array.from(document.querySelectorAll('label')).some((el) => el.textContent.includes(nome)), item);
+    } finally {
+      await p.context().close();
+    }
+  });
+
   test("barra de baixo e tela Mais: só o que funciona, planejados numa linha Em breve", async () => {
     const p = await page(PHONE);
     await p.goto(`${BASE}/app?tab=hoje`);

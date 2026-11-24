@@ -3,8 +3,8 @@ import { test } from "node:test";
 import { AssistantContextSchema, contextLabel, contextLine, contextOf, scopesFor } from "./assistant-context.ts";
 import { AREAS, isOverview, MODULES, moduleOf, parseView, VIEW_IDS } from "./modules.ts";
 
-test("módulos: oito módulos, telas únicas e status coerente", () => {
-  assert.deepEqual(MODULES.map((m) => m.id), ["pessoal", "metas", "financeiro", "casa", "office", "studio", "studio3d", "plataforma"]);
+test("módulos: telas únicas e status coerente", () => {
+  assert.deepEqual(MODULES.map((m) => m.id), ["pessoal", "metas", "financeiro", "lista_compras", "casa", "office", "studio", "studio3d", "plataforma"]);
   assert.equal(new Set(VIEW_IDS).size, VIEW_IDS.length);
   for (const m of MODULES) {
     if (m.status === "planejado") assert.equal(m.available.length, 0, `${m.name} planejado não lista nada como disponível`);
@@ -67,7 +67,10 @@ test("UX-7: grupos dos menus cobrem cada tela principal uma vez só, e escondem 
   assert.deepEqual([...all].sort(), [...MAIN_VIEWS].sort());
   assert.equal(new Set(all).size, all.length);
   for (const g of NAV_GROUPS) assert.match(g.hint, /^“.+”$/);
-  const off = navGroups((v) => v === "financeiro" || v === "metas", DOCK_VIEWS);
-  assert.deepEqual(off.find((g) => g.id === "vida")?.views, []);
+  const ultimas = navGroups((v) => v === "financeiro" || v === "metas", DOCK_VIEWS).find((g) => g.id === "vida")?.views ?? [];
+  assert.ok(ultimas.includes("lista_compras"));
+  assert.ok(!ultimas.includes("financeiro") && !ultimas.includes("metas"));
+  const off = navGroups((v) => v === "lista_compras", DOCK_VIEWS);
+  assert.ok(!off.find((g) => g.id === "vida")?.views.includes("lista_compras"));
   assert.deepEqual(off.find((g) => g.id === "dia")?.views, ["agenda", "projetos", "memoria"]);
 });

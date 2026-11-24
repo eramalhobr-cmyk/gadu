@@ -43,7 +43,7 @@ function query(table: string) {
     get: (_t, key) => {
       if (key === "then") return (res: (v: unknown) => unknown, rej: (e: unknown) => unknown) => Promise.resolve(result()).then(res, rej);
       if (key === "eq") return (c: string, v: unknown) => { eqs.push([c, v]); return p; };
-      if (key === "insert" || key === "update" || key === "delete" || key === "upsert") return (...rows: unknown[]) => { if (["tasks", "reminders", "projects", "memories", "agents"].includes(table)) voiceWrites.push({ table, op: String(key), rows: rows as Row[] }); return p; };
+      if (key === "insert" || key === "update" || key === "delete" || key === "upsert") return (...rows: unknown[]) => { if (["tasks", "reminders", "projects", "memories", "agents", "lista_compras_itens"].includes(table)) voiceWrites.push({ table, op: String(key), rows: rows as Row[] }); return p; };
       if (key === "maybeSingle" || key === "single") return () => { mode = "one"; return Promise.resolve(result()); };
       return () => p;
     },
@@ -748,4 +748,38 @@ test("tudo por voz: agente com termo bloqueado não vira cartão", async () => {
   modelText = META_TXT([{ tipo: "agente_criar", nome: "Agente Acme" }, { tipo: "agente_editar", agente: "mentor", instrucoes: "Ajude no projeto Acme" }]);
   const events = await chat("cria agente e muda instruções");
   assert.equal(events.find((e) => e.t === "acoes"), undefined);
+});
+
+test("lista de compras pela conversa: confirma cada item, resolve só os da sessão e respeita a privacidade", async () => {
+  const cafe = "f1111111-1111-4111-8111-111111111111";
+  generic.lista_compras_itens = [
+    { id: cafe, user_id: A, nome: "Café", nome_chave: "café", comprado: false },
+    { id: "f2222222-2222-4222-8222-222222222222", user_id: B, nome: "Arroz integral", nome_chave: "arroz integral", comprado: false },
+  ];
+  modelText = META_TXT([
+    { tipo: "lista_compra_adicionar", nome: "Pão" },
+    { tipo: "lista_compra_adicionar", nome: "Leite" },
+    { tipo: "lista_compra_marcar", nome: "CAFÉ" },
+    { tipo: "lista_compra_remover", nome: "Arroz integral" },
+    { tipo: "lista_compra_adicionar", nome: "Produto Acme" },
+  ]);
+  const eventos = await chat("Coloca pão e leite na lista de compras e marca o café como comprado");
+  assert.deepEqual(eventos.find((e) => e.t === "acoes")?.items, [
+    { kind: "lista_compra_adicionar", nome: "Pão" },
+    { kind: "lista_compra_adicionar", nome: "Leite" },
+    { kind: "lista_compra_status", id: cafe, nome: "Café", comprado: true },
+  ]);
+  assert.ok(eventos.some((e) => e.t === "notice" && e.kind === "acao"));
+  assert.deepEqual(voiceWrites, [], "o chat só propõe");
+
+  process.env.LISTA_COMPRAS_ENABLED = "0";
+  tablesRead = [];
+  try {
+    const desligada = await chat("Coloca pão e leite na lista de compras e marca o café como comprado");
+    assert.equal(desligada.find((e) => e.t === "acoes"), undefined);
+    assert.ok(!tablesRead.includes("lista_compras_itens"));
+    assert.deepEqual(voiceWrites, []);
+  } finally {
+    delete process.env.LISTA_COMPRAS_ENABLED;
+  }
 });
