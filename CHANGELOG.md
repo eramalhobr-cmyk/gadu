@@ -1,5 +1,11 @@
 # GaDu · Changelog
 
+## Agenda recorrente e confirmação única · em revisão
+
+- Eventos pela conversa podem repetir diariamente, semanalmente, mensalmente ou anualmente. A frequência, o intervalo e o total aparecem antes da confirmação.
+- Respostas deixam a confirmação ao cartão ou à voz. A fila ignora cartões processados e é descartada ao iniciar outro pedido ou trocar de conversa.
+
+
 ## Piloto de voz e revisão mobile · em desenvolvimento
 
 - Leitura completa por padrão para novas preferências, abertura de conversa no Gmail Android com alternativa web, e preservação da aba após retorno do Google. Piloto local de transcrição preparado.
@@ -13,6 +19,12 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **3D-1 · 3D Studio (Beta): conversa → OpenSCAD → STL e 3MF** (branch `feat/3d-1-openscad`, 4 commits `feat(3d)`, de 22/11/2026) · **publicado** em 22/11/2026 às 20:55 (Brasília), PR #40, merge `6d87a5f`, CI verde (verify, e2e-public, database), deploy de produção da Vercel concluído. No ar: `/api/3d/generate` sem sessão 401, `/vendor/openscad/render-worker.js` 200 com a CSP própria, e2e público contra a produção 10/10. `MODELING_3D_ENABLED` não definida na Vercel: o 3D está **desligado** em produção até o Eduardo ligar. Interruptor `MODELING_3D_ENABLED` (desligado por padrão). Rota `/api/3d/generate` com o pipeline de custo do chat (reserva → cota → IA → liquidação, fail closed); OpenSCAD WASM (GPL, sem modificações) como componente separado em `public/vendor/openscad/`, só num Web Worker, com CSP própria sem rede (as páginas não mudaram); visualizador three.js, controles deslizantes, verificações da A1, STL e 3MF; 3MF "A1 PLA 0.4" pronto mas desativado até o Eduardo enviar o projeto. Pacotes: `three` 0.187.0 (MIT), `@types/three` (dev); `openscad-wasm-prebuilt` 1.2.0 (GPL-2.0-or-later) só como arquivo copiado. Sem migração. **Evidências (máquina local):** `npm run typecheck`; `test:unit` 198/198 (inclui o OpenSCAD WASM real compilando um cubo em Node); `test:integration` 143/143; `npm run build`; `scripts/test-db.sh` ok; e2e público 10/10 e mobile 44/44 contra `next start`; renderização conferida em Chromium real a 412 × 915 e 1440 × 1000 com a IA simulada (mexer num controle re-renderiza sem chamar a rota). **Não testado:** IA real (custo), WebKit/iPhone, e2e com login (`E2E_3D=1`), Samsung Internet.
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
+
+## 2026-11-24 · Eventos que se repetem e uma confirmação por ação · desenvolvido e testado
+- **Feito por:** Codex (PR #132) e Claude Code (revisão e ajuste). "Toda segunda às 7h por 10 semanas" vira **uma série** no Google Agenda, confirmada uma vez (cartão ou "sim"); o cartão e a pergunta falada dizem a repetição.
+- **Voz mais firme:** o mesmo cartão não é confirmado duas vezes; cartões repetidos na mesma resposta somem; se a rede cair depois de vir uma ação, não há nova tentativa (evita ação dupla); um "sim" atrasado não confirma outro cartão; tocar no microfone, mandar outra mensagem ou trocar de conversa cancela a confirmação pendente; fim de fala de uma fala cancelada não atrapalha a próxima.
+- **Ajuste da revisão:** toda série precisa de número de repetições (2 a 365); sem fim dito pela pessoa, o GaDu pergunta quantas vezes. Série sem fim é recusada pela rota (teste novo).
+- **Testes:** unitários de recorrência, voz e confirmação; integração da rota da agenda com Google simulado; e2e da confirmação na conversa principal. **Não testado** com uma agenda Google real.
 
 ## 2026-11-24 · Agenda de filhos: calendário do mês · desenvolvido e testado
 - **Feito por:** Claude Code. Branch `feat/agenda-calendario`. Pedido do Eduardo: agenda mais visual, por mês e fim de semana.

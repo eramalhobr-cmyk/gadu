@@ -60,3 +60,8 @@ test("resultLine: falha fala o motivo e manda tocar em tentar de novo", () => {
   assert.match(resultLine("gasto", "yes", false, "Sem internet. Confira a conexão e tente de novo."), /^Sem internet\..*O cartão ficou na tela\. Toque em tentar de novo\.$/);
   assert.match(resultLine("gasto", "yes", false), /^Não consegui gravar\. O cartão ficou na tela/);
 });
+
+test("confirmação falada inclui frequência e total de ocorrências", () => {
+  const item = { kind: "evento" as const, title: "Treino", start: "2026-11-23T10:00:00-03:00", recurrence: { frequency: "WEEKLY" as const, interval: 2, count: 5 } };
+  assert.match(confirmQuestion(item, NOW), /a cada 2 semanas, por 5 vezes no total/);
+});

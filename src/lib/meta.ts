@@ -1,3 +1,4 @@
+import { Recurrence } from "./calendar-recurrence.ts";
 // O modelo responde normalmente e, ao final, manda um bloco de controle:
 // <<<META>>> {"memorias":[{"texto":"...","area":"..."}]}
 // Esse bloco nunca aparece para a pessoa.
@@ -48,7 +49,7 @@ export function validTask(o: { texto?: unknown; prazo?: unknown; prioridade?: un
   return { title, due, priority, project };
 }
 
-export type EventProposal = { title: string; start: string; end: string; location: string | null };
+export type EventProposal = { title: string; start: string; end: string; location: string | null; recurrence?: Recurrence };
 
 function withTz(v: string): string {
   const t = v.trim();
@@ -56,7 +57,7 @@ function withTz(v: string): string {
 }
 
 /** Evento proposto: título, início no futuro (até 1 ano), fim depois do início (padrão: 1 hora). */
-export function validEvent(o: { titulo?: unknown; inicio?: unknown; fim?: unknown; local?: unknown }, now = Date.now()): EventProposal | null {
+export function validEvent(o: { titulo?: unknown; inicio?: unknown; fim?: unknown; local?: unknown; recorrencia?: unknown }, now = Date.now()): EventProposal | null {
   const title = typeof o.titulo === "string" ? o.titulo.trim().slice(0, 160) : "";
   if (!title || typeof o.inicio !== "string") return null;
   const start = new Date(withTz(o.inicio));
@@ -64,7 +65,9 @@ export function validEvent(o: { titulo?: unknown; inicio?: unknown; fim?: unknow
   let end = typeof o.fim === "string" ? new Date(withTz(o.fim)) : new Date(NaN);
   if (Number.isNaN(end.getTime()) || end <= start || end.getTime() - start.getTime() > 24 * 3_600_000) end = new Date(start.getTime() + 3_600_000);
   const location = typeof o.local === "string" && o.local.trim() ? o.local.trim().slice(0, 160) : null;
-  return { title, start: start.toISOString(), end: end.toISOString(), location };
+  const recurrence = o.recorrencia == null ? null : Recurrence.safeParse(o.recorrencia);
+  if (recurrence && !recurrence.success) return null;
+  return { title, start: start.toISOString(), end: end.toISOString(), location, ...(recurrence ? { recurrence: recurrence.data } : {}) };
 }
 
 /** Proposta de atualização de meta. `meta` é a ETIQUETA ("M1") da lista que o servidor mostrou ao modelo; o servidor a resolve para o id real. */

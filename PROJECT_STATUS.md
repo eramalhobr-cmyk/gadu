@@ -1,5 +1,8 @@
 # GaDu · Situação do projeto
 
+**Agenda e confirmações em revisão:** recorrência simples pela conversa e proteção do cartão contra ações repetidas. A validação no Google real e no celular ainda está pendente.
+
+
 **Piloto de voz em desenvolvimento:** comando local para testar a transcrição com custo medido. Integração paga do microfone em produção aguarda teste real, orçamento e configuração do provedor. [Retomada](docs/PILOTO_VOZ_OPENAI.md).
 
 

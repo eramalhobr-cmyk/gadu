@@ -71,6 +71,22 @@ test("cancelar limpa a fila e não dispara 'terminou' depois", () => {
   }
 });
 
+test("callback de fala cancelada não termina a resposta nova", () => {
+  const speaker = new Speaker();
+  let idle = 0;
+  speaker.onIdle = () => idle++;
+  speaker.announce("Confirmação antiga");
+  const antiga = spoken[0];
+  speaker.cancel();
+  speaker.announce("Nova resposta");
+  const nova = spoken[1];
+  antiga.onerror?.();
+  assert.equal(speaker.active, true);
+  assert.equal(idle, 0);
+  nova.onend?.();
+  assert.equal(idle, 1);
+});
+
 test("voz presa de antes é limpa ao começar uma resposta nova", () => {
   synth.speaking = true;
   const s = new Speaker();

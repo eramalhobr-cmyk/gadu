@@ -1,5 +1,8 @@
 # GaDu · Matriz de funcionalidades
 
+**Agenda e voz, em revisão:** criar série diária, semanal, mensal ou anual pela conversa. Conferir frequência, intervalo e total no cartão ou pela voz, antes de gravar.
+
+
 ## Piloto de transcrição OpenAI
 
 Estado: teste local preparado. Microfone do GaDu continua no aparelho enquanto a integração opcional e o orçamento não forem verificados. [Plano](PILOTO_VOZ_OPENAI.md).
