@@ -560,6 +560,7 @@ describe("app com login", () => {
     // Precisa do interruptor ligado no servidor (scripts/e2e-auth-local.sh define MODELING_3D_ENABLED=1 e E2E_3D=1).
     assert.equal(process.env.E2E_3D, "1", "E2E_3D=1 e MODELING_3D_ENABLED=1 no servidor de teste");
     const p = await page(PHONE);
+    await p.goto(`${BASE}/app/3d`);
     const SCAD1 = "lado = 20; // [5:1:50] Lado do cubo (mm)\n$fn = 24;\ncube(lado);";
     const SCAD2 = "lado = 22; // [5:1:50] Lado do cubo (mm)\n$fn = 24;\ncube(lado);";
     const criado = await p.evaluate(async ({ scad, pedido }) => {
