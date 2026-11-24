@@ -20,18 +20,21 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
-## 2026-11-24 · 3D: criar peça nova pela conversa · desenvolvido e testado
+## 2026-11-24 · 3D: criar peça nova pela conversa · **publicado**
+- **Publicado** em 24/11/2026 às 08:58 (Brasília), PR #133, merge `61cbb00`; CI verde (inclui o e2e com login do 3D por voz).
 - **Feito por:** Claude Code. Branch `feat/voz-3d-criar`. Última lacuna real da matriz de voz (seção 11).
 - "Cria no 3D um gancho de parede para chaves" vira um cartão ("Criar peça nova no 3D?", com o aviso de que usa a cota de IA do 3D). Confirmado (toque ou "sim"), o pedido fica 2 minutos na sessão do navegador e o 3D Studio abre vazio, preenche o pedido e gera **uma vez** pelo fluxo normal (mesma reserva, cota e correção automática). Recarregar não gera de novo. `MODELING_3D_ENABLED` desligado: o GaDu avisa. Termo bloqueado: sem cartão.
 - **Testes:** unitários (leitura única com validade, validação, interruptor, termo bloqueado, cartão e pergunta falada) e e2e com login (`E2E_3D=1`, IA simulada: uma chamada em modo "novo", pedido apagado, recarregar não repete).
 
-## 2026-11-24 · Eventos que se repetem e uma confirmação por ação · desenvolvido e testado
+## 2026-11-24 · Eventos que se repetem e uma confirmação por ação · **publicado**
+- **Publicado** em 24/11/2026, PR #132, merge `fc3d609`; CI verde.
 - **Feito por:** Codex (PR #132) e Claude Code (revisão e ajuste). "Toda segunda às 7h por 10 semanas" vira **uma série** no Google Agenda, confirmada uma vez (cartão ou "sim"); o cartão e a pergunta falada dizem a repetição.
 - **Voz mais firme:** o mesmo cartão não é confirmado duas vezes; cartões repetidos na mesma resposta somem; se a rede cair depois de vir uma ação, não há nova tentativa (evita ação dupla); um "sim" atrasado não confirma outro cartão; tocar no microfone, mandar outra mensagem ou trocar de conversa cancela a confirmação pendente; fim de fala de uma fala cancelada não atrapalha a próxima.
 - **Ajuste da revisão:** toda série precisa de número de repetições (2 a 365); sem fim dito pela pessoa, o GaDu pergunta quantas vezes. Série sem fim é recusada pela rota (teste novo).
 - **Testes:** unitários de recorrência, voz e confirmação; integração da rota da agenda com Google simulado; e2e da confirmação na conversa principal. **Não testado** com uma agenda Google real.
 
-## 2026-11-24 · Agenda de filhos: calendário do mês · desenvolvido e testado
+## 2026-11-24 · Agenda de filhos: calendário do mês · **publicado**
+- **Publicado** em 24/11/2026, PR #130, merge `e3724d1`; CI verde.
 - **Feito por:** Claude Code. Branch `feat/agenda-calendario`. Pedido do Eduardo: agenda mais visual, por mês e fim de semana.
 - Novo painel **Calendário** na Agenda de filhos: grade do mês (domingo a sábado), cada fim de semana pintado como uma faixa contínua com a cor de quem fica (azul-petróleo "com você", laranja "com o outro"), trocas com listras, feriados com ponto vermelho, hoje com contorno, resumo do mês ("3 com você · 1 com o outro") e navegação entre meses. Tocar num fim de semana mostra o detalhe (datas, feriados) com **Trocar** ou **Desfazer troca**. A lista continua embaixo.
 - Cálculo puro `mesCalendario` e `resumoMes` em `src/lib/filhos/agenda.ts` (feriado colado entra na faixa do fim de semana). Cores pelos tokens do tema (claro e escuro); leitor de tela lê cada dia com dono, troca e feriado.
