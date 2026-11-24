@@ -1,0 +1,21 @@
+/* Compras: calendário de entregas e lista de pedidos. Só tokens do Design System. */
+.dias { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.dias li { display: flex; flex-direction: column; gap: 2px; padding: var(--s-2) var(--s-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.dias li b { font-weight: 600; text-transform: capitalize; }
+.dias li span { color: var(--ink-2); font-size: calc(14px * var(--ts, 1)); overflow-wrap: anywhere; }
+.hoje { border-color: rgb(var(--sig-rgb) / 0.5) !important; background: rgb(var(--sig-rgb) / 0.08) !important; }
+.sem { border-style: dashed !important; }
+.sem b { text-transform: none !important; }
+
+.lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-3); }
+.pedido { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+.topo { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
+.loja { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.selo { flex: none; padding: 2px 10px; border-radius: var(--r-pill); font-size: calc(12px * var(--ts, 1)); font-weight: 600; background: var(--wash); color: var(--ink-2); }
+.pedido[data-situacao="enviado"] .selo, .pedido[data-situacao="saiu_para_entrega"] .selo { background: rgb(var(--sig-rgb) / 0.14); color: var(--sig); }
+.pedido[data-situacao="entregue"] .selo { background: rgb(95 220 154 / 0.14); color: var(--ok); }
+.pedido[data-situacao="cancelado"] .selo { color: var(--bad); }
+.pedido[data-situacao="entregue"], .pedido[data-situacao="cancelado"] { opacity: 0.8; }
+.linha { margin: 0; color: var(--ink-2); font-size: calc(14px * var(--ts, 1)); overflow-wrap: anywhere; }
+.acoes { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.acoes :global(.btn) { min-height: var(--touch); }
