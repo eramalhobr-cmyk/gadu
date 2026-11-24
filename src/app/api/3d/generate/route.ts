@@ -10,6 +10,7 @@ import { complete, isTimeout, type Completion } from "@/lib/llm/complete";
 import type { ProviderId } from "@/lib/llm/types";
 import { estimateMaxCost } from "@/lib/pricing";
 import { blockedTerm, isSensitive } from "@/lib/privacy";
+import { capturarErroServidor } from "@/lib/telemetria/capturar";
 import { fail, modeling3dGuard, NO_STORE } from "../_guard";
 
 export const dynamic = "force-dynamic";
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
     try {
       r = await chamar(prompt);
     } catch (e) {
+      await capturarErroServidor(e, { rota: "/api/3d/generate", userId: user.id, status: isTimeout(e) ? 504 : 502 });
       return isTimeout(e)
         ? fail(504, "ai_timeout", "A IA demorou demais para responder (mais de 1 minuto e meio). Tente de novo; se repetir, peça uma peça mais simples ou em partes.")
         : fail(502, "ai", "O serviço de IA falhou ao responder agora. Tente de novo em instantes.");

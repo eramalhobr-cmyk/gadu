@@ -1,8 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/config";
+import { capturarErroServidor } from "./capturar";
 import { telemetriaEnabled } from "./flag.ts";
-import { registrarErro } from "./registrar.ts";
-import { localDaPilha, sanitizeCode, sanitizeName, sanitizeRoute, type EventoErro } from "./sanitize.ts";
 
 type Requisicao = { path: string; method?: string; headers: Record<string, string | string[] | undefined> };
 
@@ -19,18 +18,13 @@ async function pessoaDaRequisicao(headers: Requisicao["headers"]): Promise<strin
 
 /**
  * Chamado pelo `onRequestError` do Next (src/instrumentation.ts) quando uma rota ou página lança erro sem tratamento.
- * Guarda só nome, rota sem query, "arquivo:linha" e a versão. A mensagem do erro NÃO é lida. Nunca lança.
+ * Usa o helper único `capturarErroServidor`. Sem sessão no cookie, o erro entra com user_id nulo. Nunca lança.
  */
 export async function registrarErroDeRequisicao(err: unknown, request: Requisicao, statusHttp = 500): Promise<void> {
   try {
     if (!telemetriaEnabled()) return;
-    const rota = sanitizeRoute(request.path);
-    if (rota.startsWith("/api/telemetria")) return; // nunca registra a si mesma
-    const userId = await pessoaDaRequisicao(request.headers);
-    if (!userId) return;
-    const e = err as { name?: unknown; code?: unknown; stack?: unknown } | null;
-    const evento: EventoErro = { origem: "servidor", rota, nome: sanitizeName(e?.name), codigo: sanitizeCode(e?.code), status: statusHttp, local: localDaPilha(e?.stack) };
-    await registrarErro(userId, evento);
+    const userId = await pessoaDaRequisicao(request.headers).catch(() => null);
+    await capturarErroServidor(err, { rota: request.path, userId, status: statusHttp });
   } catch {
     // telemetria nunca derruba a resposta
   }

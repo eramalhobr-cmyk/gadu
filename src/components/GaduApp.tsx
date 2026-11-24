@@ -15,6 +15,7 @@ import { isPaletaKey, parseMenuCommand, type PaletaItem } from "@/lib/paleta";
 import { navSpoken, parseNavIntent, pushTab } from "@/lib/nav-intent";
 import { EVENTO_FALAR, parseLerResumo } from "@/lib/painel-fala";
 import { calcularPedido, pedeSalvarSalario, pedidoSalario, resumoSalario } from "@/lib/finance/salario-texto";
+import { parseSaudeVoz, responderSaude } from "@/lib/saude-voz";
 import { parseModoVoz } from "@/lib/nivel-visual";
 import { ATENCAO_RECARREGAR_EVENT, EMAIL_NAO_IMPORTANTE_EVENT, parseNaoImportante } from "@/lib/email-regras";
 import { useNivel } from "./VoiceCore";
@@ -367,6 +368,26 @@ export function GaduApp(props: {
       if (prefsRef.current.voice || opts.voice) { speaker?.cancel(); speaker?.announce(fala); }
       return;
     }
+    // "Teve algum erro hoje?", "o que quebrou?", "abre a saúde do sistema": comando local, só leitura, sem modelo (só administrador).
+    const saude = message ? parseSaudeVoz(message) : null;
+    if (saude) {
+      setDraft("");
+      void responderSaude(saude, props.admin).then((r) => {
+        if (r.abrir) {
+          if (window.innerWidth < 1024) openAssist(false);
+          setTabRef.current("admin");
+          if (saude.tipo !== "admin") window.setTimeout(() => {
+            const el = document.getElementById("painel");
+            el?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+            const h = el?.querySelector<HTMLElement>("h2");
+            if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
+          }, 350);
+        }
+        if (prefsRef.current.voice || opts.voice) { speaker?.cancel(); speaker?.announce(r.fala); }
+        else setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: r.fala }]);
+      });
+      return;
+    }
     // "Isso não é importante" / "e-mails da Vercel não são importantes": ensina a triagem de e-mails, sem modelo e sem custo.
     const naoImp = message ? parseNaoImportante(message) : null;
     if (naoImp) {
@@ -540,7 +561,7 @@ export function GaduApp(props: {
         if (answer && !ctrl.signal.aborted && handsFreeRef.current) setTimeout(() => { if (modeRef.current === "idle" && !busyRef.current && !listeningRef.current) listenRef.current(); }, 600);
       }
     }
-  }, [busy, conversationId, failChat, prefs.voice, refreshPending, speaker, props.morningLink, props.financeEnabled, target]);
+  }, [busy, conversationId, failChat, prefs.voice, refreshPending, speaker, props.morningLink, props.financeEnabled, props.admin, target]);
 
   const modeRef = useRef(mode);
   useEffect(() => { modeRef.current = mode; }, [mode]);
