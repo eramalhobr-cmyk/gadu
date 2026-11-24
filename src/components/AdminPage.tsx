@@ -3,14 +3,15 @@ import { actionFailed, loadFailed } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { AGENT_PRESETS } from "@/lib/presets";
 import { EmptyState, PageHeader, Panel } from "./kit";
+import { Bars, Kpi, KpiRow, PainelHead } from "./charts";
 import { Icon } from "./ui";
+import { fraseSaude } from "@/lib/saude-voz";
+import type { Saude } from "@/lib/telemetria/saude";
 
 type Person = {
   id: string; me: boolean; role: string; access: "active" | "blocked"; name: string | null; email: string | null; since: string; lastSeen: string | null;
   setup: { google: boolean; push: boolean; agents: number; projects: number; memories: number; tasks: number; conversations: number };
 };
-type GrupoErro = { impressao: string; origem: string; rota: string; nome: string; status: number | null; local: string | null; versao: string | null; vezes: number; ultima: string };
-type Erros = { ligado: boolean; disponivel: boolean; grupos: GrupoErro[]; total24h: number; total7d: number };
 type Invite = { id: number; email: string; name: string | null; expires_at: string; created_at: string };
 
 const dh = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
@@ -22,7 +23,7 @@ export function AdminPage() {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [err, setErr] = useState("");
   const [form, setForm] = useState(false);
-  const [erros, setErros] = useState<Erros | null>(null);
+  const [saude, setSaude] = useState<Saude | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -37,7 +38,7 @@ export function AdminPage() {
   }, []);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
-    fetch("/api/admin/erros", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => setErros(j as Erros | null)).catch(() => setErros(null));
+    fetch("/api/admin/saude", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => setSaude(j as Saude | null)).catch(() => setSaude(null));
   }, []);
 
   async function setAccess(p: Person, access: "active" | "blocked") {
@@ -61,6 +62,8 @@ export function AdminPage() {
           actions={!form && <button className="btn btn-pri" onClick={() => setForm(true)}><Icon name="plus" size={18} />Convidar pessoa</button>} />
         {form && <InviteForm onDone={() => { setForm(false); void load(); }} />}
         {err && <div className="notice" role="alert">{err}</div>}
+
+        <PainelSaude saude={saude} />
 
         <div className="split">
           <Panel title={`Pessoas${people?.length ? ` · ${people.length}` : ""}`} icon="user">
@@ -106,27 +109,6 @@ export function AdminPage() {
                     <div className="row-i" key={i.id}>
                       <div className="grow"><span className="t">{i.name || i.email}</span><span className="s">{i.email} · vale até {d(i.expires_at)}</span></div>
                       <button className="btn btn-sm btn-quiet" onClick={() => revoke(i.id)}>Cancelar</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Panel>
-            <Panel title={`Erros recentes${erros?.total24h ? ` · ${erros.total24h} em 24 h` : ""}`} icon="bell">
-              {erros === null ? <p className="muted small" role="status">Carregando…</p> : !erros.ligado ? (
-                <p className="muted small">O registro de erros está desligado (TELEMETRIA_ENABLED=0).</p>
-              ) : !erros.disponivel ? (
-                <p className="muted small">Não consegui ler os erros agora.</p>
-              ) : erros.grupos.length === 0 ? (
-                <p className="muted small">Nenhum erro nos últimos 7 dias. Aqui aparecem só o tipo, a tela e a hora, nunca texto de ninguém.</p>
-              ) : (
-                <div className="rows">
-                  <p className="muted small">Últimos 7 dias: {erros.total7d}. Só o tipo do erro, a tela e a hora; nenhuma mensagem nem dado de pessoa.</p>
-                  {erros.grupos.slice(0, 10).map((g) => (
-                    <div className="row-i" key={g.impressao}>
-                      <div className="grow">
-                        <span className="t">{g.nome} · {g.vezes}×</span>
-                        <span className="s">{g.origem === "servidor" ? "Servidor" : "Celular ou computador"} · {g.rota}{g.status ? ` · ${g.status}` : ""} · {dh(g.ultima)}{g.local ? ` · ${g.local}` : ""}</span>
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -221,5 +203,50 @@ function InviteForm({ onDone }: { onDone: () => void }) {
         <button className="btn" type="button" onClick={onDone}>Cancelar</button>
       </div>
     </form>
+  );
+}
+
+/** Painel "Saúde do sistema" (tema JARVIS): só números reais dos erros registrados; nenhuma mensagem nem dado de pessoa. */
+function PainelSaude({ saude }: { saude: Saude | null }) {
+  const fala = saude ? fraseSaude(saude) : "";
+  const total = (n: number) => `${n} ${n === 1 ? "erro" : "erros"}`;
+  return (
+    <section className="pnl" id="painel" aria-labelledby="painel-saude" data-falar={fala}>
+      <PainelHead id="painel-saude" title="Saúde do sistema" dica="Diga: “teve algum erro hoje?”" fala={fala} />
+      {saude === null ? <p className="muted small" role="status">Carregando…</p>
+        : !saude.ligado ? <p className="muted small">O registro de erros está desligado (TELEMETRIA_ENABLED=0).</p>
+        : !saude.disponivel ? <p className="muted small">Não consegui ler os erros agora. Tente de novo mais tarde.</p>
+        : (
+          <div className="pnl-grid">
+            <div className="hud-frame pnl-box">
+              <KpiRow label="Erros em números">
+                <Kpi label="Últimas 24 h" value={saude.total24h} tone={saude.total24h ? "hot" : "ok"} sub={saude.total24h ? `${saude.servidor24h} no servidor · ${saude.cliente24h} no celular ou computador` : "nenhum erro registrado"} />
+                <Kpi label="Últimos 7 dias" value={saude.total7d} sub={saude.total7d ? total(saude.total7d) : "nenhum erro registrado"} />
+              </KpiRow>
+            </div>
+            {saude.total7d > 0 && (
+              <div className="hud-frame pnl-box">
+                <h3 className="pnl-sub">Erros por dia · 7 dias</h3>
+                <Bars data={saude.porDia} label="Erros por dia nos últimos 7 dias" fmt={(n) => String(n)} destaque={saude.porDia.length - 1} />
+              </div>
+            )}
+            <div className="hud-frame pnl-box">
+              <h3 className="pnl-sub">Grupos recentes</h3>
+              {saude.grupos.length === 0 ? <p className="muted small">Nenhum erro nos últimos 7 dias. Aqui aparecem só o tipo, a tela e a hora, nunca texto de ninguém.</p> : (
+                <div className="rows">
+                  {saude.grupos.map((g) => (
+                    <div className="row-i" key={g.impressao}>
+                      <div className="grow">
+                        <span className="t">{g.nome} · {g.vezes}×</span>
+                        <span className="s">{g.origem === "servidor" ? "Servidor" : "Celular ou computador"} · {g.rota}{g.status ? ` · ${g.status}` : ""} · {dh(g.ultima)}{g.local ? ` · ${g.local}` : ""}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+    </section>
   );
 }

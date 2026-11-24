@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { agrupar, type LinhaErro } from "@/lib/telemetria/agrupar";
+import { capturarErroServidor } from "@/lib/telemetria/capturar";
 import { telemetriaEnabled } from "@/lib/telemetria/flag";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,10 @@ export async function POST(request: Request) {
   const db = supabaseAdmin();
   const dia = new Date(Date.now() - 86_400_000).toISOString();
   const { data, error } = await db.from("error_events").select("created_at, origem, rota, nome, status, local_codigo, versao, impressao").gte("created_at", dia).order("created_at", { ascending: false }).limit(1000);
-  if (error) return NextResponse.json({ error: "indisponivel" }, { status: 503 });
+  if (error) {
+    await capturarErroServidor(new Error("resumo indisponível"), { rota: "/api/cron/telemetria-resumo", status: 503 });
+    return NextResponse.json({ error: "indisponivel" }, { status: 503 });
+  }
   const linhas = (data ?? []) as LinhaErro[];
   const apagou = await db.from("error_events").delete({ count: "exact" }).lt("created_at", new Date(Date.now() - RETENCAO_DIAS * 86_400_000).toISOString());
   return NextResponse.json({

@@ -156,7 +156,7 @@ export function AttentionCard(props: {
       <Panel className="attn-card">
         {failed ? <p className="muted">Não consegui montar esta lista agora. <button className="link-btn" onClick={load}>Tentar de novo</button></p>
           : data === null ? <p className="muted">Carregando…</p>
-          : total === 0 ? <EmptyState icon="sun" title="Nada pendente para hoje" text={unavailable.length ? "Nas fontes que consegui ler. Veja o aviso abaixo." : "Sem tarefas atrasadas ou de hoje, lembretes, compromissos ou metas pedindo atenção."} />
+          : total === 0 ? <EmptyState icon="sun" title="Nada pendente para hoje" text={unavailable.length ? "Nas fontes que consegui ler. Veja o aviso abaixo." : "Nenhum item pede atenção. Entre os e-mails recentes consultados, nenhum foi classificado como crítico ou importante."} />
           : (
             <div className="rows">
               {items.map((s) => (
