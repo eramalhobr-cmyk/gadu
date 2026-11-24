@@ -81,6 +81,8 @@ begin
     insert into public.fin_config (user_id) values (u);
     insert into public.fin_tetos (user_id, categoria, valor) values (u, 'Mercado', 800);
     insert into public.lista_compras_itens (user_id, nome) values (u, 'item sintético');
+    insert into public.filhos_agenda_config (user_id, ancora) values (u, date '2026-11-28');
+    insert into public.filhos_agenda_ajustes (user_id, tipo, data, comigo) values (u, 'troca', date '2026-12-05', true);
     insert into public.insight_respostas (user_id, dia, tipo, decisao) values (u, current_date, 'atrasadas', 'ignorada');
     -- Metas (sintético)
     insert into public.goals (user_id, titulo, medicao, valor_alvo) values (u, 'meta sintética', 'numerica', 10);
@@ -130,6 +132,8 @@ insert into iso_cases values
   ('goal_milestones',    'user_id',    'titulo = ''x''',      'insert into public.goal_milestones (user_id, goal_id, titulo) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), ''x'')'),
   ('error_events',       'user_id',    'status = 500',        'insert into public.error_events (user_id, origem, rota, nome, impressao) values (%L, ''cliente'', ''/app'', ''x'', repeat(''a'', 16))'),
   ('lista_compras_itens', 'user_id',  'comprado = true',     'insert into public.lista_compras_itens (user_id, nome) values (%L, ''x'')'),
+  ('filhos_agenda_config', 'user_id', 'feriado_segue = false', 'insert into public.filhos_agenda_config (user_id, ancora) values (%L, date ''2026-12-12'')'),
+  ('filhos_agenda_ajustes', 'user_id', 'comigo = false',     'insert into public.filhos_agenda_ajustes (user_id, tipo, data, comigo) values (%L, ''troca'', date ''2026-12-19'', true)'),
   ('pecas_3d',           'user_id',    'titulo = ''x''',      'insert into public.pecas_3d (user_id, titulo, pedido) values (%L, ''x'', ''x'')'),
   ('pecas_3d_versoes',   'user_id',    'scad = ''cube(1);''', 'insert into public.pecas_3d_versoes (user_id, peca_id, modo, scad) values (%1$L, (select id from public.pecas_3d where user_id = %1$L limit 1), ''novo'', ''cube(1);'')'),
   ('goal_tasks',         'user_id',    'created_at = now()',  'insert into public.goal_tasks (user_id, goal_id, task_id) values (%1$L, (select id from public.goals where user_id = %1$L limit 1), (select id from public.tasks where user_id = %1$L limit 1))'),

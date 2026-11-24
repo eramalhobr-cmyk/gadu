@@ -15,6 +15,9 @@ export type GastoDraft = { valor: number; categoria: string; descricao: string; 
 export type EventDraft = { title: string; start: string; end: string; location: string | null };
 
 export type ChatAction =
+  | { kind: "filhos_troca"; sabado: string; comigo: boolean }
+  | { kind: "filhos_troca_remover"; id: string; sabado: string; comigo: boolean }
+  | { kind: "filhos_mudar"; sabado: string; comigo: boolean }
   | { kind: "lista_compra_adicionar"; nome: string }
   | { kind: "lista_compra_status"; id: string; nome: string; comprado: boolean }
   | { kind: "lista_compra_remover"; id: string; nome: string }
@@ -130,7 +133,7 @@ export type ActionView = {
   applied: boolean;
   /** Cartão só de informação (resultado de um cálculo): sem Confirmar, sem Descartar e sem Desfazer; não entra na confirmação falada. */
   info?: boolean;
-  open?: { label: string; view: "financeiro" | "metas" | "agenda" | "hoje" | "tarefas" | "projetos" | "ajustes" | "memoria" | "agentes" | "lista_compras" };
+  open?: { label: string; view: "financeiro" | "metas" | "agenda" | "hoje" | "tarefas" | "projetos" | "ajustes" | "memoria" | "agentes" | "lista_compras" | "filhos" };
 };
 
 const TZ = "America/Sao_Paulo";
@@ -167,6 +170,14 @@ const PERCEPCAO_PERGUNTA: Record<"conflito" | "livre" | "atrasadas" | "email" | 
 
 export function describe(a: ChatAction, now = new Date()): ActionView {
   switch (a.kind) {
+    case "filhos_troca": case "filhos_troca_remover": case "filhos_mudar": {
+      const fds = `Fim de semana de ${a.sabado.slice(8, 10)}/${a.sabado.slice(5, 7)}`;
+      const quem = (v: boolean) => (v ? "com você" : "com o outro responsável");
+      const [proposed, done, confirm, title] = a.kind === "filhos_troca" ? ["Troca de fim de semana", "Fim de semana trocado", "Trocar", `${fds}: fica ${quem(a.comigo)}`]
+        : a.kind === "filhos_troca_remover" ? ["Desfazer troca", "Troca desfeita", "Desfazer troca", `${fds}: volta ao combinado`]
+          : ["Mudança da alternância", "Alternância mudada", "Mudar a partir daí", `A partir do ${fds.toLowerCase()}, começa ${quem(a.comigo)}`];
+      return { icon: "calendar", proposed, done, undone: "Descartado", title, detail: a.kind === "filhos_mudar" ? "Os fins de semana antes dessa data ficam como estavam." : "Agenda de filhos", confirm, busy: "Salvando…", applied: false, open: { label: "Ver Agenda de filhos", view: "filhos" } };
+    }
     case "lista_compra_adicionar": case "lista_compra_status": case "lista_compra_remover": {
       const [proposed, done, confirm] = a.kind === "lista_compra_adicionar" ? ["Item para adicionar", "Item adicionado", "Adicionar"]
         : a.kind === "lista_compra_remover" ? ["Item para remover", "Item removido", "Remover"]
@@ -368,6 +379,9 @@ export function splitNavegacao(items: ChatAction[]): { cards: ChatAction[]; dest
 /** Pergunta falada da confirmação (sem o "Diga sim ou não"). */
 export function actionQuestion(a: ChatAction, now = new Date()): string {
   switch (a.kind) {
+    case "filhos_troca": return `Troco o fim de semana de ${spokenDay(a.sabado, now)}, para ficar ${a.comigo ? "com você" : "com o outro responsável"}?`;
+    case "filhos_troca_remover": return `Desfaço a troca do fim de semana de ${spokenDay(a.sabado, now)}?`;
+    case "filhos_mudar": return `Mudo a alternância a partir do fim de semana de ${spokenDay(a.sabado, now)}, começando ${a.comigo ? "com você" : "com o outro responsável"}?`;
     case "lista_compra_adicionar": return `Adiciono ${a.nome} à Lista de compras?`;
     case "lista_compra_remover": return `Removo ${a.nome} da Lista de compras?`;
     case "lista_compra_status": return a.comprado ? `Marco ${a.nome} como comprado?` : `Volto ${a.nome} para os pendentes?`;

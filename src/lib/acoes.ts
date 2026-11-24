@@ -2,6 +2,7 @@
 // O modelo nunca grava: o servidor valida aqui, resolve os nomes para ids SÓ entre os itens da própria pessoa
 // e manda cartões; quem grava é a pessoa, com um toque ou dizendo "sim". Puro: sem banco nem rede.
 import { nomeItem } from "./lista-compras/types.ts";
+import { dataValida } from "./filhos/agenda.ts";
 import type { ViewId } from "./modules.ts";
 import { FERRAMENTAS, TETO_MAX_USD, type Ferramenta } from "./agentes/ferramentas.ts";
 import { PEDIDO_MAX } from "./3d/limits.ts";
@@ -21,6 +22,9 @@ export type Ajuste = { opcao: "texto"; valor: "100" | "115" | "130" } | { opcao:
   | { opcao: "voz_trocar"; valor: "proxima" };
 
 export type AcaoProposta =
+  | { tipo: "filhos_troca"; data: string; comigo: boolean | null }
+  | { tipo: "filhos_troca_desfazer"; data: string }
+  | { tipo: "filhos_mudar"; data: string; comigo: boolean }
   | { tipo: "lista_compra_adicionar" | "lista_compra_marcar" | "lista_compra_reabrir" | "lista_compra_remover"; nome: string }
   | { tipo: "meta_criar"; titulo: string; medicao: Medicao; unidade: string | null; alvo: number | null; inicial: number; prazo: string | null; categoria: Categoria; marcos: string[] }
   | { tipo: "meta_registrar"; meta: string; valor: number; data: string | null }
@@ -73,17 +77,17 @@ export type AcaoProposta =
   | { tipo: "ajuste"; ajuste: Ajuste };
 
 /** Telas que a conversa abre (instantâneo, sem gravar nada). Admin e telas em desenvolvimento ficam de fora. */
-export const DESTINOS = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "projetos", "memoria", "agentes", "ajustes", "modulos", "lista_compras", "compras"] as const satisfies readonly ViewId[];
+export const DESTINOS = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "projetos", "memoria", "agentes", "ajustes", "modulos", "lista_compras", "compras", "filhos"] as const satisfies readonly ViewId[];
 export type Destino = (typeof DESTINOS)[number];
-export const DESTINO_NOME: Record<Destino, string> = { hoje: "Hoje", conversa: "Conversa", tarefas: "Tarefas", agenda: "Agenda", financeiro: "Financeiro", metas: "Metas", projetos: "Projetos", memoria: "Memória", agentes: "Agentes", ajustes: "Configurações", modulos: "Mais", lista_compras: "Lista de compras", compras: "Compras" };
-const DESTINO_APELIDO: Record<string, Destino> = { inicio: "hoje", chat: "conversa", calendario: "agenda", financas: "financeiro", dinheiro: "financeiro", configuracoes: "ajustes", configuracao: "ajustes", mais: "modulos", listadecompras: "lista_compras", listacompras: "lista_compras", listademercado: "lista_compras", pedidos: "compras", entregas: "compras", meuspedidos: "compras" };
+export const DESTINO_NOME: Record<Destino, string> = { hoje: "Hoje", conversa: "Conversa", tarefas: "Tarefas", agenda: "Agenda", financeiro: "Financeiro", metas: "Metas", projetos: "Projetos", memoria: "Memória", agentes: "Agentes", ajustes: "Configurações", modulos: "Mais", lista_compras: "Lista de compras", compras: "Compras", filhos: "Agenda de filhos" };
+const DESTINO_APELIDO: Record<string, Destino> = { inicio: "hoje", chat: "conversa", calendario: "agenda", financas: "financeiro", dinheiro: "financeiro", configuracoes: "ajustes", configuracao: "ajustes", mais: "modulos", listadecompras: "lista_compras", listacompras: "lista_compras", listademercado: "lista_compras", pedidos: "compras", entregas: "compras", meuspedidos: "compras", agendadefilhos: "filhos", agendadosfilhos: "filhos", criancas: "filhos" };
 export function destinoDe(v: unknown): Destino | null {
   if (typeof v !== "string") return null;
   const k = v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z]/g, "");
   return (DESTINOS as readonly string[]).includes(k) ? (k as Destino) : DESTINO_APELIDO[k] ?? null;
 }
 
-export const TIPOS = ["lista_compra_adicionar", "lista_compra_marcar", "lista_compra_reabrir", "lista_compra_remover", "meta_criar", "meta_registrar", "meta_registro_apagar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "meta_projeto", "meta_agenda", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "conta_criar", "receita_principal", "teto_definir", "percepcao", "peca3d_abrir", "peca3d_ajustar", "nova_conversa", "conversa_abrir", "guia", "navegar", "projeto_criar", "agente_criar", "agente_editar", "salario_simular", "ajuste"] as const;
+export const TIPOS = ["filhos_troca", "filhos_troca_desfazer", "filhos_mudar", "lista_compra_adicionar", "lista_compra_marcar", "lista_compra_reabrir", "lista_compra_remover", "meta_criar", "meta_registrar", "meta_registro_apagar", "meta_concluir", "meta_pausar", "meta_retomar", "meta_arquivar", "meta_editar", "projeto_editar", "projeto_arquivar", "meta_marco", "meta_marco_concluir", "meta_tarefa", "meta_projeto", "meta_agenda", "tarefa_concluir", "tarefa_adiar", "tarefa_cancelar", "tarefa_reabrir", "tarefa_editar", "lembrete_cancelar", "lembrete_adiar", "conta_paga", "conta_desmarcar", "conta_valor", "gasto_apagar", "gasto_editar", "evento_editar", "evento_apagar", "memoria_aprovar", "memoria_recusar", "memoria_esquecer", "conta_criar", "receita_principal", "teto_definir", "percepcao", "peca3d_abrir", "peca3d_ajustar", "nova_conversa", "conversa_abrir", "guia", "navegar", "projeto_criar", "agente_criar", "agente_editar", "salario_simular", "ajuste"] as const;
 
 /** Instruções de agente: mantém as quebras de linha (até 2 seguidas), tira espaços sobrando. */
 const instr = (v: unknown): string | null => (typeof v === "string" ? v.replace(/\r/g, "").replace(/[ \t]+/g, " ").replace(/ ?\n ?/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, 4000) : null);
@@ -152,6 +156,19 @@ export function validAcao(raw: unknown, now = Date.now()): AcaoProposta | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
   switch (o.tipo) {
+    case "filhos_troca": {
+      const data = dataValida(o.data);
+      if (!data) return null;
+      return { tipo: "filhos_troca", data, comigo: typeof o.comigo === "boolean" ? o.comigo : null };
+    }
+    case "filhos_troca_desfazer": {
+      const data = dataValida(o.data);
+      return data ? { tipo: "filhos_troca_desfazer", data } : null;
+    }
+    case "filhos_mudar": {
+      const data = dataValida(o.data);
+      return data && typeof o.comigo === "boolean" ? { tipo: "filhos_mudar", data, comigo: o.comigo } : null;
+    }
     case "lista_compra_adicionar": case "lista_compra_marcar": case "lista_compra_reabrir": case "lista_compra_remover": {
       const nome = nomeItem(o.nome);
       return nome ? { tipo: o.tipo, nome } : null;
@@ -452,6 +469,7 @@ export function matchByName<T>(items: T[], name: (t: T) => string, query: string
 /** Instruções do bloco "acoes" (parte estável do prompt). */
 export function acoesRules(): string {
   return `- "acoes": para fazer pela conversa tudo o que dá para fazer tocando no app. Você NÃO grava: o app mostra um cartão e a pessoa confirma com um toque ou dizendo "sim". Use os nomes como a pessoa disse ou como aparecem no contexto; o app acha o item. Tipos:
+  {"tipo":"filhos_troca","data":"AAAA-MM-DD","comigo":true} troca SÓ aquele fim de semana na Agenda de filhos (qualquer dia do fim de semana; "comigo" true = fica com a pessoa, false = com o outro responsável; sem "comigo", inverte); {"tipo":"filhos_troca_desfazer","data":"AAAA-MM-DD"} volta ao combinado; {"tipo":"filhos_mudar","data":"AAAA-MM-DD","comigo":true} muda a alternância DE VEZ a partir daquele fim de semana (antes fica igual). Para perguntas ("o fim de semana que vem é meu?"), responda com o bloco AGENDA DE FILHOS, sem ação. A referência inicial só se configura na tela ({"tipo":"navegar","destino":"filhos"}).
   {"tipo":"lista_compra_adicionar","nome":"leite"} para incluir na lista de compras. Use uma ação por item. Para marcar como comprado, devolver aos pendentes ou tirar da lista, use "lista_compra_marcar", "lista_compra_reabrir" ou "lista_compra_remover" com o nome. Só use quando a pessoa pedir uma mudança na lista de compras; nunca confunda com compra online, gasto ou tarefa. Para mostrar a lista, use {"tipo":"navegar","destino":"lista_compras"}. Pedidos online e entregas ficam em {"tipo":"navegar","destino":"compras"} (só leitura, nada a confirmar).
   {"tipo":"meta_criar","titulo":"Correr 50 km","medicao":"numerica","unidade":"km","alvo":50,"inicial":0,"prazo":"AAAA-MM-DD","categoria":"saude"} (medicao: numerica com alvo, percentual, marcos com "marcos":["..."], ou tarefas; categoria: financeira, familiar, profissional, saude, desenvolvimento ou educacao; sem alvo numa meta numérica, pergunte);
   {"tipo":"meta_registrar","meta":"nome da meta","valor":5,"data":"AAAA-MM-DD"} (data só se não for hoje); {"tipo":"meta_concluir","meta":"..."}; {"tipo":"meta_registro_apagar","meta":"...","valor":5,"data":"AAAA-MM-DD"} ("apaga o último registro da meta de corrida", "aquele registro de 5 km de ontem foi engano": valor e data são opcionais; sem eles, o mais recente);

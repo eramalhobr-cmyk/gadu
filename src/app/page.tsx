@@ -3,6 +3,7 @@ import { Avatar } from "@/components/RobotFace";
 import { Icon } from "@/components/ui";
 import { listaComprasEnabled } from "@/lib/lista-compras/flag";
 import { comprasEnabled } from "@/lib/compras/flag";
+import { agendaFilhosEnabled } from "@/lib/filhos/flag";
 import { ModuleCards } from "@/components/ModulePage";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { accessOf } from "@/lib/access";
@@ -85,7 +86,7 @@ export default async function Home() {
           <span className="mono lp-kicker">Uma plataforma, quatro áreas</span>
           <h2>O que já funciona e o que está no plano</h2>
           <p className="muted">Produtividade pessoal, vida pessoal (metas, financeiro e casa), agentes e criação, e a plataforma. Cada módulo mostra o status real: nada aparece como pronto antes de estar.</p>
-          <ModuleCards skip={[...(listaComprasEnabled() ? [] : ["lista_compras" as const]), ...(comprasEnabled() ? [] : ["compras" as const])]} />
+          <ModuleCards skip={[...(listaComprasEnabled() ? [] : ["lista_compras" as const]), ...(comprasEnabled() ? [] : ["compras" as const]), ...(agendaFilhosEnabled() ? [] : ["filhos" as const])]} />
           <div className="lp-ctx">
             <span className="lp-ctx-ico" aria-hidden="true"><Icon name="spark" size={22} /></span>
             <div>

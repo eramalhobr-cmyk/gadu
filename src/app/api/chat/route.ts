@@ -40,6 +40,8 @@ import { collectFinance, financeProposalRules, formatFinanceBlock } from "@/lib/
 import { financeEnabled } from "@/lib/finance/flag";
 import { modeling3dEnabled } from "@/lib/3d/flag";
 import { comprasEnabled } from "@/lib/compras/flag";
+import { agendaFilhosEnabled } from "@/lib/filhos/flag";
+import { blocoFilhos, pedeFilhos } from "@/lib/filhos/agenda";
 import { blocoCompras, diaSP, pedeCompras, SITUACAO_TEXTO } from "@/lib/compras/pedidos";
 import { blocoSalario, calcularPedido, pedeSalvarSalario, pedidoSalario, resumoSalario } from "@/lib/finance/salario-texto";
 import { hojeSP, isoDia } from "@/lib/finance/datas";
@@ -315,6 +317,17 @@ export async function POST(request: Request) {
         // Compras (COMPRAS_ENABLED, padrão ligado): "quando chega meu pedido?" lê os e-mails de pedido da própria pessoa
         // (Gmail, só leitura) e injeta o bloco [C1]…. Precisa da ferramenta "email" do agente. Nada é gravado.
         // Prioridade: atenção do dia > finanças > metas > compras. Falha vira aviso ao modelo (nunca inventar pedidos).
+        // Agenda de filhos: fatos calculados pelo app (fins de semana e feriados), só quando a pergunta é sobre isso.
+        let filhosBlock = "";
+        if (agendaFilhosEnabled() && pedeFilhos(message)) {
+          try {
+            const { carregarAgenda } = await import("@/lib/filhos/carregar");
+            const { config, ajustes } = await carregarAgenda(supabase, user.id);
+            filhosBlock = `\n\n${blocoFilhos(config, ajustes, new Date(Date.now() - 3 * 3_600_000).toISOString().slice(0, 10))}`;
+          } catch {
+            filhosBlock = "\n\nAgenda de filhos: não consegui ler a agenda agora. Diga isso com franqueza e não invente datas.";
+          }
+        }
         let comprasBlock = "";
         if (!coreBlock && !finIntent && !goalsIntent && comprasEnabled() && pode(agente, "email") && pedeCompras(message)) {
           try {
@@ -344,7 +357,7 @@ export async function POST(request: Request) {
         // Simulador de salário: o servidor calcula (salario.ts) e o resultado entra no contexto; o modelo só repete os números.
         const salarioPedido = financeEnabled() && pode(agente, "financas") ? pedidoSalario(message) : null;
         const salarioBlock = salarioPedido ? blocoSalario(salarioPedido) ?? "" : "";
-        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + financeBlock + goalsBlock + comprasBlock + salarioBlock + avisoFerramentas(agente) + (parsed.data.context ? contextLine(parsed.data.context) : "");
+        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + financeBlock + goalsBlock + comprasBlock + filhosBlock + salarioBlock + avisoFerramentas(agente) + (parsed.data.context ? contextLine(parsed.data.context) : "");
         inputChars = system.length + context.length + turns.reduce((n, t) => n + t.content.length, 0);
         for await (const ev of routeChat({
           system,
@@ -465,7 +478,7 @@ export async function POST(request: Request) {
         }
         if (acoesOk.length) {
           const { actions, misses } = await resolveAcoes(supabase, user.id, acoesOk, {
-            listaCompras: listaComprasEnabled(), goals: goalsEnabled(), finance: financeEnabled(), modeling3d: modeling3dEnabled(),
+            listaCompras: listaComprasEnabled(), agendaFilhos: agendaFilhosEnabled(), goals: goalsEnabled(), finance: financeEnabled(), modeling3d: modeling3dEnabled(),
             // Agenda do Google só para achar o evento pelo nome (token da própria pessoa, só no servidor).
             calendar: async (from, to) => events(await accessToken(supabase, user.id), from, to),
             // E-mails não lidos só para recalcular as percepções de hoje (ação "percepcao").

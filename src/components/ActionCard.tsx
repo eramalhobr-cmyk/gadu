@@ -1,5 +1,6 @@
 "use client";
 import { LISTA_COMPRAS_ATUALIZADA } from "@/lib/lista-compras/types";
+import { AGENDA_FILHOS_ATUALIZADA } from "@/lib/filhos/carregar";
 import { MSG, RETRY_LABEL } from "@/lib/errors";
 import { describe, type ChatAction } from "@/lib/chat-actions";
 import type { ViewId } from "@/lib/modules";
@@ -35,6 +36,14 @@ const desfazLista = async (p: Promise<Response>) => {
   if (r.ok) atualizaLista();
   return r;
 };
+const filhosApi = "/api/agenda-filhos/ajustes";
+const atualizaFilhos = () => window.dispatchEvent(new Event(AGENDA_FILHOS_ATUALIZADA));
+const postFilhos = (tipo: "troca" | "recorrencia", data: string, comigo: boolean) => fetch(filhosApi, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tipo, data, comigo }) });
+const desfazFilhos = async (p: Promise<Response>) => {
+  const r = await backApi(p);
+  if (r.ok) atualizaFilhos();
+  return r;
+};
 const put = (path: string, body: unknown) => fetch(path, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 const patch = (path: string, body: unknown) => fetch(path, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
@@ -44,6 +53,14 @@ async function capture(a: ChatAction): Promise<Prep | null> {
   const db = supabaseBrowser();
   try {
     switch (a.kind) {
+      // Agenda de filhos: o id traz {id, anterior}. Ajuste novo → apaga; ajuste que já existia → volta o valor de antes.
+      case "filhos_troca": case "filhos_mudar": return (r) => {
+        if (!r.id) return undefined;
+        const { id, anterior } = JSON.parse(r.id) as { id: string; anterior: boolean | null };
+        const tipo = a.kind === "filhos_troca" ? "troca" : "recorrencia";
+        return () => desfazFilhos(anterior === null ? fetch(`${filhosApi}/${id}`, { method: "DELETE" }) : postFilhos(tipo, a.sabado, anterior));
+      };
+      case "filhos_troca_remover": return () => () => desfazFilhos(postFilhos("troca", a.sabado, a.comigo));
       case "lista_compra_adicionar": return (r) => (r.id ? () => desfazLista(fetch(`${listaApi}/${r.id}`, { method: "DELETE" })) : undefined);
       case "lista_compra_status": return () => () => desfazLista(patch(`${listaApi}/${a.id}`, { comprado: !a.comprado }));
       case "tarefa_ok": case "tarefa_cancelar": case "tarefa_reabrir": case "tarefa_adiar": case "tarefa_editar": {
@@ -112,6 +129,16 @@ async function capture(a: ChatAction): Promise<Prep | null> {
 
 async function execute(a: ChatAction): Promise<Result> {
   try {
+    if (a.kind === "filhos_troca" || a.kind === "filhos_mudar" || a.kind === "filhos_troca_remover") {
+      const r = a.kind === "filhos_troca_remover" ? await fetch(`${filhosApi}/${a.id}`, { method: "DELETE" })
+        : await postFilhos(a.kind === "filhos_troca" ? "troca" : "recorrencia", a.sabado, a.comigo);
+      const result = await api(r, "Não consegui atualizar a Agenda de filhos.");
+      if (!result.ok) return result;
+      atualizaFilhos();
+      if (a.kind === "filhos_troca_remover") return result;
+      const j = await json(r) as { ajuste?: { id?: string }; anterior?: boolean | null };
+      return j.ajuste?.id ? { ...result, id: JSON.stringify({ id: j.ajuste.id, anterior: j.anterior ?? null }) } : result;
+    }
     if (a.kind === "lista_compra_adicionar" || a.kind === "lista_compra_status" || a.kind === "lista_compra_remover") {
       const r = a.kind === "lista_compra_adicionar"
         ? await fetch(listaApi, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nome: a.nome }) })
