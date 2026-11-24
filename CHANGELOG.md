@@ -9,6 +9,15 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-23 · Triagem de e-mails obedece às memórias aprovadas · desenvolvido e testado
+- **Feito por:** Claude Code (revisado pelo Cursor/Grok Bot). **Bug:** "Merece sua atenção" mostrava e-mails automáticos (falhas de deploy da Vercel, notificações do GitHub) mesmo depois de a pessoa aprovar uma memória dizendo que não são importantes. A triagem é determinística (sem IA) e só olhava o rótulo IMPORTANT do Gmail; as memórias só entravam no prompt do chat.
+- **Correção:** módulo puro `src/lib/email-regras.ts` lê as memórias aprovadas (só as que falam de e-mail ou notificação) e extrai o que silenciar e o que manter (serviços, domínios, endereços, remetente, tópicos como deploy, CI, newsletter). Ordem: aviso crítico (segurança, cobrança) sempre aparece; "manter" vence; "silenciar" vira baixa prioridade; notificação automática (noreply, ferramentas de desenvolvimento, assunto de deploy/build) é baixa por padrão; o resto segue o Gmail. Aplicado na fonte de e-mail do Core (só crítico e importante entram; some o "E-mail não lido" de enchimento), em `/api/today`, no briefing do cron, no chat (`[baixa prioridade: motivo]`) e nas percepções. O Gmail agora também guarda o endereço do remetente (`fromEmail`).
+- **Ensinar por voz ou toque:** botão "Não é importante" no e-mail do cartão e comando local "isso não é importante" / "e-mails da Vercel não são importantes" (sem modelo). `POST /api/email/nao-importante` grava uma memória **já aprovada** ("Regra de e-mail", área Preferências) com o cliente da sessão (RLS e S-05; 403 se a política negar). Sem migração, sem chave secreta.
+- **Por voz:** quando "isso não é importante" vem da voz, a confirmação também é falada (ajuste do Cursor na revisão).
+- **Sem lista velha:** o cartão refaz a lista quando o app volta para a frente (PWA aberto em segundo plano) e o service worker passou para `gadu-v7`, limpando caches antigos de arquivos (as rotas `/api` nunca foram guardadas).
+- **Correção extra:** o chat lia as 80 memórias **mais antigas**; agora lê as 80 mais novas, em ordem cronológica.
+- **Evidências (máquina local):** `npx tsc --noEmit`; `npm test` (unitários 419/419, integração 250/250, com os testes novos de `email-regras` e do Core); `next build`; `node --check e2e/auth.e2e.cjs`. O e2e novo (regra por texto cria memória sem chamar o modelo) **não foi executado** aqui (precisa do Supabase local do CI). Sem Google real: classificação conferida só com dados fictícios.
+
 ## 2026-11-23 · 3D: qualidade da 2ª rodada e Abrir no celular · desenvolvido e testado
 - **Feito por:** Claude Code (código inicial) e Cursor (Grok Bot) (conclusão, testes, revisão e publicação). Depois do PR #114 e da 2ª rodada com IA real (10/10 geradas): o ajuste “2 mm mais alto” no suporte só mudava a aba (+1,8 mm no Z); a caixa 80×60×40 tinha controle em 40 e malha em 28; o suporte em L tinha reforço deslocado e parede ~0 mm; chaveiro, placa e gancho avisavam parede 0,5–0,9 mm. No celular, tocar **Abrir** numa peça salva não levava a prévia à vista.
 - Prompt mais explícito (Z total, medidas externas do corpo, `union()` com sobreposição, traço do texto ≥ 1,2 mm). Checagens novas: partes desconexas e parâmetros vs. malha. Depois de montar, **uma** correção automática de qualidade (`causa: "qualidade"`). Abrir e `/app/3d?peca=` rolam até a prévia; pedido e versões aparecem na tela. Voz: “abre a peça do chaveiro”.
@@ -24,7 +33,8 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 
 ## 2026-11-23 · UX-7 G1 · Modo voz imersivo (JARVIS) · desenvolvido e testado
 
-## 2026-11-23 · UX-7 G3 · Design system v2 com testes visuais · desenvolvido e testado
+## 2026-11-23 · UX-7 G3 · Design system v2 com testes visuais · publicado
+- **Publicado:** PR #113, merge `4ca2a83` em 23/11/2026 17:46 (Brasília); CI verde; `/design` responde 404 em produção, como previsto.
 - **Feito por:** Cursor (Grok Bot). Vitrine `/design` com tokens, tipografia, ações, gráficos dos painéis e o núcleo de voz (números de exemplo marcados como tal; **404 em produção**, abre só com `GADU_DESIGN_PAGE=1`). Testes visuais novos no CI (`e2e/visual.e2e.cjs`, job `e2e-public`): contraste WCAG dos tokens nos dois temas, sem rolagem lateral, alvos de 44 px e comparação de pixels com `e2e/visual-baseline/` (até 2%), feita no próprio navegador, **sem dependência nova**. Capturas sobem como artefato `gadu-visual`. Ver `docs/DESIGN_SYSTEM.md` ("Design system v2").
 - **Evidências (máquina local):** typecheck; build; `npm run test:e2e:visual` 6/6 (contraste claro e escuro; vitrine 390 e 1440 nos dois temas).
 

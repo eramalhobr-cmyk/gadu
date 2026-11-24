@@ -1,6 +1,7 @@
 // Coleta do "atenção hoje": consulta as fontes em paralelo, numera, prioriza e aplica os limites de volume.
 // Escopo: SEMPRE só o user_id da sessão. Consultas com o cliente da sessão (RLS), nunca a chave secreta.
 import { spNow } from "../briefing.ts";
+import { carregarRegrasEmail } from "../email-regras.ts";
 import { fitFacts } from "./format.ts";
 import { planFor, type Plan } from "./plan.ts";
 import { personalUserId, resolveScopes } from "./scopes.ts";
@@ -45,11 +46,13 @@ export async function collectAttention(input: CollectInput): Promise<CoreResult>
   });
 
   const run = async (p: Promise<SourceResult>, fallback: SourceResult): Promise<SourceResult> => { try { return await p; } catch { return fallback; } };
+  // Regras das memórias aprovadas: uma leitura só (nunca lança; sem regras vale a regra padrão de notificação automática).
+  const regras = await carregarRegrasEmail(input.db, userId);
   const [tasks, reminders, agenda, email] = await Promise.all([
     run(collectTasks(ctx), { facts: [], unavailable: { source: "tarefas", reason: "error", text: "Não consegui ler suas tarefas agora." } }),
     run(collectReminders(ctx), { facts: [], unavailable: { source: "lembretes", reason: "error", text: "Não consegui ler seus lembretes agora." } }),
     statusFailed ? failed("agenda") : run(collectAgenda(ctx, input.google, status), failed("agenda")),
-    statusFailed ? failed("email") : run(collectEmail(ctx, input.google, status), failed("email")),
+    statusFailed ? failed("email") : run(collectEmail(ctx, input.google, status, regras), failed("email")),
   ]);
 
   // Prioridade: menor rank primeiro; empate mantém a ordem das fontes. Só entram fatos do user_id da sessão (as fontes só leem o dele).

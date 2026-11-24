@@ -68,6 +68,14 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 23/11/2026 19:35 · Claude Code + Cursor (Grok Bot), e-mails automáticos fora de "Merece sua atenção" (PR #115)
+- Branch `fix/emails-atencao-memoria`. Causa: a triagem de e-mail não lia as memórias aprovadas. Novo `src/lib/email-regras.ts` (regras das memórias, classificação crítico/importante/normal/baixa, "isso não é importante"), aplicado no Core, `/api/today`, cron do briefing, chat e percepções. Rota `POST /api/email/nao-importante`, botão "Não é importante" no `AttentionCard` e comando local no `GaduApp`. Corrigido o limite das memórias no chat (80 mais novas). Sem migração.
+- **Testado:** typecheck, `npm test`, build. **Não testado:** e2e com login (novo teste em `e2e/auth.e2e.cjs`), Google real, aparelho.
+- **A revisar por outra IA:** os padrões de `regrasDeMemorias` (texto livre em português: conferir com memórias reais), e a regra "manter vence silenciar".
+- **Revisão do Cursor (Grok Bot), 18:45:** diff lido; typecheck e `npm test` (419/419 e 250/250) repetidos; a memória real nº 61 ("e-mails de deploy da Vercel... falhas de CI continuam relevantes") silencia "Failed production deployment" da Vercel e mantém "Run failed" do GitHub. Ajuste: confirmação falada quando o pedido vem por voz.
+- **Lista velha:** não há cache de API (`no-store`; o service worker ignora `/api`). O cartão agora refaz a lista ao voltar para o app (`visibilitychange`) e o service worker foi para `gadu-v7`. Conflitos com #116 e #118 resolvidos mantendo as entradas das duas frentes.
+- **Próximo passo:** merge com CI verde, conferir o deploy e conferir em produção que o e-mail da Vercel sumiu da lista.
+
 ### 23/11/2026 19:12 · Cursor (Grok Bot) e Claude Code, 3D: qualidade da 2ª rodada e Abrir no celular
 - Branch `fix/3d-qualidade-ajustes` (rebase em `origin/main` após os PRs #116 e #118). 2ª rodada (18:28–18:33, 10/10 geradas): o suporte só subiu 1,8 mm (aba 14→16); a caixa 80×60×40 tinha slider 40 e malha 28 (`altura - altura_tampa`); o L tinha reforço deslocado e parede ~0 mm (checagem de malha passava); gancho, chaveiro e placa avisavam parede 0,5–0,9 mm (traço do texto / ponta). Eduardo (18:35): tocar **Abrir** em Suas peças no celular parecia não fazer nada — a prévia carregava abaixo da lista, sem rolar até ela.
 - **Feito:** regras mais claras no prompt (Z total, medidas externas, union com sobreposição, traço de texto ≥ 1,2 mm); checagens `partes` e `medidas`; correção automática **uma vez** depois de montar (`qualidade.ts`, `causa: "qualidade"`); Abrir e `?peca=` rolam até `#s3d-peca`; pedido e versões visíveis; e2e a 390 px; voz “abre a peça do chaveiro” (`buscaPeca3d`).

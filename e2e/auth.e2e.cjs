@@ -383,6 +383,23 @@ describe("app com login", () => {
     await d.context().close();
   });
 
+  test("“e-mails da vercel não são importantes” cria a regra na Memória, sem chamar o modelo", async () => {
+    const d = await page(DESK);
+    let chats = 0;
+    d.on("request", (r) => { if (r.url().includes("/api/chat")) chats++; });
+    await d.goto(`${BASE}/app?tab=hoje`);
+    await d.click("[aria-label='Abrir o assistente']");
+    await d.waitForSelector("#assist-msg");
+    const salvou = d.waitForResponse((r) => r.url().includes("/api/email/nao-importante") && r.request().method() === "POST");
+    await d.fill("#assist-msg", "e-mails da vercel não são importantes");
+    await d.click(".assist-composer [aria-label=Enviar]");
+    assert.equal((await salvou).status(), 200, "a regra foi gravada");
+    await d.goto(`${BASE}/app?tab=memoria`);
+    await d.waitForFunction(() => document.body.innerText.includes("E-mails de vercel não são importantes"), null, { timeout: 15000 });
+    assert.equal(chats, 0, "sem chamar o modelo");
+    await d.context().close();
+  });
+
   test("tema JARVIS (G2): barra flutuante, microfone sólido por cima e nada escondido atrás dela", async () => {
     const p = await page(PHONE);
     await p.goto(`${BASE}/app?tab=hoje`);

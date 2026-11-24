@@ -1,9 +1,11 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ActionItem } from "@/lib/core/format";
 import type { ViewId } from "@/lib/modules";
+import { ATENCAO_RECARREGAR_EVENT, EMAIL_NAO_IMPORTANTE_EVENT } from "@/lib/email-regras";
 import { SITUACAO_LABEL, type Situacao } from "@/lib/goals/types";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { EVENTO_FALAR } from "@/lib/painel-fala";
 import { showNotice, showUndo, UNDO_TEXT } from "@/lib/undo";
 import { Icon } from "./ui";
 import { EmptyState, Panel } from "./kit";
@@ -46,6 +48,12 @@ export function AttentionCard(props: {
     } catch { setFailed(true); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // App aberto em segundo plano: ao voltar para ele, refaz a lista (regra nova ou memória aprovada em outro lugar vale na hora).
+  useEffect(() => {
+    const v = () => { if (document.visibilityState === "visible") void load(); };
+    document.addEventListener("visibilitychange", v);
+    return () => document.removeEventListener("visibilitychange", v);
+  }, [load]);
   useEffect(() => {
     if (!props.goalsEnabled) return;
     fetch("/api/goals/resumo", { cache: "no-store" })
@@ -72,6 +80,38 @@ export function AttentionCard(props: {
   if (data && !data.enabled) return null;
   const unavailable = data?.unavailable ?? [];
   const reconnect = unavailable.some((u) => u.reason !== "error");
+
+  /** "Não é importante" num e-mail: grava a regra (memória aprovada) e recarrega a lista na hora. */
+  async function naoImportante(s: ActionItem, voz = false) {
+    if (!s.de) return;
+    // Pedido por voz: a confirmação também é falada (o GaduApp escuta "gadu:falar").
+    const avisar = (txt: string) => { showNotice(txt); if (voz) window.dispatchEvent(new CustomEvent(EVENTO_FALAR, { detail: txt })); };
+    try {
+      const r = await fetch("/api/email/nao-importante", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ de: s.de }) });
+      const j = (await r.json().catch(() => ({}))) as { termo?: string; error?: string };
+      if (!r.ok) return avisar(j.error ?? UNDO_TEXT.failSave);
+      avisar(`Pronto: e-mails de ${j.termo ?? "esse remetente"} não aparecem mais aqui.`);
+      await load();
+    } catch { avisar(UNDO_TEXT.failSave); }
+  }
+  // Voz ou texto ("isso não é importante") aplica ao primeiro e-mail da lista; "gadu:atencao-recarregar" refaz a lista.
+  const aplicarRef = useRef<(voz: boolean) => void>(() => {});
+  aplicarRef.current = (voz) => {
+    const primeiro = items.find((x) => x.kind === "email" && x.de);
+    if (primeiro) void naoImportante(primeiro, voz);
+    else {
+      const t = "Não há e-mail na lista agora. Diga de quem: “e-mails da Vercel não são importantes”.";
+      showNotice(t);
+      if (voz) window.dispatchEvent(new CustomEvent(EVENTO_FALAR, { detail: t }));
+    }
+  };
+  useEffect(() => {
+    const a = (e: Event) => aplicarRef.current(!!(e as CustomEvent<{ voz?: boolean }>).detail?.voz);
+    const b = () => { void load(); };
+    window.addEventListener(EMAIL_NAO_IMPORTANTE_EVENT, a);
+    window.addEventListener(ATENCAO_RECARREGAR_EVENT, b);
+    return () => { window.removeEventListener(EMAIL_NAO_IMPORTANTE_EVENT, a); window.removeEventListener(ATENCAO_RECARREGAR_EVENT, b); };
+  }, [load]);
 
   /** Feito ou Adiar no próprio item. Grava com a sessão da pessoa (RLS) e oferece Desfazer por alguns segundos. */
   async function act(s: ActionItem, kind: "done" | "later") {
@@ -120,7 +160,7 @@ export function AttentionCard(props: {
           : (
             <div className="rows">
               {items.map((s) => (
-                <div className={`row-i attn-i ${s.ref ? "" : "one"}`} key={s.tag}>
+                <div className={`row-i attn-i ${s.ref || s.de ? "" : "one"}`} key={s.tag}>
                   <span className="rec-ico" aria-hidden="true"><Icon name={ICON[s.kind]} size={20} /></span>
                   <div className="grow">
                     <span className="t wrap-t">{s.text}</span>
@@ -132,7 +172,12 @@ export function AttentionCard(props: {
                         <button className="btn btn-sm btn-pri" onClick={() => act(s, "done")} aria-label={`Feito: ${s.text}`}>Feito</button>
                         <button className="btn btn-sm" onClick={() => act(s, "later")} aria-label={`Adiar para amanhã: ${s.text}`}>Adiar</button>
                       </>
-                    ) : s.href ? <a className="btn btn-sm" href={s.href} target="_blank" rel="noopener noreferrer">Abrir e-mail</a>
+                    ) : s.href ? (
+                      <>
+                        <a className="btn btn-sm" href={s.href} target="_blank" rel="noopener noreferrer">Abrir e-mail</a>
+                        {s.kind === "email" && s.de && <button className="btn btn-sm" onClick={() => naoImportante(s)} aria-label={`Não é importante: e-mails de ${s.de}`}>Não é importante</button>}
+                      </>
+                    )
                       : <button className="btn btn-sm" onClick={() => props.onOpen(s.view)}>{ORIGIN[s.view] ?? "Abrir"}</button>}
                   </div>
                 </div>
