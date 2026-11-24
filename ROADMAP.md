@@ -479,8 +479,8 @@ Proposta completa (17 itens), com o levantamento das skills de design no GitHub,
 ## Ciclo de novembro · compras e família (plano em docs/PLANO_CICLO_COMPRAS_FAMILIA.md)
 - [x] Saúde do sistema: monitoramento e alerta de erro (PR #117, publicado em 23/11; migração aplicada)
 - [x] Lista de compras: migração aplicada em produção (23/11)
-- [ ] Lista de compras: merge do PR #123 e conferência em produção
-- [ ] Compras: pedidos e entregas pelo Gmail (branch `feat/compras-pedidos`, testado; PR a abrir)
+- [x] Lista de compras: publicada (PR #123, 23/11)
+- [x] Compras: pedidos e entregas pelo Gmail, publicada (PR #124, 23/11); falta conferir com Gmail real
 - [ ] Agenda de filhos (precisa de migração e aprovação)
 - [ ] Validar no aparelho: Hoje e voz (`docs/CHECKLIST_CELULAR.md`), painel e push da Saúde, Lista e Compras
 - [ ] 3D: 3ª rodada com IA real e teste no iPhone
