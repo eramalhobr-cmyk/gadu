@@ -1,9 +1,15 @@
 # GaDu · Changelog
 
-## Gráficos do Hoje · em revisão
+## Resumos do Hoje · desenvolvido
+
+- Gastos do dia a dia em até seis meses do ano corrente e os dois limites por categoria mais usados no mês.
+- Progresso mostra metas em andamento, atrasadas, concluídas e pausadas. A home reaproveita as consultas dos módulos e indica quando faltam registros.
+
+## Gráficos do Hoje · publicado
 
 - Despesas pagas e a pagar no mês, e variação diária de LREN3, CEAB3 e VIVA3 com fonte e horário.
 - Histórico da brapi se adapta a janelas menores quando o plano recusa a janela longa.
+- PR #139, merge `1adc587`, CI e deploy da Vercel verdes.
 
 
 ## Desktop, voz natural e investimentos · em revisão

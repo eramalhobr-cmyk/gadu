@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { formatBRL } from "@/lib/finance/money";
+import type { Acumulado, StatusTeto } from "@/lib/finance/tetos";
 import { ACOMPANHADOS, type Papel } from "@/lib/investimentos/cotacoes";
-import { Stack } from "./charts";
+import { Bars, Meter, Stack } from "./charts";
 
 type GastoMes = { pago: number; previsto: number };
 type Mercado =
@@ -12,10 +13,63 @@ type Mercado =
 const percentual = new Intl.NumberFormat("pt-BR", { style: "percent", signDisplay: "exceptZero", maximumFractionDigits: 2 });
 const horario = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
 
-export function HojeGraficos({ gasto, financeiro, falhaFinanceiro, onOpen }: {
+async function lerResumo<T>(url: string, signal: AbortSignal): Promise<T | null> {
+  try {
+    const resposta = await fetch(url, { cache: "no-store", signal });
+    return resposta.ok ? await resposta.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+function GastosDiaADia({ mesFinanceiro }: { mesFinanceiro: string }) {
+  const [ano, mes] = mesFinanceiro.split("-").map(Number);
+  const [historico, setHistorico] = useState<Acumulado | null>();
+  const [tetos, setTetos] = useState<StatusTeto[] | null>();
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    void lerResumo<Acumulado>(`/api/finance/ano?ano=${ano}`, ctrl.signal).then((dados) => {
+      if (!ctrl.signal.aborted) setHistorico(Array.isArray(dados?.porMes) ? dados : null);
+    });
+    void lerResumo<{ tetos: StatusTeto[] }>(`/api/finance/tetos?ano=${ano}&mes=${mes}`, ctrl.signal).then((dados) => {
+      if (!ctrl.signal.aborted) setTetos(Array.isArray(dados?.tetos) ? dados.tetos.slice(0, 2) : null);
+    });
+    return () => ctrl.abort();
+  }, [ano, mes]);
+
+  const meses = historico?.porMes.filter((m) => m.mes <= mes).slice(-6) ?? [];
+  const total = meses.reduce((soma, m) => soma + m.total, 0);
+
+  return (
+    <section className="band hud-frame today-chart" aria-labelledby="hoje-gastos">
+      <h2 className="band-t" id="hoje-gastos">Gastos do dia a dia</h2>
+      {total > 0 ? (
+        <>
+          <p className="muted"><b className="num">{formatBRL(total)}</b> no período · {ano}</p>
+          <Bars label={`Gastos do dia a dia por mês em ${ano}`} fmt={formatBRL}
+            data={meses.map((m) => ({ label: m.nome.slice(0, 3), value: m.total }))} />
+        </>
+      ) : <p className="muted">{historico === undefined ? "Carregando histórico…"
+        : historico === null ? "Não consegui consultar o histórico."
+          : "Nenhum gasto do dia a dia neste período."}</p>}
+      <h3 className="pnl-sub">Limites por categoria neste mês</h3>
+      {tetos?.length ? (
+        <div className="stack">
+          {tetos.map((t) => <Meter key={t.id} label={t.categoria} value={t.gasto} max={t.valor} fmt={formatBRL} />)}
+        </div>
+      ) : <p className="muted">{tetos === undefined ? "Carregando limites…"
+        : tetos === null ? "Não consegui consultar os limites."
+          : "Nenhum limite por categoria definido."}</p>}
+    </section>
+  );
+}
+
+export function HojeGraficos({ gasto, financeiro, falhaFinanceiro, mesFinanceiro, onOpen }: {
   gasto: GastoMes | null;
   financeiro: boolean;
   falhaFinanceiro: boolean;
+  mesFinanceiro: string;
   onOpen: (view: "financeiro" | "investimentos") => void;
 }) {
   const [mercado, setMercado] = useState<Mercado>({ estado: "carregando" });
@@ -59,6 +113,7 @@ export function HojeGraficos({ gasto, financeiro, falhaFinanceiro, onOpen }: {
             : <p className="muted">{falhaFinanceiro ? "Não consegui consultar as despesas do mês." : "Carregando despesas do mês…"}</p>}
         </section>
       )}
+      {financeiro && <GastosDiaADia key={mesFinanceiro} mesFinanceiro={mesFinanceiro} />}
       <section className="band hud-frame today-chart" aria-labelledby="hoje-investimentos">
         <div className="today-chart-head">
           <h2 className="band-t" id="hoje-investimentos">Investimentos</h2>

@@ -2,11 +2,12 @@
 
 ## Próximo ciclo · painéis e acompanhamento
 
-1. **Agora:** gráficos do Hoje e ativação da brapi. Conferir valores pagos/a pagar com o Financeiro e sinais/horários com Investimentos.
-2. **Próxima entrega de interface:** adicionar evolução mensal dos gastos, teto por categoria e resumo de metas. Aproveitar dados já disponíveis, com estados vazios.
+1. **Publicado:** despesas pagas e a pagar, variação diária das ações e histórico da brapi ajustado ao plano (PR #139). Conferir as cotações e horários com sessão em produção.
+2. **Implementado, em validação:** evolução mensal dos gastos do dia a dia, limites por categoria e situação das metas no Hoje. Os painéis reaproveitam dados dos módulos e mostram mensagens quando faltam registros.
 3. **Investimentos:** habilitar lista editável, comparação com benchmark e alertas de preço/variação opt-in. Validar cobertura, atrasos e proventos antes de agendar o boletim diário.
 4. **Voz:** verificar acesso à migração da síntese, depois comparar qualidade, atraso e interrupção no Android/iPhone.
 5. **Uso diário:** validar agenda recorrente, confirmação única e abertura de e-mail no Gmail com conta real.
+6. **Próximos painéis do Hoje:** comparar tarefas concluídas nos últimos sete dias e avaliar uma linha do tempo que reúna entregas previstas e compromissos. Exibir datas, origem e horário de atualização quando disponíveis.
 
 [Configuração da brapi e pesquisa planejada](docs/INVESTIMENTOS.md).
 
