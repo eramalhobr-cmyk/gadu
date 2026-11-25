@@ -54,7 +54,7 @@ test("voz natural exige habilitação, sessão e filtros de privacidade", async 
 
 test("reserva antes da síntese, retorna áudio sem cache e liquida o consumo", async (t) => {
   t.mock.method(globalThis, "fetch", async (_url: string, req: RequestInit) => {
-    calls.push("proveedor");
+    calls.push("provedor");
     assert.equal(JSON.parse(String(req.body)).text, "Oi");
     return Response.json({ audio: "SUQzAAAAAAAAAAA=" }, { status: codigo });
   });
@@ -66,8 +66,8 @@ test("reserva antes da síntese, retorna áudio sem cache e liquida o consumo", 
   assert.equal(r.status, 200);
   assert.equal(r.headers.get("content-type"), "audio/mpeg");
   assert.equal(r.headers.get("cache-control"), "private, no-store");
-  assert.deepEqual(calls.splice(0), ["reserva", "proveedor", "liquida"]);
+  assert.deepEqual(calls.splice(0), ["reserva", "provedor", "liquida"]);
   codigo = 503;
   assert.equal((await pedir("Oi")).status, 502);
-  assert.deepEqual(calls, ["reserva", "proveedor", "liquida"]);
+  assert.deepEqual(calls, ["reserva", "provedor", "liquida"]);
 });

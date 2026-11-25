@@ -3,8 +3,8 @@
 \set ON_ERROR_STOP on
 \set QUIET on
 
-insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000e9801', 'fala@teste.local');
-insert into public.members (user_id, role, access) values ('00000000-0000-0000-0000-0000000e9801', 'member', 'active')
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000e9901', 'fala@teste.local');
+insert into public.members (user_id, role, access) values ('00000000-0000-0000-0000-0000000e9901', 'member', 'active')
   on conflict (user_id) do update set access = excluded.access;
 update private.budget_policy set monthly_limit_usd = 5.00, min_reserve_usd = 0.01, max_reserve_usd = 1.00, global_monthly_limit_usd = null;
 
@@ -23,7 +23,7 @@ begin
   return r;
 end $$;
 
-\set U '00000000-0000-0000-0000-0000000e9801'
+\set U '00000000-0000-0000-0000-0000000e9901'
 
 select pg_temp.svc(format($q$select public.server_reserve_ai_budget(%L, 'speech', 0.002)$q$, :'U')) as res \gset
 select pg_temp.check((:'res'::jsonb ->> 'allowed')::boolean, 'síntese: reserva aceita');
