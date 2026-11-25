@@ -385,6 +385,8 @@ export function ajusteLabel(j: Ajuste): string {
     case "maos_livres": return `${liga(j.valor)} a conversa contínua`;
     case "respostas_curtas": return `${liga(j.valor)} as respostas faladas curtas`;
     case "voz": return `${liga(j.valor)} a resposta falada`;
+    case "envio_automatico": return `${liga(j.valor)} o envio automático do que você falar`;
+    case "transcricao_nuvem": return `${liga(j.valor)} a transcrição na nuvem${j.valor ? " (usa o orçamento de IA)" : ""}`;
     case "tema": return `Tema ${j.valor === "light" ? "claro" : "escuro"}`;
     case "velocidade": return j.valor === "mais_devagar" ? "Falar mais devagar" : j.valor === "mais_rapido" ? "Falar mais rápido" : `Velocidade da fala: ${j.valor.toFixed(2).replace(".", ",")}×`;
     case "voz_trocar": return "Trocar para a próxima voz do aparelho";

@@ -8,7 +8,8 @@
 ## Piloto de voz e revisão mobile
 
 - [x] Piloto pelo AI Gateway (decisão de 24/11): scripts de comparação e rodada 1 com voz sintética (4 modelos, todos 0% de erro justo; diferença em tempo e custo).
-- [ ] Rodada 2 com voz real do Eduardo (com ruído) e comparação com o microfone do aparelho.
+- [x] Transcrição na nuvem no app (24/11/2026): opcional em Ajustes, Microsoft com OpenAI de reserva, orçamento com reserva e volta ao microfone do aparelho se falhar.
+- [ ] Validar no celular e rodada 2 com voz real do Eduardo (com ruído); trocar o modelo pela configuração se precisar.
 - [ ] Validar leitura completa, navegação e abertura do Gmail no Android real.
 - [ ] Preparar integração opcional com controle de gasto no servidor.
 

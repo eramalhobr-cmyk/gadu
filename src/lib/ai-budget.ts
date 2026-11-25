@@ -2,11 +2,11 @@ import { checkReservation, safeRpc, type Reservation } from "@/lib/chat-budget-g
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 // Orçamento de IA com reserva (migrações 20261113140001 e 20261122120001): reservar antes, liquidar pelo custo real
-// depois, liberar se a IA falhar. Usado pelo chat, pelo resumo de conversa e pela importação de memórias.
+// depois, liberar se a IA falhar. Usado pelo chat, pelo resumo de conversa, pela importação de memórias e pela transcrição.
 //
 // S-01: estas chamadas usam as funções server_* e o cliente com a chave secreta. Elas recebem o `user_id` DA
 // SESSÃO (já validada pela rota); o navegador não consegue chamá-las. Nunca passe um id vindo do corpo da requisição.
-export type Kind = "chat" | "summary" | "import";
+export type Kind = "chat" | "summary" | "import" | "transcribe";
 export type UsageRecord = { provider: string; model: string; input: number; output: number; cost: number };
 
 type Admin = ReturnType<typeof supabaseAdmin>;

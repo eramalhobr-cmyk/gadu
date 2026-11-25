@@ -659,6 +659,8 @@ describe("app com login", () => {
     await auto.click();
     assert.equal(await auto.locator("input").isChecked(), true, "a linha inteira é clicável");
     await auto.click();
+    const nuvem = p.locator(".switch", { hasText: "Transcrição na nuvem" });
+    assert.equal(await nuvem.locator("input").isChecked(), false, "transcrição paga só com escolha da pessoa");
     await p.context().close();
   });
 

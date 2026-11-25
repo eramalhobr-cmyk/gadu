@@ -63,3 +63,13 @@ test("parseRetryCommand: 'tenta de novo' falado ou escrito", () => {
   for (const t of ["tenta de novo", "Tentar de novo!", "gadu, tenta de novo por favor", "manda de novo", "de novo", "outra vez", "pode tentar de novo"]) assert.equal(parseRetryCommand(t), true, t);
   for (const t of ["tenta de novo amanhã", "me lembra de novo de pagar a luz", "novo", "sim", ""]) assert.equal(parseRetryCommand(t), false, t);
 });
+
+test("transcrição na nuvem: teto/desligada/fora do ar volta ao microfone do aparelho; outras falhas pedem para tentar de novo", async () => {
+  const { cloudMicMessage, cloudMicOff } = await import("./errors.ts");
+  assert.equal(cloudMicOff("cloud-402"), true);
+  assert.equal(cloudMicOff("cloud-502"), false);
+  assert.equal(cloudMicMessage("cloud-402", "O teto de gasto com IA do mês foi atingido.", true), "O teto de gasto com IA do mês foi atingido. Vou usar o microfone do aparelho.");
+  assert.equal(cloudMicMessage("cloud-404", undefined, false), "A transcrição na nuvem está indisponível agora. Escreva a mensagem por enquanto.");
+  assert.equal(cloudMicMessage("cloud-502", "Não consegui transcrever agora.", true), "Não consegui transcrever agora. Tente de novo.");
+  assert.match(cloudMicMessage("cloud-network", undefined, true), /internet/);
+});

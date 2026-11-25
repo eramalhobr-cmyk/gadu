@@ -76,6 +76,22 @@ export function micErrorMessage(code: string): string {
   }
 }
 
+/** Falhas que desligam a transcrição na nuvem nesta sessão (teto do mês, desligada, fora do ar): o app volta ao aparelho. */
+export function cloudMicOff(code: string): boolean {
+  return ["cloud-402", "cloud-404", "cloud-503"].includes(code);
+}
+
+/** Aviso de falha da transcrição na nuvem. `detalhe` é a mensagem em português do servidor, quando houver. */
+export function cloudMicMessage(code: string, detalhe: string | undefined, temAparelho: boolean): string {
+  if (code === "cloud-mic") return "Não consegui usar o microfone agora. Tente de novo.";
+  if (code === "cloud-network") return "A transcrição precisa de internet. Confira a conexão e tente de novo.";
+  if (cloudMicOff(code)) {
+    const motivo = detalhe ?? "A transcrição na nuvem está indisponível agora.";
+    return temAparelho ? `${motivo} Vou usar o microfone do aparelho.` : `${motivo} Escreva a mensagem por enquanto.`;
+  }
+  return `${detalhe ?? "Não consegui transcrever agora."} Tente de novo.`;
+}
+
 /** Texto de erro devolvido por uma rota da API: usa a mensagem em português quando houver. */
 export function apiErrorMessage(body: unknown, fallback = "Não consegui concluir. Tente de novo."): string {
   if (body && typeof body === "object") {

@@ -5,7 +5,7 @@
 
 ## Piloto de transcrição pelo AI Gateway
 
-Estado: rodada 1 feita em 24/11 (voz sintética, 4 modelos, todos acertaram; `microsoft/mai-transcribe-2` o mais rápido e barato). Falta a rodada com voz real. O microfone do GaDu continua no aparelho. [Plano, decisões e resultados](PILOTO_VOZ_GATEWAY.md).
+Estado: **no app desde 24/11/2026, opcional** (Ajustes → Transcrição na nuvem; desligada por padrão). Modelo `microsoft/mai-transcribe-2` com `openai/gpt-transcribe` de reserva (`TRANSCRIBE_MODELS`); `TRANSCRIBE_ENABLED=0` desliga para todos. Código em `src/lib/voz/*` e `src/app/api/voz/transcrever`. Falta validar no celular com voz real. [Plano, decisões e resultados](PILOTO_VOZ_GATEWAY.md).
 
 
 Atualizada em 22/11/2026 (revisão geral: status dos PRs #22, #24, #26 e #30 corrigidos para publicados; 3D por fases; Casa adiada; antes: 14/11/2026, Sprint UX/UI v2.2, PR #16), a partir do código na `main` e de PRs abertos. Status:
@@ -236,6 +236,7 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Agentes | editar nome, área, instruções, ativar/desativar, ferramentas e teto | sim | `agente_editar` (só o que muda; ferramentas com `liberar`/`bloquear` e `teto` em US$ por mês, 0 tira o teto (Cursor, 23/11); instruções novas SUBSTITUEM as antigas e o cartão mostra o texto; a fala lê só um resumo; "Feito · Desfazer" volta nome, área, instruções e ativo de antes) | idem |
 | Agentes | apagar | sim | `agente_apagar` (cartão pede confirmação; sem Desfazer, como na tela) | Claude Code, 24/11 |
 | Configurações | tamanho do texto, conversa contínua, respostas curtas, resposta falada, tema | sim | `ajuste` | — |
+| Configurações | enviar sozinho o que eu falar, transcrição na nuvem | sim | `ajuste` (`envio_automatico`, `transcricao_nuvem`), cartão com confirmação | Claude Code, 24/11 |
 | Configurações | velocidade da fala ("fala mais devagar", "volta ao normal") e trocar a voz ("usa outra voz") | sim | `ajuste` (`velocidade`, `voz_trocar`), PR do Cursor de 23/11 | — |
 | Configurações | termos bloqueados | sim | `termo_bloquear`, `termo_desbloquear` (cartão com confirmação e Desfazer) | Claude Code, 24/11 |
 | Configurações | limites de IA, notificações, conectar o Google | **não** | `navegar` para Configurações | notificações e Google exigem um toque (regra do navegador e do OAuth); limites de IA são do administrador |

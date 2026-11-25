@@ -10,6 +10,11 @@ Transcrição (fala → texto) e, depois, voz natural (texto → fala) por model
 | 24/11/2026 | Comparar 3 a 4 modelos de transcrição com frases fictícias do GaDu antes de escolher; nenhum áudio ou transcrição é guardado. | Eduardo, Claude Code |
 | 24/11/2026 | O erro de palavras é medido de forma **justa**: número por extenso = dígito, "R$ 52" = "52 reais", "pro/pra" = "para o/para". O erro bruto aparece ao lado, para nada ficar escondido. | Claude Code |
 | 24/11/2026 | Integrar no app só depois de uma rodada com **voz real** (gravações do Eduardo, com ruído) e da migração do controle de gasto (`usage_events`/orçamento aceitarem o tipo "transcrição"), com aprovação. | Eduardo, Claude Code |
+| {D} | **Eduardo aprovou implementar já**, com a migração do orçamento (`20261124230001_orcamento_transcricao.sql`, aplicada em produção). A rodada com voz real continua para confirmar o modelo, mas agora pode ser feita no próprio app. | Eduardo (aprovado), Claude Code |
+| {D} | **O modelo é configuração, não código:** `TRANSCRIBE_MODELS="principal,reserva"` na Vercel. Padrão: `microsoft/mai-transcribe-2` (mais rápido e barato na rodada 1), com `openai/gpt-transcribe` de reserva automática. Trocar de modelo não apaga memória, histórico nem dados (ficam no banco do GaDu) e vale só para as próximas falas. | Eduardo, Claude Code |
+| {D} | **Opcional e desligado por padrão:** cada pessoa liga em Ajustes ("Transcrição na nuvem"). `TRANSCRIBE_ENABLED=0` desliga para todos. A confirmação falada (sim/não) continua no microfone do aparelho: curta, grátis e sem espera. | Claude Code |
+| {D} | **O app grava WAV (PCM 16 kHz mono), não webm/m4a:** no teste, a Microsoft recusou webm e m4a (o que o navegador grava por padrão); WAV funcionou nos 3 modelos testados. 20 s de fala ≈ 640 KB. | Claude Code (teste real) |
+| {D} | **Se a nuvem falhar, o GaDu volta ao microfone do aparelho** (teto do mês atingido, desligada ou fora do ar) e avisa. Custo: reserva no orçamento antes, liquidação pelo custo real depois (US$ 0,00002778/s na Microsoft, arredondado ao segundo). O áudio não é guardado em lugar nenhum. | Claude Code |
 
 ## Como rodar (máquina de teste, nunca no app)
 
@@ -36,8 +41,16 @@ A pasta `.piloto-voz/` é ignorada pelo git. Endpoints do Gateway: `POST /v4/ai/
 
 **Limite desta rodada:** voz sintética é fácil. Ela não diz qual modelo é melhor com voz real, sotaque, ruído e fala rápida.
 
+## No app ({D})
+
+- Ajustes → **Transcrição na nuvem**. Com ela ligada, o microfone do GaDu grava, para sozinho depois de 1,6 s de silêncio (ou em 20 s), mostra "Transcrevendo…" e põe o texto no campo, como antes.
+- Código: `src/lib/voz/wav.ts` (montar e conferir o WAV), `src/lib/voz/gravador.ts` (gravação no aparelho), `src/lib/voz/transcricao.ts` (modelos, preço, reserva), `src/app/api/voz/transcrever/route.ts`.
+- Testado: unidade (WAV, modelos, custo, reserva automática), banco (`98_orcamento_transcricao.test.sql`), chamada real ao Gateway (Microsoft e reserva OpenAI) e navegador Chromium com microfone simulado (fala → texto; silêncio → "não ouvi nada").
+- Gasto aparece em Ajustes junto do chat (motor "gateway"); em `usage_events`, `kind = 'transcribe'`, `input_tokens` = segundos de áudio.
+
 ## Próximos passos
 
+0. **Validar no celular:** ligar em Ajustes e ditar algumas frases (com e sem barulho). Se a Microsoft errar mais que o aparelho, trocar `TRANSCRIBE_MODELS` para `openai/gpt-transcribe` (sem publicar de novo).
 1. **Rodada 2 com voz real:** o Eduardo grava 6 a 10 frases no celular (algumas com barulho: carro, cozinha, rua), salva em `.piloto-voz/` com os mesmos nomes (`lista.mp3`, `gasto.mp3`…) ou acrescenta frases em `scripts/piloto-voz/lib.mjs`; roda o `comparar.mjs`. Comparar também com o que o microfone do aparelho entendeu na mesma frase.
-2. Se algum modelo for claramente melhor que o aparelho: migração aditiva para o orçamento aceitar "transcrição" (aprovação do Eduardo), rota no servidor com sessão, cota e teto (fail closed), interruptor desligado por padrão e opção em Ajustes.
+2. ~~Integração no app~~ feita em {D} (ver "No app").
 3. Voz natural (texto → fala) pelo mesmo Gateway, na Fase 3 do roadmap, com o mesmo método de comparação.

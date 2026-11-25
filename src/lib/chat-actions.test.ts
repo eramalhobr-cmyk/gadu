@@ -41,6 +41,7 @@ test("tudo por voz: cartões e perguntas das ações novas", async () => {
   assert.equal(actionQuestion({ kind: "tarefa_adiar", id: 1, titulo: "Pagar boleto", prazo: "2026-11-23" }, NOW), "Adio a tarefa Pagar boleto para amanhã?");
   assert.equal(actionQuestion({ kind: "ajuste", ajuste: { opcao: "texto", valor: "130" } }, NOW), "Tamanho do texto: Maior?");
   assert.equal(actionQuestion({ kind: "ajuste", ajuste: { opcao: "maos_livres", valor: true } }, NOW), "Ligar a conversa contínua?");
+  assert.equal(actionQuestion({ kind: "ajuste", ajuste: { opcao: "transcricao_nuvem", valor: true } }, NOW), "Ligar a transcrição na nuvem (usa o orçamento de IA)?");
   assert.equal(d({ kind: "tarefa_criada", id: 3, titulo: "Comprar pão", prazo: null }).applied, true);
   assert.equal(d({ kind: "marco", goalId: "g", meta: "Mudar", titulo: "Achar casa", data: null }).confirm, "Adicionar");
 });

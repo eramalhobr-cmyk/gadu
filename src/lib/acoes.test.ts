@@ -33,6 +33,9 @@ test("ajuste: só opções conhecidas", () => {
   assert.deepEqual(validAcao({ tipo: "ajuste", opcao: "maos_livres", valor: true }, NOW), { tipo: "ajuste", ajuste: { opcao: "maos_livres", valor: true } });
   assert.deepEqual(validAcao({ tipo: "ajuste", opcao: "tema", valor: "claro" }, NOW), { tipo: "ajuste", ajuste: { opcao: "tema", valor: "light" } });
   assert.equal(validAcao({ tipo: "ajuste", opcao: "senha", valor: "x" }, NOW), null);
+  assert.deepEqual(validAcao({ tipo: "ajuste", opcao: "transcricao_nuvem", valor: "ligar" }, NOW), { tipo: "ajuste", ajuste: { opcao: "transcricao_nuvem", valor: true } });
+  assert.deepEqual(validAcao({ tipo: "ajuste", opcao: "envio_automatico", valor: false }, NOW), { tipo: "ajuste", ajuste: { opcao: "envio_automatico", valor: false } });
+  assert.equal(validAcao({ tipo: "ajuste", opcao: "transcricao_nuvem", valor: "talvez" }, NOW), null);
   assert.equal(validAcao({ tipo: "apagar_tudo" }, NOW), null);
 });
 test("parseAcoes: descarta inválidas e repetidas, no máximo 5", () => {

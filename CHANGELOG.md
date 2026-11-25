@@ -20,6 +20,14 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **PR #5 · Especificação de Finanças pessoais** (`docs/FEATURE-FINANCAS.md`): integrada em 22/11/2026 (merge `ff8fff0`); ver a entrada de publicação do PR #26.
 - **PR #1 · Marco Zero: contexto mestre, auditoria de segurança, governança.** Só documentação, rascunho. O `DESIGN_SYSTEM.md` dele foi substituído pelo da `main` (PR #10).
 
+## 2026-11-24 · Transcrição na nuvem no app (opcional)
+- **Feito por:** Claude Code. Branch `feat/transcricao-nuvem`. **Aprovado pelo Eduardo**, inclusive a migração.
+- **Migração aditiva** `20261124230001_orcamento_transcricao.sql` (aplicada em produção e conferida): orçamento de IA aceita o tipo `transcribe` (mesma reserva, liquidação e teto do chat). Teste: `supabase/tests/98_orcamento_transcricao.test.sql`.
+- **Rota** `POST /api/voz/transcrever`: sessão e acesso, zod no tipo e tamanho, confere o WAV (até 30 s), reserva no orçamento (fail closed), chama o modelo configurado com reserva automática, liquida pelo custo real e devolve só o texto. Áudio não é guardado.
+- **App:** Ajustes → "Transcrição na nuvem" (desligada por padrão). Grava WAV 16 kHz, para no silêncio, mostra "Transcrevendo…"; se a nuvem falhar (teto, desligada, fora do ar), volta ao microfone do aparelho e avisa. Confirmação falada segue no aparelho.
+- **Por voz:** "liga a transcrição na nuvem" e "envia sozinho o que eu falar" viram cartão de ajuste com confirmação (Tudo por voz).
+- **Configuração:** `TRANSCRIBE_MODELS` (padrão `microsoft/mai-transcribe-2,openai/gpt-transcribe`) e `TRANSCRIBE_ENABLED=0` para desligar. Decisões em `docs/PILOTO_VOZ_GATEWAY.md`.
+
 ## 2026-11-24 · Piloto de voz pelo AI Gateway · rodada 1 (fora do app)
 - **Feito por:** Claude Code. Branch `feat/piloto-voz-gateway`. **Decisão do Eduardo:** o piloto usa o Vercel AI Gateway em vez da chave da OpenAI.
 - Scripts: `scripts/piloto-voz/gerar-audios.mjs` (clipes de teste com voz sintética), `scripts/piloto-voz/comparar.mjs` (erro de palavras justo e bruto, tempo e custo pelo preço ao vivo) e `scripts/piloto-transcricao.mjs` (agora pelo Gateway). Funções puras com testes em `scripts/piloto-voz/lib.test.mjs`. Nada de áudio no repositório (`.piloto-voz/` ignorada).
