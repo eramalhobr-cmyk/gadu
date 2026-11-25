@@ -236,6 +236,7 @@ Tudo o que dá para fazer tocando no app precisa dar para fazer pela conversa, f
 | Agentes | editar nome, área, instruções, ativar/desativar, ferramentas e teto | sim | `agente_editar` (só o que muda; ferramentas com `liberar`/`bloquear` e `teto` em US$ por mês, 0 tira o teto (Cursor, 23/11); instruções novas SUBSTITUEM as antigas e o cartão mostra o texto; a fala lê só um resumo; "Feito · Desfazer" volta nome, área, instruções e ativo de antes) | idem |
 | Agentes | apagar | sim | `agente_apagar` (cartão pede confirmação; sem Desfazer, como na tela) | Claude Code, 24/11 |
 | Configurações | tamanho do texto, conversa contínua, respostas curtas, resposta falada, tema | sim | `ajuste` | — |
+| Configurações | enviar sozinho o que eu falar, transcrição na nuvem | sim | `ajuste` (`envio_automatico`, `transcricao_nuvem`), cartão com confirmação | Claude Code, 24/11 |
 | Configurações | velocidade da fala ("fala mais devagar", "volta ao normal") e trocar a voz ("usa outra voz") | sim | `ajuste` (`velocidade`, `voz_trocar`), PR do Cursor de 23/11 | — |
 | Configurações | termos bloqueados | sim | `termo_bloquear`, `termo_desbloquear` (cartão com confirmação e Desfazer) | Claude Code, 24/11 |
 | Configurações | limites de IA, notificações, conectar o Google | **não** | `navegar` para Configurações | notificações e Google exigem um toque (regra do navegador e do OAuth); limites de IA são do administrador |

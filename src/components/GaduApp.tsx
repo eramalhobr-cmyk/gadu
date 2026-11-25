@@ -652,7 +652,7 @@ export function GaduApp(props: {
         setPrefs({ ...prefsRef.current, voiceURI: pt[(i + 1) % pt.length].voiceURI });
         return;
       }
-      const key = j.opcao === "maos_livres" ? "handsFree" : j.opcao === "respostas_curtas" ? "shortVoice" : j.opcao === "voz" ? "voice" : null;
+      const key = j.opcao === "maos_livres" ? "handsFree" : j.opcao === "respostas_curtas" ? "shortVoice" : j.opcao === "voz" ? "voice" : j.opcao === "envio_automatico" ? "autoSend" : j.opcao === "transcricao_nuvem" ? "cloudVoice" : null;
       if (key && typeof j.valor === "boolean") setPrefs({ ...prefsRef.current, [key]: j.valor });
     };
     window.addEventListener("gadu:ajuste", on);

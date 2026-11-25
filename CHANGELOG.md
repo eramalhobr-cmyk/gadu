@@ -25,6 +25,7 @@ Cada entrada diz em que estágio a mudança está: **desenvolvido** (código em 
 - **Migração aditiva** `20261124230001_orcamento_transcricao.sql` (aplicada em produção e conferida): orçamento de IA aceita o tipo `transcribe` (mesma reserva, liquidação e teto do chat). Teste: `supabase/tests/98_orcamento_transcricao.test.sql`.
 - **Rota** `POST /api/voz/transcrever`: sessão e acesso, zod no tipo e tamanho, confere o WAV (até 30 s), reserva no orçamento (fail closed), chama o modelo configurado com reserva automática, liquida pelo custo real e devolve só o texto. Áudio não é guardado.
 - **App:** Ajustes → "Transcrição na nuvem" (desligada por padrão). Grava WAV 16 kHz, para no silêncio, mostra "Transcrevendo…"; se a nuvem falhar (teto, desligada, fora do ar), volta ao microfone do aparelho e avisa. Confirmação falada segue no aparelho.
+- **Por voz:** "liga a transcrição na nuvem" e "envia sozinho o que eu falar" viram cartão de ajuste com confirmação (Tudo por voz).
 - **Configuração:** `TRANSCRIBE_MODELS` (padrão `microsoft/mai-transcribe-2,openai/gpt-transcribe`) e `TRANSCRIBE_ENABLED=0` para desligar. Decisões em `docs/PILOTO_VOZ_GATEWAY.md`.
 
 ## 2026-11-24 · Piloto de voz pelo AI Gateway · rodada 1 (fora do app)
