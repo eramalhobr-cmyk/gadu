@@ -43,6 +43,7 @@ export async function POST(request: Request) {
         "ai-model-id": MODELO,
       },
       body: JSON.stringify({ text: texto, voice: "21m00Tcm4TlvDq8ikWAM", language: "pt", outputFormat: "mp3" }),
+      redirect: "error",
       signal: AbortSignal.timeout(16_000),
     });
     if (!r.ok) return new Response(null, { status: 502 });

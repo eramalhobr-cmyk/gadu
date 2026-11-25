@@ -4,7 +4,7 @@
 
 - [ ] Validar grade do Hoje em tela de 32 polegadas com e sem o assistente.
 - [ ] Validar voz natural, orçamento, fala no Android e iPhone e publicar após aprovação.
-- [ ] Conectar cotações de Renner, C&A e Vivara. Desenvolver pesquisa diária a partir dos dados validados.
+- [ ] Conectar cotações de Renner, C&A e Vivara. Validar a comparação sob demanda. Planejar o agendamento após validar dados e custos.
 
 [Investimentos](docs/INVESTIMENTOS.md) · [Voz natural](docs/VOZ_NATURAL.md).
 

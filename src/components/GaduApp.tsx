@@ -1272,7 +1272,7 @@ export function GaduApp(props: {
             onAsk={(q) => { speaker?.unlock(); openAssist(true); void send(q); }} />
         )}
         {(view === "tarefas" || view === "projetos") && <ProjectsPage key={`pp-${view}`} initialView={view} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
-        {view === "investimentos" && <InvestimentosPage />}
+        {view === "investimentos" && <InvestimentosPage busy={busy} onAsk={(q) => { speaker?.unlock(); openAssist(true); void send(q); }} />}
         {view === "agenda" && <AgendaView onBack={() => setTab("hoje")} />}
         {view === "modulos" && <ModulesHub onOpen={setTab} onHistory={() => setDrawer(true)} pending={pending} admin={props.admin} name={name} email={props.email}
           hide={[...(props.financeEnabled ? [] : ["financeiro" as const]), ...(props.goalsEnabled ? [] : ["metas" as const]), ...(props.listaComprasEnabled ? [] : ["lista_compras" as const]), ...(props.comprasEnabled ? [] : ["compras" as const]), ...(props.agendaFilhosEnabled ? [] : ["filhos" as const])]} show3d={Boolean(props.modeling3dEnabled)} />}

@@ -500,3 +500,20 @@ test("tudo por voz: criar conta e definir a receita principal só propõem; rece
   const off = await chat("cria a conta de água");
   assert.equal(off.find((e) => e.t === "acoes"), undefined);
 });
+
+test("pesquisa de mercado usa a cota e o orçamento do chat e descarta metadados de ação", async (t) => {
+  const anterior = process.env.BRAPI_TOKEN;
+  delete process.env.BRAPI_TOKEN;
+  t.after(() => { if (anterior !== undefined) process.env.BRAPI_TOKEN = anterior; });
+  modelText = `Dados indisponíveis.\n<<<META>>>\n${JSON.stringify({
+    tarefas: [{ texto: "Ordem não solicitada" }],
+    memorias: [{ texto: "Memória não solicitada", area: "Pessoal" }],
+    acoes: [{ tipo: "conta_paga", conta: "aluguel" }],
+  })}`;
+  const eventos = await chat("Compare as ações acompanhadas da B3 e explique os riscos.");
+  assert.match(ctxOf(), /sem cotações atuais verificadas/);
+  assert.deepEqual(rpcNames.slice(0, 3), ["month_spend_by_provider", "server_reserve_ai_budget", "consume_daily_quota"]);
+  assert.ok(!eventos.some((e) => e.t === "tasks" || e.t === "acoes"));
+  assert.deepEqual(eventos.find((e) => e.t === "done"), { t: "done", memories: 0 });
+  assert.equal(log.writes.length, 0);
+});
