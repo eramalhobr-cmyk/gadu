@@ -82,6 +82,12 @@ Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
 
 ## Diário (mais recente no topo)
 
+### 24/11/2026 21:46 · Claude Code, transcrição na nuvem no app
+- Eduardo aprovou implementar (com a migração). Migração `20261124230001_orcamento_transcricao.sql` **aplicada em produção** e conferida (restrições e função; `authenticated` sem EXECUTE).
+- Rota `/api/voz/transcrever`, gravador WAV no aparelho, opção em Ajustes (desligada por padrão). Modelo por `TRANSCRIBE_MODELS` (Microsoft + OpenAI de reserva). Decisões registradas em `docs/PILOTO_VOZ_GATEWAY.md`.
+- Achado: a Microsoft recusa webm/m4a; por isso o app grava WAV.
+- **Para a próxima IA:** validar no celular (Android e iPhone) com a opção ligada. ScriptProcessor é antigo; se algum navegador parar de entregar áudio, migrar para AudioWorklet (exige arquivo próprio em `public/` e `worker-src`).
+
 ### 24/11/2026 20:12 · Claude Code, piloto de voz pelo AI Gateway
 - Eduardo aprovou trocar o piloto da OpenAI direta pelo AI Gateway. Decisões, método e resultados em `docs/PILOTO_VOZ_GATEWAY.md` (o plano antigo virou um aviso de substituição); decisão técnica registrada em `docs/ARCHITECTURE.md`.
 - Rodada 1 (voz sintética): 4 modelos sem erro; diferença só de tempo e custo. Chave do Gateway salva como segredo de rede do ambiente Cloud (`ai-gateway.vercel.sh`); Node precisa de `NODE_USE_ENV_PROXY=1`.

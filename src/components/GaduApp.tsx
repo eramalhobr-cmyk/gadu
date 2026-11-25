@@ -26,6 +26,7 @@ import { useNivel } from "./VoiceCore";
 import { AdminPage } from "./AdminPage";
 import type { FaceMode } from "./robot-engine";
 import { canListen, canSpeak, createRecognizer, SHORT_REPLY, Speaker, stripSourceTags } from "@/lib/speech";
+import { canRecord, createCloudRecognizer } from "@/lib/voz/gravador";
 import { chatFailure, MSG, micErrorMessage, parseRetryCommand, RETRY_LABEL, spokenFailure, type Failure } from "@/lib/errors";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { ConversationsDrawer } from "./ConversationsDrawer";
@@ -56,6 +57,7 @@ import { canonicalView, isOverview, MODULES, moduleOf, navGroups, parseView, vie
 import { applyTheme, readTheme, type Theme } from "@/lib/theme";
 import { voiceLevel } from "@/lib/voice-level";
 import { startMicMeter } from "@/lib/mic-meter";
+import { cloudMicMessage, cloudMicOff } from "@/lib/errors";
 
 export type Msg = { id: string; role: "user" | "assistant" | "notice" | "action"; content: string; /** Texto a reenviar pelo botão "Tentar de novo" (erro do chat). */ retry?: string; via?: string; link?: { href: string; label: string }; action?: ChatAction; sources?: SourcesData };
 
@@ -77,7 +79,7 @@ type Target = { kind: "project" | "agent"; id: number; name: string } | null;
 
 const LS_DRAFT = "gadu.draft";
 const LS_PREFS = "gadu.prefs";
-const DEFAULT_PREFS: Prefs = { voice: true, handsFree: false, voiceURI: "", rate: 1, autoSend: false, shortVoice: false };
+const DEFAULT_PREFS: Prefs = { voice: true, handsFree: false, voiceURI: "", rate: 1, autoSend: false, shortVoice: false, cloudVoice: false };
 
 function readPrefs(): Prefs {
   try {
@@ -92,6 +94,8 @@ function readPrefs(): Prefs {
       autoSend: p.autoSend === true,
       // Ler a resposta inteira por padrão. Resumo falado continua disponível em Ajustes.
       shortVoice: p.shortVoice === true,
+      // Transcrição na nuvem (paga, pelo AI Gateway): só com escolha explícita em Ajustes.
+      cloudVoice: p.cloudVoice === true,
     };
   } catch {
     return DEFAULT_PREFS;
@@ -204,7 +208,10 @@ export function GaduApp(props: {
     window.addEventListener(EVENTO_FALAR, on);
     return () => window.removeEventListener(EVENTO_FALAR, on);
   }, [speaker]);
-  const recRef = useRef<ReturnType<typeof createRecognizer>>(null);
+  const recRef = useRef<{ start: () => void; stop: () => void; abort: () => void } | null>(null);
+  // Transcrição na nuvem indisponível nesta sessão (teto do mês, desligada ou fora do ar): volta ao microfone do aparelho.
+  const cloudOffRef = useRef(false);
+  const [transcrevendo, setTranscrevendo] = useState(false);
   const handsFreeRef = useRef(false);
   // Detectado só no aparelho (no servidor não existe reconhecimento de voz).
   const [voiceOk, setVoiceOk] = useState(false);
@@ -212,7 +219,6 @@ export function GaduApp(props: {
   // Preferências e rascunho ficam no aparelho.
   useEffect(() => {
     setPrefs(readPrefs());
-    setVoiceOk(canListen());
     setTheme(readTheme(props.initialTheme));
     // Assistente: aberto por padrão em telas largas; depois vale a escolha da pessoa.
     try {
@@ -233,6 +239,8 @@ export function GaduApp(props: {
     return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
   }, []);
   useEffect(() => { try { localStorage.setItem(LS_DRAFT, draft); } catch {} }, [draft]);
+  // Microfone disponível: o do aparelho, ou a gravação para a nuvem (quando escolhida em Ajustes).
+  useEffect(() => { setVoiceOk(canListen() || (prefs.cloudVoice && canRecord())); }, [prefs.cloudVoice]);
   useEffect(() => {
     try { localStorage.setItem(LS_PREFS, JSON.stringify(prefs)); } catch {}
     handsFreeRef.current = prefs.handsFree;
@@ -262,8 +270,11 @@ export function GaduApp(props: {
     try { recRef.current?.abort(); } catch {}
     // Avisos de um microfone antigo (já trocado) são ignorados.
     const mine = () => recRef.current === rec;
-    const rec = createRecognizer({
-      onText: (text, final) => {
+    // Nuvem só para o ditado; a confirmação falada (sim/não) segue no aparelho: curta, grátis e sem espera.
+    const nuvem = prefsRef.current.cloudVoice && !cloudOffRef.current && !confirmListenRef.current && canRecord();
+    if (!nuvem && !canListen()) return;
+    const handlers = {
+      onText: (text: string, final: boolean) => {
         if (!mine()) return;
         // Confirmação falada: a resposta (sim, não, muda para…) não vai para o campo de mensagem.
         if (confirmListenRef.current) {
@@ -281,21 +292,26 @@ export function GaduApp(props: {
       },
       onEnd: () => {
         if (!mine()) return;
+        setTranscrevendo(false);
         setListening(false);
         setMode((m) => (m === "listening" ? "idle" : m));
         if (confirmListenRef.current) { confirmListenRef.current = false; confirmFns.current.noAnswer(); }
       },
-      onError: (code) => {
+      onError: (code: string, detalhe?: string) => {
         if (!mine()) return;
+        setTranscrevendo(false);
         setListening(false);
         setMode("idle");
         if (confirmListenRef.current) { confirmListenRef.current = false; confirmFns.current.noAnswer(); return; }
-        const text = micErrorMessage(code);
+        if (code.startsWith("cloud-") && cloudMicOff(code)) cloudOffRef.current = true;
+        const text = code.startsWith("cloud-") ? cloudMicMessage(code, detalhe, canListen()) : micErrorMessage(code);
         if (text) setMessages((ms) => [...ms, { id: crypto.randomUUID(), role: "notice", content: text }]);
         // Quem está usando a voz ouve o aviso (menos o "não ouvi nada", que se repetiria no modo conversa).
         if (text && code !== "no-speech" && prefsRef.current.voice) speaker?.announce(text);
       },
-    });
+      onProcessing: () => { if (mine()) setTranscrevendo(true); },
+    };
+    const rec = nuvem ? createCloudRecognizer(handlers) : createRecognizer(handlers);
     if (!rec) return;
     recRef.current = rec;
     // Nunca deixa o microfone aberto indefinidamente: para sozinho depois de 20 s.
@@ -310,7 +326,8 @@ export function GaduApp(props: {
   }, [busy, speaker, voiceOk]);
 
   // Palco de voz (UX-7): enquanto ouve, o volume do microfone move o avatar (só no computador; no celular, os trechos reconhecidos).
-  useEffect(() => (listening ? startMicMeter() : undefined), [listening]);
+  // Na transcrição na nuvem o próprio gravador publica o volume: não abre um segundo microfone.
+  useEffect(() => (listening && !prefs.cloudVoice ? startMicMeter() : undefined), [listening, prefs.cloudVoice]);
 
   /** Motivo da última falha de um cartão, para a fala. */
   const cardErr = useRef("");
@@ -1210,7 +1227,7 @@ export function GaduApp(props: {
                 )}
               </div>
               <form className="chat-form" onSubmit={(e) => { e.preventDefault(); void send(draft); }}>
-                {listening && <div className="listening-bar" role="status"><span className="dot-rec" aria-hidden="true" />Escutando… fale e eu escrevo aqui.<button type="button" className="link-btn" onClick={micClick}>Parar</button></div>}
+                {listening && <div className="listening-bar" role="status"><span className="dot-rec" aria-hidden="true" />{transcrevendo ? "Transcrevendo…" : "Escutando… fale e eu escrevo aqui."}<button type="button" className="link-btn" onClick={micClick}>Parar</button></div>}
                 <div className="chat-box">
                   <button type="button" className={`round ${listening ? "on" : busy || mode === "speaking" ? "" : "idle"}`} onClick={micClick} aria-label={listening ? "Parar de ouvir" : busy || mode === "speaking" ? "Parar resposta" : "Falar"} aria-pressed={listening}>
                     <Icon name={(busy || mode === "speaking") && !listening ? "stop" : "mic"} />

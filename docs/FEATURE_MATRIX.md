@@ -5,7 +5,7 @@
 
 ## Piloto de transcrição pelo AI Gateway
 
-Estado: rodada 1 feita em 24/11 (voz sintética, 4 modelos, todos acertaram; `microsoft/mai-transcribe-2` o mais rápido e barato). Falta a rodada com voz real. O microfone do GaDu continua no aparelho. [Plano, decisões e resultados](PILOTO_VOZ_GATEWAY.md).
+Estado: **no app desde 24/11/2026, opcional** (Ajustes → Transcrição na nuvem; desligada por padrão). Modelo `microsoft/mai-transcribe-2` com `openai/gpt-transcribe` de reserva (`TRANSCRIBE_MODELS`); `TRANSCRIBE_ENABLED=0` desliga para todos. Código em `src/lib/voz/*` e `src/app/api/voz/transcrever`. Falta validar no celular com voz real. [Plano, decisões e resultados](PILOTO_VOZ_GATEWAY.md).
 
 
 Atualizada em 22/11/2026 (revisão geral: status dos PRs #22, #24, #26 e #30 corrigidos para publicados; 3D por fases; Casa adiada; antes: 14/11/2026, Sprint UX/UI v2.2, PR #16), a partir do código na `main` e de PRs abertos. Status:
