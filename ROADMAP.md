@@ -1,5 +1,14 @@
 # GaDu · Roadmap
 
+## Desktop, voz natural e investimentos
+
+- [ ] Validar grade do Hoje em tela de 32 polegadas com e sem o assistente.
+- [ ] Validar voz natural, orçamento, fala no Android e iPhone e publicar após aprovação.
+- [ ] Conectar cotações de Renner, C&A e Vivara. Desenvolver pesquisa diária a partir dos dados validados.
+
+[Investimentos](docs/INVESTIMENTOS.md) · [Voz natural](docs/VOZ_NATURAL.md).
+
+
 ## Agenda e confirmações
 
 - [ ] Validar evento recorrente por voz e toque, uma gravação por cartão e nova conversa sem aprovações antigas.

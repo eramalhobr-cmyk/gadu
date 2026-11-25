@@ -62,6 +62,25 @@ describe("app com login", () => {
     await p.context().close();
   });
 
+  test("Hoje usa a largura útil na tela grande com o assistente aberto", async () => {
+    const p = await page({ width: 2560, height: 1080 });
+    await p.addInitScript(() => localStorage.setItem("gadu.assist", "1"));
+    await p.goto(`${BASE}/app?tab=hoje`);
+    const painel = p.locator(".today2");
+    await painel.waitFor();
+    const layout = await painel.evaluate((el) => ({
+      cols: getComputedStyle(el).gridTemplateColumns.split(" ").length,
+      largura: el.clientWidth,
+      pai: el.parentElement.clientWidth,
+    }));
+    assert.equal(layout.cols, 3, "três colunas mesmo com o assistente");
+    assert.ok(layout.largura >= 0.90 * layout.pai, JSON.stringify(layout));
+    assert.ok(await p.getByRole("heading", { name: "Seus painéis" }).isVisible());
+    await p.getByRole("button", { name: /Investimentos Ações acompanhadas/ }).click();
+    await p.getByRole("heading", { name: "Ações acompanhadas" }).waitFor();
+    await p.context().close();
+  });
+
   test("sem rolagem lateral e com alvos de 44 px em 7 larguras", async () => {
     const problems = [];
     for (const w of WIDTHS) {

@@ -1,4 +1,5 @@
 "use client";
+import { MAX_TEXTO_FALA } from "./voz/fala-config.ts";
 import { voiceLevel } from "./voice-level.ts";
 // Voz grátis do próprio aparelho: reconhecimento (ouvir) e síntese (falar).
 // Se o navegador não suportar, o app continua por texto.
@@ -157,6 +158,7 @@ export function splitForSpeech(text: string, max = MAX_UTTERANCE): string[] {
  * Estabilidade: "terminou" só depois que a resposta inteira chegou (flush) e a fila esvaziou; cada trecho
  * tem um prazo (o iPhone às vezes não avisa o fim); no Chrome, um "despertador" evita que a voz trave. */
 export class Speaker {
+  private natural: AbortController | null = null;
   private buffer = "";
   private queue = 0;
   private spoken = 0;
@@ -188,7 +190,7 @@ export class Speaker {
   }
   /** Está falando ou ainda esperando o resto da resposta. */
   get active(): boolean {
-    return this.open || this.queue > 0;
+    return this.open || this.queue > 0 || this.natural !== null;
   }
   push(delta: string) {
     if (!this.open) {
@@ -224,6 +226,8 @@ export class Speaker {
     this.maybeIdle();
   }
   cancel() {
+    this.natural?.abort();
+    this.natural = null;
     this.chars = 0;
     this.cut = false;
     this.buffer = "";
@@ -233,8 +237,56 @@ export class Speaker {
     this.stopTimers();
     if (canSpeak()) window.speechSynthesis.cancel();
   }
+  /** Síntese opcional para a resposta inteira. Na falha, usa o mesmo leitor local. */
+  async announceNatural(text: string) {
+    const clean = speakable(text);
+    if (!clean || !/[\p{L}\p{N}]/u.test(clean)) { this.maybeIdle(); return; }
+    if (clean.length > MAX_TEXTO_FALA || typeof Audio === "undefined") {
+      this.announce(clean);
+      return;
+    }
+    this.cancel();
+    const ctrl = new AbortController();
+    this.natural = ctrl;
+    this.onStart();
+    let url: string | undefined;
+    let audio: HTMLAudioElement | undefined;
+    let playbackDeadline: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const response = await fetch("/api/voz/falar", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ texto: clean }),
+        signal: AbortSignal.any([ctrl.signal, AbortSignal.timeout(20_000)]),
+      });
+      if (!response.ok) throw new Error("voz natural indisponível");
+      const blob = await response.blob();
+      if (ctrl.signal.aborted) return;
+      url = URL.createObjectURL(blob);
+      const player = new Audio(url);
+      audio = player;
+      player.playbackRate = this.prefs.rate;
+      await new Promise<void>((resolve, reject) => {
+        playbackDeadline = setTimeout(() => reject(new Error("tempo de reprodução excedido")), 240_000);
+        player.onended = () => resolve();
+        player.onerror = () => reject(new Error("áudio indisponível"));
+        ctrl.signal.addEventListener("abort", () => { player.pause(); resolve(); }, { once: true });
+        void player.play().catch(reject);
+      });
+    } catch {
+      if (ctrl.signal.aborted) return;
+      this.natural = null;
+      this.announce(clean);
+    } finally {
+      clearTimeout(playbackDeadline);
+      if (audio) { audio.pause(); audio.removeAttribute("src"); audio.load(); }
+      if (url) URL.revokeObjectURL(url);
+      if (this.natural === ctrl) this.natural = null;
+      if (!ctrl.signal.aborted) this.maybeIdle();
+    }
+  }
   private maybeIdle() {
-    if (this.queue === 0 && !this.open && !this.buffer) {
+    if (this.queue === 0 && !this.open && !this.buffer && !this.natural) {
       this.spoken = 0;
       this.stopTimers();
       this.onIdle();

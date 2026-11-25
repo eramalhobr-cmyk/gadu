@@ -1,3 +1,4 @@
+import { falaNaturalEnabled } from "@/lib/voz/fala-config";
 import { redirect } from "next/navigation";
 import { needsOnboarding } from "@/lib/onboarding";
 import type { Msg } from "@/components/GaduApp";
@@ -60,6 +61,7 @@ export async function loadApp({ google, tab, start }: AppParams = {}) {
       listaComprasEnabled: listaComprasEnabled(),
       comprasEnabled: comprasEnabled(),
       agendaFilhosEnabled: agendaFilhosEnabled(),
+      naturalVoiceEnabled: falaNaturalEnabled(),
       modeling3dEnabled: modeling3dEnabled(),
       initialTheme: parseTheme((await cookies()).get(THEME_COOKIE)?.value),
       admin: access.admin,

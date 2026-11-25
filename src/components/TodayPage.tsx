@@ -67,6 +67,7 @@ export function TodayPage(props: {
   onOpen: (view: ViewId) => void;
   goalsEnabled: boolean;
   financeEnabled?: boolean;
+  modulePanels?: { view: ViewId; label: string; icon: string; detail: string }[];
 }) {
   const [today, setToday] = useState<Today | null>(null);
   const [rems, setRems] = useState<Reminder[] | null>(null);
@@ -220,6 +221,9 @@ export function TodayPage(props: {
 
         {showReview && <ReviewCard onDone={() => { props.onReviewDone(); setReview(false); setAttnKey((k) => k + 1); }} />}
 
+        </section>
+
+        <section className="today-attention" aria-label="Prioridades do dia">
         {/* (3) Uma lista só: tarefas, lembretes, compromissos, e-mails, metas e memórias, com Feito/Adiar no item. */}
         <AttentionCard key={attnKey} busy={props.busy} onOpen={props.onOpen} onAsk={props.onAsk} goalsEnabled={props.goalsEnabled} financeEnabled={props.financeEnabled} pendingMemories={props.pendingMemories} onCount={setAttn} />
 
@@ -278,6 +282,21 @@ export function TodayPage(props: {
           )}
           <button className="say-chip" disabled={props.busy} onClick={() => props.onAsk(goals ? "Como estou nas minhas metas?" : "Como foi o meu dia até agora?")}><Icon name="mic" size={14} />{goals ? "“Como estou nas minhas metas?”" : "“Como foi o meu dia até agora?”"}</button>
         </section>
+
+        {props.modulePanels && props.modulePanels.length > 0 && (
+          <section className="desk-only band today-modules" aria-labelledby="today-modules">
+            <h2 id="today-modules" className="band-t"><i aria-hidden="true" />Seus painéis</h2>
+            <div className="today-module-grid">
+              {props.modulePanels.map(({ view, label, icon, detail }) => (
+                <button key={view} className="today-module" onClick={() => props.onOpen(view)}>
+                  <Icon name={icon} size={20} />
+                  <span><b>{label}</b><small>{detail}</small></span>
+                  <Icon name="chevron" size={16} />
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Só 1 ação principal e até 2 secundárias à vista (UX-4): o resto fica em "Mais opções". */}
         <details className="more-opts">

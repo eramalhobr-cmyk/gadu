@@ -1,3 +1,4 @@
+import { falaNaturalEnabled } from "./voz/fala-config.ts";
 // Servidor: transforma as ações propostas pelo modelo (src/lib/acoes.ts) em cartões, resolvendo os nomes para ids
 // SÓ entre os itens da própria pessoa (cliente da SESSÃO + filtro por user_id, além da RLS). Nada é gravado aqui.
 import { nomeCategoria } from "./finance/tetos.ts";
@@ -622,6 +623,10 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           break;
         }
         case "ajuste":
+          if (a.ajuste.opcao === "voz_natural" && a.ajuste.valor && !falaNaturalEnabled()) {
+            misses.push("A voz natural ainda está indisponível.");
+            break;
+          }
           actions.push({ kind: "ajuste", ajuste: a.ajuste });
           break;
       }

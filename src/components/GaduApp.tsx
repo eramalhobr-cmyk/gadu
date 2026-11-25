@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "./RobotFace";
 import { ActionCard, initialCard, runAction, undoAction, type CardState } from "./ActionCard";
 import { ConfirmSheet } from "./ConfirmSheet";
+import { InvestimentosPage } from "./InvestimentosPage";
 import type { ActionView, ChatAction, EventDraft, GastoDraft } from "@/lib/chat-actions";
 import type { Ajuste } from "@/lib/acoes";
 import { ListaComprasPage } from "./ListaComprasPage";
@@ -79,7 +80,7 @@ type Target = { kind: "project" | "agent"; id: number; name: string } | null;
 
 const LS_DRAFT = "gadu.draft";
 const LS_PREFS = "gadu.prefs";
-const DEFAULT_PREFS: Prefs = { voice: true, handsFree: false, voiceURI: "", rate: 1, autoSend: false, shortVoice: false, cloudVoice: false };
+const DEFAULT_PREFS: Prefs = { voice: true, handsFree: false, voiceURI: "", rate: 1, autoSend: false, shortVoice: false, cloudVoice: false, naturalVoice: false };
 
 function readPrefs(): Prefs {
   try {
@@ -96,6 +97,7 @@ function readPrefs(): Prefs {
       shortVoice: p.shortVoice === true,
       // Transcrição na nuvem (paga, pelo AI Gateway): só com escolha explícita em Ajustes.
       cloudVoice: p.cloudVoice === true,
+      naturalVoice: p.naturalVoice === true,
     };
   } catch {
     return DEFAULT_PREFS;
@@ -122,6 +124,7 @@ export function GaduApp(props: {
   listaComprasEnabled: boolean;
   /** COMPRAS_ENABLED=0: esconde a tela Compras (pedidos lidos do e-mail). */
   comprasEnabled: boolean;
+  naturalVoiceEnabled?: boolean;
   /** AGENDA_FILHOS_ENABLED=0: esconde a Agenda de filhos. */
   agendaFilhosEnabled: boolean;
   /** MODELING_3D_ENABLED=1: mostra a entrada "3D" (Beta) em Mais. Desligado por padrão. */
@@ -204,10 +207,16 @@ export function GaduApp(props: {
   const speaker = useMemo(() => (typeof window === "undefined" ? null : new Speaker()), []);
   // Botão "Ouvir" dos painéis (M4): fala o resumo com a voz escolhida, mesmo com a voz das respostas desligada (foi pedido).
   useEffect(() => {
-    const on = (e: Event) => { const t = String((e as CustomEvent).detail ?? ""); if (t) { speaker?.cancel(); speaker?.announce(t); } };
+    const on = (e: Event) => {
+      const t = String((e as CustomEvent).detail ?? "");
+      if (!t) return;
+      speaker?.cancel();
+      if (props.naturalVoiceEnabled && prefs.naturalVoice) void speaker?.announceNatural(t);
+      else speaker?.announce(t);
+    };
     window.addEventListener(EVENTO_FALAR, on);
     return () => window.removeEventListener(EVENTO_FALAR, on);
-  }, [speaker]);
+  }, [speaker, prefs.naturalVoice, props.naturalVoiceEnabled]);
   const recRef = useRef<{ start: () => void; stop: () => void; abort: () => void } | null>(null);
   // Transcrição na nuvem indisponível nesta sessão (teto do mês, desligada ou fora do ar): volta ao microfone do aparelho.
   const cloudOffRef = useRef(false);
@@ -482,6 +491,7 @@ export function GaduApp(props: {
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     let answer = "";
+    const natural = props.naturalVoiceEnabled && prefs.naturalVoice && !prefs.shortVoice && prefs.voice;
     let spoke = false;
     let answerStarted = false;
     // Ações propostas nesta resposta que a confirmação falada vai ler (só quando a pessoa falou).
@@ -529,7 +539,7 @@ export function GaduApp(props: {
             answer += ev.text;
             if (!answerStarted) { answerStarted = true; if (!(prefs.voice && canSpeak())) setMode("speaking"); }
             setMessages((ms) => ms.map((m) => (m.id === botId ? { ...m, content: answer } : m)));
-            if (prefs.voice && speaker) { speaker.push(ev.text); spoke = true; }
+            if (prefs.voice && speaker && !natural) { speaker.push(ev.text); spoke = true; }
           } else if (ev.t === "sources") {
             setMessages((ms) => ms.map((m) => (m.id === botId ? { ...m, sources: { items: ev.items, unavailable: ev.unavailable } } : m)));
           } else if (ev.t === "events") {
@@ -590,7 +600,8 @@ export function GaduApp(props: {
       const pendentes = toConfirm.filter(({ id }) => !cardsRef.current[id]);
       const voiceConfirm = pendentes.length > 0 && !ctrl.signal.aborted && prefsRef.current.voice && canSpeak() && canListen();
       if (voiceConfirm) { confirmQ.current = pendentes; confirmStep.current = 0; confirmTotal.current = pendentes.length; }
-      if (spoke && speaker) speaker.flush();
+      if (natural && answer && speaker && !ctrl.signal.aborted) void speaker.announceNatural(answer);
+      else if (spoke && speaker) speaker.flush();
       else if (voiceConfirm) { setMode("idle"); setTimeout(() => { if (confirmQ.current === pendentes && confirmStage.current === null) confirmFns.current.next(); }, 300); }
       else {
         setMode("idle");
@@ -598,7 +609,7 @@ export function GaduApp(props: {
         if (answer && !ctrl.signal.aborted && handsFreeRef.current) setTimeout(() => { if (modeRef.current === "idle" && !busyRef.current && !listeningRef.current) listenRef.current(); }, 600);
       }
     }
-  }, [busy, conversationId, failChat, prefs.voice, refreshPending, speaker, props.morningLink, props.financeEnabled, props.admin, target]);
+  }, [busy, conversationId, failChat, prefs.voice, prefs.naturalVoice, prefs.shortVoice, props.naturalVoiceEnabled, refreshPending, speaker, props.morningLink, props.financeEnabled, props.admin, target]);
 
   const modeRef = useRef(mode);
   useEffect(() => { modeRef.current = mode; }, [mode]);
@@ -652,8 +663,8 @@ export function GaduApp(props: {
         setPrefs({ ...prefsRef.current, voiceURI: pt[(i + 1) % pt.length].voiceURI });
         return;
       }
-      const key = j.opcao === "maos_livres" ? "handsFree" : j.opcao === "respostas_curtas" ? "shortVoice" : j.opcao === "voz" ? "voice" : j.opcao === "envio_automatico" ? "autoSend" : j.opcao === "transcricao_nuvem" ? "cloudVoice" : null;
-      if (key && typeof j.valor === "boolean") setPrefs({ ...prefsRef.current, [key]: j.valor });
+      const key = j.opcao === "maos_livres" ? "handsFree" : j.opcao === "respostas_curtas" ? "shortVoice" : j.opcao === "voz" ? "voice" : j.opcao === "envio_automatico" ? "autoSend" : j.opcao === "transcricao_nuvem" ? "cloudVoice" : j.opcao === "voz_natural" ? "naturalVoice" : null;
+      if (key && typeof j.valor === "boolean") setPrefs({ ...prefsRef.current, [key]: j.valor, ...(key === "naturalVoice" && j.valor ? { shortVoice: false } : {}) });
     };
     window.addEventListener("gadu:ajuste", on);
     return () => window.removeEventListener("gadu:ajuste", on);
@@ -955,7 +966,7 @@ export function GaduApp(props: {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  const PALETA_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "lista_compras", "compras", "filhos", "projetos", "memoria", "agentes", "studio3d", "ajustes", "perfil", "integracoes", "modulos"];
+  const PALETA_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "lista_compras", "compras", "filhos", "investimentos", "projetos", "memoria", "agentes", "studio3d", "ajustes", "perfil", "integracoes", "modulos"];
   const runPaleta = (it: PaletaItem) => {
     setPaleta(false);
     if (it.kind === "tela") { if (it.view === "studio3d") window.location.href = "/app/3d"; else setTab(it.view); return; }
@@ -1248,9 +1259,20 @@ export function GaduApp(props: {
         {view === "hoje" && (
           <TodayPage review={review} onReviewDone={() => setReview(false)} onDock={dockTalk} onWrite={() => openAssist(true)} name={name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk}
             onOpenMemory={() => setTab("memoria")} onOpenTasks={() => setTab("tarefas")} onOpen={setTab} goalsEnabled={props.goalsEnabled} financeEnabled={props.financeEnabled}
+            modulePanels={([
+              { view: "agenda", label: "Agenda", icon: "calendar", detail: "Compromissos da semana" },
+              { view: "tarefas", label: "Tarefas", icon: "check", detail: "O que está pendente" },
+              { view: "compras", label: "Compras", icon: "mail", detail: "Pedidos e entregas" },
+              { view: "lista_compras", label: "Lista de compras", icon: "check", detail: "Itens para o mercado" },
+              { view: "filhos", label: "Agenda de filhos", icon: "calendar", detail: "Fins de semana e trocas" },
+              { view: "financeiro", label: "Financeiro", icon: "coin", detail: "Contas e gastos" },
+              { view: "metas", label: "Metas", icon: "target", detail: "Progresso e prazos" },
+              { view: "investimentos", label: "Investimentos", icon: "coin", detail: "Ações acompanhadas" },
+            ] satisfies { view: ViewId; label: string; icon: string; detail: string }[]).filter((p) => !hidden(p.view))}
             onAsk={(q) => { speaker?.unlock(); openAssist(true); void send(q); }} />
         )}
         {(view === "tarefas" || view === "projetos") && <ProjectsPage key={`pp-${view}`} initialView={view} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
+        {view === "investimentos" && <InvestimentosPage />}
         {view === "agenda" && <AgendaView onBack={() => setTab("hoje")} />}
         {view === "modulos" && <ModulesHub onOpen={setTab} onHistory={() => setDrawer(true)} pending={pending} admin={props.admin} name={name} email={props.email}
           hide={[...(props.financeEnabled ? [] : ["financeiro" as const]), ...(props.goalsEnabled ? [] : ["metas" as const]), ...(props.listaComprasEnabled ? [] : ["lista_compras" as const]), ...(props.comprasEnabled ? [] : ["compras" as const]), ...(props.agendaFilhosEnabled ? [] : ["filhos" as const])]} show3d={Boolean(props.modeling3dEnabled)} />}
@@ -1264,7 +1286,7 @@ export function GaduApp(props: {
         {view === "memoria" && <MemoryPage blocked={props.initialBlocked} onChange={refreshPending} onOpenConversation={openConversation} />}
         {view === "admin" && props.admin && <AdminPage />}
         {(view === "ajustes" || view === "perfil" || view === "integracoes") && (
-          <SettingsPage name={name} email={props.email} version={props.version} prefs={prefs} setPrefs={setPrefs} voiceOk={voiceOk} speaker={speaker}
+          <SettingsPage name={name} email={props.email} version={props.version} naturalVoiceEnabled={props.naturalVoiceEnabled} prefs={prefs} setPrefs={setPrefs} voiceOk={voiceOk} speaker={speaker}
             section={view} theme={theme} onTheme={toggleTheme} admin={props.admin} onOpen={setTab}
             onNew={() => { newConversation(); setTab("conversa"); }} initialBlocked={props.initialBlocked} morningLink={props.morningLink} onResetTips={resetTips} onGuide={openGuide} />
         )}

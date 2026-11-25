@@ -6,7 +6,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 //
 // S-01: estas chamadas usam as funções server_* e o cliente com a chave secreta. Elas recebem o `user_id` DA
 // SESSÃO (já validada pela rota); o navegador não consegue chamá-las. Nunca passe um id vindo do corpo da requisição.
-export type Kind = "chat" | "summary" | "import" | "transcribe";
+export type Kind = "chat" | "summary" | "import" | "transcribe" | "speech";
 export type UsageRecord = { provider: string; model: string; input: number; output: number; cost: number };
 
 type Admin = ReturnType<typeof supabaseAdmin>;
