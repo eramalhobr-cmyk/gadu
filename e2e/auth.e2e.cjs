@@ -30,6 +30,16 @@ async function holdMic(p) {
 }
 
 describe("app com login", () => {
+  test("Hoje continua em uma coluna no celular", async () => {
+    const p = await page(PHONE);
+    await p.goto(`${BASE}/app?tab=hoje`);
+    const painel = p.locator(".today2");
+    await painel.waitFor();
+    assert.equal(await painel.evaluate((el) => getComputedStyle(el).display), "flex");
+    assert.equal(await p.getByRole("heading", { name: "Seus painéis" }).isVisible(), false);
+    await p.context().close();
+  });
+
   test("evento recorrente repetido no fluxo gera um cartão e uma gravação", async () => {
     const p = await page(PHONE);
     const recurrence = { frequency: "WEEKLY", interval: 2, count: 5 };

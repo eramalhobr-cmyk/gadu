@@ -1,5 +1,10 @@
 # GaDu · Roadmap
 
+## Hoje em telas largas
+
+- [ ] Validar no monitor do usuário a grade responsiva, com assistente aberto e fechado.
+
+
 ## Agenda e confirmações
 
 - [ ] Validar evento recorrente por voz e toque, uma gravação por cartão e nova conversa sem aprovações antigas.

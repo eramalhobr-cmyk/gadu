@@ -1,0 +1,47 @@
+/* A largura útil exclui a navegação e o assistente, mesmo quando são redimensionados. */
+.today-attention { min-width: 0; }
+@media (min-width: 1024px) {
+  .frame .page { container-type: inline-size; }
+  .frame .page > .wrap { max-width: none; }
+  .frame .page > .today2 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "agora" "atencao" "depois" "progresso" "modulos" "opcoes";
+    align-items: start;
+    gap: clamp(12px, 1.45cqi, 28px);
+  }
+  .today2 > .band-agora { grid-area: agora; }
+  .today2 > .today-attention { grid-area: atencao; }
+  .today2 > .band-depois { grid-area: depois; }
+  .today2 > .band-prog { grid-area: progresso; }
+  .today2 > .today-modules { grid-area: modulos; }
+  .today2 > .more-opts { grid-area: opcoes; }
+  .today2 > * { min-width: 0; }
+  .today-module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: var(--s-2); }
+  .today-module {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center;
+    gap: var(--s-3); text-align: left; padding: var(--s-3); min-height: 48px;
+    border: 1px solid var(--line-2); border-radius: var(--r-md); background: var(--panel); color: var(--ink);
+  }
+  .today-module:hover { border-color: var(--sig); }
+  .today-module > svg { color: var(--sig); }
+  .today-module b, .today-module small { display: block; overflow-wrap: anywhere; }
+  .today-module small { color: var(--ink-2); margin-top: var(--s-1); }
+}
+@container (min-width: 740px) {
+  .frame .page > .today2 {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    grid-template-areas: "agora agora" "atencao depois" "atencao progresso" "modulos modulos" "opcoes opcoes";
+  }
+}
+@container (min-width: 1260px) {
+  .frame .page > .today2 {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "agora agora agora" "atencao depois progresso" "modulos modulos modulos" "opcoes opcoes opcoes";
+  }
+}
+
+
+@media (min-width: 1440px) {
+  .lp main { max-width: none; padding-inline: clamp(24px, 4vw, 96px); }
+}

@@ -1,5 +1,8 @@
 # GaDu · Situação do projeto
 
+**Hoje em telas largas:** correção visual separada para publicação. Testes verificam a largura útil com o assistente aberto e uma coluna no celular.
+
+
 **Agenda e confirmações em revisão:** recorrência simples pela conversa e proteção do cartão contra ações repetidas. A validação no Google real e no celular ainda está pendente.
 
 

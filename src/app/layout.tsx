@@ -9,6 +9,7 @@ import "./jarvis.css";
 import "./paineis.css";
 import "./voz-imersiva.css";
 import "./design-v2.css";
+import "./desktop.css";
 import { cookies } from "next/headers";
 import { parseTheme, THEME_COLOR, THEME_COOKIE } from "@/lib/theme";
 import { parseTextSize, TEXT_COOKIE } from "@/lib/text-size";

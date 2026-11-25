@@ -1,5 +1,10 @@
 # GaDu · Changelog
 
+## Hoje em telas largas · correção
+
+- Hoje usa a largura útil em até três colunas. As telas do app usam a área disponível, com atalhos de módulos no Hoje do desktop.
+
+
 ## Agenda recorrente e confirmação única · em revisão
 
 - Eventos pela conversa podem repetir diariamente, semanalmente, mensalmente ou anualmente. A frequência, o intervalo e o total aparecem antes da confirmação.

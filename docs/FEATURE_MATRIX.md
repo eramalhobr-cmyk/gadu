@@ -1,5 +1,8 @@
 # GaDu · Matriz de funcionalidades
 
+**Hoje em telas largas:** grade de até três colunas e acesso aos painéis. A largura responde à presença do assistente.
+
+
 **Agenda e voz, em revisão:** criar série diária, semanal, mensal ou anual pela conversa. Conferir frequência, intervalo e total no cartão ou pela voz, antes de gravar.
 
 

@@ -1,5 +1,10 @@
 # GaDu · Diário de bordo entre IAs
 
+## 24/11/2026 · Codex · Hoje em telas largas
+
+Correção responsiva separada do PR #137 para liberar o desktop sem depender de configuração de voz ou de cotações. Testar em produção no monitor do usuário, com o assistente aberto e fechado.
+
+
 ## 24/11/2026 · Codex · Agenda e confirmações
 
 A criação pelo chat passa a validar e gravar uma série no Google Agenda, com a permissão existente. O cartão e a pergunta falada mostram a frequência. A fila perde propostas obsoletas, e cartões já processados não iniciam outra gravação. A recorrência inicial aceita uma cadência simples com intervalo e total opcionais. Google real e voz no aparelho ainda precisam ser conferidos.

@@ -1248,6 +1248,15 @@ export function GaduApp(props: {
         {view === "hoje" && (
           <TodayPage review={review} onReviewDone={() => setReview(false)} onDock={dockTalk} onWrite={() => openAssist(true)} name={name} pendingMemories={pending} busy={busy} onStartDay={startDay} onTalk={talk}
             onOpenMemory={() => setTab("memoria")} onOpenTasks={() => setTab("tarefas")} onOpen={setTab} goalsEnabled={props.goalsEnabled} financeEnabled={props.financeEnabled}
+            modulePanels={([
+              { view: "agenda", label: "Agenda", icon: "calendar", detail: "Compromissos da semana" },
+              { view: "tarefas", label: "Tarefas", icon: "check", detail: "O que está pendente" },
+              { view: "compras", label: "Compras", icon: "mail", detail: "Pedidos e entregas" },
+              { view: "lista_compras", label: "Lista de compras", icon: "check", detail: "Itens para o mercado" },
+              { view: "filhos", label: "Agenda de filhos", icon: "calendar", detail: "Fins de semana e trocas" },
+              { view: "financeiro", label: "Financeiro", icon: "coin", detail: "Contas e gastos" },
+              { view: "metas", label: "Metas", icon: "target", detail: "Progresso e prazos" },
+            ] satisfies { view: ViewId; label: string; icon: string; detail: string }[]).filter((p) => !hidden(p.view))}
             onAsk={(q) => { speaker?.unlock(); openAssist(true); void send(q); }} />
         )}
         {(view === "tarefas" || view === "projetos") && <ProjectsPage key={`pp-${view}`} initialView={view} onTalk={(p) => talkAbout({ kind: "project", ...p })} />}
