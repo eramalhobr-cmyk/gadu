@@ -1,5 +1,8 @@
 # GaDu · Situação do projeto
 
+**Publicado:** pacote de desktop, voz e investimentos do PR #137, merge `e0ffa2c`. Ativar cotações com a brapi. A migração de orçamento da voz natural aguarda acesso ao Supabase. **Em revisão:** gráficos de Finanças e Investimentos no Hoje e fallback de histórico.
+
+
 **Desktop, voz natural e investimentos em revisão.** Falta validar no aparelho, aprovar a migração e configurar o token da fonte de cotações. [Voz natural](docs/VOZ_NATURAL.md) · [Investimentos](docs/INVESTIMENTOS.md).
 
 

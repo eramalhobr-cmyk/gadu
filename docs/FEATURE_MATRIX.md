@@ -1,5 +1,8 @@
 # GaDu · Matriz de funcionalidades
 
+**Hoje, em revisão:** gráficos de despesas do mês e variação diária das ações acompanhadas. Os cartões levam aos módulos, que também podem ser abertos por voz. Dados ausentes são indicados na tela.
+
+
 ## Desktop, voz natural e investimentos · em revisão
 
 - Hoje: grade com 1 a 3 colunas conforme largura útil.

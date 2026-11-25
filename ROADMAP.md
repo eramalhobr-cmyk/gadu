@@ -1,5 +1,16 @@
 # GaDu · Roadmap
 
+## Próximo ciclo · painéis e acompanhamento
+
+1. **Agora:** gráficos do Hoje e ativação da brapi. Conferir valores pagos/a pagar com o Financeiro e sinais/horários com Investimentos.
+2. **Próxima entrega de interface:** adicionar evolução mensal dos gastos, teto por categoria e resumo de metas. Aproveitar dados já disponíveis, com estados vazios.
+3. **Investimentos:** habilitar lista editável, comparação com benchmark e alertas de preço/variação opt-in. Validar cobertura, atrasos e proventos antes de agendar o boletim diário.
+4. **Voz:** verificar acesso à migração da síntese, depois comparar qualidade, atraso e interrupção no Android/iPhone.
+5. **Uso diário:** validar agenda recorrente, confirmação única e abertura de e-mail no Gmail com conta real.
+
+[Configuração da brapi e pesquisa planejada](docs/INVESTIMENTOS.md).
+
+
 ## Desktop, voz natural e investimentos
 
 - [ ] Validar grade do Hoje em tela de 32 polegadas com e sem o assistente.

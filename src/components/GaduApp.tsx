@@ -1265,9 +1265,7 @@ export function GaduApp(props: {
               { view: "compras", label: "Compras", icon: "mail", detail: "Pedidos e entregas" },
               { view: "lista_compras", label: "Lista de compras", icon: "check", detail: "Itens para o mercado" },
               { view: "filhos", label: "Agenda de filhos", icon: "calendar", detail: "Fins de semana e trocas" },
-              { view: "financeiro", label: "Financeiro", icon: "coin", detail: "Contas e gastos" },
               { view: "metas", label: "Metas", icon: "target", detail: "Progresso e prazos" },
-              { view: "investimentos", label: "Investimentos", icon: "coin", detail: "Ações acompanhadas" },
             ] satisfies { view: ViewId; label: string; icon: string; detail: string }[]).filter((p) => !hidden(p.view))}
             onAsk={(q) => { speaker?.unlock(); openAssist(true); void send(q); }} />
         )}

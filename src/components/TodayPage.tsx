@@ -9,6 +9,7 @@ import { EmptyState, Panel } from "./kit";
 import { Kpi, KpiRow } from "./charts";
 import { EVENTO_FALAR, falaHoje } from "@/lib/painel-fala";
 import { formatBRLRound } from "@/lib/finance/money";
+import { HojeGraficos } from "./HojeGraficos";
 import { AttentionCard } from "./AttentionCard";
 import { PercepcoesCard } from "./PercepcoesCard";
 import type { Insight } from "@/lib/insights";
@@ -84,6 +85,8 @@ export function TodayPage(props: {
   const [doneToday, setDoneToday] = useState<number | null>(null);
   const [goals, setGoals] = useState<GoalSum | null>(null);
   const [gastoMes, setGastoMes] = useState<{ pago: number; previsto: number } | null>(null);
+  const [falhaFinanceiro, setFalhaFinanceiro] = useState(false);
+  const mesFinanceiro = dayKey(now).slice(0, 7);
   const db = supabaseBrowser();
 
   const loadToday = useCallback(async () => {
@@ -122,19 +125,27 @@ export function TodayPage(props: {
     return () => { alive = false; };
   }, [props.goalsEnabled, attnKey]);
   useEffect(() => {
-    // Gasto do mês (contas pagas + dia a dia) só com o Financeiro ligado; sem resposta, o indicador não aparece.
     if (!props.financeEnabled) return;
-    let alive = true;
-    const [ano, mes] = todayKey().split("-").map(Number);
-    (async () => {
+    const ctrl = new AbortController();
+    const [ano, mes] = mesFinanceiro.split("-").map(Number);
+    setGastoMes(null);
+    setFalhaFinanceiro(false);
+    async function carregarGastos() {
       try {
-        const r = await fetch(`/api/finance/resumo?ano=${ano}&mes=${mes}`, { cache: "no-store" });
+        const r = await fetch(`/api/finance/resumo?ano=${ano}&mes=${mes}`, { cache: "no-store", signal: ctrl.signal });
         const j = r.ok ? await r.json() : null;
-        if (alive && j?.resumo) setGastoMes({ pago: Number(j.resumo.pagoTotal) || 0, previsto: Number(j.resumo.despesas) || 0 });
-      } catch { /* sem Financeiro: o resumo do dia fica sem o gasto */ }
-    })();
-    return () => { alive = false; };
-  }, [props.financeEnabled, attnKey]);
+        if (ctrl.signal.aborted) return;
+        const pago = j?.resumo?.pagoTotal;
+        const previsto = j?.resumo?.despesas;
+        if (!Number.isFinite(pago) || !Number.isFinite(previsto)) { setFalhaFinanceiro(true); return; }
+        setGastoMes({ pago, previsto });
+      } catch {
+        if (!ctrl.signal.aborted) setFalhaFinanceiro(true);
+      }
+    }
+    void carregarGastos();
+    return () => ctrl.abort();
+  }, [props.financeEnabled, attnKey, mesFinanceiro]);
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 60_000); return () => clearInterval(id); }, []);
 
   async function setStatus(id: number, status: "done" | "cancelled") {
@@ -262,7 +273,6 @@ export function TodayPage(props: {
             <Kpi label="Pedem atenção" value={attn ?? "–"} tone={attn ? "hot" : undefined} />
             <Kpi label="Tarefas abertas" value={openTasks ?? "–"} />
             <Kpi label="Feitas hoje" value={doneToday ?? "–"} tone="ok" />
-            {gastoMes && <Kpi label="Gasto no mês" value={formatBRLRound(gastoMes.pago)} sub={gastoMes.previsto > 0 ? `de ${formatBRLRound(gastoMes.previsto)} previstos` : "nada lançado ainda"} />}
           </KpiRow>
           <div className="prog-day">
             <div className="prog-ring" role="img" aria-label={pct === null ? "Sem tarefas para hoje" : `${pct}% das tarefas de hoje feitas`} style={{ ["--p" as string]: `${pct ?? 0}` }}><b>{pct === null ? "–" : `${pct}%`}</b></div>
@@ -282,6 +292,9 @@ export function TodayPage(props: {
           )}
           <button className="say-chip" disabled={props.busy} onClick={() => props.onAsk(goals ? "Como estou nas minhas metas?" : "Como foi o meu dia até agora?")}><Icon name="mic" size={14} />{goals ? "“Como estou nas minhas metas?”" : "“Como foi o meu dia até agora?”"}</button>
         </section>
+
+        <HojeGraficos gasto={gastoMes} financeiro={Boolean(props.financeEnabled)}
+          falhaFinanceiro={falhaFinanceiro} onOpen={props.onOpen} />
 
         {props.modulePanels && props.modulePanels.length > 0 && (
           <section className="desk-only band today-modules" aria-labelledby="today-modules">

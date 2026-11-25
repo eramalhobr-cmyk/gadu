@@ -1,5 +1,11 @@
 # GaDu · Changelog
 
+## Gráficos do Hoje · em revisão
+
+- Despesas pagas e a pagar no mês, e variação diária de LREN3, CEAB3 e VIVA3 com fonte e horário.
+- Histórico da brapi se adapta a janelas menores quando o plano recusa a janela longa.
+
+
 ## Desktop, voz natural e investimentos · em revisão
 
 - Hoje em grade responsiva à largura útil e novos atalhos visíveis nas telas largas.

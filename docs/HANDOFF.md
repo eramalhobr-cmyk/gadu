@@ -1,5 +1,10 @@
 # GaDu · Diário de bordo entre IAs
 
+## Codex · Gráficos do Hoje e ativação da brapi
+
+O gráfico de Finanças reaproveita o resumo mensal. Investimentos mostra variação diária e horário com a API autenticada existente. O fallback da fonte reduz o histórico quando a consulta retorna 400. Conferir o PR e validar o token pelo [roteiro de Investimentos](INVESTIMENTOS.md), sem registrar credenciais. O PR #137 já está em produção, com ativação da brapi e migração da voz ainda por confirmar.
+
+
 ## 25/11/2026 · Codex · Desktop, voz natural e investimentos
 
 Base bb8963e. Hoje usa a largura útil e abre painéis em desktop. Síntese opcional preparada no Gateway com migração do orçamento, contingência no aparelho e a mesma transcrição já publicada. Investimentos usa B3 por brapi quando configurada. Comparação sob demanda usa dados numéricos, orçamento do chat e descarta metadados de ação. Validar grade 2560 px e celular, e habilitar síntese depois da aprovação da migração. [Voz](VOZ_NATURAL.md) · [Pesquisa de investimentos](INVESTIMENTOS.md).

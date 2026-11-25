@@ -6,7 +6,7 @@
   .frame .page > .today2 {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "agora" "atencao" "depois" "progresso" "modulos" "opcoes";
+    grid-template-areas: "agora" "atencao" "depois" "progresso" "graficos" "modulos" "opcoes";
     align-items: start;
     gap: clamp(12px, 1.45cqi, 28px);
   }
@@ -14,6 +14,7 @@
   .today2 > .today-attention { grid-area: atencao; }
   .today2 > .band-depois { grid-area: depois; }
   .today2 > .band-prog { grid-area: progresso; }
+  .today2 > .today-charts { grid-area: graficos; }
   .today2 > .today-modules { grid-area: modulos; }
   .today2 > .more-opts { grid-area: opcoes; }
   .today2 > * { min-width: 0; }
@@ -31,13 +32,13 @@
 @container (min-width: 740px) {
   .frame .page > .today2 {
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-    grid-template-areas: "agora agora" "atencao depois" "atencao progresso" "modulos modulos" "opcoes opcoes";
+    grid-template-areas: "agora agora" "atencao depois" "atencao progresso" "graficos graficos" "modulos modulos" "opcoes opcoes";
   }
 }
 @container (min-width: 1260px) {
   .frame .page > .today2 {
     grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas: "agora agora agora" "atencao depois progresso" "modulos modulos modulos" "opcoes opcoes opcoes";
+    grid-template-areas: "agora agora agora" "atencao depois progresso" "graficos graficos graficos" "modulos modulos modulos" "opcoes opcoes opcoes";
   }
 }
 
@@ -49,3 +50,16 @@
 @media (min-width: 1440px) {
   .lp main { max-width: none; padding-inline: clamp(24px, 4vw, 96px); }
 }
+
+.today-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: var(--s-4); }
+.today-chart { padding: var(--s-4); min-width: 0; }
+.today-chart-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--s-2); }
+.today-chart-head .btn { min-height: 44px; }
+.today-market { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--s-2); }
+.today-market li { display: grid; grid-template-columns: auto minmax(28px, 1fr) auto; align-items: center; gap: var(--s-2); }
+.today-market-track { position: relative; display: block; height: 12px; background: var(--wash); }
+.today-market-track::before { content: ""; position: absolute; inset-block: 0; left: 50%; border-left: 1px solid var(--ink-3); }
+.today-market-track i { position: absolute; inset-block: 2px; }
+.today-market-track .alta { left: 50%; background: var(--sig); }
+.today-market-track .queda { right: 50%; background: var(--hot); }
+.today-market-value { display: grid; justify-items: end; font-size: var(--fs-sm); }
