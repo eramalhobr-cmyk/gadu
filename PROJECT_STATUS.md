@@ -1,5 +1,8 @@
 # GaDu · Situação do projeto
 
+**Desktop, voz natural e investimentos em revisão.** Falta validar no aparelho, aprovar a migração e configurar o token da fonte de cotações. [Voz natural](docs/VOZ_NATURAL.md) · [Investimentos](docs/INVESTIMENTOS.md).
+
+
 **Agenda e confirmações em revisão:** recorrência simples pela conversa e proteção do cartão contra ações repetidas. A validação no Google real e no celular ainda está pendente.
 
 

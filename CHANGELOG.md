@@ -1,5 +1,11 @@
 # GaDu · Changelog
 
+## Desktop, voz natural e investimentos · em revisão
+
+- Hoje em grade responsiva à largura útil e novos atalhos visíveis nas telas largas.
+- Síntese natural opcional com orçamento, e painel inicial da B3 com fonte e data.
+
+
 ## Agenda recorrente e confirmação única · em revisão
 
 - Eventos pela conversa podem repetir diariamente, semanalmente, mensalmente ou anualmente. A frequência, o intervalo e o total aparecem antes da confirmação.

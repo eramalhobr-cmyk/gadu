@@ -1,5 +1,12 @@
 # GaDu · Matriz de funcionalidades
 
+## Desktop, voz natural e investimentos · em revisão
+
+- Hoje: grade com 1 a 3 colunas conforme largura útil.
+- Voz: “liga a voz natural”, com confirmação, quando a opção estiver habilitada no servidor.
+- Investimentos: “abre investimentos”, consulta de cotações e variação histórica.
+
+
 **Agenda e voz, em revisão:** criar série diária, semanal, mensal ou anual pela conversa. Conferir frequência, intervalo e total no cartão ou pela voz, antes de gravar.
 
 

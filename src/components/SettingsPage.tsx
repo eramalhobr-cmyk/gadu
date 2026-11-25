@@ -9,7 +9,7 @@ import { DENIED_HELP, deviceLabel, permissionMessage, pushSupport, type PushSupp
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { ConfirmCard } from "./ConfirmCard";
 
-export type Prefs = { voice: boolean; handsFree: boolean; voiceURI: string; rate: number ; autoSend: boolean; shortVoice: boolean; cloudVoice: boolean };
+export type Prefs = { voice: boolean; handsFree: boolean; voiceURI: string; rate: number ; autoSend: boolean; shortVoice: boolean; cloudVoice: boolean; naturalVoice: boolean };
 type Usage = {
   budgets: { anthropic: number; gateway: number };
   spent: { anthropic: number; gateway: number; gemini: number };
@@ -44,6 +44,7 @@ export function SettingsPage(props: {
   setPrefs: (p: Prefs) => void;
   voiceOk: boolean;
   speaker: Speaker | null;
+  naturalVoiceEnabled?: boolean;
   onNew: () => void;
   initialBlocked: string[];
   morningLink: string;
@@ -291,7 +292,7 @@ function SpendCard() {
   );
 }
 
-function VoiceCard(props: { prefs: Prefs; setPrefs: (p: Prefs) => void; voiceOk: boolean; speaker: Speaker | null }) {
+function VoiceCard(props: { prefs: Prefs; setPrefs: (p: Prefs) => void; voiceOk: boolean; speaker: Speaker | null; naturalVoiceEnabled?: boolean }) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   // Detectado só no aparelho: no servidor não há síntese de voz (evita diferença entre servidor e navegador).
   const [speakOk, setSpeakOk] = useState(false);
@@ -317,6 +318,10 @@ function VoiceCard(props: { prefs: Prefs; setPrefs: (p: Prefs) => void; voiceOk:
       <label className="switch"><span>GaDu responde falando</span><input type="checkbox" role="switch" className="sr" checked={p.voice} onChange={(e) => set({ voice: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
       <label className="switch"><span>Enviar sozinho o que eu falar<small className="muted"> · desligado (padrão): o texto fica no campo para você revisar e enviar</small></span><input type="checkbox" role="switch" className="sr" checked={p.autoSend} onChange={(e) => set({ autoSend: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
       <label className="switch"><span>Transcrição na nuvem<small className="muted"> · entende melhor com barulho e fala rápida. Usa o orçamento de IA (menos de 1 centavo de dólar por minuto). O áudio não é guardado</small></span><input type="checkbox" role="switch" className="sr" checked={p.cloudVoice} onChange={(e) => set({ cloudVoice: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
+      {props.naturalVoiceEnabled && <>
+        <label className="switch"><span>Voz natural<small className="muted"> · lê respostas completas pelo AI Gateway e usa o orçamento de IA. Se falhar, usa a voz do aparelho.</small></span><input type="checkbox" role="switch" className="sr" checked={p.naturalVoice} onChange={(e) => set({ naturalVoice: e.target.checked, ...(e.target.checked ? { shortVoice: false } : {}) })} /><i className="tgl" aria-hidden="true" /></label>
+        {p.naturalVoice && <button className="btn btn-sm" onClick={() => { void props.speaker?.announceNatural("Oi, esta é a voz natural do GaDu. Como posso ajudar?"); }}>Ouvir voz natural</button>}
+      </>}
       <label className="switch"><span>Respostas faladas curtas<small className="muted"> · fala o resumo (cerca de 20 s) e o detalhe fica na tela; o briefing da manhã é sempre falado inteiro</small></span><input type="checkbox" role="switch" className="sr" checked={p.shortVoice} onChange={(e) => set({ shortVoice: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
       <label className="switch"><span>Modo mãos-livres<small className="muted"> · volta a ouvir depois de responder e envia sozinho; só liga se você escolher</small></span><input type="checkbox" role="switch" className="sr" checked={p.handsFree} disabled={!props.voiceOk} onChange={(e) => set({ handsFree: e.target.checked })} /><i className="tgl" aria-hidden="true" /></label>
       {!props.voiceOk && <p className="muted m0">Este navegador não reconhece voz. No celular, use o Chrome (Android) ou o Safari (iPhone), ou o ditado do teclado.</p>}

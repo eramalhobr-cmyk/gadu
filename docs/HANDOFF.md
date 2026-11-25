@@ -1,5 +1,10 @@
 # GaDu · Diário de bordo entre IAs
 
+## 25/11/2026 · Codex · Desktop, voz natural e investimentos
+
+Base bb8963e. Hoje usa a largura útil e abre painéis em desktop. Síntese opcional preparada no Gateway com migração do orçamento, contingência no aparelho e a mesma transcrição já publicada. Investimentos usa B3 por brapi quando configurada. Comparação sob demanda usa dados numéricos, orçamento do chat e descarta metadados de ação. Validar grade 2560 px e celular, e habilitar síntese depois da aprovação da migração. [Voz](VOZ_NATURAL.md) · [Pesquisa de investimentos](INVESTIMENTOS.md).
+
+
 ## 24/11/2026 · Codex · Agenda e confirmações
 
 A criação pelo chat passa a validar e gravar uma série no Google Agenda, com a permissão existente. O cartão e a pergunta falada mostram a frequência. A fila perde propostas obsoletas, e cartões já processados não iniciam outra gravação. A recorrência inicial aceita uma cadência simples com intervalo e total opcionais. Google real e voz no aparelho ainda precisam ser conferidos.

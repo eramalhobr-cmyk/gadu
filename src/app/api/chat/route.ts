@@ -1,3 +1,4 @@
+import { blocoPesquisa, pedePesquisaInvestimentos } from "@/lib/investimentos/pesquisa";
 import { z } from "zod";
 import { capturarErroServidor } from "@/lib/telemetria/capturar";
 import { resolveAcoes } from "@/lib/acoes-resolver";
@@ -357,7 +358,15 @@ export async function POST(request: Request) {
         // Simulador de salário: o servidor calcula (salario.ts) e o resultado entra no contexto; o modelo só repete os números.
         const salarioPedido = financeEnabled() && pode(agente, "financas") ? pedidoSalario(message) : null;
         const salarioBlock = salarioPedido ? blocoSalario(salarioPedido) ?? "" : "";
-        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + financeBlock + goalsBlock + comprasBlock + filhosBlock + salarioBlock + avisoFerramentas(agente) + (parsed.data.context ? contextLine(parsed.data.context) : "");
+        let pesquisaBlock = "";
+        if (pode(agente, "financas") && pedePesquisaInvestimentos(message)) {
+          const token = process.env.BRAPI_TOKEN;
+          const cotacoes = token
+            ? await import("@/lib/investimentos/fonte").then(({ carregarCotacoes }) => carregarCotacoes(token)).catch(() => [])
+            : [];
+          pesquisaBlock = blocoPesquisa(cotacoes);
+        }
+        const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + financeBlock + goalsBlock + comprasBlock + filhosBlock + salarioBlock + pesquisaBlock + avisoFerramentas(agente) + (parsed.data.context ? contextLine(parsed.data.context) : "");
         inputChars = system.length + context.length + turns.reduce((n, t) => n + t.content.length, 0);
         for await (const ev of routeChat({
           system,
@@ -412,6 +421,11 @@ export async function POST(request: Request) {
         if (newCount >= 4 && (!hasSummary || newCount % 6 === 0)) {
           const convId = conversationId;
           after(() => summarize(supabase, user.id, convId, skip));
+        }
+        // O modo de pesquisa de mercado é só leitura, mesmo se o modelo emitir metadados de ação.
+        if (pesquisaBlock) {
+          send({ t: "done", memories: 0 });
+          return;
         }
         let added = 0;
         if (proposals.length) {
