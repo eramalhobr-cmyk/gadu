@@ -2,9 +2,18 @@
 
 ## Primeira entrega
 
-A tela Investimentos mostra LREN3 (Lojas Renner), CEAB3 (C&A) e VIVA3 (Vivara), com cotação, variação no dia e variação de preço em 21, 63 e 252 pregões. Os dados vêm da brapi e incluem horário de referência. Precisa de `BRAPI_TOKEN` no servidor e de um plano de dados que cubra o histórico solicitado. Ausência de dado aparece na tela. O comando “abre investimentos” abre a tela.
+A tela Investimentos mostra LREN3 (Lojas Renner), CEAB3 (C&A) e VIVA3 (Vivara), com cotação, variação no dia e variação de preço em 21, 63 e 252 pregões. Os dados vêm da brapi e incluem horário de referência. Precisa de `BRAPI_TOKEN` no servidor. Se a janela solicitada exceder o plano, o servidor reduz de 2 anos para 1 ano, 3 meses e, por fim, consulta só a cotação. Janelas sem pregões suficientes seguem como “Sem dados”. Ausência de dado aparece na tela. O comando “abre investimentos” abre a tela.
 
 A página identifica se os fechamentos estão ajustados pelo provedor, mostra a maior queda de pico a vale em 63 pregões e indica janelas incompletas. **Comparar com o GaDu** ou o mesmo pedido por voz gera uma leitura sob demanda com o orçamento do chat. A IA só recebe símbolos próprios, data e números validados da brapi. Cotações com mais de sete dias são excluídas da comparação. O chat descarta metadados de ação da pesquisa, mesmo se o modelo os retornar. Nenhum SDK ou código de OpenBB ou Qlib foi incorporado.
+
+## Conectar a brapi em produção
+
+1. Use a chave disponível no [dashboard da brapi](https://brapi.dev/dashboard).
+2. Abra o projeto [gadu-agent na Vercel](https://vercel.com/eramalhobr-4914s-projects/gadu-agent/settings/environment-variables), adicione a variável `BRAPI_TOKEN` em **Production** e selecione **Sensitive** se disponível. Mantenha o valor só no painel, sem prefixo `NEXT_PUBLIC_`.
+3. Faça redeploy do deployment de produção. A variável só entra em deploys novos. [Guia da Vercel](https://vercel.com/docs/environment-variables/managing-environment-variables)
+4. Com login, abra **Hoje** e **Investimentos**. Confira LREN3, CEAB3 e VIVA3, o sinal da variação e o horário de atualização. Cotação indisponível com a fonte configurada indica que o servidor não recebeu uma cotação válida. Consulte no dashboard da brapi a cobertura dos ativos e os limites do plano. [Limites da brapi](https://brapi.dev/pricing)
+
+A tela Hoje mostra a variação diária dos papéis e o horário de cada cotação. A comparação de 21, 63 e 252 pregões fica em Investimentos.
 
 ## Próxima fase da pesquisa diária
 

@@ -29,3 +29,22 @@ test("fonte prescreve host e papéis, rejeita redirecionamentos e valida a ident
   assert.equal(r[0]?.nome, "Lojas Renner");
   assert.deepEqual(r.slice(1), [null, null]);
 });
+
+test("tenta janelas menores diante do limite do plano e preserva a cotação sem histórico", async () => {
+  const tentativas = new Map<string, (string | null)[]>();
+  const mockFetch: typeof fetch = async (input) => {
+    const url = new URL(String(input));
+    const ticker = url.pathname.split("/").at(-1)!;
+    const janela = url.searchParams.get("range");
+    tentativas.set(ticker, [...(tentativas.get(ticker) ?? []), janela]);
+    if (ticker === "CEAB3") return new Response(null, { status: 401 });
+    if (janela && !(ticker === "LREN3" && janela === "3mo")) return new Response(null, { status: 400 });
+    return Response.json({ results: [{ symbol: ticker, regularMarketPrice: 12, regularMarketTime: "2026-11-25T17:00:00Z", regularMarketChangePercent: -2 }] });
+  };
+  const r = await carregarCotacoes("chave-ficticia", mockFetch);
+  assert.deepEqual(tentativas.get("LREN3"), ["2y", "1y", "3mo"]);
+  assert.deepEqual(tentativas.get("CEAB3"), ["2y"]);
+  assert.deepEqual(tentativas.get("VIVA3"), ["2y", "1y", "3mo", null]);
+  assert.equal(r[2]?.dia, -2);
+  assert.ok(r[2]?.periodos.every((p) => p.variacao === null));
+});

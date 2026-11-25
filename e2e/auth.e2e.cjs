@@ -65,6 +65,12 @@ describe("app com login", () => {
   test("Hoje usa a largura útil na tela grande com o assistente aberto", async () => {
     const p = await page({ width: 2560, height: 1080 });
     await p.addInitScript(() => localStorage.setItem("gadu.assist", "1"));
+    await p.route("**/api/finance/resumo?*", (r) => r.fulfill({ json: { resumo: { pagoTotal: 80, despesas: 120 } } }));
+    await p.route("**/api/investimentos", (r) => r.fulfill({ json: { cotacoes: [
+      { ticker: "LREN3", nome: "Renner", preco: 12, dia: 2, horario: "2026-11-25T17:00:00Z", periodos: [], perdaMaxima63: null },
+      { ticker: "CEAB3", nome: "C&A", preco: 10, dia: -1, horario: "2026-11-25T17:00:00Z", periodos: [], perdaMaxima63: null },
+      null,
+    ] } }));
     await p.goto(`${BASE}/app?tab=hoje`);
     const painel = p.locator(".today2");
     await painel.waitFor();
@@ -76,7 +82,12 @@ describe("app com login", () => {
     assert.equal(layout.cols, 3, "três colunas mesmo com o assistente");
     assert.ok(layout.largura >= 0.90 * layout.pai, JSON.stringify(layout));
     assert.ok(await p.getByRole("heading", { name: "Seus painéis" }).isVisible());
-    await p.getByRole("button", { name: /Investimentos Ações acompanhadas/ }).click();
+    await p.getByRole("img", { name: /Despesas do mês, pagas e a pagar.*80,00.*40,00/ }).waitFor();
+    const mercado = p.getByRole("region", { name: "Investimentos" });
+    await mercado.getByText("+2%", { exact: true }).waitFor();
+    await mercado.getByText("-1%", { exact: true }).waitFor();
+    await mercado.getByText("Sem dados", { exact: true }).waitFor();
+    await mercado.getByRole("button", { name: "Abrir Investimentos" }).click();
     await p.getByRole("heading", { name: "Ações acompanhadas" }).waitFor();
     await p.context().close();
   });
