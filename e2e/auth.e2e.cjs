@@ -66,6 +66,19 @@ describe("app com login", () => {
     const p = await page({ width: 2560, height: 1080 });
     await p.addInitScript(() => localStorage.setItem("gadu.assist", "1"));
     await p.route("**/api/finance/resumo?*", (r) => r.fulfill({ json: { resumo: { pagoTotal: 80, despesas: 120 } } }));
+    const mes = Number(new Intl.DateTimeFormat("pt-BR", { month: "numeric", timeZone: "America/Sao_Paulo" }).format());
+    await p.route("**/api/finance/ano?*", (r) => r.fulfill({ json: { porMes: [
+      { mes, nome: "Atual", total: 250 },
+      { mes: mes + 1, nome: "Futuro", total: 999 },
+    ] } }));
+    await p.route("**/api/finance/tetos?*", (r) => r.fulfill({ json: { tetos: [
+      { id: "1", categoria: "Mercado", gasto: 180, valor: 200 },
+      { id: "2", categoria: "Transporte", gasto: 50, valor: 100 },
+      { id: "3", categoria: "Lazer", gasto: 0, valor: 100 },
+    ] } }));
+    await p.route("**/api/goals/resumo", (r) => r.fulfill({ json: {
+      enabled: true, ativas: 3, atrasadas: 1, concluidas: 1, pausadas: 1, atencao: [],
+    } }));
     await p.route("**/api/investimentos", (r) => r.fulfill({ json: { cotacoes: [
       { ticker: "LREN3", nome: "Renner", preco: 12, dia: 2, horario: "2026-11-25T17:00:00Z", periodos: [], perdaMaxima63: null },
       { ticker: "CEAB3", nome: "C&A", preco: 10, dia: -1, horario: "2026-11-25T17:00:00Z", periodos: [], perdaMaxima63: null },
@@ -83,12 +96,39 @@ describe("app com login", () => {
     assert.ok(layout.largura >= 0.90 * layout.pai, JSON.stringify(layout));
     assert.ok(await p.getByRole("heading", { name: "Seus painéis" }).isVisible());
     await p.getByRole("img", { name: /Despesas do mês, pagas e a pagar.*80,00.*40,00/ }).waitFor();
+    const gastos = p.getByRole("region", { name: "Gastos do dia a dia" });
+    await gastos.getByRole("img", { name: /Gastos do dia a dia por mês.*250,00/ }).waitFor();
+    assert.equal(await gastos.getByText(/999,00/).count(), 0, "mês futuro fora do gráfico");
+    await gastos.getByRole("img", { name: /Mercado.*180,00.*200,00.*90%/ }).waitFor();
+    await gastos.getByRole("img", { name: /Transporte.*50%/ }).waitFor();
+    assert.equal(await gastos.getByRole("img", { name: /Lazer/ }).count(), 0, "dois limites mais usados");
+    await p.getByRole("img", { name: /Metas por situação.*2 Em andamento.*1 Atrasadas.*1 Concluídas.*1 Pausadas/ }).waitFor();
     const mercado = p.getByRole("region", { name: "Investimentos" });
     await mercado.getByText("+2%", { exact: true }).waitFor();
     await mercado.getByText("-1%", { exact: true }).waitFor();
     await mercado.getByText("Sem dados", { exact: true }).waitFor();
     await mercado.getByRole("button", { name: "Abrir Investimentos" }).click();
     await p.getByRole("heading", { name: "Ações acompanhadas" }).waitFor();
+    await p.context().close();
+  });
+
+  test("Hoje no celular apresenta estados vazios com dados ainda não disponíveis", async () => {
+    const p = await page(PHONE);
+    await p.route("**/api/finance/resumo?*", (r) => r.fulfill({ json: { resumo: { pagoTotal: 0, despesas: 0 } } }));
+    await p.route("**/api/finance/ano?*", (r) => r.fulfill({ json: { porMes: [] } }));
+    await p.route("**/api/finance/tetos?*", (r) => r.fulfill({ json: { tetos: [] } }));
+    await p.route("**/api/goals/resumo", (r) => r.fulfill({ json: {
+      enabled: true, ativas: 0, atrasadas: 0, concluidas: 0, pausadas: 0, atencao: [],
+    } }));
+    await p.route("**/api/investimentos", (r) => r.fulfill({ status: 503, json: { error: "fonte_desligada" } }));
+    await p.goto(`${BASE}/app?tab=hoje`);
+    await p.getByText("Nenhuma despesa registrada neste mês.").waitFor();
+    await p.getByText("Nenhum gasto do dia a dia neste período.").waitFor();
+    await p.getByText("Nenhum limite por categoria definido.").waitFor();
+    await p.getByText("Nenhuma meta cadastrada.").waitFor();
+    await p.getByText("Conecte a brapi para ver a variação das ações.").waitFor();
+    assert.equal(await p.locator(".today-charts").getByRole("img").count(), 0);
+    assert.equal(await overflowX(p), 0);
     await p.context().close();
   });
 

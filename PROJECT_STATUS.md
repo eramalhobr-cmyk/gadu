@@ -1,9 +1,9 @@
 # GaDu · Situação do projeto
 
-**Publicado:** pacote de desktop, voz e investimentos do PR #137, merge `e0ffa2c`. Ativar cotações com a brapi. A migração de orçamento da voz natural aguarda acesso ao Supabase. **Em revisão:** gráficos de Finanças e Investimentos no Hoje e fallback de histórico.
+**Hoje:** despesas do mês, variação diária das ações e fallback de histórico publicados no PR #139 (`1adc587`). Evolução de gastos, limites por categoria e situação das metas desenvolvidos na branch `feat/hoje-resumos`. A validação de cotações com sessão em produção segue pendente.
 
 
-**Desktop, voz natural e investimentos em revisão.** Falta validar no aparelho, aprovar a migração e configurar o token da fonte de cotações. [Voz natural](docs/VOZ_NATURAL.md) · [Investimentos](docs/INVESTIMENTOS.md).
+**Desktop, voz natural e investimentos publicados** (PR #137, `e0ffa2c`). Falta validar no aparelho e aprovar a migração da síntese. O responsável informou que cadastrou o token da brapi. [Voz natural](docs/VOZ_NATURAL.md) · [Investimentos](docs/INVESTIMENTOS.md).
 
 
 **Agenda e confirmações em revisão:** recorrência simples pela conversa e proteção do cartão contra ações repetidas. A validação no Google real e no celular ainda está pendente.

@@ -1,6 +1,6 @@
 # GaDu · Matriz de funcionalidades
 
-**Hoje, em revisão:** gráficos de despesas do mês e variação diária das ações acompanhadas. Os cartões levam aos módulos, que também podem ser abertos por voz. Dados ausentes são indicados na tela.
+**Hoje:** despesas do mês e variação diária das ações acompanhadas publicadas (PR #139). Evolução de gastos e limites em `src/components/HojeGraficos.tsx` e metas por situação em `src/components/TodayPage.tsx` desenvolvidas. Os painéis são de leitura, com estados vazios, e os módulos continuam acessíveis por voz.
 
 
 ## Desktop, voz natural e investimentos · em revisão

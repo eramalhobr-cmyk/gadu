@@ -6,7 +6,7 @@ import { showNotice, showUndo, UNDO_TEXT } from "@/lib/undo";
 import { Avatar } from "./RobotFace";
 import { Icon, todayKey } from "./ui";
 import { EmptyState, Panel } from "./kit";
-import { Kpi, KpiRow } from "./charts";
+import { Kpi, KpiRow, Stack } from "./charts";
 import { EVENTO_FALAR, falaHoje } from "@/lib/painel-fala";
 import { formatBRLRound } from "@/lib/finance/money";
 import { HojeGraficos } from "./HojeGraficos";
@@ -20,7 +20,13 @@ type Ev = { title: string; start: string; end: string; allDay: boolean; where?: 
 type Mail = { thread?: string; from: string; subject: string; snippet: string; important: boolean };
 type Today = { connected: boolean; events?: Ev[]; emails?: Mail[]; insights?: Insight[]; error?: string };
 type Reminder = { id: number; text: string; due_at: string; status: "pending" | "sent" | "done" | "cancelled" };
-type GoalSum = { ativas: number; atrasadas: number; atencao: { id: string; titulo: string; pct: number; semDados: boolean; texto: string }[] };
+type GoalSum = {
+  ativas: number;
+  atrasadas: number;
+  concluidas: number;
+  pausadas: number;
+  atencao: { id: string; titulo: string; pct: number; semDados: boolean; texto: string }[];
+};
 type LateTask = { id: number; title: string; due_date: string | null };
 
 const TZ = "America/Sao_Paulo";
@@ -119,7 +125,13 @@ export function TodayPage(props: {
       try {
         const r = await fetch("/api/goals/resumo", { cache: "no-store" });
         const j = r.ok ? await r.json() : null;
-        if (alive && j?.enabled) setGoals({ ativas: j.ativas ?? 0, atrasadas: j.atrasadas ?? 0, atencao: Array.isArray(j.atencao) ? j.atencao : [] });
+        if (alive && j?.enabled) setGoals({
+          ativas: j.ativas ?? 0,
+          atrasadas: j.atrasadas ?? 0,
+          concluidas: j.concluidas ?? 0,
+          pausadas: j.pausadas ?? 0,
+          atencao: Array.isArray(j.atencao) ? j.atencao : [],
+        });
       } catch { /* sem metas: a faixa mostra só as tarefas */ }
     })();
     return () => { alive = false; };
@@ -280,6 +292,15 @@ export function TodayPage(props: {
           </div>
           {goals && (
             <div className="prog-goals">
+              <h3 className="pnl-sub">Situação das metas</h3>
+              {goals.ativas + goals.concluidas + goals.pausadas > 0 ? (
+                <Stack label="Metas por situação" parts={[
+                  { n: goals.ativas - goals.atrasadas, label: "Em andamento", tone: "sig" },
+                  { n: goals.atrasadas, label: "Atrasadas", tone: "hot" },
+                  { n: goals.concluidas, label: "Concluídas", tone: "ok" },
+                  { n: goals.pausadas, label: "Pausadas", tone: "mut" },
+                ]} />
+              ) : <p className="muted">Nenhuma meta cadastrada.</p>}
               {goals.atencao.slice(0, 2).map((g) => (
                 <button key={g.id} className="prog-goal" onClick={() => props.onOpen("metas")}>
                   <span className="t">{g.titulo}</span>
@@ -287,14 +308,13 @@ export function TodayPage(props: {
                   <span className="s">{g.texto}</span>
                 </button>
               ))}
-              {goals.atencao.length === 0 && <p className="muted">{goals.ativas ? `${goals.ativas} ${goals.ativas === 1 ? "meta ativa" : "metas ativas"}, todas no ritmo.` : "Nenhuma meta ativa. Diga: “Quero correr 50 km este mês”."}</p>}
             </div>
           )}
           <button className="say-chip" disabled={props.busy} onClick={() => props.onAsk(goals ? "Como estou nas minhas metas?" : "Como foi o meu dia até agora?")}><Icon name="mic" size={14} />{goals ? "“Como estou nas minhas metas?”" : "“Como foi o meu dia até agora?”"}</button>
         </section>
 
         <HojeGraficos gasto={gastoMes} financeiro={Boolean(props.financeEnabled)}
-          falhaFinanceiro={falhaFinanceiro} onOpen={props.onOpen} />
+          falhaFinanceiro={falhaFinanceiro} mesFinanceiro={mesFinanceiro} onOpen={props.onOpen} />
 
         {props.modulePanels && props.modulePanels.length > 0 && (
           <section className="desk-only band today-modules" aria-labelledby="today-modules">

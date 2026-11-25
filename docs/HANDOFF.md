@@ -1,8 +1,14 @@
 # GaDu · Diário de bordo entre IAs
 
+## 24/11/2026 · 23:48 · Codex · Resumos do Hoje
+
+A branch `feat/hoje-resumos` acrescenta gastos do dia a dia de até seis meses do ano corrente e os dois limites por categoria com maior uso no mês. O bloco Progresso agrupa metas por situação com o resumo já consultado. A pessoa pode usar a home com a conta vazia. Os painéis usam endpoints existentes, com sessão e sem gravações. Cubra a tela larga com dados e a tela móvel vazia em `e2e/auth.e2e.cjs`.
+
+O PR #139 passou no CI e o merge `1adc587` foi confirmado na Vercel. O responsável informou ter cadastrado o token da brapi. Ainda falta conferir os sinais e horários das cotações com sessão no app. Próximas propostas estão no [roadmap](../ROADMAP.md).
+
 ## Codex · Gráficos do Hoje e ativação da brapi
 
-O gráfico de Finanças reaproveita o resumo mensal. Investimentos mostra variação diária e horário com a API autenticada existente. O fallback da fonte reduz o histórico quando a consulta retorna 400. Conferir o PR e validar o token pelo [roteiro de Investimentos](INVESTIMENTOS.md), sem registrar credenciais. O PR #137 já está em produção, com ativação da brapi e migração da voz ainda por confirmar.
+O gráfico de Finanças reaproveita o resumo mensal. Investimentos mostra variação diária e horário com a API autenticada existente. O fallback da fonte reduz o histórico quando a consulta retorna 400. O PR #139 já está em produção. Validar a fonte pelo [roteiro de Investimentos](INVESTIMENTOS.md). A migração da voz aguarda aprovação.
 
 
 ## 25/11/2026 · Codex · Desktop, voz natural e investimentos
@@ -51,6 +57,7 @@ Este é o caderno de passagem de bastão entre as IAs que programam o GaDu (Clau
 
 ## A revisar por outra IA
 Marque `[x]` quando revisar e anote quem revisou, a data e o resultado.
+- [ ] **Resumos do Hoje** (Codex, `feat/hoje-resumos`): conferir amostra de gastos, ordem dos limites e distribuição das metas com os módulos correspondentes em uma conta de teste. Confirmar a leitura em celular e monitor largo.
 - [ ] **Agenda de filhos** (Claude Code, PR #126, 24/11/2026): (a) regra de alternância e de mudança permanente em `src/lib/filhos/agenda.ts` (`comigoNo`); (b) feriados móveis (Páscoa) e a regra do feriado colado; (c) RLS e S-05 da migração `20261124020001`; (d) Desfazer das ações (`ActionCard`: ajuste novo apaga, ajuste existente volta o valor anterior).
 - [ ] **Compras** (Claude Code, PR #124, publicado em 23/11/2026): (a) heurísticas de `src/lib/compras/pedidos.ts` (número, situação, previsão, rastreio, loja) contra e-mails reais; (b) `/api/compras` só com o token da sessão e termos bloqueados; (c) o bloco do `/api/chat` só carrega com pergunta sobre pedidos.
 - [x] **Simulador de salário, ampliação** (Claude Code, branch `feat/financas-simulador-bruto-liquido`, 23/11/2026): **Revisado por Cursor (Grok Bot) em 23/11/2026 às 18:50.** (a) Constantes de 2026 conferidas de novo nas fontes oficiais (INSS: Portaria MPS/MF nº 13/2026; IRRF e redução: Receita/Lei 15.270); exemplos 2 a 5 da Receita passam com o INSS dado via `calcularIrrf`. Outras deduções fora da base do INSS e na cesta legal, benefícios só no total recebido. (b) Curto-circuito depois de privacidade e teto do agente, antes de reserva e cota; `FINANCE_ENABLED=0` e pedido de salvar seguem para o modelo; nada é gravado na leitura. (c) Bloco local no `send()` mostra o cartão e fala o resumo, sem `/api/chat`. (d) Tela em aparelho e temas no dispositivo seguem pendentes. **Decisão:** repetir dependentes e outras deduções no 13º e nas férias é aceitável como estimativa (está dito na tela); pensão costuma incidir também nesses pagamentos.
