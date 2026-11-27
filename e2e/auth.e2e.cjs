@@ -888,4 +888,64 @@ describe("app com login", () => {
     await aguardarVisivel("#s3d-peca");
     await p.context().close();
   });
+
+  test("ajustes: uso por tipo com teto, quanto falta, minutos de áudio e 3 meses (celular)", async () => {
+    const p = await page(PHONE);
+    const pedidos = [];
+    await p.route("**/api/usage/detalhe?*", (r) => { pedidos.push(r.request().url()); return r.fulfill({ json: {
+      mes: "2026-11", gasto: 1.25, teto: 5, reservado: 0.25, falta: 3.5, completo: true,
+      tipos: [
+        { tipo: "chat", rotulo: "Conversa", custo: 1.2, vezes: 12 },
+        { tipo: "transcribe", rotulo: "Transcrição", custo: 0.0042, vezes: 3, segundos: 150 },
+      ],
+      meses: [
+        { mes: "2026-11", rotulo: "nov/2026", custo: 1.25, vezes: 15 },
+        { mes: "2026-10", rotulo: "out/2026", custo: 0, vezes: 0 },
+        { mes: "2026-09", rotulo: "set/2026", custo: 0.5, vezes: 1 },
+      ],
+    } }); });
+    await p.goto(`${BASE}/app?tab=ajustes`);
+    const card = p.locator(".uso-det");
+    await card.getByRole("heading", { name: "Seu uso por tipo" }).waitFor();
+    await card.getByRole("img", { name: /Teto de nov\/2026.*1,50.*5,00.*30%/ }).waitFor();
+    await card.getByText(/Falta: US\$ 3,50/).waitFor();
+    await card.getByText("12 mensagens").waitFor();
+    await card.getByText("3 min de áudio").waitFor();
+    await card.getByText("US$ 0,0042").waitFor();
+    await card.getByText("out/2026").waitFor();
+    assert.match(pedidos[0], /meses=3/);
+    assert.equal(await overflowX(p), 0, "sem rolagem lateral a 390 px");
+    await p.context().close();
+  });
+
+  test("administração: consumo por pessoa só para admin, ordenado e com % do teto", async () => {
+    const p = await page(PHONE);
+    await p.route("**/api/admin/people", (r) => r.fulfill({ json: { people: [], invites: [] } }));
+    await p.route("**/api/admin/saude", (r) => r.fulfill({ json: { ligado: false, disponivel: false } }));
+    await p.route("**/api/admin/consumo?*", (r) => r.fulfill({ json: {
+      mes: "2026-11", total: 2.5, tetoFonte: "servidor", completo: true,
+      pessoas: [
+        { id: "a", nome: "Pessoa de teste A", email: "a@exemplo.test", custo: 2, teto: 2.5, tetoProprio: false, pct: 80,
+          tipos: [{ tipo: "chat", rotulo: "Conversa", custo: 2, vezes: 4 }], motores: [{ motor: "modelo-teste", provedor: "gateway", custo: 2, vezes: 4 }] },
+        { id: "b", nome: "Pessoa de teste B", email: "b@exemplo.test", custo: 0.5, teto: 20, tetoProprio: false, pct: 3, tipos: [], motores: [] },
+      ],
+    } }));
+    await p.goto(`${BASE}/app?tab=admin`);
+    const painel = p.locator("#adm-consumo");
+    if (process.env.E2E_ADMIN === "1") {
+      await painel.waitFor();
+      const nomes = await painel.locator(".adm-consumo .t").allInnerTexts();
+      assert.deepEqual(nomes.slice(0, 2), ["Pessoa de teste A", "Pessoa de teste B"]);
+      await painel.getByText("80%").waitFor();
+      await painel.getByText(/padrão do servidor/).waitFor();
+      await painel.getByText("Pessoa de teste A").click();
+      await painel.getByText("modelo-teste").waitFor();
+      assert.equal(await overflowX(p), 0, "sem rolagem lateral a 390 px");
+    } else {
+      // Pessoa comum: ?tab=admin cai em Configurações e o painel nem aparece.
+      await p.getByRole("heading", { name: "Seu uso por tipo" }).waitFor();
+      assert.equal(await painel.count(), 0);
+    }
+    await p.context().close();
+  });
 });

@@ -492,3 +492,11 @@ button.pj-card:hover { border-color: color-mix(in srgb, var(--c) 55%, transparen
 .fin-teto-n.alerta { color: var(--hot); }
 .fin-teto-n.estourou { color: var(--bad); font-weight: 600; }
 .fin-big b { font-size: 1.4rem; }
+
+/* Consumo de IA: Ajustes (uso por tipo) e Administração (por pessoa). */
+.adm-consumo { border-bottom: 1px solid var(--line); }
+.adm-consumo:last-child { border-bottom: 0; }
+.adm-consumo > summary { cursor: pointer; list-style: none; border-bottom: 0; }
+.adm-consumo > summary::-webkit-details-marker { display: none; }
+.adm-consumo[open] { display: flex; flex-direction: column; gap: var(--s-2); padding-bottom: var(--s-3); }
+.adm-consumo .tnum, .uso-det .tnum { white-space: nowrap; }
