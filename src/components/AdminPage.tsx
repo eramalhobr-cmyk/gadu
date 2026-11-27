@@ -5,6 +5,7 @@ import { AGENT_PRESETS } from "@/lib/presets";
 import { EmptyState, PageHeader, Panel } from "./kit";
 import { Bars, Kpi, KpiRow, PainelHead } from "./charts";
 import { Icon } from "./ui";
+import { AdminConsumo } from "./AdminConsumo";
 import { fraseSaude } from "@/lib/saude-voz";
 import type { Saude } from "@/lib/telemetria/saude";
 
@@ -64,6 +65,7 @@ export function AdminPage() {
         {err && <div className="notice" role="alert">{err}</div>}
 
         <PainelSaude saude={saude} />
+        <AdminConsumo />
 
         <div className="split">
           <Panel title={`Pessoas${people?.length ? ` · ${people.length}` : ""}`} icon="user">
