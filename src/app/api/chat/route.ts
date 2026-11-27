@@ -1,4 +1,6 @@
 import { blocoPesquisa, pedePesquisaInvestimentos } from "@/lib/investimentos/pesquisa";
+import { blocoSinais, pedeSinais } from "@/lib/investimentos/chat-sinais";
+import { sinaisEnabled } from "@/lib/investimentos/flag";
 import { z } from "zod";
 import { capturarErroServidor } from "@/lib/telemetria/capturar";
 import { resolveAcoes } from "@/lib/acoes-resolver";
@@ -365,6 +367,14 @@ export async function POST(request: Request) {
             ? await import("@/lib/investimentos/fonte").then(({ carregarCotacoes }) => carregarCotacoes(token)).catch(() => [])
             : [];
           pesquisaBlock = blocoPesquisa(cotacoes);
+        }
+        // Sinais (Tendência, Momento, Força relativa, Risco + backtest), calculados no servidor com dados públicos.
+        const ativosSinais = sinaisEnabled() && pode(agente, "financas") ? pedeSinais(message) : null;
+        if (ativosSinais) {
+          const sinais = await import("@/lib/investimentos/analise")
+            .then(({ carregarSinais }) => carregarSinais(ativosSinais, { brapiToken: process.env.BRAPI_TOKEN || undefined }))
+            .catch(() => null);
+          pesquisaBlock += blocoSinais(sinais);
         }
         const context = contextBlock(name, memFor, (related.data ?? []) as { title: string; summary: string; updated_at: string }[]) + extras + (await semantic) + google + coreBlock + financeBlock + goalsBlock + comprasBlock + filhosBlock + salarioBlock + pesquisaBlock + avisoFerramentas(agente) + (parsed.data.context ? contextLine(parsed.data.context) : "");
         inputChars = system.length + context.length + turns.reduce((n, t) => n + t.content.length, 0);

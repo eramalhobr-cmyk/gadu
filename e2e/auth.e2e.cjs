@@ -107,8 +107,12 @@ describe("app com login", () => {
     await mercado.getByText("+2%", { exact: true }).waitFor();
     await mercado.getByText("-1%", { exact: true }).waitFor();
     await mercado.getByText("Sem dados", { exact: true }).waitFor();
+    await p.route("**/api/investimentos/sinais?*", (r) => r.fulfill({ json: {
+      grupo: "acompanhados", aviso: "", fundamentos: "Sem dados fundamentais: o estudo usa só preços.", referencias: [], itens: [], indisponiveis: [],
+    } }));
     await mercado.getByRole("button", { name: "Abrir Investimentos" }).click();
-    await p.getByRole("heading", { name: "Ações acompanhadas" }).waitFor();
+    await p.getByRole("tab", { name: "Acompanhados" }).waitFor();
+    await p.getByText("Não é recomendação de investimento.", { exact: false }).first().waitFor();
     await p.context().close();
   });
 

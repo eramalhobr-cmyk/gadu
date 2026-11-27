@@ -47,6 +47,33 @@
 .market-card dl > div { display: flex; justify-content: space-between; gap: var(--s-2); padding-block: var(--s-1); }
 .market-card dd { margin: 0; font-weight: 600; }
 
+/* Investimentos · sinais (celular primeiro: uma coluna a 390 px, alvos de 44 px) */
+.inv-aviso { margin: 0; }
+.inv-card { display: flex; flex-direction: column; gap: var(--s-2); min-width: 0; }
+.inv-card h3, .inv-card p { margin: 0; }
+.inv-top { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s-2); }
+.inv-sinal { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 999px; font-weight: 700; border: 1px solid currentColor; white-space: nowrap; }
+.inv-compra { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.inv-venda { color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+.inv-manter { color: var(--hot); background: color-mix(in srgb, var(--hot) 10%, transparent); }
+.inv-sem_dados { color: var(--ink-3); }
+.inv-motivos { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; font-size: var(--fs-sm); }
+.inv-graf { margin: 0; }
+.inv-graf svg { display: block; width: 100%; height: 72px; }
+.inv-graf polyline { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.inv-graf-preco { stroke: var(--sig); stroke-width: 2; }
+.inv-graf-media { stroke: var(--ink-3); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.inv-leg-preco { color: var(--sig); }
+.inv-bt { border-top: 1px solid var(--line); padding-top: var(--s-2); display: grid; gap: var(--s-1); font-size: var(--fs-sm); }
+.inv-bt dl { margin: 0; }
+.inv-perdeu { color: var(--bad); font-weight: 600; }
+.inv-ganhou { color: var(--ok); font-weight: 600; }
+.inv-ask { min-height: 44px; align-self: flex-start; }
+.inv-como { border: 1px solid var(--line); border-radius: 12px; padding: var(--s-3); }
+.inv-como > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; }
+.inv-como[open] > * + * { margin-top: var(--s-3); }
+.page .seg[aria-label="Grupos de ações"] button { min-height: 44px; }
+
 @media (min-width: 1440px) {
   .lp main { max-width: none; padding-inline: clamp(24px, 4vw, 96px); }
 }
