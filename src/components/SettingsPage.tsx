@@ -8,6 +8,7 @@ import { canSpeak, listVoices, voiceLabel, type Speaker } from "@/lib/speech";
 import { DENIED_HELP, deviceLabel, permissionMessage, pushSupport, type PushSupport } from "@/lib/push-client";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { ConfirmCard } from "./ConfirmCard";
+import { UsoDetalhado } from "./UsoDetalhado";
 
 export type Prefs = { voice: boolean; handsFree: boolean; voiceURI: string; rate: number ; autoSend: boolean; shortVoice: boolean; cloudVoice: boolean; naturalVoice: boolean };
 type Usage = {
@@ -137,7 +138,7 @@ export function SettingsPage(props: {
 
         <section className="set-group" id="g-custos" aria-labelledby="h-custos">
           <h2 id="h-custos">Custos de IA</h2>
-          <div className="set-cards"><SpendCard /></div>
+          <div className="set-cards"><SpendCard /><UsoDetalhado /></div>
         </section>
 
         <section className="set-group" id="g-conta" aria-labelledby="h-conta">
