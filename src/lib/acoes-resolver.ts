@@ -365,6 +365,13 @@ export async function resolveAcoes(db: SessionDb, userId: string, acoes: AcaoPro
           else misses.push(`Não achei o lembrete "${a.lembrete}" entre os pendentes.`);
           break;
         }
+        // Concluir vale para o pendente e para o já avisado (o aviso saiu, mas a pessoa ainda não fez).
+        case "lembrete_concluir": {
+          const r = matchByName(await snoozable(), (x) => x.text, a.lembrete);
+          if (r) actions.push({ kind: "lembrete_ok", id: r.id, text: r.text, dueAt: r.due_at });
+          else misses.push(`Não achei o lembrete "${a.lembrete}".`);
+          break;
+        }
         case "conta_paga": case "conta_desmarcar": case "conta_valor": {
           if (!opts.finance) break;
           const { hoje, doMes, contas } = await contasDoMes();

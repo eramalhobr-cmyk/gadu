@@ -1,6 +1,7 @@
 "use client";
 import { LISTA_COMPRAS_ATUALIZADA } from "@/lib/lista-compras/types";
 import { AGENDA_FILHOS_ATUALIZADA } from "@/lib/filhos/carregar";
+import { LEMBRETES_ATUALIZADOS } from "@/lib/lembretes";
 import { MSG, RETRY_LABEL } from "@/lib/errors";
 import { describe, type ChatAction } from "@/lib/chat-actions";
 import type { ViewId } from "@/lib/modules";
@@ -23,8 +24,17 @@ export async function runAction(a: ChatAction): Promise<Result> {
   const prep = await capture(a);
   const r = await execute(a);
   if (r.ok && prep) { const undo = prep(r); if (undo) r.undo = undo; }
+  if (r.ok && LEMBRETE_KINDS.has(a.kind)) {
+    atualizaLembretes();
+    const u = r.undo;
+    if (u) r.undo = async () => { const x = await u(); if (x.ok) atualizaLembretes(); return x; };
+  }
   return r;
 }
+
+/** A tela de Lembretes, se estiver aberta, recarrega depois de uma ação da conversa (ou do Desfazer dela). */
+const LEMBRETE_KINDS = new Set<ChatAction["kind"]>(["lembrete", "lembrete_adiar", "lembrete_off", "lembrete_ok"]);
+const atualizaLembretes = () => window.dispatchEvent(new Event(LEMBRETES_ATUALIZADOS));
 
 type Prep = (r: Result) => (() => Promise<Result>) | undefined;
 const back = async (p: PromiseLike<{ error: unknown }>, fail = MSG.undo): Promise<Result> => { const { error } = await p; return error ? { ok: false, msg: fail } : { ok: true }; };
@@ -97,7 +107,7 @@ async function capture(a: ChatAction): Promise<Prep | null> {
         if (!data) return null;
         return () => () => back(db.from("tasks").update(data).eq("id", a.id));
       }
-      case "lembrete_adiar": case "lembrete_off": {
+      case "lembrete_adiar": case "lembrete_off": case "lembrete_ok": {
         const { data } = await db.from("reminders").select("due_at, status, sent_at").eq("id", a.id).maybeSingle();
         if (!data) return null;
         return () => () => back(db.from("reminders").update(data).eq("id", a.id));
@@ -333,6 +343,7 @@ async function execute(a: ChatAction): Promise<Result> {
     // Adiar: volta para "pendente" (se já tinha avisado) e o servidor avisa de novo no novo horário.
     if (a.kind === "lembrete_adiar") return saved(await supabaseBrowser().from("reminders").update({ due_at: a.novoDueAt, status: "pending", sent_at: null }).eq("id", a.id).in("status", ["pending", "sent"]).select("id"));
     if (a.kind === "lembrete_off") return saved(await supabaseBrowser().from("reminders").update({ status: "cancelled" }).eq("id", a.id).select("id"));
+    if (a.kind === "lembrete_ok") return saved(await supabaseBrowser().from("reminders").update({ status: "done" }).eq("id", a.id).in("status", ["pending", "sent"]).select("id"));
     if (a.kind === "teto") return api(a.valor === null
       ? await fetch(`/api/finance/tetos?categoria=${encodeURIComponent(a.categoria)}`, { method: "DELETE" })
       : await put("/api/finance/tetos", { categoria: a.categoria, valor: a.valor }), "Não consegui salvar o teto.");
@@ -390,6 +401,7 @@ function saved(r: { error: unknown; data: unknown[] | null }): Result {
 export async function undoAction(a: ChatAction): Promise<Result> {
   if (a.kind === "lembrete") {
     const { error } = await supabaseBrowser().from("reminders").delete().eq("id", a.id);
+    if (!error) atualizaLembretes();
     return error ? { ok: false, msg: "Não consegui apagar. Tente de novo." } : { ok: true };
   }
   if (a.kind === "tarefa_criada") {

@@ -3,7 +3,7 @@
 
 export type ModuleId = "pessoal" | "lista_compras" | "compras" | "filhos" | "metas" | "financeiro" | "investimentos" | "casa" | "office" | "studio" | "studio3d" | "plataforma";
 export type ModuleStatus = "disponivel" | "parcial" | "desenvolvimento" | "planejado";
-export type ViewId = "hoje" | "modulos" | "conversa" | "tarefas" | "agenda" | "projetos" | "lista_compras" | "compras" | "filhos" | "memoria" | "metas" | "financeiro" | "investimentos" | "casa" | "agentes" | "office" | "studio" | "studio3d" | "integracoes" | "ajustes" | "perfil" | "admin";
+export type ViewId = "hoje" | "modulos" | "conversa" | "tarefas" | "lembretes" | "agenda" | "projetos" | "lista_compras" | "compras" | "filhos" | "memoria" | "metas" | "financeiro" | "investimentos" | "casa" | "agentes" | "office" | "studio" | "studio3d" | "integracoes" | "ajustes" | "perfil" | "admin";
 
 export type ViewDef = { id: ViewId; label: string; icon: string; adminOnly?: boolean; /** Aparece no topo do menu, fora dos grupos ("Início"). */ home?: boolean; /** Tela de navegação (não aparece nos grupos). */ hub?: boolean; /** Endereço antigo que abre outra tela (ex.: Perfil e Integrações abrem Configurações); não aparece nos menus. */ alias?: boolean };
 export type ModuleDef = {
@@ -36,11 +36,12 @@ export const MODULES: ModuleDef[] = [
       { id: "modulos", label: "Mais", icon: "grid", hub: true },
       { id: "conversa", label: "Conversa", icon: "chat" },
       { id: "tarefas", label: "Tarefas", icon: "check" },
+      { id: "lembretes", label: "Lembretes", icon: "bell" },
       { id: "agenda", label: "Agenda", icon: "calendar" },
       { id: "projetos", label: "Projetos", icon: "folder" },
       { id: "memoria", label: "Memória", icon: "book" },
     ],
-    available: ["Conversa por voz e texto", "Agenda e e-mails do Google (leitura)", "Tarefas, projetos e lembretes", "Memória com a sua aprovação", "Briefing da manhã e revisão da noite"],
+    available: ["Conversa por voz e texto", "Agenda e e-mails do Google (leitura)", "Tarefas, projetos e lembretes", "Lembretes com aviso no celular: criar, editar, adiar, concluir e apagar, na tela ou pela conversa", "Memória com a sua aprovação", "Briefing da manhã e revisão da noite"],
     planned: ["Rascunhos de e-mail com aprovação", "Voz natural e conversa contínua"],
     needs: [],
   },
@@ -141,14 +142,14 @@ export const AREAS: AreaDef[] = [
 ];
 /** Telas que funcionam, na ordem única dos menus (UX-1): a mesma no celular ("Mais") e no computador (menu lateral).
  * Hoje, Conversa e Tarefas ficam na barra de baixo do celular; o resto, em "Mais". */
-export const MAIN_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "lista_compras", "compras", "filhos", "investimentos", "projetos", "memoria", "agentes"];
+export const MAIN_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas", "lembretes", "agenda", "financeiro", "metas", "lista_compras", "compras", "filhos", "investimentos", "projetos", "memoria", "agentes"];
 export const DOCK_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas"];
 /** Grupos dos menus (UX-7): a mesma divisão na tela Mais do celular e no menu lateral do computador.
  * Cada grupo traz um exemplo do que dizer, porque tudo no GaDu também se faz pela conversa. */
 export type NavGroupId = "dia" | "vida" | "criacao";
 export type NavGroup = { id: NavGroupId; name: string; hint: string; views: ViewId[] };
 export const NAV_GROUPS: NavGroup[] = [
-  { id: "dia", name: "Meu dia", hint: "“Como está meu dia?”", views: ["hoje", "conversa", "tarefas", "agenda", "projetos", "memoria"] },
+  { id: "dia", name: "Meu dia", hint: "“Como está meu dia?”", views: ["hoje", "conversa", "tarefas", "lembretes", "agenda", "projetos", "memoria"] },
   { id: "vida", name: "Vida", hint: "“Quanto gastei este mês?”", views: ["metas", "financeiro", "lista_compras", "compras", "filhos", "investimentos"] },
   { id: "criacao", name: "Agentes e criação", hint: "“Cria um agente para os estudos”", views: ["agentes"] },
 ];

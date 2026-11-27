@@ -72,5 +72,5 @@ test("UX-7: grupos dos menus cobrem cada tela principal uma vez só, e escondem 
   assert.ok(!ultimas.includes("financeiro") && !ultimas.includes("metas"));
   const off = navGroups((v) => v === "lista_compras", DOCK_VIEWS);
   assert.ok(!off.find((g) => g.id === "vida")?.views.includes("lista_compras"));
-  assert.deepEqual(off.find((g) => g.id === "dia")?.views, ["agenda", "projetos", "memoria"]);
+  assert.deepEqual(off.find((g) => g.id === "dia")?.views, ["lembretes", "agenda", "projetos", "memoria"]);
 });
