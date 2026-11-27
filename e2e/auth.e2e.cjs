@@ -207,6 +207,67 @@ describe("app com login", () => {
     }
   });
 
+  test("Lembretes no celular: vazio convida a falar, cria, conclui com Desfazer e apaga com confirmação", async () => {
+    const p = await page(PHONE);
+    // Fixture em memória: nada é gravado na conta de teste.
+    let lista = [];
+    let seq = 0;
+    const patches = [];
+    await p.route("**/api/lembretes**", async (r) => {
+      const req = r.request();
+      const m = /\/api\/lembretes\/(\d+)/.exec(req.url());
+      if (req.method() === "GET") return r.fulfill({ json: { lembretes: lista } });
+      if (req.method() === "POST") {
+        const b = req.postDataJSON();
+        const novo = { id: ++seq, text: b.texto, due_at: b.quando, status: "pending", sent_at: null };
+        lista = [...lista, novo];
+        return r.fulfill({ status: 201, json: { lembrete: novo } });
+      }
+      if (req.method() === "PATCH" && m) {
+        const b = req.postDataJSON();
+        patches.push(b);
+        lista = lista.map((l) => (l.id === Number(m[1]) ? { ...l, ...(b.status ? { status: b.status } : {}), ...(b.texto ? { text: b.texto } : {}), ...(b.quando ? { due_at: b.quando } : {}) } : l));
+        return r.fulfill({ json: { lembrete: lista.find((l) => l.id === Number(m[1])) } });
+      }
+      return r.abort();
+    });
+    try {
+      let chats = 0;
+      p.on("request", (r) => { if (r.url().includes("/api/chat")) chats++; });
+      await p.goto(`${BASE}/app?tab=conversa`);
+      await p.fill("#msg", "abre os lembretes");
+      await p.click(".chat-form [aria-label=Enviar]");
+      await p.waitForURL(/tab=lembretes/);
+      assert.equal(chats, 0, "navegação por voz sem chamar o modelo");
+      await p.getByRole("heading", { name: "Lembretes", level: 1 }).waitFor();
+      await p.getByText("Nenhum lembrete por aqui").waitFor();
+      await p.locator(".empty-say").first().waitFor();
+
+      await p.getByRole("button", { name: "Novo lembrete" }).click();
+      await p.getByLabel("O que lembrar?").fill("Regar as plantas de teste");
+      await p.getByRole("button", { name: "Criar", exact: true }).click();
+      const proximos = p.getByRole("list", { name: "Próximos" });
+      await proximos.getByText("Regar as plantas de teste").waitFor();
+      await p.locator(".undo-toast").getByText("Lembrete criado.").waitFor();
+      assert.equal(await overflowX(p), 0, "sem rolagem lateral no celular");
+
+      await p.getByRole("button", { name: "Concluir Regar as plantas de teste" }).click();
+      const recentes = p.getByRole("list", { name: "Avisados e concluídos" });
+      await recentes.getByText(/^Concluído · /).waitFor();
+      await p.locator(".undo-toast").getByRole("button", { name: "Desfazer" }).click();
+      await proximos.getByText("Regar as plantas de teste").waitFor();
+      assert.deepEqual(patches.map((x) => x.status), ["done", "pending"], "Desfazer volta à situação anterior");
+
+      await p.getByRole("button", { name: "Apagar Regar as plantas de teste" }).click();
+      await p.getByText("Apagar Regar as plantas de teste?").waitFor();
+      await p.getByRole("button", { name: "Apagar", exact: true }).click();
+      await p.getByText("Nenhum lembrete por aqui").waitFor();
+      assert.equal(patches.at(-1).status, "cancelled");
+    } finally {
+      await p.context().close();
+    }
+  });
+
   test("Voltar do Android volta de tela em vez de fechar o app; abrir direto numa tela volta para Hoje", async () => {
     const p = await page(PHONE);
     await p.goto(`${BASE}/app?tab=hoje`);

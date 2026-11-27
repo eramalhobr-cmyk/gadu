@@ -58,6 +58,7 @@ export type ChatAction =
   | { kind: "tarefa_reabrir"; id: number; titulo: string }
   | { kind: "tarefa_editar"; id: number; titulo: string; mudancas: TarefaMudancas }
   | { kind: "lembrete_off"; id: number; text: string; dueAt: string }
+  | { kind: "lembrete_ok"; id: number; text: string; dueAt: string }
   | { kind: "lembrete_adiar"; id: number; text: string; dueAt: string; novoDueAt: string }
   | { kind: "conta_paga"; itemId: string; nome: string; valor: number; ano: number; mes: number }
   | { kind: "conta_desmarcar"; itemId: string; nome: string; valor: number; ano: number; mes: number }
@@ -140,7 +141,7 @@ export type ActionView = {
   applied: boolean;
   /** Cartão só de informação (resultado de um cálculo): sem Confirmar, sem Descartar e sem Desfazer; não entra na confirmação falada. */
   info?: boolean;
-  open?: { label: string; view: "financeiro" | "metas" | "agenda" | "hoje" | "tarefas" | "projetos" | "ajustes" | "memoria" | "agentes" | "lista_compras" | "filhos" };
+  open?: { label: string; view: "financeiro" | "metas" | "agenda" | "hoje" | "tarefas" | "projetos" | "ajustes" | "memoria" | "agentes" | "lista_compras" | "filhos" | "lembretes" };
 };
 
 const TZ = "America/Sao_Paulo";
@@ -237,7 +238,7 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
       return {
         icon: "bell", proposed: "Lembrete criado", done: "Lembrete criado", undone: "Lembrete apagado",
         title: a.text, detail: whenLabel(a.dueAt, now),
-        confirm: "", busy: "Apagando…", applied: true, open: { label: "Ver no Hoje", view: "hoje" },
+        confirm: "", busy: "Apagando…", applied: true, open: { label: "Ver lembretes", view: "lembretes" },
       };
     case "meta_nova": {
       const alvo = a.medicao === "numerica" && a.alvo !== null ? `${fmtNum(a.inicial)} → ${fmtNum(a.alvo)}${a.unidade ? ` ${a.unidade}` : ""}` : a.medicao === "percentual" ? "0 a 100%" : a.medicao === "marcos" ? `${a.marcos.length} ${a.marcos.length === 1 ? "marco" : "marcos"}` : "por tarefas";
@@ -296,9 +297,11 @@ export function describe(a: ChatAction, now = new Date()): ActionView {
     case "tarefa_editar":
       return { icon: "check", proposed: "Mudar tarefa?", done: "Tarefa mudada", undone: "Descartado", title: a.titulo, detail: mudancasTexto(a.mudancas), confirm: "Mudar", busy: "Salvando…", applied: false, open: { label: "Ver Tarefas", view: "tarefas" } };
     case "lembrete_adiar":
-      return { icon: "bell", proposed: "Adiar lembrete?", done: "Lembrete adiado", undone: "Descartado", title: a.text, detail: `Novo horário: ${whenLabel(a.novoDueAt, now)}`, confirm: "Adiar", busy: "Salvando…", applied: false, open: { label: "Ver no Hoje", view: "hoje" } };
+      return { icon: "bell", proposed: "Adiar lembrete?", done: "Lembrete adiado", undone: "Descartado", title: a.text, detail: `Novo horário: ${whenLabel(a.novoDueAt, now)}`, confirm: "Adiar", busy: "Salvando…", applied: false, open: { label: "Ver lembretes", view: "lembretes" } };
     case "lembrete_off":
-      return { icon: "bell", proposed: "Cancelar lembrete?", done: "Lembrete cancelado", undone: "Descartado", title: a.text, detail: whenLabel(a.dueAt, now), confirm: "Cancelar lembrete", busy: "Salvando…", applied: false, open: { label: "Ver no Hoje", view: "hoje" } };
+      return { icon: "bell", proposed: "Cancelar lembrete?", done: "Lembrete cancelado", undone: "Descartado", title: a.text, detail: whenLabel(a.dueAt, now), confirm: "Cancelar lembrete", busy: "Salvando…", applied: false, open: { label: "Ver lembretes", view: "lembretes" } };
+    case "lembrete_ok":
+      return { icon: "bell", proposed: "Concluir lembrete?", done: "Lembrete concluído", undone: "Descartado", title: a.text, detail: whenLabel(a.dueAt, now), confirm: "Concluir", busy: "Salvando…", applied: false, open: { label: "Ver lembretes", view: "lembretes" } };
     case "conta_paga":
       return { icon: "coin", proposed: "Marcar conta como paga?", done: "Conta paga", undone: "Descartado", title: a.nome, detail: `${formatBRL(a.valor)} · ${String(a.mes).padStart(2, "0")}/${a.ano}`, confirm: "Marcar paga", busy: "Salvando…", applied: false, open: { label: "Ver no Financeiro", view: "financeiro" } };
     case "conta_desmarcar":
@@ -451,6 +454,7 @@ export function actionQuestion(a: ChatAction, now = new Date()): string {
     case "tarefa_editar": return `Na tarefa ${a.titulo}, mudo ${mudancasFalada(a.mudancas, now)}?`;
     case "lembrete_adiar": return `Adio o lembrete ${a.text} para ${whenLabel(a.novoDueAt, now)}?`;
     case "lembrete_off": return `Cancelo o lembrete ${a.text}?`;
+    case "lembrete_ok": return `Marco o lembrete ${a.text} como feito?`;
     case "conta_paga": return `Marco a conta ${a.nome}, de ${spokenMoney(a.valor)}, como paga?`;
     case "conta_desmarcar": return `Volto a conta ${a.nome} para em aberto?`;
     case "conta_valor": return `Mudo a conta ${a.nome} para ${spokenMoney(a.valor)}${a.escopo === "proximos" ? ", deste mês até dezembro" : " neste mês"}?`;

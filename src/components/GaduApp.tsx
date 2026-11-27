@@ -7,6 +7,7 @@ import { InvestimentosPage } from "./InvestimentosPage";
 import type { ActionView, ChatAction, EventDraft, GastoDraft } from "@/lib/chat-actions";
 import type { Ajuste } from "@/lib/acoes";
 import { ListaComprasPage } from "./ListaComprasPage";
+import { LembretesPage } from "./LembretesPage";
 import { ComprasPage } from "./ComprasPage";
 import { FilhosPage } from "./FilhosPage";
 import { actionQuestion, describe, splitNavegacao } from "@/lib/chat-actions";
@@ -966,7 +967,7 @@ export function GaduApp(props: {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  const PALETA_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas", "agenda", "financeiro", "metas", "lista_compras", "compras", "filhos", "investimentos", "projetos", "memoria", "agentes", "studio3d", "ajustes", "perfil", "integracoes", "modulos"];
+  const PALETA_VIEWS: ViewId[] = ["hoje", "conversa", "tarefas", "lembretes", "agenda", "financeiro", "metas", "lista_compras", "compras", "filhos", "investimentos", "projetos", "memoria", "agentes", "studio3d", "ajustes", "perfil", "integracoes", "modulos"];
   const runPaleta = (it: PaletaItem) => {
     setPaleta(false);
     if (it.kind === "tela") { if (it.view === "studio3d") window.location.href = "/app/3d"; else setTab(it.view); return; }
@@ -1275,6 +1276,7 @@ export function GaduApp(props: {
         {view === "modulos" && <ModulesHub onOpen={setTab} onHistory={() => setDrawer(true)} pending={pending} admin={props.admin} name={name} email={props.email}
           hide={[...(props.financeEnabled ? [] : ["financeiro" as const]), ...(props.goalsEnabled ? [] : ["metas" as const]), ...(props.listaComprasEnabled ? [] : ["lista_compras" as const]), ...(props.comprasEnabled ? [] : ["compras" as const]), ...(props.agendaFilhosEnabled ? [] : ["filhos" as const])]} show3d={Boolean(props.modeling3dEnabled)} />}
         {view === "agentes" && <AgentsPage onTalk={(a) => talkAbout({ kind: "agent", ...a })} />}
+        {view === "lembretes" && <LembretesPage />}
         {view === "lista_compras" && props.listaComprasEnabled && <ListaComprasPage />}
         {view === "compras" && props.comprasEnabled && <ComprasPage />}
         {view === "filhos" && props.agendaFilhosEnabled && <FilhosPage />}
